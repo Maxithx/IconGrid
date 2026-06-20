@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Views/StartsideStyles.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!--
+        Hero and card text should reuse the same brushes as Startside so we stay on-brand:
+        - Hero titles use TopBarForeground
+        - Supporting text uses SettingsSubtextForeground
+        - All buttons rely on AccentBrush for emphasis and StartsideSectionCardStyle for layout
+        When you create a new page, wrap content in TemplatePage and place primary actions inside Startside cards.
+    -->
+    <Style x:Key="TemplateHeroTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{Binding TopBarForeground}" />
+    </Style>
+    <Style x:Key="TemplateHeroBodyStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{Binding SettingsSubtextForeground}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style x:Key="TemplateActionButtonStyle" TargetType="Button" BasedOn="{StaticResource LayoutActionButtonStyle}">
+        <Setter Property="Background" Value="{Binding AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{Binding AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+    <sys:String x:Key="TemplateGuidance">
+        Use TemplatePage + StartsideSectionCardStyle for consistent spacing, card radius, and hero margins. Always derive text/buttons from the brushes above.
+    </sys:String>
+</ResourceDictionary>

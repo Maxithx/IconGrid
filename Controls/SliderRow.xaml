@@ -1,0 +1,33 @@
+<UserControl x:Class="IconGrid.Controls.SliderRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <Grid Margin="0,0,0,12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="160" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="{Binding Label, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   VerticalAlignment="Center"
+                   Foreground="{Binding LabelForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+        <Slider Grid.Column="1"
+                Value="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                Minimum="{Binding Minimum, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                SmallChange="{Binding SmallChange, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                LargeChange="{Binding LargeChange, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                TickFrequency="{Binding TickFrequency, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                IsSnapToTickEnabled="{Binding IsSnapToTickEnabled, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                Style="{StaticResource ModernSliderStyle}"
+                Margin="12,0" />
+        <TextBlock Grid.Column="2"
+                   VerticalAlignment="Center"
+                   Margin="12,0,0,0"
+                   Foreground="{Binding LabelForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   Text="{Binding FormattedValue, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+    </Grid>
+</UserControl>

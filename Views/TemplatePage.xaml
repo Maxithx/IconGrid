@@ -1,0 +1,39 @@
+﻿<UserControl x:Class="IconGrid.Views.TemplatePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="TemplateGuidelines.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <helpers:TemplateContentWidthConverter x:Key="TemplateContentWidthConverter"
+                                                   MaxWidth="1280"
+                                                   MinWidth="520"
+                                                   HorizontalGutter="48" />
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Background="Transparent"
+          helpers:DevInspector.Metadata="Template cards layout → Views/TemplatePage.xaml">
+        <Border HorizontalAlignment="Center"
+                Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType={x:Type views:TemplatePage}}, Converter={StaticResource TemplateContentWidthConverter}}"
+                MaxWidth="1280"
+                MinWidth="520"
+                Margin="0"
+                Padding="0">
+            <StackPanel Margin="0,10,0,0">
+                <Border Style="{StaticResource StartsideSectionCardStyle}">
+                    <ContentPresenter Content="{Binding HeroContent, RelativeSource={RelativeSource AncestorType={x:Type views:TemplatePage}}}" />
+                </Border>
+                <ContentPresenter Content="{Binding CardsContent, RelativeSource={RelativeSource AncestorType={x:Type views:TemplatePage}}}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
+

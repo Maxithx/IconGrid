@@ -1,0 +1,50 @@
+﻿<UserControl x:Class="IconGrid.Views.HjaelpPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <views:TemplatePage Margin="12">
+        <views:TemplatePage.HeroContent>
+            <StackPanel helpers:DevInspector.Metadata="Hjælp hero card → Views/HjaelpPage.xaml">
+                <TextBlock Text="Hjælp"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{Binding TopBarForeground}" />
+                <TextBlock Text="Guiden forklarer, hvordan drag &amp; drop og sensorer fungerer, når IconGrid kører."
+                           FontSize="13"
+                           Margin="0,8,0,0"
+                           TextWrapping="Wrap"
+                           Foreground="{Binding SettingsSubtextForeground}" />
+            </StackPanel>
+        </views:TemplatePage.HeroContent>
+        <views:TemplatePage.CardsContent>
+            <StackPanel>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Drag &amp; drop info card → Views/HjaelpPage.xaml">
+                    <TextBlock Text="Drag &amp; drop fungerer kun, når IconGrid kører uden administratorrettigheder. Windows' UIPI forhindrer Explorer i at sende drag-beskeder til vinduer med højere privilegier."
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}"
+                               LineHeight="20" />
+                </Border>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Sensor info card → Views/HjaelpPage.xaml">
+                    <TextBlock Text="Når IconGrid kører uden admin, kan LibreHardwareMonitor ikke læse CPU-sensorerne, så temperaturerne forbliver som '--'. Hvis du har brug for temperaturdata, kør IconGrid som administrator og brug 'Tilføj'-knappen ved at højreklikke på et ikonområde i en kategori."
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}"
+                               LineHeight="20" />
+                </Border>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="More tips card → Views/HjaelpPage.xaml">
+                    <TextBlock Text="Har du brug for flere tips? Brug de andre kategorier til at finde layout-genveje, og kig efter ikoner der matcher din workflow."
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}"
+                               LineHeight="20" />
+                </Border>
+            </StackPanel>
+        </views:TemplatePage.CardsContent>
+    </views:TemplatePage>
+</UserControl>

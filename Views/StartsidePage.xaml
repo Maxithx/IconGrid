@@ -1,0 +1,138 @@
+<UserControl x:Class="IconGrid.Views.StartsidePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             Background="Transparent">
+    <views:TemplatePage Margin="12">
+        <views:TemplatePage.HeroContent>
+            <StackPanel helpers:DevInspector.Metadata="Startside hero card → Views/StartsidePage.xaml">
+                <TextBlock Text="Startside"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <TextBlock Margin="0,8,0,0"
+                           Text="Administrer generelle indstillinger og hvordan IconGrid interagerer med dit system."
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="Konfigurer opstart, visning og kernefunktioner fra ét sted."
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            </StackPanel>
+        </views:TemplatePage.HeroContent>
+        <views:TemplatePage.CardsContent>
+            <StackPanel>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="System and startup card → Views/StartsidePage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="System og opstart"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                        <StackPanel Margin="0,12,0,0">
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="IconGrid vises altid øverst"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Start med Windows"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding StartWithWindows, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Vis rulleknapper på kategori menuen"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding ShowScrollButtons, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Vis udvikler overlay"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding ShowDevOverlay, Mode=TwoWay}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,18,0,0">
+                            <TextBlock Margin="0,0,0,4"
+                                       Text="UI størrelse"
+                                       FontSize="14"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="360" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Grid.Column="0"
+                                        Minimum="0.8"
+                                        Maximum="1.0"
+                                        SmallChange="0.02"
+                                        LargeChange="0.05"
+                                        TickFrequency="0.02"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding UiScale, Mode=TwoWay}"
+                                        Width="360"
+                                        Style="{StaticResource ModernSliderStyle}" />
+                                <TextBlock Grid.Column="1"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding UiScale, StringFormat={}{0:P0}}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Reset card → Views/StartsidePage.xaml">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Text="Nulstil til standard" />
+                        <ToggleButton Grid.Column="1"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding ResetSettingsToggle, Mode=TwoWay}" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </views:TemplatePage.CardsContent>
+    </views:TemplatePage>
+</UserControl>

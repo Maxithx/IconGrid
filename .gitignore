@@ -1,0 +1,20 @@
+# .NET / WPF Ignore
+bin/
+obj/
+.vs/
+*.user
+*.log
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Projekt-specifikke mapper
+IconTest/
+scripts/
+backups/
+
+# Gemte logs og data
+trace.log
+error.log
+config.json
+items.json

@@ -1,0 +1,112 @@
+﻿<UserControl x:Class="IconGrid.Views.GenvejsIkonerPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             xmlns:controls="clr-namespace:IconGrid.Controls"
+             mc:Ignorable="d"
+             Background="Transparent">
+    <views:TemplatePage Margin="12">
+        <views:TemplatePage.HeroContent>
+            <StackPanel helpers:DevInspector.Metadata="Genvejs hero card â†’ Views/GenvejsIkonerPage.xaml">
+                <StackPanel>
+                    <TextBlock Text="Genvejs ikoner"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Text="Finjuster layoutet af genvejsikoner og deres spacing."
+                               FontSize="13"
+                               Margin="0,8,0,0"
+                               Foreground="{Binding SettingsSubtextForeground}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Margin="0,16,0,0"
+                            helpers:DevInspector.Metadata="Genvejs slider group → Views/GenvejsIkonerPage.xaml">
+                    <controls:SliderRow Label="Mellemrumm mellem ikonrækkerne"
+                                        Minimum="-50"
+                                        Maximum="50"
+                                        Value="{Binding IconRowSpacing, Mode=TwoWay}"
+                                        ValueFormat="{}{0:F0} px"
+                                        LabelForeground="{Binding SettingsSubtextForeground}"
+                                        helpers:DevInspector.Metadata="Mellemrumm slider → Views/GenvejsIkonerPage.xaml" />
+
+                    <controls:SliderRow Label="Luft under sidste række"
+                                        Minimum="-100"
+                                        Maximum="100"
+                                        Value="{Binding LastRowPaddingAdjust, Mode=TwoWay}"
+                                        ValueFormat="{}{0:F0} px"
+                                        LabelForeground="{Binding SettingsSubtextForeground}"
+                                        helpers:DevInspector.Metadata="Luft slider → Views/GenvejsIkonerPage.xaml" />
+
+                    <controls:SliderRow Label="Ikonstørrelse"
+                                        Minimum="0.5"
+                                        Maximum="1.5"
+                                        Value="{Binding IconScale, Mode=TwoWay}"
+                                        ValueFormat="{}{0:P0}"
+                                        LabelForeground="{Binding SettingsSubtextForeground}"
+                                        helpers:DevInspector.Metadata="Ikonstørrelse slider → Views/GenvejsIkonerPage.xaml" />
+                    <Grid Margin="0,12,0,0"
+                          helpers:DevInspector.Metadata="Scrollbar toggle → Views/GenvejsIkonerPage.xaml">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding EnableIconScrollLabel}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding SettingsSubtextForeground}" />
+                        <ToggleButton Grid.Column="1"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding EnableContentScroll, Mode=TwoWay}"
+                                      VerticalAlignment="Center"
+                                      Margin="12,0,0,0" />
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </views:TemplatePage.HeroContent>
+
+        <views:TemplatePage.CardsContent>
+            <StackPanel>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Genvejs animation card â†’ Views/GenvejsIkonerPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="Genvejs ikoner baggrunds slide op/ned animation"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <TextBlock Text="Finjuster op/ned animation og hastighed."
+                                   FontSize="13"
+                                   Margin="0,6,0,10"
+                                   Foreground="{Binding SettingsSubtextForeground}"
+                                   TextWrapping="Wrap" />
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Genvejs ikoner baggrunds animation"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding SettingsSubtextForeground}" />
+                            <ToggleButton Grid.Column="1"
+                                          Style="{StaticResource ToggleSwitchStyle}"
+                                          IsChecked="{Binding EnableSlideUpAnimation, Mode=TwoWay}" />
+                        </Grid>
+                        <controls:SliderRow Label="Animation hastighed"
+                                            Minimum="100"
+                                            Maximum="2000"
+                                            SmallChange="50"
+                                            LargeChange="100"
+                                            TickFrequency="50"
+                                            Value="{Binding WindowAnimationDurationMs, Mode=TwoWay}"
+                                            ValueFormat="{}{0:F0} ms"
+                                            LabelForeground="{Binding SettingsSubtextForeground}"
+                                            helpers:DevInspector.Metadata="Animation hastighed slider → Views/GenvejsIkonerPage.xaml" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </views:TemplatePage.CardsContent>
+    </views:TemplatePage>
+</UserControl>
+

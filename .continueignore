@@ -1,0 +1,8 @@
+.dotnet/
+.vs/
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+IconGrid.Package/
