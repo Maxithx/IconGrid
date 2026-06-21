@@ -895,6 +895,22 @@
                         Drop="ItemsControl_Drop"
                         ContextMenuOpening="ContentArea_ContextMenuOpening">
                             <Grid>
+                                <TextBlock Text="Træk og Slip en genvej her"
+                                        Foreground="#66FFFFFF"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CurrentItems.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                     <ScrollViewer x:Name="IconScrollViewer"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   PanningMode="VerticalOnly"
