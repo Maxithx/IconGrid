@@ -56,77 +56,188 @@ public sealed class HardwareSnapshotCollector : IDisposable
         };
     }
 
-    private (string? CpuTemp, string? GpuTemp) CaptureTemperatures()
+    private (string? cpu, string? gpu) CaptureTemperatures()
     {
-        _computer.Accept(_visitor);
+        string? cpu = null;
+        string? gpu = null;
 
-        var cpuTemps = new List<float>();
-        var gpuTemps = new List<float>();
-
-        foreach (var hardware in _computer.Hardware)
+        try
         {
-            foreach (var sensor in hardware.Sensors)
+            _computer.Accept(_visitor);
+            foreach (var hardware in _computer.Hardware)
             {
-                if (sensor.SensorType == SensorType.Temperature)
+                if (hardware.HardwareType == HardwareType.Cpu)
                 {
-                    // Dynamisk opsamling af alle temperatursensorer
-                    if (hardware.HardwareType == HardwareType.Cpu)
+                    // Tjek for Intel N150 (SoC) arkitektur vs. traditionel Ryzen/CPU
+                    if (hardware.Name.Contains("N150", StringComparison.OrdinalIgnoreCase))
                     {
-                        cpuTemps.Add(sensor.Value ?? 0);
+                        // Intel N150: Brug en mere generel tilgang til SoC-sensorer
+                        cpu ??= SelectPreferredTemperatureSensor(hardware.Sensors, (name) => 1);
                     }
-                    else if (IsGpuHardwareType(hardware.HardwareType))
+                    else
                     {
-                        gpuTemps.Add(sensor.Value ?? 0);
+                        // Din eksisterende, optimerede Ryzen-logik (prioriterer Tctl)
+                        cpu ??= SelectPreferredTemperatureSensor(hardware.Sensors, GetCpuSensorPriority);
                     }
+                }
+                else if (IsGpuHardwareType(hardware.HardwareType))
+                {
+                    // Din eksisterende GPU-logik, som fungerer med Afterburner
+                    gpu ??= SelectPreferredTemperatureSensor(hardware.Sensors, GetGpuSensorPriority);
                 }
             }
         }
+        catch
+        {
+        }
 
-        // Returnerer den højeste temperatur fundet for CPU og GPU
-        return (
-            FormatTemperature(cpuTemps.Any() ? cpuTemps.Max() : null),
-            FormatTemperature(gpuTemps.Any() ? gpuTemps.Max() : null)
-        );
+        return (cpu, gpu);
     }
 
-    private double? CaptureCpuUsage()
+    private float? CaptureCpuUsage()
     {
-        foreach (var hardware in _computer.Hardware)
+        try
         {
-            if (hardware.HardwareType == HardwareType.Cpu)
+            _computer.Accept(_visitor);
+            foreach (var hardware in _computer.Hardware)
             {
-                foreach (var sensor in hardware.Sensors)
+                if (hardware.HardwareType != HardwareType.Cpu)
                 {
-                    if (sensor.SensorType == SensorType.Load && sensor.Name == "CPU Total")
-                    {
-                        return sensor.Value;
-                    }
+                    continue;
                 }
+
+                var usageSensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Load && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetCpuUsagePriority(sensor.Name))
+                    .FirstOrDefault();
+
+                return usageSensor?.Value;
             }
         }
+        catch
+        {
+        }
+
         return null;
     }
 
-    private double SmoothCpuUsage(double usage)
+    private double SmoothCpuUsage(double latestValue)
     {
-        _cpuUsageEma ??= usage;
-        _cpuUsageEma = (_cpuUsageEma * 0.9) + (usage * 0.1);
+        const double alpha = 0.35;
+        if (!_cpuUsageEma.HasValue)
+        {
+            _cpuUsageEma = latestValue;
+            return latestValue;
+        }
+
+        _cpuUsageEma = _cpuUsageEma.Value + alpha * (latestValue - _cpuUsageEma.Value);
         return _cpuUsageEma.Value;
+    }
+
+    private static string? SelectPreferredTemperatureSensor(IEnumerable<ISensor> sensors, Func<string?, int> prioritySelector)
+    {
+        var candidate = sensors
+            .Where(sensor => sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+            .OrderByDescending(sensor => prioritySelector(sensor.Name))
+            .FirstOrDefault();
+
+        return candidate == null ? null : FormatTemperature(candidate.Value);
+    }
+
+    private static int GetCpuUsagePriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("Total", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("Package", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static int GetCpuSensorPriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("Tctl", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("Package", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static int GetGpuSensorPriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("GPU", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private static string? FormatTemperature(float? value)
     {
-        if (!value.HasValue || value.Value <= 0) return null;
+        if (!value.HasValue)
+        {
+            return null;
+        }
+
         return $"{value.Value:F0}°C";
     }
 
     private static bool IsGpuHardwareType(HardwareType hardwareType)
     {
-        return hardwareType.ToString().StartsWith("Gpu", StringComparison.OrdinalIgnoreCase);
+        var name = hardwareType.ToString();
+        return name.StartsWith("Gpu", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()
     {
-        try { _computer.Close(); } catch { }
+        try
+        {
+            _computer.Close();
+        }
+        catch
+        {
+        }
     }
 }
