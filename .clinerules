@@ -1,0 +1,18 @@
+# Projekt Regler for IconGrid
+Du arbejder i et Windows PowerShell miljø. Følg altid disse regler:
+
+1. TERMINAL-KOMMANDOER:
+   - Brug aldrig Linux/Unix-kommandoer (ingen `grep`, `ls`, `cut`, `sort` eller `head`).
+   - Brug kun PowerShell-kommandoer. 
+   - Brug `Get-ChildItem` til at liste filer.
+   - Brug `Select-String` til at søge efter tekst.
+   - Hvis du er i tvivl om en kommando, så brug fil-API'et i VS Code i stedet for terminalen.
+
+2. FIL-NAVIGERING:
+   - Du har direkte adgang til fil-strukturen. Brug VS Code's indbyggede fil-læsning i stedet for at køre tunge `dir`-kommandoer.
+   - Hold din arbejdsmængde lille: Arbejd med maksimalt 3-4 filer ad gangen for at bevare overblikket.
+
+3. ARKITEKTUR & OPVASK:
+   - Vi prioriterer Single Responsibility Principle.
+   - Hvis en mappe (f.eks. /Helpers) begynder at blive rodet, så foreslå en opdeling i stedet for bare at tilføje mere kode.
+   - Ved tvivl: Spørg brugeren før du kører komplekse shell-scripts.
