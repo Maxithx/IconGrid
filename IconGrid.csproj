@@ -4,7 +4,6 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
 
-    <!-- WPF + WinForms (kun til NotifyIcon) -->
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
 
@@ -19,7 +18,6 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
-  <!-- Application icon for the generated EXE -->
   <PropertyGroup>
     <ApplicationIcon>Assets\dlb-icon.ico</ApplicationIcon>
   </PropertyGroup>
@@ -35,39 +33,6 @@
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
   </ItemGroup>
 
-  <!-- Exclude legacy WinForms-based label control (replaced by native WPF TextBlock) -->
-  <ItemGroup>
-    <Compile Remove="IconTest\**" />
-    <Compile Remove="Helpers\ShellIconTextBlock.cs" />
-    <Compile Remove="backup\**" />
-    <Compile Remove="backups\**" />
-    <Compile Remove="IconGrid-backup2 14-03-2026 - 16.20\**" />
-    <Page Remove="IconGrid-backup2 14-03-2026 - 16.20\**\*.xaml" />
-    <None Remove="IconGrid-backup2 14-03-2026 - 16.20\**\*.*" />
-    <Page Remove="backups\**\*.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="**\IconGrid-backup2 14-03-2026 - 16.20\**\*.cs" />
-    <Page Remove="**\IconGrid-backup2 14-03-2026 - 16.20\**\*.xaml" />
-    <None Remove="**\IconGrid-backup2 14-03-2026 - 16.20\**\*.*" />
-    <Content Remove="**\IconGrid-backup2 14-03-2026 - 16.20\**\*.*" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="**\IconGrid-backup*\**\*.cs" />
-    <Page Remove="**\IconGrid-backup*\**\*.xaml" />
-    <None Remove="**\IconGrid-backup*\**\*.*" />
-    <Content Remove="**\IconGrid-backup*\**\*.*" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="**\backups\**\*.cs" />
-    <Page Remove="**\backups\**\*.xaml" />
-    <None Remove="**\backups\**\*.*" />
-    <Content Remove="**\backups\**\*.*" />
-  </ItemGroup>
-
-  <!-- (Removed reference to missing PNG resource; ICON file is used as ApplicationIcon) -->
-
-  <!-- Ensure the .ico is part of the project (not copied to output; embedded into the EXE) -->
   <ItemGroup>
     <Resource Include="Assets\dlb-icon.ico" />
     <Content Include="Assets\WindowsShortcuts\**\*">
