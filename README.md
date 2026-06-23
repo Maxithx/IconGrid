@@ -1,5 +1,7 @@
 # IconGrid: En letvægts launcher med hardware monitor
 
+![IconGrid screenshot](Assets/git-img/IconGrid.png)
+
 IconGrid is a lightweight WPF launcher for Windows with draggable shortcuts, flexible tabs/categories, and real‑time system monitoring in the title bar. Det tilpasser sig automatisk Windows-temaet, accentfarver og proceslinjens farve. Projektet indeholder et indbygget udvikler-overlay (`DevInspector.Metadata`), der gør det muligt at hover over UI-elementer for at se deres binding-kontekst.
 
 ## Quick overview
