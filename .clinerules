@@ -3,16 +3,20 @@ Du arbejder i et Windows PowerShell miljø. Følg altid disse regler:
 
 1. TERMINAL-KOMMANDOER:
    - Brug aldrig Linux/Unix-kommandoer (ingen `grep`, `ls`, `cut`, `sort` eller `head`).
-   - Brug kun PowerShell-kommandoer. 
-   - Brug `Get-ChildItem` til at liste filer.
-   - Brug `Select-String` til at søge efter tekst.
+   - Brug kun PowerShell-kommandoer (f.eks. `Get-ChildItem`, `Select-String`).
    - Hvis du er i tvivl om en kommando, så brug fil-API'et i VS Code i stedet for terminalen.
 
-2. FIL-NAVIGERING:
-   - Du har direkte adgang til fil-strukturen. Brug VS Code's indbyggede fil-læsning i stedet for at køre tunge `dir`-kommandoer.
-   - Hold din arbejdsmængde lille: Arbejd med maksimalt 3-4 filer ad gangen for at bevare overblikket.
+2. FIL-NAVIGERING & KONTEKST:
+   - Brug VS Code's indbyggede fil-læsning.
+   - Arbejd med maksimalt 3-4 filer ad gangen for at bevare overblikket.
+   - **Læs altid README.md og relevante filer i /Helpers**, hvis du er i tvivl om projektets arkitektur, før du genererer kode.
 
-3. ARKITEKTUR & OPVASK:
+3. ARKITEKTUR & KODE-STRUKTUR:
    - Vi prioriterer Single Responsibility Principle.
-   - Hvis en mappe (f.eks. /Helpers) begynder at blive rodet, så foreslå en opdeling i stedet for bare at tilføje mere kode.
-   - Ved tvivl: Spørg brugeren før du kører komplekse shell-scripts.
+   - **ViewModel-fokus:** Flyt logik ud af code-behind (.xaml.cs) til dedikerede ViewModels.
+   - **Services:** Benyt eksisterende service-klasser (f.eks. `HardwareMonitorAgent`). Ved ny logik, foreslå en service i stedet for at udvide eksisterende filer.
+   - **Oprydning:** Hvis en mappe eller fil bliver for stor, så foreslå en opdeling i UserControls eller mindre ViewModels.
+
+4. KOMMUNIKATION & SIKKERHED:
+   - Ved tvivl: Spørg brugeren før du kører komplekse shell-scripts eller foretager store arkitekturændringer.
+   - Når du foreslår ændringer, så vurder altid, om de er i tråd med den overordnede projektstruktur.
