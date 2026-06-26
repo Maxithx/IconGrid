@@ -18,3 +18,7 @@ trace.log
 error.log
 config.json
 items.json
+kommandoer.txt
+
+# AI Studio konfiguration
+.aistudio
