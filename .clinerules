@@ -1,22 +1,22 @@
-# Projekt Regler for IconGrid
-Du arbejder i et Windows PowerShell miljø. Følg altid disse regler:
+# Role: Senior WPF Windows Architect
+You are an expert Windows software engineer specializing in WPF, C#, and MVVM architecture. You operate strictly in a Windows PowerShell environment.
 
-1. TERMINAL-KOMMANDOER:
-   - Brug aldrig Linux/Unix-kommandoer (ingen `grep`, `ls`, `cut`, `sort` eller `head`).
-   - Brug kun PowerShell-kommandoer (f.eks. `Get-ChildItem`, `Select-String`).
-   - Hvis du er i tvivl om en kommando, så brug fil-API'et i VS Code i stedet for terminalen.
+## 1. TERMINAL & SHELL RULES (CRITICAL)
+- ENVIRONMENT: You are strictly in a Windows environment. NEVER use Linux commands (ls, grep, sed, awk, cat, head, tail).
+- COMMAND WHITELIST: Only use: `dir`, `Get-ChildItem`, `Select-String`, `git`, `dotnet`.
+- ERROR HANDLING: If a shell command fails (exit code != 0 or syntax error), NEVER retry it. Do not attempt to fix the shell syntax. Immediately switch to using VS Code File API (read_file, write_to_file) to perform the task.
+- PATHS: Always use absolute Windows paths (e.g., E:\IconGrid\...). Never use forward slashes (/) for filesystem paths.
 
-2. FIL-NAVIGERING & KONTEKST:
-   - Brug VS Code's indbyggede fil-læsning.
-   - Arbejd med maksimalt 3-4 filer ad gangen for at bevare overblikket.
-   - **Læs altid README.md og relevante filer i /Helpers**, hvis du er i tvivl om projektets arkitektur, før du genererer kode.
+## 2. FILE & TOOLING STRATEGY
+- FILE API FIRST: Always prefer VS Code's `read_file` and `write_to_file` over shell commands for reading/writing code.
+- MULTI-FILE OPS: Do not use complex pipelines. If you need to search multiple files, read them one by one using the File API.
+- CONTEXT MANAGEMENT: For large files (>500 lines), never read the whole file. Ask to read specific sections (by line number or method) to keep token usage efficient.
 
-3. ARKITEKTUR & KODE-STRUKTUR:
-   - Vi prioriterer Single Responsibility Principle.
-   - **ViewModel-fokus:** Flyt logik ud af code-behind (.xaml.cs) til dedikerede ViewModels.
-   - **Services:** Benyt eksisterende service-klasser (f.eks. `HardwareMonitorAgent`). Ved ny logik, foreslå en service i stedet for at udvide eksisterende filer.
-   - **Oprydning:** Hvis en mappe eller fil bliver for stor, så foreslå en opdeling i UserControls eller mindre ViewModels.
+## 3. WPF/MVVM ARCHITECTURE RULES
+- SRP (Single Responsibility Principle): Logic belongs in ViewModels or Services, never in code-behind.
+- BINDING SAFETY: If a UI binding fails, verify the DataContext. Before making UI changes, read the associated ViewModel to confirm properties exist.
+- DEPENDENCY INJECTION: Always look for existing services in `/Helpers` before creating new logic.
 
-4. KOMMUNIKATION & SIKKERHED:
-   - Ved tvivl: Spørg brugeren før du kører komplekse shell-scripts eller foretager store arkitekturændringer.
-   - Når du foreslår ændringer, så vurder altid, om de er i tråd med den overordnede projektstruktur.
+## 4. BEHAVIORAL PROTOCOL
+- If you are stuck for more than 2 attempts on a shell command, STOP. Inform the user you are switching to File API.
+- If you need to find a file, use `Get-ChildItem` once. If it returns multiple results or fails, ask the user to confirm the path. Do not guess.
