@@ -5,6 +5,7 @@
 - Floating icon refactor phase 1 er færdig
 - `FloatingIconButton` er udskilt fra `MainWindow`
 - `FloatingIconController` er udskilt fra `MainWindow`
+- `LauncherTopBar` er udskilt fra `MainWindow`
 - README er opdateret med vigtige `Helpers`
 
 ## Næste fokus
@@ -16,12 +17,17 @@
 
 ### Fase 2: Main Launcher Interface
 
-- [ ] Udskil `TopBar` fra `Views/MainWindow.xaml`
+- [x] Udskil `TopBar` fra `Views/MainWindow.xaml`
 - [ ] Flyt logo-område til separat control
 - [ ] Flyt monitor-row (`SystemMonitor`) til separat control
 - [ ] Flyt minimize/close-knapper til separat control eller topbar-del
 - [ ] Afklar om `...`-knappen skal omdøbes fra `More` til `Indstillinger`
 - [ ] Behold åbning af `SettingsWindow`, men gør triggeren mere modulær
+
+### Fase 2 noter
+
+- [x] Fix startup resource-scope i `LauncherTopBar`
+- [x] Fix defensiv shutdown når startup fejler tidligt
 
 ### Fase 3: Kategori-navigation
 

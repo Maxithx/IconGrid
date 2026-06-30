@@ -3294,8 +3294,12 @@ namespace IconGrid.Views
         {
             _monitorTimer?.Stop();
             _autoHideTimer?.Stop();
-            _viewModel.SystemMonitor.PropertyChanged -= SystemMonitor_PropertyChanged;
-            _viewModel.SystemMonitor.Dispose();
+            if (_viewModel != null)
+            {
+                _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                _viewModel.SystemMonitor.PropertyChanged -= SystemMonitor_PropertyChanged;
+                _viewModel.SystemMonitor.Dispose();
+            }
             ClosePawnIoWarningWindow();
             if (_settingsWindow != null)
             {

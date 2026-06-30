@@ -77,6 +77,7 @@ Reusable, standardized custom controls designed to keep XAML views lean and main
 * `LauncherLogo.xaml / .cs`: Renders the app logo (a distinct 3x3 dot grid) responding dynamically to the active Windows accent color.
 * `SliderRow.xaml / .cs`: A composite control matching a descriptive label, an interactive slider, and a text value box for fluid settings configuration.
 * `FloatingIconButton.xaml / .cs`: Encapsulates the minimized floating launcher button, including its visual template, click behavior hooks, and exit context menu.
+* `LauncherTopBar.xaml / .cs`: Encapsulates the main launcher’s top row, including logo, live monitor strip, and minimize/close window controls.
 
 ### UI Behavior Helpers (`/Helpers`)
 Focused UI controllers and infrastructure used by the main shell:
@@ -90,7 +91,7 @@ Focused UI controllers and infrastructure used by the main shell:
 
 ### Window & Page Layouts (`/Views`)
 * **Shell Components:**
-  * `MainWindow.xaml / .cs`: The primary shell window coordinating transitions between the floating launcher state and the expanded dashboard while delegating floating-icon UI and behavior to dedicated modules.
+  * `MainWindow.xaml / .cs`: The primary shell window coordinating transitions between the floating launcher state and the expanded dashboard while delegating floating-icon and topbar UI to dedicated modules.
   * `SettingsWindow.xaml`: A dedicated panel managing global configurations and app preferences.
 * **Modular Dashboard Pages:**
   * `StartsidePage.xaml`: Configures system startup settings, user interface scaling, and overlay topmost thresholds.
