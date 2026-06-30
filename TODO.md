@@ -78,6 +78,7 @@
 - [x] `MainViewModel.cs` er analyseret og opdelt i konkrete refactor-faser før kodeændringer
 - [x] Første anbefalede startpunkt er tab/category-logik, fordi `LauncherTabsBar` allerede er modulariseret
 - [x] `LauncherTabsState` er oprettet som første split af tab-state fra `MainViewModel`
+- [x] `CurrentItems` og current-category filtrering bruger nu fælles hjælpe-metoder i `MainViewModel`
 - [x] `MainViewModel` delegérer nu `Tabs`, `SelectedTab`, `AddTab`, `RenameTab` og `RemoveTab` til tabs-state
 
 ### Fase 6: Struktur-oprydning

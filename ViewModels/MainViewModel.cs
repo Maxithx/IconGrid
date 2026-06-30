@@ -174,11 +174,7 @@ namespace IconGrid.ViewModels
         {
             get
             {
-                var filtered = Items
-                    .Where(i => string.Equals(i.Category, SelectedTab, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-                return new ObservableCollection<LauncherItem>(filtered);
+                return new ObservableCollection<LauncherItem>(GetItemsForSelectedTabSnapshot());
             }
         }
 
@@ -1185,7 +1181,7 @@ namespace IconGrid.ViewModels
             if (string.IsNullOrWhiteSpace(SelectedTab))
                 return;
 
-            var itemsToRemove = Items.Where(i => string.Equals(i.Category, SelectedTab, StringComparison.OrdinalIgnoreCase)).ToList();
+            var itemsToRemove = GetItemsForSelectedTabSnapshot();
             if (itemsToRemove.Count == 0)
                 return;
 
@@ -1196,6 +1192,21 @@ namespace IconGrid.ViewModels
 
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
+        }
+
+        private List<LauncherItem> GetItemsForSelectedTabSnapshot()
+        {
+            return GetItemsForTabSnapshot(SelectedTab);
+        }
+
+        private List<LauncherItem> GetItemsForTabSnapshot(string? tabName)
+        {
+            if (string.IsNullOrWhiteSpace(tabName))
+                return new List<LauncherItem>();
+
+            return Items
+                .Where(i => string.Equals(i.Category, tabName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         public void RenameTab(string oldName, string newName)
