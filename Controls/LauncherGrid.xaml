@@ -127,19 +127,19 @@
                                     AllowDrop="True">
                                 <Button.ContextMenu>
                                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                        <MenuItem Header="{Binding DataContext.OpenLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OpenItemMenuItem_Click" />
-                                        <MenuItem Header="{Binding DataContext.RunAsAdminLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RunAsAdminMenuItem_Click" />
-                                        <MenuItem Header="{Binding DataContext.OpenFileLocationLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OpenLocationMenuItem_Click" />
-                                        <MenuItem Header="{Binding DataContext.CopyPathLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="CopyPathMenuItem_Click" />
-                                        <MenuItem Header="{Binding DataContext.ChangeIconLabel, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                            <MenuItem Header="{Binding DataContext.WindowsIconsLabel, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        <MenuItem Header="{Binding DataContext.OpenLabel, Source={x:Reference Root}}" Click="OpenItemMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RunAsAdminLabel, Source={x:Reference Root}}" Click="RunAsAdminMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.OpenFileLocationLabel, Source={x:Reference Root}}" Click="OpenLocationMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.CopyPathLabel, Source={x:Reference Root}}" Click="CopyPathMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.ChangeIconLabel, Source={x:Reference Root}}">
+                                            <MenuItem Header="{Binding DataContext.WindowsIconsLabel, Source={x:Reference Root}}"
                                                       Tag="%SystemRoot%\\System32\\imageres.dll"
                                                       Click="ChangeIconMenuItem_Click" />
                                         </MenuItem>
-                                        <MenuItem Header="{Binding DataContext.ResetIconLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="ResetIconMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.ResetIconLabel, Source={x:Reference Root}}" Click="ResetIconMenuItem_Click" />
                                         <Separator />
-                                        <MenuItem Header="{Binding DataContext.RenameLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RenameMenuItem_Click" />
-                                        <MenuItem Header="{Binding DataContext.RemoveLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RemoveItemMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RenameLabel, Source={x:Reference Root}}" Click="RenameMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RemoveLabel, Source={x:Reference Root}}" Click="RemoveItemMenuItem_Click" />
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
