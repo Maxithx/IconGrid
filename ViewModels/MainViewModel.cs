@@ -89,6 +89,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherTabsState _tabsState;
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
+        private readonly LauncherShortcutManager _shortcutManager;
         private ConfigModel _config;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
@@ -123,6 +124,7 @@ namespace IconGrid.ViewModels
             Items = new ObservableCollection<LauncherItem>();
             _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
             _itemIconManager = new LauncherItemIconManager();
+            _shortcutManager = new LauncherShortcutManager(Items, _itemIconManager);
             Items.CollectionChanged += (s, e) =>
             {
                 SaveItemsToFile();
@@ -1286,26 +1288,7 @@ namespace IconGrid.ViewModels
 
         public void HandleFileDrop(string[] files)
         {
-            if (files == null || files.Length == 0)
-                return;
-
-            var added = false;
-            foreach (var file in files)
-            {
-                if (!ShortcutHelper.IsSupportedLauncherFile(file))
-                    continue;
-
-                var launcher = ShortcutHelper.CreateLauncherItemFromFile(file, SelectedTab);
-                if (launcher != null)
-                {
-                    launcher.RefreshIcon();
-                    _itemIconManager.EnsureItemIconLoaded(launcher);
-                    Items.Add(launcher);
-                    added = true;
-                }
-            }
-
-            if (!added)
+            if (!_shortcutManager.HandleFileDrop(files, SelectedTab))
                 return;
 
             OnPropertyChanged(nameof(CurrentItems));
@@ -1348,17 +1331,7 @@ namespace IconGrid.ViewModels
         /// </summary>
         public LauncherItem CreateCustomShortcut(string displayName, string targetPath, string category, string? arguments = null, string? iconPath = null, int iconIndex = 0)
         {
-            var item = new LauncherItem
-            {
-                DisplayName = displayName,
-                Path = targetPath,
-                Arguments = arguments,
-                Category = category,
-                IconPath = iconPath ?? targetPath,
-                IconIndex = iconIndex
-            };
-
-            Items.Add(item);
+            var item = _shortcutManager.CreateCustomShortcut(displayName, targetPath, category, arguments, iconPath, iconIndex);
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
             return item;
