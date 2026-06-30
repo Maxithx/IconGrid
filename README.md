@@ -9,6 +9,8 @@ IconGrid is a highly customizable, lightweight Windows desktop launcher and syst
 IconGrid utilizes a seamless toggle behavior between a discrete desktop overlay and the main launcher dashboard to keep the workspace clean yet immediately accessible.
 
 ### 1. Startup & The Floating Icon
+
+![IconGrid Floating icon Screenshot](Assets/git-img/Floatingicon.png)
 * **Aesthetic & Behavior:** Upon startup, IconGrid initializes in a minimized state, displaying only a compact, lightweight **Floating Icon**. 
 * **Workspace Integration:** This acts as a persistent quick-access overlay that stays on screen (Topmost by default) without obstructing other applications.
 * **Left-Click Action:** Clicking the Floating Icon hides it and expands the full application dashboard instantly.
