@@ -1522,39 +1522,10 @@ namespace IconGrid.Views
             _isHidden = targetTop < 0;
         }
 
-        private void AddTabButton_Click(object sender, RoutedEventArgs e)
-        {
-            var name = ShowInputBox("Enter new tab name:", "Add Category", "Video");
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                _viewModel.AddTab(name);
-            }
-        }
-
-        private void RenameTabMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
-        {
-            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not string tabName)
-                return;
-
-            var newName = ShowInputBox("Enter a new name for the tab:", "Rename Tab", tabName);
-            if (!string.IsNullOrWhiteSpace(newName))
-            {
-                _viewModel.RenameTab(tabName, newName);
-            }
-        }
-
         private string ShowInputBox(string prompt, string title, string defaultValue)
         {
             // Midlertidig ? kan senere erstattes af en rigtig WPF-dialog
             return Microsoft.VisualBasic.Interaction.InputBox(prompt, title, defaultValue);
-        }
-
-        private void RemoveTabMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
-        {
-            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not string tabName)
-                return;
-
-            _viewModel.RemoveTab(tabName);
         }
 
         private void RemoveItemMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
