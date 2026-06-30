@@ -21,6 +21,28 @@ IconGrid utilizes a seamless toggle behavior between a discrete desktop overlay 
 
 ---
 
+## Navigation & Windows Architecture
+
+IconGrid’s user interface is split into two primary consumer-facing window types, transitioning fluidly via the main navigation bar.
+
+### 1. Main Launcher Interface
+* **The Dashboard Grid:** Shows the primary tabs (e.g., Games, Software, Development) and hosts the scrollable grid of application shortcuts.
+* **The "More" Menu:** Located in the top-right corner of the dashboard title bar, there is a **"..." (More)** button . Clicking this button acts as the gateway to the advanced management suite.
+
+### 2. Settings & Control Dashboard (SettingsWindow)
+* **Behavior:** Clicking the "More" button instantly initializes and displays the **Settings Dashboard** 
+
+![IconGrid Screenshot](Assets/git-img/Settings & Control Dashboard.png)
+
+which acts as the centralized control panel for application configuration.
+* **Modular Page Navigation:** This window uses a sidebar navigation menu to load modular sub-pages dynamically into the view layer:
+  * `StartsidePage.xaml`: Core system options (e.g., Run on startup, Topmost toggle, UI scaling slider).
+  * `GenvejsIkonerPage.xaml`: Management and adjustment of software shortcuts and configurations.
+  * `LayoutPage.xaml`: Icon grid templates and custom window layout options.
+  * `HardwarePage.xaml`: Comprehensive real-time system monitoring logs and details.
+  * `HjaelpPage.xaml`: User documentation, troubleshooting steps, and macro definitions.
+  * `AboutPage.xaml`: Software versioning, updates, and compliance notes.
+
 ## Key Features
 
 * **Drag-and-Drop Shortcuts:** Easily arrange, add, or group application and game shortcuts into an interactive grid layout.
