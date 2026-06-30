@@ -10,7 +10,7 @@
 
 ## Næste fokus
 
-- Refactor `Main Launcher Interface` i mindre moduler
+- Start refactor af `ViewModels/MainViewModel.cs` i små, sikre faser
 - Holde hardware/temperature-forskellen som separat spor
 
 ## MainWindow refactor
@@ -62,13 +62,27 @@
 - [x] Launcher-gridets UI er flyttet ud af `MainWindow.xaml`
 - [x] Drag/drop og genvejsmenu-events forwardes stadig til `MainWindow.xaml.cs`
 - [x] Genvejsmenuens labels bindes nu korrekt i `LauncherGrid`
+- [x] Empty-state teksten i `LauncherGrid` er rettet til korrekt dansk
 
 ### Fase 5: `MainViewModel` oprydning
 
-- [ ] Start stor oprydning i `ViewModels/MainViewModel.cs`, når `Views/MainWindow.xaml` er færdig modulariseret
-- [ ] Flyt launcher-relateret state og commands til mindre viewmodels/services
-- [ ] Gennemgå bindings mellem `MainWindow`-controls og `MainViewModel`
-- [ ] Fjern død eller duplikeret logik efter `MainWindow`-refactor
+- [ ] Fase 5A: Udskil tab/category-relateret state og logik
+- [ ] Fase 5B: Udskil launcher item-operations og shortcut-logik
+- [ ] Fase 5C: Udskil layout-state og saved-layout logik
+- [ ] Fase 5D: Udskil settings/config persistence
+- [ ] Fase 5E: Udskil theme/appearance state
+- [ ] Fase 5F: Udskil localization-labels og relateret hjælpe-logik
+
+### Fase 5 noter
+
+- [x] `MainViewModel.cs` er analyseret og opdelt i konkrete refactor-faser før kodeændringer
+- [x] Første anbefalede startpunkt er tab/category-logik, fordi `LauncherTabsBar` allerede er modulariseret
+
+### Fase 6: Struktur-oprydning
+
+- [ ] Planlæg undermapper for `Launcher`-relaterede controls/views/helpers
+- [ ] Planlæg undermapper for `Settings`-relaterede views/pages/helpers
+- [ ] Udfør mappeflytninger først efter stabil `MainViewModel`-refactor
 
 ## Hardware TODO
 
