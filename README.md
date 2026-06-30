@@ -80,7 +80,8 @@ Reusable, standardized custom controls designed to keep XAML views lean and main
 * `SliderRow.xaml / .cs`: A composite control matching a descriptive label, an interactive slider, and a text value box for fluid settings configuration.
 * `FloatingIconButton.xaml / .cs`: Encapsulates the minimized floating launcher button, including its visual template, click behavior hooks, and exit context menu.
 * `LauncherMonitorRow.xaml / .cs`: Encapsulates the live system monitor strip with ping, network throughput, and CPU/GPU telemetry bindings.
-* `LauncherTopBar.xaml / .cs`: Encapsulates the main launcher’s top row, including minimize/close window controls while composing the dedicated logo-area and monitor-strip controls.
+* `LauncherWindowButtons.xaml / .cs`: Encapsulates the top-right minimize/close launcher buttons and forwards their click events to the host window.
+* `LauncherTopBar.xaml / .cs`: Encapsulates the main launcher top row as a composition shell for the logo, monitor strip, and window-button controls.
 * `LauncherTabsBar.xaml / .cs`: Encapsulates the category tab row, including tab selection, rename/remove menus, scrolling controls, add-category button, and the `More` button entry point.
 * `LauncherGrid.xaml / .cs`: Encapsulates the main shortcut area, including the launcher item grid, drag/drop handling hooks, scroll container, empty-state prompt, and shortcut context menus.
 

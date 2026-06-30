@@ -14,7 +14,6 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <controls:LauncherLogoArea Grid.Column="0"
@@ -23,37 +22,8 @@
 
         <controls:LauncherMonitorRow Grid.Column="1" />
 
-        <Button Grid.Column="2"
-                Style="{DynamicResource WindowControlButtonStyle}"
-                Click="MinimizeButton_Click"
-                ToolTip="Minimize"
-                Width="44"
-                Height="32"
-                Padding="0"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Right"
-                Margin="4,0,0,0">
-            <TextBlock FontFamily="Segoe MDL2 Assets"
-                       Text="&#xE921;"
-                       FontSize="12"
-                       VerticalAlignment="Center"
-                       Foreground="{Binding TopBarForeground, FallbackValue=White}" />
-        </Button>
-        <Button Grid.Column="3"
-                Style="{DynamicResource WindowCloseButtonStyle}"
-                Click="CloseButton_Click"
-                ToolTip="Close"
-                Width="44"
-                Height="32"
-                Padding="0"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Right"
-                Margin="4,0,0,0">
-            <TextBlock FontFamily="Segoe MDL2 Assets"
-                       Text="&#xE8BB;"
-                       FontSize="12"
-                       VerticalAlignment="Center"
-                       Foreground="{Binding TopBarForeground, FallbackValue=White}" />
-        </Button>
+        <controls:LauncherWindowButtons Grid.Column="2"
+                                        MinimizeClick="MinimizeButton_Click"
+                                        CloseClick="CloseButton_Click" />
     </Grid>
 </UserControl>
