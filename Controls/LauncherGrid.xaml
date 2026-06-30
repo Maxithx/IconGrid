@@ -1,0 +1,152 @@
+<UserControl x:Class="IconGrid.Controls.LauncherGrid"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:IconGrid.Models"
+             x:Name="Root">
+    <Border Margin="0"
+            Padding="20,26,20,0"
+            Background="#33FFFFFF"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            CornerRadius="0,0,8,8"
+            Width="{Binding ContentWidth}"
+            Height="{Binding ContentHostHeight}"
+            MaxHeight="{Binding ContentHostHeight}"
+            AllowDrop="True"
+            UseLayoutRounding="True"
+            SnapsToDevicePixels="True"
+            DragOver="ItemsControl_DragOver"
+            Drop="ItemsControl_Drop"
+            ContextMenuOpening="ContentArea_ContextMenuOpening">
+        <Grid>
+            <TextBlock Text="Træk og Slip en genvej her"
+                       Foreground="#66FFFFFF"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentItems.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <ScrollViewer x:Name="IconScrollViewer"
+                          HorizontalScrollBarVisibility="Disabled"
+                          PanningMode="VerticalOnly"
+                          CanContentScroll="True"
+                          Padding="0,0,0,0"
+                          ScrollChanged="IconScrollViewer_ScrollChanged">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DataContext.EnableContentScroll, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False">
+                                <Setter Property="VerticalScrollBarVisibility" Value="Hidden" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar">
+                        <Setter Property="Width" Value="4" />
+                        <Setter Property="Foreground" Value="#AAFFFFFF" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ScrollBar">
+                                    <Grid x:Name="GridRoot" Background="Transparent" SnapsToDevicePixels="True">
+                                        <Border x:Name="TrackBackground"
+                                                Background="#22000000"
+                                                CornerRadius="2"
+                                                Margin="1,4,1,4"
+                                                Opacity="0" />
+                                        <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                            <Track.DecreaseRepeatButton>
+                                                <RepeatButton Command="ScrollBar.LineUpCommand" Style="{x:Null}" Template="{x:Null}" />
+                                            </Track.DecreaseRepeatButton>
+                                            <Track.IncreaseRepeatButton>
+                                                <RepeatButton Command="ScrollBar.LineDownCommand" Style="{x:Null}" Template="{x:Null}" />
+                                            </Track.IncreaseRepeatButton>
+                                            <Track.Thumb>
+                                                <Thumb x:Name="Thumb" Background="#AAFFFFFF" Opacity="0.65">
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Border Background="{TemplateBinding Background}" CornerRadius="2" />
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="TrackBackground" Property="Opacity" Value="0.5" />
+                                            <Setter TargetName="Thumb" Property="Opacity" Value="0.9" />
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Thumb" Property="Opacity" Value="0" />
+                                            <Setter TargetName="TrackBackground" Property="Opacity" Value="0" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ScrollViewer.Resources>
+                <ItemsControl ItemsSource="{Binding CurrentItems}"
+                              AllowDrop="True"
+                              DragOver="ItemsControl_DragOver"
+                              Drop="ItemsControl_Drop"
+                              VerticalAlignment="Top">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="{Binding IconsPerRow}" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="HorizontalAlignment" Value="Center" />
+                            <Setter Property="VerticalAlignment" Value="Top" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:LauncherItem}">
+                            <Button Style="{DynamicResource LauncherIconTileStyle}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Top"
+                                    MouseDoubleClick="LauncherItemButton_MouseDoubleClick"
+                                    PreviewMouseLeftButtonDown="LauncherItem_PreviewMouseLeftButtonDown"
+                                    PreviewMouseMove="LauncherItem_PreviewMouseMove"
+                                    DragOver="LauncherItem_DragOver"
+                                    Drop="LauncherItem_Drop"
+                                    AllowDrop="True">
+                                <Button.ContextMenu>
+                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                        <MenuItem Header="{Binding DataContext.OpenLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OpenItemMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RunAsAdminLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RunAsAdminMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.OpenFileLocationLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OpenLocationMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.CopyPathLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="CopyPathMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.ChangeIconLabel, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                            <MenuItem Header="{Binding DataContext.WindowsIconsLabel, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      Tag="%SystemRoot%\\System32\\imageres.dll"
+                                                      Click="ChangeIconMenuItem_Click" />
+                                        </MenuItem>
+                                        <MenuItem Header="{Binding DataContext.ResetIconLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="ResetIconMenuItem_Click" />
+                                        <Separator />
+                                        <MenuItem Header="{Binding DataContext.RenameLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RenameMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RemoveLabel, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="RemoveItemMenuItem_Click" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

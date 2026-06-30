@@ -45,10 +45,16 @@
 
 ### Fase 4: Launcher-område
 
-- [ ] Udskil selve ikon-området til separat control
-- [ ] Udskil launcher-ikon item template/control
-- [ ] Flyt højreklik-menu på genvej til launcher-komponenten
-- [ ] Flyt højreklik-menu på ikon-området til launcher-komponenten
+- [x] Udskil selve ikon-området til separat control
+- [x] Udskil launcher-ikon item template/control
+- [x] Flyt højreklik-menu på genvej til launcher-komponenten
+- [x] Flyt højreklik-menu på ikon-området til launcher-komponenten
+
+### Fase 4 noter
+
+- [x] `LauncherGrid` er oprettet som separat control
+- [x] Launcher-gridets UI er flyttet ud af `MainWindow.xaml`
+- [x] Drag/drop og genvejsmenu-events forwardes stadig til `MainWindow.xaml.cs`
 
 ## Hardware TODO
 

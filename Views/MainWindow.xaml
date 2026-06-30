@@ -635,164 +635,23 @@
                         <TranslateTransform Y="0" />
                     </Grid.RenderTransform>
                     <Grid Visibility="{Binding IsOverlayOpen, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                        <Border Margin="0"
-                        Padding="20,26,20,0"
-                        Background="#33FFFFFF"
-                        BorderBrush="Transparent"
-                        BorderThickness="0"
-                        CornerRadius="0,0,8,8"
-                        Width="{Binding ContentWidth}"
-                        Height="{Binding ContentHostHeight}"
-                        MaxHeight="{Binding ContentHostHeight}"
-                        AllowDrop="True"
-                        UseLayoutRounding="True"
-                        SnapsToDevicePixels="True"
-                        DragOver="ItemsControl_DragOver"
-                        Drop="ItemsControl_Drop"
-                        ContextMenuOpening="ContentArea_ContextMenuOpening">
-                            <Grid>
-                                <TextBlock Text="Træk og Slip en genvej her"
-                                        Foreground="#66FFFFFF"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        IsHitTestVisible="False">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding CurrentItems.Count}" Value="0">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                    <ScrollViewer x:Name="IconScrollViewer"
-                                                  HorizontalScrollBarVisibility="Disabled"
-                                                  PanningMode="VerticalOnly"
-                                                  CanContentScroll="True"
-                                                  Padding="0,0,0,0"
-                                                  ScrollChanged="IconScrollViewer_ScrollChanged">
-                                        <ScrollViewer.Style>
-                                            <Style TargetType="ScrollViewer">
-                                                <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding DataContext.EnableContentScroll, ElementName=RootWindow}" Value="False">
-                                                        <Setter Property="VerticalScrollBarVisibility" Value="Hidden" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </ScrollViewer.Style>
-                                        <ScrollViewer.Resources>
-                                        <!-- WinUI-like slim vertical scrollbar -->
-                                        <Style TargetType="ScrollBar">
-                                            <Setter Property="Width" Value="4" />
-                                            <Setter Property="Foreground" Value="#AAFFFFFF" />
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="ScrollBar">
-                                                        <Grid x:Name="GridRoot"
-                                                              Background="Transparent"
-                                                              SnapsToDevicePixels="True">
-                                                            <Border x:Name="TrackBackground"
-                                                                    Background="#22000000"
-                                                                    CornerRadius="2"
-                                                                    Margin="1,4,1,4"
-                                                                    Opacity="0" />
-                                                            <Track x:Name="PART_Track"
-                                                                   IsDirectionReversed="true">
-                                                                <Track.DecreaseRepeatButton>
-                                                                    <RepeatButton Command="ScrollBar.LineUpCommand"
-                                                                                  Style="{x:Null}"
-                                                                                  Template="{x:Null}" />
-                                                                </Track.DecreaseRepeatButton>
-                                                                <Track.IncreaseRepeatButton>
-                                                                    <RepeatButton Command="ScrollBar.LineDownCommand"
-                                                                                  Style="{x:Null}"
-                                                                                  Template="{x:Null}" />
-                                                                </Track.IncreaseRepeatButton>
-                                                                <Track.Thumb>
-                                                                    <Thumb x:Name="Thumb"
-                                                                           Background="#AAFFFFFF"
-                                                                           Opacity="0.65">
-                                                                        <Thumb.Template>
-                                                                            <ControlTemplate TargetType="Thumb">
-                                                                                <Border Background="{TemplateBinding Background}"
-                                                                                        CornerRadius="2" />
-                                                                            </ControlTemplate>
-                                                                        </Thumb.Template>
-                                                                    </Thumb>
-                                                                </Track.Thumb>
-                                                            </Track>
-                                                        </Grid>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="TrackBackground" Property="Opacity" Value="0.5" />
-                                                                <Setter TargetName="Thumb" Property="Opacity" Value="0.9" />
-                                                            </Trigger>
-                                                            <Trigger Property="IsEnabled" Value="False">
-                                                                <Setter TargetName="Thumb" Property="Opacity" Value="0" />
-                                                                <Setter TargetName="TrackBackground" Property="Opacity" Value="0" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </ScrollViewer.Resources>
-                                    <ItemsControl ItemsSource="{Binding CurrentItems}"
-                                                  AllowDrop="True"
-                                                  DragOver="ItemsControl_DragOver"
-                                                  Drop="ItemsControl_Drop"
-                                                  VerticalAlignment="Top">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="{Binding IconsPerRow}" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemContainerStyle>
-                                            <Style TargetType="ContentPresenter">
-                                                <Setter Property="HorizontalAlignment" Value="Center" />
-                                                <Setter Property="VerticalAlignment" Value="Top" />
-                                            </Style>
-                                        </ItemsControl.ItemContainerStyle>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type models:LauncherItem}">
-                                                <Button Style="{StaticResource LauncherIconTileStyle}"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Top"
-                                                        MouseDoubleClick="LauncherItemButton_MouseDoubleClick"
-                                                        PreviewMouseLeftButtonDown="LauncherItem_PreviewMouseLeftButtonDown"
-                                                        PreviewMouseMove="LauncherItem_PreviewMouseMove"
-                                                        DragOver="LauncherItem_DragOver"
-                                                        Drop="LauncherItem_Drop"
-                                                        AllowDrop="True">
-                                                    <Button.ContextMenu>
-                                                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                                            <MenuItem Header="{Binding DataContext.OpenLabel, Source={x:Reference RootWindow}}" Click="OpenItemMenuItem_Click" />
-                                                            <MenuItem Header="{Binding DataContext.RunAsAdminLabel, Source={x:Reference RootWindow}}" Click="RunAsAdminMenuItem_Click" />
-                                                            <MenuItem Header="{Binding DataContext.OpenFileLocationLabel, Source={x:Reference RootWindow}}" Click="OpenLocationMenuItem_Click" />
-                                                            <MenuItem Header="{Binding DataContext.CopyPathLabel, Source={x:Reference RootWindow}}" Click="CopyPathMenuItem_Click" />
-                                                            <MenuItem Header="{Binding DataContext.ChangeIconLabel, Source={x:Reference RootWindow}}">
-                                                                <MenuItem Header="{Binding DataContext.WindowsIconsLabel, Source={x:Reference RootWindow}}"
-                                                                          Tag="%SystemRoot%\\System32\\imageres.dll"
-                                                                          Click="ChangeIconMenuItem_Click" />
-                                                            </MenuItem>
-                                                            <MenuItem Header="{Binding DataContext.ResetIconLabel, Source={x:Reference RootWindow}}" Click="ResetIconMenuItem_Click" />
-                                                            <Separator />
-                                                            <MenuItem Header="{Binding DataContext.RenameLabel, Source={x:Reference RootWindow}}" Click="RenameMenuItem_Click" />
-                                                            <MenuItem Header="{Binding DataContext.RemoveLabel, Source={x:Reference RootWindow}}" Click="RemoveItemMenuItem_Click" />
-                                                        </ContextMenu>
-                                                    </Button.ContextMenu>
-                                                </Button>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-
-                            </Grid>
-                        </Border>
+                        <controls:LauncherGrid ItemsDragOver="ItemsControl_DragOver"
+                                               ItemsDrop="ItemsControl_Drop"
+                                               ContentAreaContextMenuOpening="ContentArea_ContextMenuOpening"
+                                               IconScrollChanged="IconScrollViewer_ScrollChanged"
+                                               LauncherItemPreviewMouseLeftButtonDown="LauncherItem_PreviewMouseLeftButtonDown"
+                                               LauncherItemPreviewMouseMove="LauncherItem_PreviewMouseMove"
+                                               LauncherItemDragOver="LauncherItem_DragOver"
+                                               LauncherItemDrop="LauncherItem_Drop"
+                                               LauncherItemMouseDoubleClick="LauncherItemButton_MouseDoubleClick"
+                                               OpenItemClick="OpenItemMenuItem_Click"
+                                               RunAsAdminClick="RunAsAdminMenuItem_Click"
+                                               OpenLocationClick="OpenLocationMenuItem_Click"
+                                               CopyPathClick="CopyPathMenuItem_Click"
+                                               ChangeIconClick="ChangeIconMenuItem_Click"
+                                               ResetIconClick="ResetIconMenuItem_Click"
+                                               RenameItemClick="RenameMenuItem_Click"
+                                               RemoveItemClick="RemoveItemMenuItem_Click" />
                     </Grid>
                     <Grid Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisibilityConverter}}"
                           Background="#FFF3F3F3"
