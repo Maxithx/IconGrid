@@ -1,4 +1,4 @@
-<UserControl x:Class="IconGrid.Controls.LauncherGrid"
+﻿<UserControl x:Class="IconGrid.Controls.LauncherGrid"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:models="clr-namespace:IconGrid.Models"
@@ -19,7 +19,7 @@
             Drop="ItemsControl_Drop"
             ContextMenuOpening="ContentArea_ContextMenuOpening">
         <Grid>
-            <TextBlock Text="Træk og Slip en genvej her"
+            <TextBlock Text="Træk og slip en genvej her"
                        Foreground="#66FFFFFF"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
@@ -150,3 +150,4 @@
         </Grid>
     </Border>
 </UserControl>
+
