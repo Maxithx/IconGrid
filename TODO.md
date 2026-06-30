@@ -1,4 +1,4 @@
-# IconGrid TODO
+﻿# IconGrid TODO
 
 ## Status
 
@@ -28,15 +28,15 @@
 
 - [x] Fix startup resource-scope i `LauncherTopBar`
 - [x] Fix defensiv shutdown når startup fejler tidligt
-- [x] LauncherLogoArea er oprettet, så layout/logo-adfærden er adskilt fra resten af topbaren
-- [x] LauncherMonitorRow er oprettet, s� live monitor-strippen er adskilt fra resten af topbaren
-- [x] LauncherWindowButtons er oprettet, s� minimize/close-knapperne er adskilt fra resten af topbaren
+- [x] `LauncherLogoArea` er oprettet, så layout/logo-adfærden er adskilt fra resten af topbaren
+- [x] `LauncherMonitorRow` er oprettet, så live monitor-strippen er adskilt fra resten af topbaren
+- [x] `LauncherWindowButtons` er oprettet, så minimize/close-knapperne er adskilt fra resten af topbaren
 
 ### Fase 3: Kategori-navigation
 
 - [x] Udskil kategori-tabs til separat control
-- [ ] Flyt rename/remove category menu ud med tab-komponenten
-- [ ] Flyt `+`-knappen til samme kategori-komponent
+- [x] Flyt rename/remove category menu ud med tab-komponenten
+- [x] Flyt `+`-knappen til samme kategori-komponent
 - [x] Flyt pil-knapper/scroller-logik hvis den hører til tabs
 - [x] Flyt `More`-knappen ind i tabs-komponenten
 
@@ -45,6 +45,8 @@
 - [x] `LauncherTabsBar` er oprettet som separat control
 - [x] Tab-rækkens UI er flyttet ud af `MainWindow.xaml`
 - [x] Tab-adfærden går stadig via `MainWindow.xaml.cs` for en sikker trinvis refactor
+- [x] Add/rename/remove category-logik kører nu direkte i `LauncherTabsBar`
+- [x] `More` er omdøbt i UI til `Indstillinger`
 
 ### Fase 4: Launcher-område
 
@@ -93,5 +95,3 @@
 - Build efter hver større fase
 - Manuel test af UI-flow efter hver større fase
 - Commit/push ved stabile checkpoints
-
-

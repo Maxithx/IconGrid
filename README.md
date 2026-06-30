@@ -1,4 +1,4 @@
-# IconGrid
+﻿# IconGrid
 
 IconGrid is a highly customizable, lightweight Windows desktop launcher and system hardware monitoring dashboard built with C#, WPF, and the MVVM pattern. It provides streamlined shortcut organization, desktop window layout management, and real-time telemetry embedded directly into its sleek, modern UI.
 
@@ -11,14 +11,14 @@ IconGrid utilizes a seamless toggle behavior between a discrete desktop overlay 
 ### 1. Startup & The Floating Icon
 
 ![IconGrid Floating icon Screenshot](Assets/git-img/Floatingicon.png)
-* **Aesthetic & Behavior:** Upon startup, IconGrid initializes in a minimized state, displaying only a compact, lightweight **Floating Icon**. 
+* **Aesthetic & Behavior:** Upon startup, IconGrid initializes in a minimized state, displaying only a compact, lightweight **Floating Icon**.
 * **Workspace Integration:** This acts as a persistent quick-access overlay that stays on screen (Topmost by default) without obstructing other applications.
 * **Left-Click Action:** Clicking the Floating Icon hides it and expands the full application dashboard instantly.
 * **Right-Click Action (Full Exit):** Right-clicking the Floating Icon opens a context menu with the option **"Luk programmet helt"** (Close program completely). This is the primary method to terminate the application process entirely.
 
 ### 2. Main Launcher Dashboard
 * **Interface:** Clicking the Floating Icon expands the interface into the full **IconGrid Dashboard**. This view features organized category tabs, interactive shortcut grids, configuration options, and real-time system metrics.
-* **Smart Closing & Minimizing:** Clicking the **"X"** (Close) button in the top-right corner **does not terminate the application**. 
+* **Smart Closing & Minimizing:** Clicking the **"X"** (Close) button in the top-right corner **does not terminate the application**.
 * **State Preservation:** Instead, it gracefully hides the main dashboard window and restores the **Floating Icon** back to its previous position on the screen, returning the application to its lightweight background state.
 
 ---
@@ -30,10 +30,10 @@ IconGrid’s user interface is split into two primary consumer-facing window typ
 ### 1. Main Launcher Interface
 * **The Dashboard Grid:** Shows the primary tabs (e.g., Games, Software, Development) and hosts the scrollable grid of application shortcuts.
 * **Logo-Driven Layout Access:** The `IconGrid` logo in the top-left corner also acts as a layout trigger. Left-clicking the logo applies the currently selected layout preset (defaulting to `Auto`), while right-clicking opens the layout menu for choosing, saving, renaming, and managing window layout presets.
-* **The "More" Menu:** Located in the top-right corner of the dashboard title bar, there is a **"..." (More)** button . Clicking this button acts as the gateway to the advanced management suite.
+* **The "Indstillinger" Menu:** Located in the top-right corner of the dashboard title bar, there is a **"..." (Indstillinger)** button. Clicking this button acts as the gateway to the advanced management suite.
 
 ### 2. Settings & Control Dashboard (SettingsWindow)
-* **Behavior:** Clicking the "More" button instantly initializes and displays the **Settings Dashboard** 
+* **Behavior:** Clicking the `Indstillinger` button instantly initializes and displays the **Settings Dashboard**.
 
 ![IconGrid Screenshot](Assets/git-img/Settings.png)
 
@@ -82,7 +82,7 @@ Reusable, standardized custom controls designed to keep XAML views lean and main
 * `LauncherMonitorRow.xaml / .cs`: Encapsulates the live system monitor strip with ping, network throughput, and CPU/GPU telemetry bindings.
 * `LauncherWindowButtons.xaml / .cs`: Encapsulates the top-right minimize/close launcher buttons and forwards their click events to the host window.
 * `LauncherTopBar.xaml / .cs`: Encapsulates the main launcher top row as a composition shell for the logo, monitor strip, and window-button controls.
-* `LauncherTabsBar.xaml / .cs`: Encapsulates the category tab row, including tab selection, rename/remove menus, scrolling controls, add-category button, and the `More` button entry point.
+* `LauncherTabsBar.xaml / .cs`: Encapsulates the category tab row, including tab selection, rename/remove menus, scrolling controls, add-category button, and the `Indstillinger` button entry point.
 * `LauncherGrid.xaml / .cs`: Encapsulates the main shortcut area, including the launcher item grid, drag/drop handling hooks, scroll container, empty-state prompt, and shortcut context menus.
 
 ### UI Behavior Helpers (`/Helpers`)
@@ -116,4 +116,3 @@ Focused UI controllers and infrastructure used by the main shell:
 
 * **Development Environment:** The codebase is optimized for compilation and execution within modern Windows environments and utilizes PowerShell scripting for automated tasks.
 * **Local Architecture:** Designed specifically with performance efficiency in mind, ensuring minimal CPU cycles are consumed while keeping background telemetry updates asynchronous.
-

@@ -104,7 +104,7 @@
         <Button Grid.Column="3"
                 Style="{DynamicResource IconButtonStyle}"
                 Click="MoreButton_Click"
-                ToolTip="More"
+                ToolTip="Indstillinger"
                 Margin="4,0,16,0"
                 Width="28" Height="28" Padding="0" VerticalAlignment="Center"
                 helpers:DevInspector.Metadata="More menu button → Views/MainWindow.xaml (MoreButton_Click)">
@@ -112,3 +112,4 @@
         </Button>
     </Grid>
 </UserControl>
+

@@ -623,9 +623,6 @@
                     </Border.Style>
                    
                     <controls:LauncherTabsBar TabToggleClick="TabToggle_Click"
-                                              RenameTabClick="RenameTabMenuItem_Click"
-                                              RemoveTabClick="RemoveTabMenuItem_Click"
-                                              AddTabClick="AddTabButton_Click"
                                               MoreClick="MoreButton_Click" />
                 </Border>
 
