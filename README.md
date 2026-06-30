@@ -1,99 +1,76 @@
-# IconGrid: En letvægts launcher med hardware monitor
+# IconGrid
 
-![IconGrid screenshot](Assets/git-img/IconGrid.png)
+IconGrid is a highly customizable, lightweight Windows desktop launcher and system hardware monitoring dashboard built with C#, WPF, and the MVVM pattern. It provides streamlined shortcut organization, desktop window layout management, and real-time telemetry embedded directly into its sleek, modern UI.
 
-IconGrid is a lightweight WPF launcher for Windows with draggable shortcuts, flexible tabs/categories, and real‑time system monitoring in the title bar. Det tilpasser sig automatisk Windows-temaet, accentfarver og proceslinjens farve. Projektet indeholder et indbygget udvikler-overlay (DevInspector.Metadata), der gør det muligt at hover over UI-elementer for at se deres binding-kontekst.
+![IconGrid Screenshot](Assets/git-img/IconGrid.png)
 
-## Quick overview
-- **Interface:** Top bar med kategorier, "Mere"-menu til layouts/indstillinger, og et scrollbart grid af genveje.
-- **Monitor strip:** Viser ping (`Net`), download/upload-hastigheder og CPU/GPU temperaturer.
+## Core Application Flow & UI Behavior
 
-## Hardware Overvågning & Temperaturmåling
-Dette projekt benytter [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) til at læse sensorværdier.
+IconGrid utilizes a seamless toggle behavior between a discrete desktop overlay and the main launcher dashboard to keep the workspace clean yet immediately accessible.
 
-- **Dynamisk Sensoraflæsning:** `HardwareSnapshotCollector` scanner dynamisk efter `SensorType.Temperature` og vælger højeste værdi.
-- **Krav:** Kræver administratorrettigheder (PawnIO/LibreHardwareMonitor).
+### 1. Startup & The Floating Icon
+* **Aesthetic & Behavior:** Upon startup, IconGrid initializes in a minimized state, displaying only a compact, lightweight **Floating Icon**. 
+* **Workspace Integration:** This acts as a persistent quick-access overlay that stays on screen (Topmost by default) without obstructing other applications.
+* **Left-Click Action:** Clicking the Floating Icon hides it and expands the full application dashboard instantly.
+* **Right-Click Action (Full Exit):** Right-clicking the Floating Icon opens a context menu with the option **"Luk programmet helt"** (Close program completely). This is the primary method to terminate the application process entirely.
 
-## Custom Controls (/Controls)
-Genbrugelige UI-komponenter til standardiserede elementer. Disse filer befinder sig i mappen /Controls:
+### 2. Main Launcher Dashboard
+* **Interface:** Clicking the Floating Icon expands the interface into the full **IconGrid Dashboard**. This view features organized category tabs, interactive shortcut grids, configuration options, and real-time system metrics.
+* **Smart Closing & Minimizing:** Clicking the **"X"** (Close) button in the top-right corner **does not terminate the application**. 
+* **State Preservation:** Instead, it gracefully hides the main dashboard window and restores the **Floating Icon** back to its previous position on the screen, returning the application to its lightweight background state.
 
-LauncherLogo.xaml / .cs: Viser applikationens logo (3x3 dot grid) med dynamisk accent-farve.
+---
 
-SliderRow.xaml / .cs: Kombineret label-slider-værdi komponent til brug i indstillings-menuer og layout-konfiguratorer.
+## Key Features
 
-## Helper Services
-Nedenfor er en oversigt over hjælpeklasserne i `/Helpers`, opdelt efter deres ansvarsområde:
+* **Drag-and-Drop Shortcuts:** Easily arrange, add, or group application and game shortcuts into an interactive grid layout.
+* **Hardware Monitor Strip:** Embedded directly within the UI, displaying real-time ping (`Net`), network download/upload speeds, and live CPU/GPU temperatures.
+* **Window & Layout Presets:** Save custom window arrangements and restore desktop layouts with custom layout presets.
+* **Adaptive Theme Engine:** Dynamically synchronizes with the native Windows theme, system accent colors, and taskbar colors. Supports both Light and Dark mode variations.
+* **Developer Overlay (DevInspector):** An integrated visual metadata inspector allowing developers to hover over UI components to see their live data-binding context and layout dimensions.
 
-### 1. Hardware & System Monitor
-- **HardwareInfoProvider.cs:** Læser hardware-info (CPU/GPU/RAM) via WMI og LibreHardwareMonitor.
-- **HardwareMonitorAgent.cs:** Singleton, der kører hardware-opsamling i baggrunden.
-- **HardwareMonitorSnapshot.cs:** Dataklasse for hardware-tilstand.
-- **HardwareSnapshotCollector.cs:** Opsamler rå sensordata til snapshots.
-- **SystemMonitor.cs:** Overordnet monitorering af netværk og hardware-pipeline.
-- **StartupTaskManager.cs:** Håndterer applikationens autostart via `schtasks`.
+---
 
-### 2. UI & Converters
-- **BooleanToAngleConverter.cs:** Mapper `true/false` til 180°/0°.
-- **BoolToBrushConverter.cs:** Mapper boolean til farve-pensler.
-- **BoolToVisibilityConverter.cs:** Mapper boolean til `Visibility.Visible/Collapsed`.
-- **InverseBoolConverter.cs:** Inverterer boolean-værdier.
-- **InverseBoolToVisibilityConverter.cs:** Inverterer logikken for Visibility.
-- **PercentToHeightConverter.cs:** Konverterer procent til pixel-højde.
-- **ScrollButtonsVisibilityConverter.cs:** Styrer synlighed af scroll-knapper.
-- **LayoutSlotLabelConverter.cs:** Sætter labels på layout-slots.
-- **PingSeverityToBrushConverter.cs:** Mapper ping-status til farver (grøn/orange/rød).
-- **SelectedTabMatchConverter.cs:** Sammenligner tabs for valg-logik.
-- **TabNameLocalizationConverter.cs:** Håndterer lokaliserings-nøgler for tabs.
+## Hardware Monitoring & Telemetry
 
-### 3. Icons, Shell & Resources
-- **DynamicIconHelper.cs:** Genererer dynamiske ikoner og konverterer dem til `System.Drawing.Icon`.
-- **EmbeddedIconLibrary.cs:** Konstante værdier for indbyggede Windows-genvejsikoner.
-- **IconHelper.cs:** Hjælpeværktøjer til `desktop.ini`, Base64-konvertering og shell-ikoner.
-- **IconResourceUpdater.cs:** Opdaterer applikationens indlejrede ikon-ressourcer i EXE-filen.
-- **ShellIconLabel.cs:** WinForms-kontrol til tegning af ikonteknst i transparente vinduer.
-- **ShellIconTextBlock.cs:** WPF-element til tegning af tema-baseret ikonteknst.
+IconGrid utilizes the [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) framework to gather accurate, low-level system sensor telemetry.
 
-### 4. Utilities & Infrastructure
-- **ConfigManager.cs:** Central konfigurations-håndtering (JSON-læsning/skrivning).
-- **DevInspector.cs:** Attached property til debugging og metadata-injektion.
-- **LocalizationHelper.cs:** Håndterer sprog-filer (Engelsk/Dansk).
-- **ShortcutHelper.cs:** Hjælper med at opløse og validere genveje (`.lnk`/`.exe`).
-- **ThemeHelper.cs:** Synkroniserer appens tema med Windows.
+* **Dynamic Sensor Aggregation:** The underlying `HardwareSnapshotCollector` dynamically polls system components for `SensorType.Temperature`, automatically capturing and displaying the highest core values to ensure reliable thermal tracking.
+* **Privilege Requirements:** To communicate with hardware registers via the driver abstraction (PawnIO/LibreHardwareMonitor), **Administrator Privileges** are required at startup.
 
-## Views & UI Layer
-Denne mappe indeholder alle XAML-grænseflader og deres tilhørende logik.
+---
 
-- **Main Views:**
-    - `MainWindow.xaml`: Projektets hovedcontainer og vindueshus.
-    - `SettingsWindow.xaml`: Centralt kontrolpanel for applikationens indstillinger.
-- **Pages:**
-    - `StartsidePage.xaml`: Konfiguration af systemopstart, UI-skalering og overlay-indstillinger.
-    - `HardwarePage.xaml`: Detaljeret visning af system-hardware (CPU, GPU, RAM).
-    - `GenvejsIkonerPage.xaml`: Visning og håndtering af software-genveje.
-    - `LayoutPage.xaml`: Værktøj til at konfigurere layout af ikoner og presets.
-    - `HjaelpPage.xaml`: Dokumentation og tastaturgenveje for brugeren.
-    - `AboutPage.xaml`: Versionsoplysninger og licensinformation.
-- **Components:**
-    - `TemplatePage.xaml` & `TemplateGuidelines.xaml`: Definerede design-standarder og delkomponenter.
-    - `PawnIoWarningWindow.xaml`: Dialogvindue til håndtering af Pawn.io-relaterede advarsler.
+## Architecture & Project Structure
 
-## Key features
-- Drag-and-drop genveje.
-- Tema-synkronisering.
-- Layout-system til presets.
-- Udvikler-overlay.
+The project strictly follows the **MVVM (Model-View-ViewModel)** architectural pattern to maintain a clean separation of concerns between layout rendering and business logic.
 
-## Project structure
-- `App.xaml.cs`: Bootstraps applikationen.
-- `ViewModels/MainViewModel.cs`: Overordnet UI-state og kommandoer.
-- `Views/`: Alle XAML-views.
-- `Helpers/`: Hjælpe-services og convertere (opdelt i undermapper for bedre overblik).
+### Core Entry & State
+* `App.xaml.cs`: The application bootstrapper handles initialization, theme registration, and global resource management.
+* `ViewModels/MainViewModel.cs`: The centralized UI state manager containing observable properties, configuration settings, persistence logic, and framework commands (`ICommand`).
 
-## Developer Notes
-- Projektet kører i et Windows PowerShell-miljø.
-- Alle lokale AI-interaktioner skal overholde reglerne i `.clinerules`.
+### Custom UI Controls (`/Controls`)
+Reusable, standardized custom controls designed to keep XAML views lean and maintainable:
+* `LauncherLogo.xaml / .cs`: Renders the app logo (a distinct 3x3 dot grid) responding dynamically to the active Windows accent color.
+* `SliderRow.xaml / .cs`: A composite control matching a descriptive label, an interactive slider, and a text value box for fluid settings configuration.
 
-## Build & run
-1. Installer .NET SDK (targets `net10.0-windows`).
-2. Kør `dotnet build IconGrid.sln -c Debug` fra roden.
-3. Konfiguration og logs gemmes under `%APPDATA%\IconGrid`.
+### Window & Page Layouts (`/Views`)
+* **Shell Components:**
+  * `MainWindow.xaml / .cs`: The primary window housing the core toggle mechanics between the floating overlay and the main expanded dashboard view.
+  * `SettingsWindow.xaml`: A dedicated panel managing global configurations and app preferences.
+* **Modular Dashboard Pages:**
+  * `StartsidePage.xaml`: Configures system startup settings, user interface scaling, and overlay topmost thresholds.
+  * `HardwarePage.xaml`: Displays granular system hardware diagnostics including CPU, GPU, and RAM loads.
+  * `GenvejsIkonerPage.xaml`: Manages shortcut population, scaling, and custom grid rows/columns.
+  * `LayoutPage.xaml`: Provisions icon layouts, window tracking configurations, and grid presets.
+  * `HjaelpPage.xaml`: Built-in user documentation, tooltips, and keyboard macro shortcuts.
+  * `AboutPage.xaml`: Version tracking, developer credits, and software licensing.
+* **Templates & Diagnostics:**
+  * `TemplatePage.xaml` & `TemplateGuidelines.xaml`: Standardized layout guides enforcing design language consistency.
+  * `PawnIoWarningWindow.xaml`: User-facing alert handler detailing elevated administrator privilege requirements for hardware monitoring.
+
+---
+
+## Developer Technical Notes
+
+* **Development Environment:** The codebase is optimized for compilation and execution within modern Windows environments and utilizes PowerShell scripting for automated tasks.
+* **Local Architecture:** Designed specifically with performance efficiency in mind, ensuring minimal CPU cycles are consumed while keeping background telemetry updates asynchronous.

@@ -1,1 +1,1 @@
-`dotnet build IconGrid.sln -c Debug
+dotnet build IconGrid.sln -c Debug
