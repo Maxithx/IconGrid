@@ -73,6 +73,7 @@
 - [x] Fase 5B.3: `LauncherShortcutManager` håndterer nu file-drop og custom shortcut-oprettelse
 - [ ] Fase 5C: Udskil layout-state og saved-layout logik
 - [ ] Fase 5D: Udskil settings/config persistence
+- [x] Fase 5D.1: `LauncherItemsPersistence` håndterer nu items save/load/migrering
 - [ ] Fase 5E: Udskil theme/appearance state
 - [ ] Fase 5F: Udskil localization-labels og relateret hjælpe-logik
 
@@ -87,6 +88,7 @@
 - [x] `UpdateItemIcon` og ikon-fallback er flyttet til `LauncherItemIconManager`
 - [x] `HandleFileDrop` bruger nu fælles ikon-initialisering via `LauncherItemIconManager`
 - [x] `HandleFileDrop` og `CreateCustomShortcut` delegérer nu til `LauncherShortcutManager`
+- [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
 
 ### Fase 6: Struktur-oprydning
 

@@ -81,8 +81,6 @@ namespace IconGrid.ViewModels
 
         private readonly string _dataFolder;
         private readonly string _legacyDataFolder;
-        private readonly string _itemsFilePath;
-        private readonly string _legacyItemsFilePath;
         private readonly string _iconPackFolder;
         private readonly ConfigManager _configManager;
         private readonly SystemMonitor _systemMonitor = new();
@@ -90,6 +88,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherShortcutManager _shortcutManager;
+        private readonly LauncherItemsPersistence _itemsPersistence;
         private ConfigModel _config;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
@@ -108,8 +107,6 @@ namespace IconGrid.ViewModels
 
             _dataFolder = _configManager.BaseDirectory;
             _legacyDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IconGrid");
-            _itemsFilePath = Path.Combine(_dataFolder, "items.json");
-            _legacyItemsFilePath = Path.Combine(_legacyDataFolder, "items.json");
             _iconPackFolder = Path.Combine(_dataFolder, "IconPack");
             EnsureIconPackFolder();
 
@@ -125,6 +122,7 @@ namespace IconGrid.ViewModels
             _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
             _itemIconManager = new LauncherItemIconManager();
             _shortcutManager = new LauncherShortcutManager(Items, _itemIconManager);
+            _itemsPersistence = new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json"));
             Items.CollectionChanged += (s, e) =>
             {
                 SaveItemsToFile();
@@ -1349,19 +1347,7 @@ namespace IconGrid.ViewModels
 
         private void SaveItemsToFile()
         {
-            try
-            {
-                Directory.CreateDirectory(_dataFolder);
-                // Persist only serializable properties in LauncherItem (Icon/Image ignored)
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                var list = Items.ToList();
-                var json = JsonSerializer.Serialize(list, options);
-                File.WriteAllText(_itemsFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Failed to save items: " + ex);
-            }
+            _itemsPersistence.Save(Items);
         }
 
         private void SaveSettingsToConfig()
@@ -1412,52 +1398,23 @@ namespace IconGrid.ViewModels
 
         private void LoadItemsFromFile()
         {
-            try
+            var list = _itemsPersistence.Load();
+            if (list.Count == 0)
+                return;
+
+            Items.Clear();
+            foreach (var it in list)
             {
-                if (!File.Exists(_itemsFilePath))
-                    return;
-
-                var json = File.ReadAllText(_itemsFilePath);
-                var list = JsonSerializer.Deserialize<LauncherItem[]?>(json);
-                if (list == null) return;
-
-                Items.Clear();
-                foreach (var it in list)
-                {
-                    // Ensure icon is (re)loaded from icon path or cached base64 (survives deleted source files)
-                    it.RefreshIcon();
-                    Items.Add(it);
-                }
-
-                OnPropertyChanged(nameof(CurrentItems));
+                it.RefreshIcon();
+                Items.Add(it);
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Failed to load items: " + ex);
-            }
+
+            OnPropertyChanged(nameof(CurrentItems));
         }
 
         private void MaybeMigrateItemsFromLegacy()
         {
-            try
-            {
-                if (File.Exists(_itemsFilePath))
-                {
-                    return;
-                }
-
-                if (!File.Exists(_legacyItemsFilePath))
-                {
-                    return;
-                }
-
-                Directory.CreateDirectory(_dataFolder);
-                File.Copy(_legacyItemsFilePath, _itemsFilePath, overwrite: false);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Failed to migrate legacy items: " + ex);
-            }
+            _itemsPersistence.MigrateLegacyIfNeeded();
         }
 
         // ---------- INotifyPropertyChanged ----------
