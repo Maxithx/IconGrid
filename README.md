@@ -32,7 +32,7 @@ IconGrid’s user interface is split into two primary consumer-facing window typ
 ### 2. Settings & Control Dashboard (SettingsWindow)
 * **Behavior:** Clicking the "More" button instantly initializes and displays the **Settings Dashboard** 
 
-![IconGrid Screenshot](Assets/git-img/Settings.png
+![IconGrid Screenshot](Assets/git-img/Settings.png)
 
 which acts as the centralized control panel for application configuration.
 * **Modular Page Navigation:** This window uses a sidebar navigation menu to load modular sub-pages dynamically into the view layer:
