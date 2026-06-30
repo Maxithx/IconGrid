@@ -31,10 +31,17 @@
 
 ### Fase 3: Kategori-navigation
 
-- [ ] Udskil kategori-tabs til separat control
+- [x] Udskil kategori-tabs til separat control
 - [ ] Flyt rename/remove category menu ud med tab-komponenten
 - [ ] Flyt `+`-knappen til samme kategori-komponent
-- [ ] Flyt pil-knapper/scroller-logik hvis den hører til tabs
+- [x] Flyt pil-knapper/scroller-logik hvis den hører til tabs
+- [x] Flyt `More`-knappen ind i tabs-komponenten
+
+### Fase 3 noter
+
+- [x] `LauncherTabsBar` er oprettet som separat control
+- [x] Tab-rækkens UI er flyttet ud af `MainWindow.xaml`
+- [x] Tab-adfærden går stadig via `MainWindow.xaml.cs` for en sikker trinvis refactor
 
 ### Fase 4: Launcher-område
 

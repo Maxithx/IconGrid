@@ -1293,26 +1293,6 @@ namespace IconGrid.Views
             ExitApplication();
         }
 
-        private void ScrollTabsLeft_Click(object sender, RoutedEventArgs e)
-        {
-            if (TabsScrollViewer != null)
-            {
-                TabsScrollViewer.LineLeft();
-                TabsScrollViewer.LineLeft();
-                TabsScrollViewer.LineLeft();
-            }
-        }
-
-        private void ScrollTabsRight_Click(object sender, RoutedEventArgs e)
-        {
-            if (TabsScrollViewer != null)
-            {
-                TabsScrollViewer.LineRight();
-                TabsScrollViewer.LineRight();
-                TabsScrollViewer.LineRight();
-            }
-        }
-
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
