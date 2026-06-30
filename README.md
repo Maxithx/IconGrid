@@ -81,6 +81,12 @@ Reusable, standardized custom controls designed to keep XAML views lean and main
 ### UI Behavior Helpers (`/Helpers`)
 Focused UI controllers and infrastructure used by the main shell:
 * `FloatingIconController.cs`: Owns floating-icon window behavior such as minimized mode, drag movement, screen clamping, and persisted floating position.
+* `ConfigManager.cs`: Loads, saves, and migrates persisted application configuration and legacy user data folders.
+* `ThemeHelper.cs`: Tracks Windows light/dark mode and accent color changes and broadcasts theme updates to the UI.
+* `SystemMonitor.cs`: Aggregates live network and hardware telemetry for the dashboard monitor strip and coordinates snapshot refreshes.
+* `DynamicIconHelper.cs`: Builds accent-aware runtime icons so the app and tray icon follow the active Windows theme color.
+* `ShortcutHelper.cs`: Converts dropped files, folders, and Windows shortcuts into launcher items that IconGrid can persist and open.
+* `DevInspector.cs`: Provides attached metadata hooks for the built-in developer overlay used while inspecting UI bindings and layout.
 
 ### Window & Page Layouts (`/Views`)
 * **Shell Components:**
