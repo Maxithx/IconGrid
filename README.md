@@ -29,6 +29,7 @@ IconGrid’s user interface is split into two primary consumer-facing window typ
 
 ### 1. Main Launcher Interface
 * **The Dashboard Grid:** Shows the primary tabs (e.g., Games, Software, Development) and hosts the scrollable grid of application shortcuts.
+* **Logo-Driven Layout Access:** The `IconGrid` logo in the top-left corner also acts as a layout trigger. Left-clicking the logo applies the currently selected layout preset (defaulting to `Auto`), while right-clicking opens the layout menu for choosing, saving, renaming, and managing window layout presets.
 * **The "More" Menu:** Located in the top-right corner of the dashboard title bar, there is a **"..." (More)** button . Clicking this button acts as the gateway to the advanced management suite.
 
 ### 2. Settings & Control Dashboard (SettingsWindow)
@@ -44,6 +45,7 @@ which acts as the centralized control panel for application configuration.
   * `HardwarePage.xaml`: Comprehensive real-time system monitoring logs and details.
   * `HjaelpPage.xaml`: User documentation, troubleshooting steps, and macro definitions.
   * `AboutPage.xaml`: Software versioning, updates, and compliance notes.
+* **Shared Layout Workflow:** The launcher logo menu and `LayoutPage.xaml` are connected to the same underlying layout system, so layout selection and saved presets can be managed both directly from the launcher and from the `SettingsWindow`.
 
 ## Key Features
 
