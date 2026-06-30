@@ -4,6 +4,11 @@ IconGrid is a highly customizable, lightweight Windows desktop launcher and syst
 
 ![IconGrid Screenshot](Assets/git-img/IconGrid.png)
 
+## Versioning
+
+IconGrid uses a simple Semantic Versioning flow with beta builds during active refactoring and feature work.
+See `VERSIONING.md` for the full versioning and release strategy.
+
 ## Core Application Flow & UI Behavior
 
 IconGrid utilizes a seamless toggle behavior between a discrete desktop overlay and the main launcher dashboard to keep the workspace clean yet immediately accessible.
