@@ -552,50 +552,13 @@
           helpers:DevInspector.Metadata="Root layout container → Views/MainWindow.xaml">
         <Grid x:Name="FloatingIconHost"
               Visibility="{Binding IsFullWindowVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-            <Button x:Name="FloatingIconButton"
-                    Width="66"
-                    Height="66"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    Margin="0,0,12,12"
-                    Padding="0"
-                    BorderThickness="0"
-                    Background="Transparent"
-                    PreviewMouseLeftButtonDown="FloatingIconButton_PreviewMouseLeftButtonDown"
-                    PreviewMouseMove="FloatingIconButton_PreviewMouseMove"
-                    PreviewMouseLeftButtonUp="FloatingIconButton_PreviewMouseLeftButtonUp"
-                    ToolTip="Open IconGrid">
-                <Button.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Luk programmet helt" Click="FloatingIconExitMenuItem_Click" />
-                    </ContextMenu>
-                </Button.ContextMenu>
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="Transparent"
-                                Padding="9">
-                            <Border Width="48"
-                                    Height="48"
-                                    CornerRadius="12"
-                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    SnapsToDevicePixels="True"
-                                    UseLayoutRounding="True">
-                                <UniformGrid Rows="3" Columns="3" Margin="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                    <Ellipse Fill="White" Width="8" Height="8" />
-                                </UniformGrid>
-                            </Border>
-                        </Border>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
+            <controls:FloatingIconButton AccentBrush="{Binding AccentBrush}"
+                                         ToolTipText="Open IconGrid"
+                                         FloatingIconMouseLeftButtonDown="FloatingIconButton_PreviewMouseLeftButtonDown"
+                                         FloatingIconMouseMove="FloatingIconButton_PreviewMouseMove"
+                                         FloatingIconMouseLeftButtonUp="FloatingIconButton_PreviewMouseLeftButtonUp"
+                                         OpenRequested="FloatingIconButton_Click"
+                                         ExitRequested="FloatingIconExitMenuItem_Click" />
         </Grid>
 
         <Grid x:Name="FullUiHost"

@@ -76,10 +76,15 @@ The project strictly follows the **MVVM (Model-View-ViewModel)** architectural p
 Reusable, standardized custom controls designed to keep XAML views lean and maintainable:
 * `LauncherLogo.xaml / .cs`: Renders the app logo (a distinct 3x3 dot grid) responding dynamically to the active Windows accent color.
 * `SliderRow.xaml / .cs`: A composite control matching a descriptive label, an interactive slider, and a text value box for fluid settings configuration.
+* `FloatingIconButton.xaml / .cs`: Encapsulates the minimized floating launcher button, including its visual template, click behavior hooks, and exit context menu.
+
+### UI Behavior Helpers (`/Helpers`)
+Focused UI controllers and infrastructure used by the main shell:
+* `FloatingIconController.cs`: Owns floating-icon window behavior such as minimized mode, drag movement, screen clamping, and persisted floating position.
 
 ### Window & Page Layouts (`/Views`)
 * **Shell Components:**
-  * `MainWindow.xaml / .cs`: The primary window housing the core toggle mechanics between the floating overlay and the main expanded dashboard view.
+  * `MainWindow.xaml / .cs`: The primary shell window coordinating transitions between the floating launcher state and the expanded dashboard while delegating floating-icon UI and behavior to dedicated modules.
   * `SettingsWindow.xaml`: A dedicated panel managing global configurations and app preferences.
 * **Modular Dashboard Pages:**
   * `StartsidePage.xaml`: Configures system startup settings, user interface scaling, and overlay topmost thresholds.

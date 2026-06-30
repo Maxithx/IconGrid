@@ -43,11 +43,7 @@ namespace IconGrid.Views
         private int _monitorUpdateRunning;
         private HwndSource? _hwndSource;
         private System.Windows.Point _dragStartPoint;
-        private System.Windows.Point _floatingIconDragStartPoint;
-        private bool _isDraggingFloatingIcon;
         private static readonly string PowerShellPath = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe");
-        private const double FloatingIconSize = 66;
-        private const double FloatingIconMargin = 12;
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private const uint MONITOR_DEFAULTTONEAREST = 2;
@@ -152,6 +148,7 @@ namespace IconGrid.Views
         private SettingsWindow? _settingsWindow;
         private double _lastLoggedLeft = double.NaN;
         private double _lastLoggedTop = double.NaN;
+        private readonly FloatingIconController _floatingIconController = new();
 
         private record WindowsShortcutTemplate(string DisplayName, string FullPath);
 
@@ -481,30 +478,8 @@ namespace IconGrid.Views
 
         private void EnterFloatingMode(bool showTray)
         {
-            _viewModel.IsFullWindowVisible = false;
-            SetMonitorPollingEnabled(false);
-            _isDraggingFloatingIcon = false;
-            
-            // Stop auto-hide timer and remove ALL animations to allow free floating icon movement
             _autoHideEnabled = false;
-            _autoHideTimer?.Stop();
-            BeginAnimation(TopProperty, null);
-            BeginAnimation(LeftProperty, null);
-            BeginAnimation(WidthProperty, null);
-            BeginAnimation(HeightProperty, null);
-            
-            WindowState = WindowState.Normal;
-            ClearValue(WidthProperty);
-            ClearValue(HeightProperty);
-            Width = FloatingIconSize;
-            Height = FloatingIconSize;
-            PositionFloatingIcon();
-            ShowInTaskbar = false;
-
-            if (_trayIcon != null)
-            {
-                _trayIcon.Visible = true;
-            }
+            _floatingIconController.EnterFloatingMode(this, _viewModel, _autoHideTimer, _trayIcon, SetMonitorPollingEnabled);
         }
 
         private void ApplyFullWindowSizing()
@@ -534,21 +509,7 @@ namespace IconGrid.Views
 
         private void PositionFloatingIcon(bool preferSaved = true)
         {
-            var area = SystemParameters.WorkArea;
-
-            double left = area.Right - FloatingIconSize - FloatingIconMargin;
-            double top = area.Bottom - FloatingIconSize - FloatingIconMargin;
-
-            if (preferSaved && _viewModel.TryGetSavedFloatingPosition(out var savedLeft, out var savedTop))
-            {
-                left = savedLeft;
-                top = savedTop;
-            }
-
-            (left, top) = ClampToWorkArea(left, top, FloatingIconSize, FloatingIconSize);
-
-            Left = left;
-            Top = top;
+            _floatingIconController.PositionFloatingIcon(this, _viewModel, preferSaved);
         }
 
         private void ClampWindowToWorkArea()
@@ -562,9 +523,7 @@ namespace IconGrid.Views
 
         private void ClampFloatingIconToWorkArea()
         {
-            var (left, top) = ClampToWorkArea(Left, Top, FloatingIconSize, FloatingIconSize);
-            Left = left;
-            Top = top;
+            _floatingIconController.ClampFloatingIconToWorkArea(this);
         }
 
         private (double left, double top) ClampToWorkArea(double left, double top, double width, double height)
@@ -1307,66 +1266,26 @@ namespace IconGrid.Views
 
         private void FloatingIconButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_viewModel.IsFullWindowVisible)
-                return;
-
-            _floatingIconDragStartPoint = e.GetPosition(this);
-            _isDraggingFloatingIcon = false;
-            e.Handled = true;
+            _floatingIconController.HandleMouseLeftButtonDown(this, _viewModel, e);
         }
 
         private void FloatingIconButton_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_viewModel.IsFullWindowVisible || e.LeftButton != MouseButtonState.Pressed)
-                return;
-
-            var current = e.GetPosition(this);
-            var delta = current - _floatingIconDragStartPoint;
-
-            if (!_isDraggingFloatingIcon &&
-                (Math.Abs(delta.X) >= SystemParameters.MinimumHorizontalDragDistance ||
-                 Math.Abs(delta.Y) >= SystemParameters.MinimumVerticalDragDistance))
-            {
-                _isDraggingFloatingIcon = true;
-                try
-                {
-                    DragMove();
-                }
-                catch
-                {
-                    // ignore failed drag attempts
-                }
-
-                ClampFloatingIconToWorkArea();
-                _viewModel.SaveFloatingIconPosition(Left, Top);
-                e.Handled = true;
-            }
+            _floatingIconController.HandleMouseMove(this, _viewModel, e);
         }
 
         private void FloatingIconButton_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (_viewModel.IsFullWindowVisible)
-                return;
-
-            if (!_isDraggingFloatingIcon)
+            if (_floatingIconController.HandleMouseLeftButtonUp(_viewModel, e))
             {
-                // This was a click, not a drag.
                 EnterFullMode();
             }
-
-            _isDraggingFloatingIcon = false;
-            e.Handled = true;
         }
 
         private void FloatingIconButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isDraggingFloatingIcon)
-            {
-                _isDraggingFloatingIcon = false;
-                return;
-            }
-
-            EnterFullMode();
+            if (_floatingIconController.HandleClick())
+                EnterFullMode();
         }
 
         private void FloatingIconExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -3486,11 +3405,7 @@ namespace IconGrid.Views
             }
             else if (!_viewModel.IsFullWindowVisible && WindowState == WindowState.Normal)
             {
-                ClampFloatingIconToWorkArea();
-                if (!_skipSavingLocation)
-                {
-                    _viewModel.SaveFloatingIconPosition(Left, Top);
-                }
+                _floatingIconController.HandleLocationChanged(this, _viewModel, _skipSavingLocation);
             }
         }
     }
