@@ -87,6 +87,7 @@ namespace IconGrid.ViewModels
         private readonly ConfigManager _configManager;
         private readonly SystemMonitor _systemMonitor = new();
         private readonly LauncherTabsState _tabsState;
+        private readonly LauncherItemsManager _itemsManager;
         private ConfigModel _config;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
@@ -119,6 +120,7 @@ namespace IconGrid.ViewModels
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
 
             Items = new ObservableCollection<LauncherItem>();
+            _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
             Items.CollectionChanged += (s, e) =>
             {
                 SaveItemsToFile();
@@ -1178,17 +1180,8 @@ namespace IconGrid.ViewModels
 
         public void ClearCurrentCategory()
         {
-            if (string.IsNullOrWhiteSpace(SelectedTab))
+            if (!_itemsManager.ClearCurrentCategory())
                 return;
-
-            var itemsToRemove = GetItemsForSelectedTabSnapshot();
-            if (itemsToRemove.Count == 0)
-                return;
-
-            foreach (var item in itemsToRemove)
-            {
-                Items.Remove(item);
-            }
 
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
@@ -1249,19 +1242,18 @@ namespace IconGrid.ViewModels
 
         public void RemoveItem(LauncherItem item)
         {
-            if (item == null) return;
+            if (!_itemsManager.RemoveItem(item))
+                return;
 
-            Items.Remove(item);
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
         }
 
         public void RenameItem(LauncherItem item, string newName)
         {
-            if (item == null || string.IsNullOrWhiteSpace(newName))
+            if (!_itemsManager.RenameItem(item, newName))
                 return;
 
-            item.DisplayName = newName;
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
         }
@@ -1312,31 +1304,8 @@ namespace IconGrid.ViewModels
         /// </summary>
         public void MoveItemWithinCategory(LauncherItem source, LauncherItem? target, bool insertAfter)
         {
-            if (source == null)
+            if (!_itemsManager.MoveItemWithinCategory(source, target, insertAfter))
                 return;
-
-            if (target == null)
-                return;
-
-            if (!string.Equals(source.Category, target.Category, StringComparison.OrdinalIgnoreCase))
-                return;
-
-            var sourceIndex = Items.IndexOf(source);
-            var targetIndex = Items.IndexOf(target);
-
-            if (sourceIndex < 0 || targetIndex < 0 || sourceIndex == targetIndex)
-                return;
-
-            var destinationIndex = insertAfter
-                ? (sourceIndex < targetIndex ? targetIndex : targetIndex + 1)
-                : targetIndex;
-
-            if (destinationIndex < 0)
-                destinationIndex = 0;
-            if (destinationIndex >= Items.Count)
-                destinationIndex = Items.Count - 1;
-
-            Items.Move(sourceIndex, destinationIndex);
 
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();

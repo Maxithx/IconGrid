@@ -68,6 +68,7 @@
 
 - [ ] Fase 5A: Udskil tab/category-relateret state og logik
 - [ ] Fase 5B: Udskil launcher item-operations og shortcut-logik
+- [x] Fase 5B.1: `LauncherItemsManager` håndterer nu category/item-mutationer
 - [ ] Fase 5C: Udskil layout-state og saved-layout logik
 - [ ] Fase 5D: Udskil settings/config persistence
 - [ ] Fase 5E: Udskil theme/appearance state
@@ -79,6 +80,7 @@
 - [x] Første anbefalede startpunkt er tab/category-logik, fordi `LauncherTabsBar` allerede er modulariseret
 - [x] `LauncherTabsState` er oprettet som første split af tab-state fra `MainViewModel`
 - [x] `CurrentItems` og current-category filtrering bruger nu fælles hjælpe-metoder i `MainViewModel`
+- [x] `ClearCurrentCategory`, `RemoveItem`, `RenameItem` og `MoveItemWithinCategory` delegérer nu til `LauncherItemsManager`
 - [x] `MainViewModel` delegérer nu `Tabs`, `SelectedTab`, `AddTab`, `RenameTab` og `RemoveTab` til tabs-state
 
 ### Fase 6: Struktur-oprydning
