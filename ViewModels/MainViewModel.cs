@@ -89,7 +89,9 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherShortcutManager _shortcutManager;
         private readonly LauncherItemsPersistence _itemsPersistence;
+        private readonly MainViewModelSettingsPersistence _settingsPersistence;
         private ConfigModel _config;
+        private bool _isInitializing = true;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
         private const double SettingsMinWindowHeight = 620;
@@ -101,6 +103,7 @@ namespace IconGrid.ViewModels
         public MainViewModel()
         {
             _configManager = new ConfigManager();
+            _settingsPersistence = new MainViewModelSettingsPersistence(_configManager);
             _config = _configManager.LoadConfig();
             _config.EnsureTabNames();
             ApplyConfig(_config);
@@ -154,11 +157,12 @@ namespace IconGrid.ViewModels
             // Load persisted items if present
             MaybeMigrateItemsFromLegacy();
             LoadItemsFromFile();
+            _isInitializing = false;
         }
 
         // ---------- Public properties ----------
 
-        public ObservableCollection<string> Tabs => _tabsState.Tabs;
+        public ObservableCollection<string> Tabs => _tabsState?.Tabs ?? new ObservableCollection<string>();
 
         public ObservableCollection<LauncherItem> Items { get; }
 
@@ -167,8 +171,14 @@ namespace IconGrid.ViewModels
 
         public string SelectedTab
         {
-            get => _tabsState.SelectedTab;
-            set => _tabsState.SelectedTab = value;
+            get => _tabsState?.SelectedTab ?? string.Empty;
+            set
+            {
+                if (_tabsState == null)
+                    return;
+
+                _tabsState.SelectedTab = value;
+            }
         }
 
         /// <summary>
@@ -1352,48 +1362,47 @@ namespace IconGrid.ViewModels
 
         private void SaveSettingsToConfig()
         {
-            try
-            {
-            _config.ContentAreaHeight = CalculateContentAreaHeight();
-            _config.IconsPerRow = _iconsPerRow;
-            _config.IconScale = _icon_scale;
-            _config.UiScale = _uiScale;
-            _config.ShowDesktopIcon = _showDesktopIcon;
-            _config.IsAlwaysOnTop = _isAlwaysOnTop;
-            _config.IsFloatingIconTopmost = _isFloatingIconTopmost;
-            _config.ShowScrollButtons = _showScrollButtons;
-            _config.IsLightTheme = _isLightTheme;
-            _config.StartWithWindows = _startWithWindows;
-            _config.ShowDevOverlay = _showDevOverlay;
-            _config.IconRowSpacing = _iconRowSpacing;
-            _config.LastRowPaddingAdjust = _lastRowPaddingAdjust;
-            _config.TabNames = Tabs.ToList();
-            _config.Language = _language;
-            _config.WindowLeft = _windowLeft;
-            _config.WindowTop = _windowTop;
-            _config.SettingsWindowLeft = _settingsWindowLeft;
-            _config.SettingsWindowTop = _settingsWindowTop;
-            _config.FloatingIconLeft = _floatingLeft;
-            _config.FloatingIconTop = _floatingTop;
-            _config.LayoutPreset = _layoutPreset;
-            _config.LayoutSkipMinimized = _layoutSkipMinimized;
-            _config.LayoutCurrentMonitorOnly = _layoutCurrentMonitorOnly;
-            _config.LayoutIconGridSlot = _layoutIconGridSlot;
-            _config.LayoutReserveIconGridSlot = _layoutReserveIconGridSlot;
-            _config.LayoutIconGridSlots = new Dictionary<string, int>(_layoutIconGridSlots, StringComparer.OrdinalIgnoreCase);
-            _config.LayoutLinks = _layoutLinks;
-            _config.SavedLayouts = _savedLayouts.ToDictionary(kvp => kvp.Key, kvp => CloneSlots(kvp.Value));
-            _config.FavoriteLayoutSlots = _favoriteLayoutSlots;
-            _config.EnableSlideUpAnimation = _enableSlideUpAnimation;
-            _config.EnableContentScroll = _enableContentScroll;
-            _config.WindowAnimationDurationMs = _windowAnimationDurationMs;
+            if (_isInitializing || _tabsState == null || Items == null)
+                return;
 
-                _configManager.SaveConfig(_config);
-            }
-            catch (Exception ex)
+            var state = new MainViewModelSettingsState
             {
-                Debug.WriteLine("Failed to save settings: " + ex);
-            }
+                ContentAreaHeight = CalculateContentAreaHeight(),
+                IconsPerRow = _iconsPerRow,
+                IconScale = _icon_scale,
+                UiScale = _uiScale,
+                ShowDesktopIcon = _showDesktopIcon,
+                IsAlwaysOnTop = _isAlwaysOnTop,
+                IsFloatingIconTopmost = _isFloatingIconTopmost,
+                ShowScrollButtons = _showScrollButtons,
+                IsLightTheme = _isLightTheme,
+                StartWithWindows = _startWithWindows,
+                ShowDevOverlay = _showDevOverlay,
+                IconRowSpacing = _iconRowSpacing,
+                LastRowPaddingAdjust = _lastRowPaddingAdjust,
+                TabNames = Tabs.ToList(),
+                Language = _language,
+                WindowLeft = _windowLeft,
+                WindowTop = _windowTop,
+                SettingsWindowLeft = _settingsWindowLeft,
+                SettingsWindowTop = _settingsWindowTop,
+                FloatingIconLeft = _floatingLeft,
+                FloatingIconTop = _floatingTop,
+                LayoutPreset = _layoutPreset,
+                LayoutSkipMinimized = _layoutSkipMinimized,
+                LayoutCurrentMonitorOnly = _layoutCurrentMonitorOnly,
+                LayoutIconGridSlot = _layoutIconGridSlot,
+                LayoutReserveIconGridSlot = _layoutReserveIconGridSlot,
+                LayoutIconGridSlots = new Dictionary<string, int>(_layoutIconGridSlots, StringComparer.OrdinalIgnoreCase),
+                LayoutLinks = _layoutLinks,
+                SavedLayouts = _savedLayouts.ToDictionary(kvp => kvp.Key, kvp => CloneSlots(kvp.Value)),
+                FavoriteLayoutSlots = CloneSlots(_favoriteLayoutSlots),
+                EnableSlideUpAnimation = _enableSlideUpAnimation,
+                EnableContentScroll = _enableContentScroll,
+                WindowAnimationDurationMs = _windowAnimationDurationMs
+            };
+
+            _settingsPersistence.Save(_config, state);
         }
 
         private void LoadItemsFromFile()

@@ -74,6 +74,7 @@
 - [ ] Fase 5C: Udskil layout-state og saved-layout logik
 - [ ] Fase 5D: Udskil settings/config persistence
 - [x] Fase 5D.1: `LauncherItemsPersistence` håndterer nu items save/load/migrering
+- [x] Fase 5D.2: settings-save er flyttet til `MainViewModelSettingsPersistence`
 - [ ] Fase 5E: Udskil theme/appearance state
 - [ ] Fase 5F: Udskil localization-labels og relateret hjælpe-logik
 
@@ -89,6 +90,7 @@
 - [x] `HandleFileDrop` bruger nu fælles ikon-initialisering via `LauncherItemIconManager`
 - [x] `HandleFileDrop` og `CreateCustomShortcut` delegérer nu til `LauncherShortcutManager`
 - [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
+- [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`
 
 ### Fase 6: Struktur-oprydning
 
