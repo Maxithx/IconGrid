@@ -18,7 +18,7 @@
 ### Fase 2: Main Launcher Interface
 
 - [x] Udskil `TopBar` fra `Views/MainWindow.xaml`
-- [ ] Flyt logo-område til separat control
+- [x] Flyt logo-område til separat control
 - [ ] Flyt monitor-row (`SystemMonitor`) til separat control
 - [ ] Flyt minimize/close-knapper til separat control eller topbar-del
 - [ ] Afklar om `...`-knappen skal omdøbes fra `More` til `Indstillinger`
@@ -28,6 +28,7 @@
 
 - [x] Fix startup resource-scope i `LauncherTopBar`
 - [x] Fix defensiv shutdown når startup fejler tidligt
+- [x] LauncherLogoArea er oprettet, så layout/logo-adfærden er adskilt fra resten af topbaren
 
 ### Fase 3: Kategori-navigation
 
@@ -90,3 +91,4 @@
 - Build efter hver større fase
 - Manuel test af UI-flow efter hver større fase
 - Commit/push ved stabile checkpoints
+

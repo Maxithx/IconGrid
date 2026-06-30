@@ -40,41 +40,9 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,4,0,4" VerticalAlignment="Center">
-            <Button x:Name="LogoButton"
-                    helpers:DevInspector.Metadata="IconGrid logo button → Views/MainWindow.xaml (LogoButton_Click)"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Padding="0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Click="LogoButton_Click"
-                    ToolTip="{Binding LayoutPresetToolTip}"
-                    Focusable="False"
-                    FocusVisualStyle="{x:Null}">
-                <Button.Template>
-                    <ControlTemplate TargetType="Button">
-                        <ContentPresenter HorizontalAlignment="Left"
-                                          VerticalAlignment="Center" />
-                    </ControlTemplate>
-                </Button.Template>
-                <Button.ContextMenu>
-                    <ContextMenu Opened="LayoutContextMenu_Opened" />
-                </Button.ContextMenu>
-                <controls:LauncherLogo Width="24"
-                                       Height="24"
-                                       AccentBrush="{Binding AccentBrush}"
-                                       SnapsToDevicePixels="True"
-                                       helpers:DevInspector.Metadata="IconGrid logo graphic → Views/MainWindow.xaml (LogoButton_Click)" />
-            </Button>
-            <TextBlock Text="IconGrid"
-                       Margin="8,0,0,0"
-                       FontSize="14"
-                       FontWeight="SemiBold"
-                       VerticalAlignment="Center"
-                       Foreground="{Binding TopBarForeground, FallbackValue=White}"
-                       helpers:DevInspector.Metadata="IconGrid title text → Views/MainWindow.xaml" />
-        </StackPanel>
+        <controls:LauncherLogoArea Grid.Column="0"
+                                   LogoClick="LogoButton_Click"
+                                   LayoutContextMenuOpened="LayoutContextMenu_Opened" />
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8,0"
                     helpers:DevInspector.Metadata="Monitor row → Helpers/SystemMonitor.cs (SystemMonitor values)">

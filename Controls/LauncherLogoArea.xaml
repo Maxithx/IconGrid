@@ -1,0 +1,43 @@
+<UserControl x:Class="IconGrid.Controls.LauncherLogoArea"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:controls="clr-namespace:IconGrid.Controls">
+    <StackPanel Orientation="Horizontal"
+                Margin="8,4,0,4"
+                VerticalAlignment="Center">
+        <Button x:Name="LogoButton"
+                helpers:DevInspector.Metadata="IconGrid logo button → Controls/LauncherLogoArea.xaml"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Click="LogoButton_Click"
+                ToolTip="{Binding LayoutPresetToolTip}"
+                Focusable="False"
+                FocusVisualStyle="{x:Null}">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter HorizontalAlignment="Left"
+                                      VerticalAlignment="Center" />
+                </ControlTemplate>
+            </Button.Template>
+            <Button.ContextMenu>
+                <ContextMenu Opened="LayoutContextMenu_Opened" />
+            </Button.ContextMenu>
+            <controls:LauncherLogo Width="24"
+                                   Height="24"
+                                   AccentBrush="{Binding AccentBrush}"
+                                   SnapsToDevicePixels="True"
+                                   helpers:DevInspector.Metadata="IconGrid logo graphic → Controls/LauncherLogoArea.xaml" />
+        </Button>
+        <TextBlock Text="IconGrid"
+                   Margin="8,0,0,0"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center"
+                   Foreground="{Binding TopBarForeground, FallbackValue=White}"
+                   helpers:DevInspector.Metadata="IconGrid title text → Controls/LauncherLogoArea.xaml" />
+    </StackPanel>
+</UserControl>

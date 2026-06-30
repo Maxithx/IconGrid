@@ -114,3 +114,4 @@ Focused UI controllers and infrastructure used by the main shell:
 
 * **Development Environment:** The codebase is optimized for compilation and execution within modern Windows environments and utilizes PowerShell scripting for automated tasks.
 * **Local Architecture:** Designed specifically with performance efficiency in mind, ensuring minimal CPU cycles are consumed while keeping background telemetry updates asynchronous.
+
