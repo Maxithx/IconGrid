@@ -56,6 +56,13 @@
 - [x] Launcher-gridets UI er flyttet ud af `MainWindow.xaml`
 - [x] Drag/drop og genvejsmenu-events forwardes stadig til `MainWindow.xaml.cs`
 
+### Fase 5: `MainViewModel` oprydning
+
+- [ ] Start stor oprydning i `ViewModels/MainViewModel.cs`, når `Views/MainWindow.xaml` er færdig modulariseret
+- [ ] Flyt launcher-relateret state og commands til mindre viewmodels/services
+- [ ] Gennemgå bindings mellem `MainWindow`-controls og `MainViewModel`
+- [ ] Fjern død eller duplikeret logik efter `MainWindow`-refactor
+
 ## Hardware TODO
 
 ### Observation
