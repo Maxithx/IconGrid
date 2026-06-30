@@ -66,9 +66,10 @@
 
 ### Fase 5: `MainViewModel` oprydning
 
-- [ ] Fase 5A: Udskil tab/category-relateret state og logik
+- [x] Fase 5A: Udskil tab/category-relateret state og logik
 - [ ] Fase 5B: Udskil launcher item-operations og shortcut-logik
 - [x] Fase 5B.1: `LauncherItemsManager` håndterer nu category/item-mutationer
+- [x] Fase 5B.2: `LauncherItemIconManager` håndterer nu ikon-opdatering og ikon-fallback
 - [ ] Fase 5C: Udskil layout-state og saved-layout logik
 - [ ] Fase 5D: Udskil settings/config persistence
 - [ ] Fase 5E: Udskil theme/appearance state
@@ -82,6 +83,8 @@
 - [x] `CurrentItems` og current-category filtrering bruger nu fælles hjælpe-metoder i `MainViewModel`
 - [x] `ClearCurrentCategory`, `RemoveItem`, `RenameItem` og `MoveItemWithinCategory` delegérer nu til `LauncherItemsManager`
 - [x] `MainViewModel` delegérer nu `Tabs`, `SelectedTab`, `AddTab`, `RenameTab` og `RemoveTab` til tabs-state
+- [x] `UpdateItemIcon` og ikon-fallback er flyttet til `LauncherItemIconManager`
+- [x] `HandleFileDrop` bruger nu fælles ikon-initialisering via `LauncherItemIconManager`
 
 ### Fase 6: Struktur-oprydning
 

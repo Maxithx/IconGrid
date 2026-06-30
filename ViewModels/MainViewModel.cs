@@ -88,6 +88,7 @@ namespace IconGrid.ViewModels
         private readonly SystemMonitor _systemMonitor = new();
         private readonly LauncherTabsState _tabsState;
         private readonly LauncherItemsManager _itemsManager;
+        private readonly LauncherItemIconManager _itemIconManager;
         private ConfigModel _config;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
@@ -121,6 +122,7 @@ namespace IconGrid.ViewModels
 
             Items = new ObservableCollection<LauncherItem>();
             _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
+            _itemIconManager = new LauncherItemIconManager();
             Items.CollectionChanged += (s, e) =>
             {
                 SaveItemsToFile();
@@ -1263,37 +1265,8 @@ namespace IconGrid.ViewModels
         /// </summary>
         public void UpdateItemIcon(LauncherItem item, string iconPath, int iconIndex)
         {
-            if (item == null)
+            if (!_itemIconManager.UpdateItemIcon(item, iconPath, iconIndex))
                 return;
-
-            // If the target is a directory and has a desktop.ini-defined icon, prefer that.
-            if (Directory.Exists(iconPath))
-            {
-                var folderIcon = IconHelper.TryGetFolderIconFromDesktopIni(iconPath);
-                if (folderIcon.HasValue && !string.IsNullOrWhiteSpace(folderIcon.Value.Path))
-                {
-                    iconPath = folderIcon.Value.Path!;
-                    iconIndex = folderIcon.Value.Index;
-                }
-            }
-
-            item.IconPath = iconPath;
-            item.IconIndex = iconIndex;
-            item.RefreshIcon();
-
-            // Fallback: if icon still not loaded, try to extract and set base64 manually.
-            if (item.IconImage == null && File.Exists(iconPath))
-            {
-                var img = IconHelper.GetIconFromLibrary(iconPath, iconIndex)
-                         ?? IconHelper.GetHighResIcon(iconPath);
-                if (img != null)
-                {
-                    var trimmed = IconHelper.TrimTransparentBorder(img) ?? img;
-                    // IconImage setter is private; set via Icon property which updates IconImage.
-                    item.Icon = trimmed;
-                    item.IconBase64 = IconHelper.BitmapSourceToBase64(trimmed);
-                }
-            }
 
             OnPropertyChanged(nameof(CurrentItems));
             SaveItemsToFile();
@@ -1326,14 +1299,7 @@ namespace IconGrid.ViewModels
                 if (launcher != null)
                 {
                     launcher.RefreshIcon();
-                    if (launcher.IconImage == null)
-                    {
-                        var targetPath = !string.IsNullOrWhiteSpace(launcher.IconPath) ? launcher.IconPath : launcher.Path;
-                        if (!string.IsNullOrWhiteSpace(targetPath))
-                        {
-                            UpdateItemIcon(launcher, targetPath, launcher.IconIndex);
-                        }
-                    }
+                    _itemIconManager.EnsureItemIconLoaded(launcher);
                     Items.Add(launcher);
                     added = true;
                 }
