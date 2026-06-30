@@ -21,8 +21,6 @@ namespace IconGrid.ViewModels
     {
         // ---------- Fields ----------
 
-        private string _selectedTab = "Games";
-
         private int _iconsPerRow = 4;
         private double _icon_scale = 1.0;
 
@@ -88,6 +86,7 @@ namespace IconGrid.ViewModels
         private readonly string _iconPackFolder;
         private readonly ConfigManager _configManager;
         private readonly SystemMonitor _systemMonitor = new();
+        private readonly LauncherTabsState _tabsState;
         private ConfigModel _config;
 
         public SystemMonitor SystemMonitor => _systemMonitor;
@@ -116,13 +115,8 @@ namespace IconGrid.ViewModels
 
             UpdatePawnIoLocalizationStrings();
 
-            Tabs = new ObservableCollection<string>(_config.TabNames);
-
-            // Ensure a tab is always selected; default to the first tab if current selection is missing.
-            if (Tabs.Any() && !Tabs.Contains(_selectedTab))
-            {
-                _selectedTab = Tabs[0];
-            }
+            _tabsState = new LauncherTabsState(_config.TabNames, "Games");
+            _tabsState.PropertyChanged += TabsState_PropertyChanged;
 
             Items = new ObservableCollection<LauncherItem>();
             Items.CollectionChanged += (s, e) =>
@@ -160,7 +154,7 @@ namespace IconGrid.ViewModels
 
         // ---------- Public properties ----------
 
-        public ObservableCollection<string> Tabs { get; }
+        public ObservableCollection<string> Tabs => _tabsState.Tabs;
 
         public ObservableCollection<LauncherItem> Items { get; }
 
@@ -169,23 +163,8 @@ namespace IconGrid.ViewModels
 
         public string SelectedTab
         {
-            get => _selectedTab;
-            set
-            {
-                if (SetField(ref _selectedTab, value))
-                {
-                    if (string.IsNullOrWhiteSpace(_selectedTab) && Tabs.Any())
-                    {
-                        _selectedTab = Tabs[0];
-                        OnPropertyChanged(nameof(SelectedTab));
-                    }
-                    OnPropertyChanged(nameof(CurrentItems));
-                    OnPropertyChanged(nameof(ContentAreaHeight));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                }
-            }
+            get => _tabsState.SelectedTab;
+            set => _tabsState.SelectedTab = value;
         }
 
         /// <summary>
@@ -1197,24 +1176,16 @@ namespace IconGrid.ViewModels
 
         public void AddTab(string name)
         {
-            if (string.IsNullOrWhiteSpace(name))
-                return;
-
-            if (!Tabs.Contains(name))
-            {
-                Tabs.Add(name);
-            }
-
-            SelectedTab = name;
+            _tabsState.AddTab(name);
             SaveSettingsToConfig();
         }
 
         public void ClearCurrentCategory()
         {
-            if (string.IsNullOrWhiteSpace(_selectedTab))
+            if (string.IsNullOrWhiteSpace(SelectedTab))
                 return;
 
-            var itemsToRemove = Items.Where(i => string.Equals(i.Category, _selectedTab, StringComparison.OrdinalIgnoreCase)).ToList();
+            var itemsToRemove = Items.Where(i => string.Equals(i.Category, SelectedTab, StringComparison.OrdinalIgnoreCase)).ToList();
             if (itemsToRemove.Count == 0)
                 return;
 
@@ -1229,26 +1200,12 @@ namespace IconGrid.ViewModels
 
         public void RenameTab(string oldName, string newName)
         {
-            if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName))
+            if (!_tabsState.RenameTab(oldName, newName))
                 return;
-
-            var index = Tabs.IndexOf(oldName);
-            if (index < 0)
-                return;
-
-            if (!Tabs.Contains(newName))
-            {
-                Tabs[index] = newName;
-            }
 
             foreach (var item in Items.Where(i => i.Category == oldName))
             {
                 item.Category = newName;
-            }
-
-            if (SelectedTab == oldName)
-            {
-                SelectedTab = newName;
             }
 
             OnPropertyChanged(nameof(CurrentItems));
@@ -1258,14 +1215,8 @@ namespace IconGrid.ViewModels
 
         public void RemoveTab(string tabName)
         {
-            if (string.IsNullOrWhiteSpace(tabName))
+            if (!_tabsState.RemoveTab(tabName))
                 return;
-
-            if (!Tabs.Contains(tabName))
-                return;
-
-            // Fjern tab
-            Tabs.Remove(tabName);
 
             // Fjern alle items under det tab
             var toRemove = Items.Where(i => i.Category == tabName).ToList();
@@ -1612,6 +1563,19 @@ namespace IconGrid.ViewModels
         private void ThemeHelper_ThemeChanged(object? sender, ThemeSnapshot e)
         {
             ApplyTheme(e);
+        }
+
+        private void TabsState_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(LauncherTabsState.SelectedTab))
+                return;
+
+            OnPropertyChanged(nameof(SelectedTab));
+            OnPropertyChanged(nameof(CurrentItems));
+            OnPropertyChanged(nameof(ContentAreaHeight));
+            OnPropertyChanged(nameof(ContentHostHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
         }
 
         private void ApplyTheme(ThemeSnapshot snapshot)
