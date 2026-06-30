@@ -21,7 +21,7 @@
 - [x] Flyt logo-område til separat control
 - [x] Flyt monitor-row (`SystemMonitor`) til separat control
 - [x] Flyt minimize/close-knapper til separat control eller topbar-del
-- [ ] Afklar om `...`-knappen skal omdøbes fra `More` til `Indstillinger`
+- [x] Afklar om `...`-knappen skal omdøbes fra `More` til `Indstillinger`
 - [ ] Behold åbning af `SettingsWindow`, men gør triggeren mere modulær
 
 ### Fase 2 noter
@@ -47,6 +47,7 @@
 - [x] Tab-adfærden går stadig via `MainWindow.xaml.cs` for en sikker trinvis refactor
 - [x] Add/rename/remove category-logik kører nu direkte i `LauncherTabsBar`
 - [x] `More` er omdøbt i UI til `Indstillinger`
+- [x] Overflødige tab-handlers er fjernet fra `MainWindow.xaml.cs`
 
 ### Fase 4: Launcher-område
 
@@ -60,6 +61,7 @@
 - [x] `LauncherGrid` er oprettet som separat control
 - [x] Launcher-gridets UI er flyttet ud af `MainWindow.xaml`
 - [x] Drag/drop og genvejsmenu-events forwardes stadig til `MainWindow.xaml.cs`
+- [x] Genvejsmenuens labels bindes nu korrekt i `LauncherGrid`
 
 ### Fase 5: `MainViewModel` oprydning
 

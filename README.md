@@ -82,8 +82,8 @@ Reusable, standardized custom controls designed to keep XAML views lean and main
 * `LauncherMonitorRow.xaml / .cs`: Encapsulates the live system monitor strip with ping, network throughput, and CPU/GPU telemetry bindings.
 * `LauncherWindowButtons.xaml / .cs`: Encapsulates the top-right minimize/close launcher buttons and forwards their click events to the host window.
 * `LauncherTopBar.xaml / .cs`: Encapsulates the main launcher top row as a composition shell for the logo, monitor strip, and window-button controls.
-* `LauncherTabsBar.xaml / .cs`: Encapsulates the category tab row, including tab selection, rename/remove menus, scrolling controls, add-category button, and the `Indstillinger` button entry point.
-* `LauncherGrid.xaml / .cs`: Encapsulates the main shortcut area, including the launcher item grid, drag/drop handling hooks, scroll container, empty-state prompt, and shortcut context menus.
+* `LauncherTabsBar.xaml / .cs`: Encapsulates the category tab row, including tab selection, rename/remove menus, scrolling controls, add-category button, and the `Indstillinger` button entry point; category add/rename/remove actions now execute inside the control instead of `MainWindow`.
+* `LauncherGrid.xaml / .cs`: Encapsulates the main shortcut area, including the launcher item grid, drag/drop handling hooks, scroll container, empty-state prompt, and shortcut context menus; the shortcut context-menu labels are now resolved directly inside the control.
 
 ### UI Behavior Helpers (`/Helpers`)
 Focused UI controllers and infrastructure used by the main shell:
@@ -97,7 +97,7 @@ Focused UI controllers and infrastructure used by the main shell:
 
 ### Window & Page Layouts (`/Views`)
 * **Shell Components:**
-  * `MainWindow.xaml / .cs`: The primary shell window coordinating transitions between the floating launcher state and the expanded dashboard while delegating floating-icon, topbar, category-tabs, and launcher-grid UI to dedicated modules.
+  * `MainWindow.xaml / .cs`: The primary shell window coordinating transitions between the floating launcher state and the expanded dashboard while delegating floating-icon, topbar, category-tabs, and launcher-grid UI to dedicated modules; obsolete tab add/rename/remove handlers have been removed as that logic moved into `LauncherTabsBar`.
   * `SettingsWindow.xaml`: A dedicated panel managing global configurations and app preferences.
 * **Modular Dashboard Pages:**
   * `StartsidePage.xaml`: Configures system startup settings, user interface scaling, and overlay topmost thresholds.
