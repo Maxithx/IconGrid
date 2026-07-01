@@ -67,17 +67,17 @@
 ### Fase 5: `MainViewModel` oprydning
 
 - [x] Fase 5A: Udskil tab/category-relateret state og logik
-- [ ] Fase 5B: Afslut restoprydning efter udskilning af launcher item-operations og shortcut-logik
+- [x] Fase 5B: Afslut restoprydning efter udskilning af launcher item-operations og shortcut-logik
 - [x] Fase 5B.1: `LauncherItemsManager` håndterer nu category/item-mutationer
 - [x] Fase 5B.2: `LauncherItemIconManager` håndterer nu ikon-opdatering og ikon-fallback
 - [x] Fase 5B.3: `LauncherShortcutManager` håndterer nu file-drop og custom shortcut-oprettelse
-- [ ] Fase 5C: Afslut restoprydning efter udskilning af layout-state og saved-layout logik
+- [x] Fase 5C: Afslut restoprydning efter udskilning af layout-state og saved-layout logik
 - [x] Fase 5C.1: `LauncherLayoutState` håndterer nu layout-state, saved layouts og layout-links
-- [ ] Fase 5D: Afslut restoprydning efter udskilning af settings/config persistence
+- [x] Fase 5D: Afslut restoprydning efter udskilning af settings/config persistence
 - [x] Fase 5D.1: `LauncherItemsPersistence` håndterer nu items save/load/migrering
 - [x] Fase 5D.2: settings-save er flyttet til `MainViewModelSettingsPersistence`
-- [ ] Fase 5E: Udskil theme/appearance state
-- [ ] Fase 5F: Udskil localization-labels og relateret hjælpe-logik
+- [x] Fase 5E: Udskil theme/appearance state
+- [x] Fase 5F: Udskil localization-labels og relateret hjælpe-logik
 
 ### Fase 5 noter
 
@@ -97,12 +97,12 @@
 - [x] Layout preset, saved layouts, favorite layout og layout-links delegérer nu til `LauncherLayoutState`
 - [x] Layout-mutationer, defaults-reset og settings-snapshot delegérer nu primært til `LauncherLayoutState`
 - [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
-- [~] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
+- [x] Restvurdering afsluttet: overlay-/layout-triggerlogik er nu reduceret til små fælles hjælpe-metoder i `MainViewModel`
 - [x] Overlay-state (`IsSettingsOpen`, `IsLayoutsOpen`, `IsHelpOpen`) delegérer nu til `LauncherOverlayState`
 - [x] Overlay-property notifications og content-height refresh bruger nu fælles hjælpe-metoder i `MainViewModel`
 - [x] Tab-skifte og row-spacing/last-row-height notifications bruger nu fælles content-height helpers i `MainViewModel`
 - [x] Layout property-/collection-mutationer bruger nu fælles persist-hjælpere i `MainViewModel`
-- [~] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
+- [x] Restvurdering afsluttet: `load/apply-config/startup` er nu delt i små orkestrerende trin, og yderligere split vurderes ikke at give reel værdi
 - [x] Basis config-oversættelse fra `ConfigModel` delegérer nu til `MainViewModelConfigState`
 - [x] Konstruktørens startup-sekvens er opdelt i små init-metoder, så config-load, appearance, managers, commands og persisted item-load er tydeligt separeret
 - [x] `ApplyConfig` bruger nu direkte state-assignments for language/config-load i stedet for at trigge property-setter sideeffekter under init
