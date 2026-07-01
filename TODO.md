@@ -114,9 +114,46 @@
 
 ### Fase 6: Struktur-oprydning
 
-- [ ] Planlæg undermapper for `Launcher`-relaterede controls/views/helpers
-- [ ] Planlæg undermapper for `Settings`-relaterede views/pages/helpers
+- [x] Planlæg undermapper for `Launcher`-relaterede controls/views/helpers
+- [x] Planlæg undermapper for `Settings`-relaterede views/pages/helpers
 - [ ] Udfør mappeflytninger først efter stabil `MainViewModel`-refactor
+
+### Fase 6 plan
+
+- `Controls/Launcher/`
+- Flyt `LauncherGrid`, `LauncherLogoArea`, `LauncherMonitorRow`, `LauncherTabsBar`, `LauncherTopBar` og `LauncherWindowButtons` hertil
+- Behold `Controls/Floating/` som næste naturlige hjem for `FloatingIconButton`
+- Behold `Controls/Common/` som næste naturlige hjem for `SliderRow` og evt. `LauncherLogo`, hvis den fortsat bruges bredt
+
+- `Views/Launcher/`
+- Behold `MainWindow` som launcher-shell og flyt det hertil sammen med evt. launcher-specifikke dialoger, hvis de opstår senere
+
+- `Views/Settings/Pages/`
+- Flyt `AboutPage`, `GenvejsIkonerPage`, `HardwarePage`, `HjaelpPage`, `LayoutPage`, `StartsidePage` og `TemplatePage` hertil
+- Behold `Views/Settings/SettingsWindow.xaml` som settings-shell
+- Behold `Views/Settings/Dialogs/` som næste naturlige hjem for `PawnIoWarningWindow`, hvis den fortsat kun hører til settings-flowet
+
+- `ViewModels/Launcher/`
+- Flyt `LauncherTabsState`, `LauncherItemsManager`, `LauncherItemIconManager`, `LauncherItemLaunchManager`, `LauncherShortcutManager`, `LauncherItemsPersistence`, `LauncherLayoutState`, `LauncherOverlayState`, `LauncherThemeState`, `LauncherThemeCoordinator` og `LauncherLocalizationState` hertil
+- Behold `MainViewModel` i roden af `ViewModels/`, så launcherens samlede entry-viewmodel stadig er let at finde
+
+- `ViewModels/Settings/`
+- Flyt `MainViewModelSettingsState`, `MainViewModelSettingsPersistence` og `MainViewModelConfigState` hertil, fordi de nu primært beskriver settings/config-flow
+
+- `Helpers/Launcher/`
+- Flyt `FloatingIconController`, `DynamicIconHelper`, `IconHelper`, `IconResourceUpdater`, `ShortcutHelper`, `ShellIconLabel`, `ShellIconTextBlock`, `SystemMonitor` og evt. `EmbeddedIconLibrary` hertil
+
+- `Helpers/Settings/`
+- Flyt `LocalizationHelper`, `PawnIoHelper`, `ThemeHelper`, `StartupTaskManager` og `ConfigManager` hertil hvis de fortsat primært bruges af settings/configuration
+
+- `Helpers/Hardware/`
+- Flyt `HardwareInfoProvider`, `HardwareMonitorAgent`, `HardwareMonitorSnapshot` og `HardwareSnapshotCollector` hertil som separat spor før eventuel hardware-refactor
+
+- `Helpers/Converters/`
+- Saml UI-converters her: `BooleanToAngleConverter`, `BoolToBrushConverter`, `BoolToVisibilityConverter`, `InverseBoolConverter`, `InverseBoolToVisibilityConverter`, `LayoutSlotLabelConverter`, `LayoutSlotMatchConverter`, `PercentToHeightConverter`, `PingSeverityToBrushConverter`, `ScrollButtonsVisibilityConverter`, `SelectedTabMatchConverter`, `TabNameLocalizationConverter` og `TemplateContentWidthConverter`
+
+- `Helpers/Common/`
+- Behold `RelayCommand`, `DevInspector` og `UpdateVisitor` her eller flyt dem til en fælles mappe, da de ikke er launcher- eller settings-specifikke
 
 ## Hardware TODO
 
