@@ -167,6 +167,7 @@
 
 - `Helpers/Common/`
 - Behold `RelayCommand`, `DevInspector` og `UpdateVisitor` her eller flyt dem til en fælles mappe, da de ikke er launcher- eller settings-specifikke
+- [x] Næste flyttefase gennemført: fælles helpers er flyttet til `Helpers/Common/`
 
 ## Hardware TODO
 
