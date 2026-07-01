@@ -100,6 +100,7 @@
 - [~] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
 - [x] Overlay-state (`IsSettingsOpen`, `IsLayoutsOpen`, `IsHelpOpen`) delegérer nu til `LauncherOverlayState`
 - [x] Overlay-property notifications og content-height refresh bruger nu fælles hjælpe-metoder i `MainViewModel`
+- [x] Tab-skifte og row-spacing/last-row-height notifications bruger nu fælles content-height helpers i `MainViewModel`
 - [~] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
 - [x] Basis config-oversættelse fra `ConfigModel` delegérer nu til `MainViewModelConfigState`
 - [x] Konstruktørens startup-sekvens er opdelt i små init-metoder, så config-load, appearance, managers, commands og persisted item-load er tydeligt separeret

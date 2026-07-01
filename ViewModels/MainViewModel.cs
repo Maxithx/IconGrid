@@ -784,6 +784,13 @@ namespace IconGrid.ViewModels
             NotifyLayoutCollectionsChanged();
         }
 
+        private void NotifySelectedTabContentChanged()
+        {
+            OnPropertyChanged(nameof(SelectedTab));
+            OnPropertyChanged(nameof(CurrentItems));
+            NotifyContentHeightChanged();
+        }
+
         private void NotifyOverlayStateChanged(
             string propertyName,
             bool secondaryChanged,
@@ -1240,12 +1247,7 @@ namespace IconGrid.ViewModels
             if (e.PropertyName != nameof(LauncherTabsState.SelectedTab))
                 return;
 
-            OnPropertyChanged(nameof(SelectedTab));
-            OnPropertyChanged(nameof(CurrentItems));
-            OnPropertyChanged(nameof(ContentAreaHeight));
-            OnPropertyChanged(nameof(ContentHostHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+            NotifySelectedTabContentChanged();
         }
 
         private void ApplyTheme(ThemeSnapshot snapshot)
@@ -1265,8 +1267,7 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _iconRowSpacing, value))
                 {
                     SaveSettingsToConfig();
-                    OnPropertyChanged(nameof(ContentAreaHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
+                    NotifyContentHeightChanged();
                     OnPropertyChanged(nameof(IconMargin));
                 }
             }
@@ -1283,10 +1284,7 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _lastRowPaddingAdjust, value))
                 {
                     SaveSettingsToConfig();
-                    OnPropertyChanged(nameof(ContentAreaHeight));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+                    NotifyContentHeightChanged();
                 }
             }
         }
