@@ -1,18 +1,27 @@
 # Views layout notes
 
-## TemplatePage (Views/TemplatePage.xaml)
-- Provides the shared hero + card column that sits in the content host next to the sidebar.
-- Hero content is injected via the `HeroContent` dependency property and rendered inside a `StartsideSectionCardStyle` border.
-- Additional cards stack under the hero by setting the `CardsContent` property. Each card should also use `StartsideSectionCardStyle` so the built-in margin (`0,0,0,5`) keeps the spacing identical to the Startside shell.
-- The `TemplateContentWidthConverter` (declared inside `TemplatePage` resources) keeps the card column centered, limits its width to ~1280px, reserves horizontal gutters, and automatically shrinks when the window isn’t maximized so every hero/card layout stays aligned with the Startside design.
-- Placeholders, loaders, or future sections can host their own `StackPanel` or `ItemsControl` inside `CardsContent` without redefining the shell styling.
+## Structure
 
-## Startside styles & spacing
-- `Views/StartsideStyles.xaml` defines the key brushes and styles: `StartsideCardFill`, `StartsideLightCardFill`, `StartsideSectionCardStyle`, `ToggleSwitchStyle`, `ModernSliderStyle`, etc.
-- `StartsideSectionCardStyle` sets the visual spacing between cards. Always reuse this style rather than applying new margins so every page lines up with the Startside look.
-- Accent colors and the slider/toggle templates live alongside these styles so every page has a single source of truth for the palette.
+- `Views/Launcher/MainWindow.xaml` is the launcher shell and owns the transition between floating icon mode and the expanded dashboard.
+- `Views/Settings/SettingsWindow.xaml` is the settings shell and hosts the shared sidebar navigation.
+- `Views/Settings/Pages/` contains the settings content pages loaded into `SettingsWindow`.
+- `Views/Settings/Dialogs/` contains settings-specific dialogs such as `PawnIoWarningWindow`.
+- `Views/StartsideStyles.xaml` and `Views/TemplateGuidelines.xaml` remain shared view resources used across the settings pages.
 
-## Sidebar navigation (SettingsWindow.xaml)
-- The sidebar lives in `SettingsWindow`, uses `NavButtonStyle`, and controls selection by tagging the currently active button with `Tag="Selected"`.
-- New pages simply call `ShowPage(new YourPage(), yourNavButton)` so the `SettingsContentHost` swaps in the template-powered card column.
-- Keep the sidebar buttons in a single column and avoid duplicating the navigation UI inside each page: the TemplatePage handles the card panel only.
+## TemplatePage
+
+- `Views/Settings/Pages/TemplatePage.xaml` provides the shared hero-plus-card shell used by the settings pages.
+- `HeroContent` renders the top section inside a `StartsideSectionCardStyle` card.
+- `CardsContent` renders the stacked follow-up cards and should keep using `StartsideSectionCardStyle` for consistent spacing.
+- `TemplateContentWidthConverter` keeps the content column centered, applies gutters, and constrains the max width so `StartsidePage`, `LayoutPage`, and future pages stay visually aligned.
+
+## Startside styles
+
+- `Views/StartsideStyles.xaml` defines the shared brushes and styles used by the settings pages, including `StartsideSectionCardStyle`, `ToggleSwitchStyle`, and `ModernSliderStyle`.
+- Reuse these styles instead of duplicating margins or card chrome inside individual pages.
+
+## Settings shell
+
+- `Views/Settings/SettingsWindow.xaml` owns the sidebar buttons and still swaps pages via `ShowPage(new YourPage(), yourNavButton)`.
+- `Views/Settings/SettingsWindowCoordinator.cs` now owns launcher-side settings window orchestration: create, reuse, placement beside the main window, activation, and cleanup.
+- `Views/Launcher/MainWindow.xaml.cs` should only trigger the coordinator instead of re-implementing settings-window lifecycle logic.

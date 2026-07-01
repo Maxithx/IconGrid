@@ -22,7 +22,7 @@
 - [x] Flyt monitor-row (`SystemMonitor`) til separat control
 - [x] Flyt minimize/close-knapper til separat control eller topbar-del
 - [x] Afklar om `...`-knappen skal omdøbes fra `More` til `Indstillinger`
-- [ ] Behold åbning af `SettingsWindow`, men gør triggeren mere modulær
+- [x] Behold åbning af `SettingsWindow`, men gør triggeren mere modulær
 
 ### Fase 2 noter
 
@@ -31,6 +31,7 @@
 - [x] `LauncherLogoArea` er oprettet, så layout/logo-adfærden er adskilt fra resten af topbaren
 - [x] `LauncherMonitorRow` er oprettet, så live monitor-strippen er adskilt fra resten af topbaren
 - [x] `LauncherWindowButtons` er oprettet, så minimize/close-knapperne er adskilt fra resten af topbaren
+- [x] `SettingsWindowCoordinator` håndterer nu åbning, genbrug, positionering og lukning af settings-vinduet i stedet for at samle flowet i `MainWindow.xaml.cs`
 
 ### Fase 3: Kategori-navigation
 
@@ -116,7 +117,7 @@
 
 - [x] Planlæg undermapper for `Launcher`-relaterede controls/views/helpers
 - [x] Planlæg undermapper for `Settings`-relaterede views/pages/helpers
-- [ ] Udfør mappeflytninger først efter stabil `MainViewModel`-refactor
+- [x] Udfør mappeflytninger først efter stabil `MainViewModel`-refactor
 
 ### Fase 6 plan
 
@@ -187,7 +188,7 @@
 
 ## Dokumentation
 
-- [ ] Hold `README.md` opdateret efter hver større refactor-fase
+- [x] Hold `README.md` opdateret efter hver større refactor-fase
 - [ ] Dokumentér nye controls/helpers når de bliver arkitektonisk vigtige
 
 ## Arbejdsregel

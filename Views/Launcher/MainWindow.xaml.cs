@@ -147,10 +147,10 @@ namespace IconGrid.Views
 
         private PawnIoWarningWindow? _pawnIoWarningWindow;
         private DispatcherTimer? _pawnIoWarningRetryTimer;
-        private SettingsWindow? _settingsWindow;
         private double _lastLoggedLeft = double.NaN;
         private double _lastLoggedTop = double.NaN;
         private readonly FloatingIconController _floatingIconController = new();
+        private readonly SettingsWindowCoordinator _settingsWindowCoordinator = new();
 
         private record WindowsShortcutTemplate(string DisplayName, string FullPath);
 
@@ -2024,77 +2024,11 @@ namespace IconGrid.Views
 
         private void MoreButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            ShowSettingsWindow();
-        }
-
-        private void ShowSettingsWindow()
-        {
-            if (_settingsWindow == null)
-            {
-                _settingsWindow = new SettingsWindow(_viewModel)
-                {
-                    Owner = this
-                };
-                _settingsWindow.Closed += SettingsWindow_Closed;
-            }
-
-            if (!_settingsWindow.TryApplySavedPosition())
-            {
-                PositionSettingsWindowRelativeToMain(_settingsWindow);
-            }
-
-            if (_settingsWindow.IsVisible)
-            {
-                if (_settingsWindow.WindowState == WindowState.Minimized)
-                {
-                    _settingsWindow.WindowState = WindowState.Normal;
-                }
-
-                _settingsWindow.Activate();
-            }
-            else
-            {
-                _skipSavingLocation = true;
-                _settingsWindow.Show();
-            }
-        }
-
-        private void SettingsWindow_Closed(object? sender, EventArgs e)
-        {
-            _settingsWindow = null;
-            _skipSavingLocation = false;
-            LogTrace($"Settings window closed; returning to normal focus from {Left:F1},{Top:F1}");
-        }
-
-        private void PositionSettingsWindowRelativeToMain(SettingsWindow window)
-        {
-            var workArea = SystemParameters.WorkArea;
-            const double gap = 16;
-            var desiredLeft = Left + Width + gap;
-            if (desiredLeft + window.Width > workArea.Right)
-            {
-                desiredLeft = Left - window.Width - gap;
-            }
-
-            if (desiredLeft < workArea.Left)
-            {
-                desiredLeft = workArea.Left;
-            }
-
-            var desiredTop = Top;
-            if (desiredTop + window.Height > workArea.Bottom)
-            {
-                desiredTop = workArea.Bottom - window.Height;
-            }
-
-            if (desiredTop < workArea.Top)
-            {
-                desiredTop = workArea.Top;
-            }
-
-            window.WindowStartupLocation = WindowStartupLocation.Manual;
-            window.Left = desiredLeft;
-            window.Top = desiredTop;
+            _settingsWindowCoordinator.Show(
+                this,
+                _viewModel,
+                value => _skipSavingLocation = value,
+                LogTrace);
         }
 
         private void ArrangeNowButton_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -3254,11 +3188,7 @@ namespace IconGrid.Views
                 _viewModel.SystemMonitor.Dispose();
             }
             ClosePawnIoWarningWindow();
-            if (_settingsWindow != null)
-            {
-                _settingsWindow.Close();
-                _settingsWindow = null;
-            }
+            _settingsWindowCoordinator.Close();
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;
@@ -3278,11 +3208,7 @@ namespace IconGrid.Views
             _monitorTimer?.Stop();
             _autoHideTimer?.Stop();
             ClosePawnIoWarningWindow();
-            if (_settingsWindow != null)
-            {
-                _settingsWindow.Close();
-                _settingsWindow = null;
-            }
+            _settingsWindowCoordinator.Close();
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;
