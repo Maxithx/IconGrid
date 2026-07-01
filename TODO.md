@@ -67,13 +67,13 @@
 ### Fase 5: `MainViewModel` oprydning
 
 - [x] Fase 5A: Udskil tab/category-relateret state og logik
-- [ ] Fase 5B: Udskil launcher item-operations og shortcut-logik
+- [ ] Fase 5B: Afslut restoprydning efter udskilning af launcher item-operations og shortcut-logik
 - [x] Fase 5B.1: `LauncherItemsManager` håndterer nu category/item-mutationer
 - [x] Fase 5B.2: `LauncherItemIconManager` håndterer nu ikon-opdatering og ikon-fallback
 - [x] Fase 5B.3: `LauncherShortcutManager` håndterer nu file-drop og custom shortcut-oprettelse
-- [ ] Fase 5C: Udskil layout-state og saved-layout logik
+- [ ] Fase 5C: Afslut restoprydning efter udskilning af layout-state og saved-layout logik
 - [x] Fase 5C.1: `LauncherLayoutState` håndterer nu layout-state, saved layouts og layout-links
-- [ ] Fase 5D: Udskil settings/config persistence
+- [ ] Fase 5D: Afslut restoprydning efter udskilning af settings/config persistence
 - [x] Fase 5D.1: `LauncherItemsPersistence` håndterer nu items save/load/migrering
 - [x] Fase 5D.2: settings-save er flyttet til `MainViewModelSettingsPersistence`
 - [ ] Fase 5E: Udskil theme/appearance state
@@ -90,11 +90,16 @@
 - [x] `UpdateItemIcon` og ikon-fallback er flyttet til `LauncherItemIconManager`
 - [x] `HandleFileDrop` bruger nu fælles ikon-initialisering via `LauncherItemIconManager`
 - [x] `HandleFileDrop` og `CreateCustomShortcut` delegérer nu til `LauncherShortcutManager`
+- [ ] Restvurder om launch/open/run-as-admin/file-location/copy-path stadig bør skilles yderligere ud fra `MainViewModel`
 - [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
 - [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`
 - [x] Layout preset, saved layouts, favorite layout og layout-links delegérer nu til `LauncherLayoutState`
 - [x] Layout-mutationer, defaults-reset og settings-snapshot delegérer nu primært til `LauncherLayoutState`
 - [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
+- [ ] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
+- [ ] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
+- [ ] Theme-state, brushes og `ApplyTheme` ligger stadig i `MainViewModel`
+- [ ] Localization-labels, `RaiseLocalizationChanged` og PawnIO-tekster ligger stadig i `MainViewModel`
 
 ### Fase 6: Struktur-oprydning
 
