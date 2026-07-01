@@ -72,6 +72,7 @@
 - [x] Fase 5B.2: `LauncherItemIconManager` håndterer nu ikon-opdatering og ikon-fallback
 - [x] Fase 5B.3: `LauncherShortcutManager` håndterer nu file-drop og custom shortcut-oprettelse
 - [ ] Fase 5C: Udskil layout-state og saved-layout logik
+- [x] Fase 5C.1: `LauncherLayoutState` håndterer nu layout-state, saved layouts og layout-links
 - [ ] Fase 5D: Udskil settings/config persistence
 - [x] Fase 5D.1: `LauncherItemsPersistence` håndterer nu items save/load/migrering
 - [x] Fase 5D.2: settings-save er flyttet til `MainViewModelSettingsPersistence`
@@ -91,6 +92,7 @@
 - [x] `HandleFileDrop` og `CreateCustomShortcut` delegérer nu til `LauncherShortcutManager`
 - [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
 - [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`
+- [x] Layout preset, saved layouts, favorite layout og layout-links delegérer nu til `LauncherLayoutState`
 
 ### Fase 6: Struktur-oprydning
 

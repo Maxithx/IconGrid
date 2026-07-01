@@ -52,15 +52,7 @@ namespace IconGrid.ViewModels
         private double? _settingsWindowTop;
         private double? _floatingLeft;
         private double? _floatingTop;
-        private string _layoutPreset = "Auto";
-        private bool _layoutSkipMinimized = true;
-        private bool _layoutCurrentMonitorOnly = true;
-        private bool _layoutReserveIconGridSlot = true;
-        private int _layoutIconGridSlot = 0;
-        private readonly Dictionary<string, int> _layoutIconGridSlots = new(StringComparer.OrdinalIgnoreCase);
-        private Dictionary<string, int[]> _layoutLinks = new();
-        private readonly Dictionary<string, List<CustomLayoutSlot>> _savedLayouts = new(StringComparer.OrdinalIgnoreCase);
-        private List<CustomLayoutSlot> _favoriteLayoutSlots = new();
+        private readonly LauncherLayoutState _layoutState = new();
         private const double TileSlotWidth = 172;             // approximate width per icon tile including margin
         private const double BaseTileSlotHeight = 152;        // base row height (icon + label) before spacing
         private const double ContentVerticalPaddingTop = 36;  // upper padding portion (matches XAML padding)
@@ -96,7 +88,6 @@ namespace IconGrid.ViewModels
         public SystemMonitor SystemMonitor => _systemMonitor;
         private const double SettingsMinWindowHeight = 620;
         private const double FixedSettingsHeight = 680;
-        private const int MaxSavedLayouts = 10;
 
         // ---------- Constructor ----------
 
@@ -733,13 +724,16 @@ namespace IconGrid.ViewModels
 
         public string LayoutPreset
         {
-            get => _layoutPreset;
+            get => _layoutState.LayoutPreset;
             set
             {
-                if (SetField(ref _layoutPreset, value))
+                if (string.Equals(_layoutState.LayoutPreset, value, StringComparison.Ordinal))
+                    return;
+
+                _layoutState.LayoutPreset = value;
+                OnPropertyChanged();
                 {
-                    // Switch to the slot that belongs to this preset (if any).
-                    LayoutIconGridSlot = GetSlotForPreset(_layoutPreset);
+                    LayoutIconGridSlot = _layoutState.GetSlotForPreset(_layoutState.LayoutPreset);
                     SaveSettingsToConfig();
                     OnPropertyChanged(nameof(LayoutPresetToolTip));
                 }
@@ -750,11 +744,11 @@ namespace IconGrid.ViewModels
         {
             get
             {
-                if (string.Equals(_layoutPreset, "Auto", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(_layoutState.LayoutPreset, "Auto", StringComparison.OrdinalIgnoreCase))
                     return "Kør auto layout";
 
-                if (TryGetSavedLayout(_layoutPreset, out _, out var canonical) || string.Equals(_layoutPreset, "Favorite", StringComparison.OrdinalIgnoreCase))
-                    return $"Kør {canonical ?? _layoutPreset} layout";
+                if (TryGetSavedLayout(_layoutState.LayoutPreset, out _, out var canonical) || string.Equals(_layoutState.LayoutPreset, "Favorite", StringComparison.OrdinalIgnoreCase))
+                    return $"Kør {canonical ?? _layoutState.LayoutPreset} layout";
 
                 return "Kør standard layout";
             }
@@ -762,11 +756,13 @@ namespace IconGrid.ViewModels
 
         public bool LayoutSkipMinimized
         {
-            get => _layoutSkipMinimized;
+            get => _layoutState.LayoutSkipMinimized;
             set
             {
-                if (SetField(ref _layoutSkipMinimized, value))
+                if (_layoutState.LayoutSkipMinimized != value)
                 {
+                    _layoutState.LayoutSkipMinimized = value;
+                    OnPropertyChanged();
                     SaveSettingsToConfig();
                 }
             }
@@ -774,11 +770,13 @@ namespace IconGrid.ViewModels
 
         public bool LayoutCurrentMonitorOnly
         {
-            get => _layoutCurrentMonitorOnly;
+            get => _layoutState.LayoutCurrentMonitorOnly;
             set
             {
-                if (SetField(ref _layoutCurrentMonitorOnly, value))
+                if (_layoutState.LayoutCurrentMonitorOnly != value)
                 {
+                    _layoutState.LayoutCurrentMonitorOnly = value;
+                    OnPropertyChanged();
                     SaveSettingsToConfig();
                 }
             }
@@ -786,11 +784,13 @@ namespace IconGrid.ViewModels
 
         public bool LayoutReserveIconGridSlot
         {
-            get => _layoutReserveIconGridSlot;
+            get => _layoutState.LayoutReserveIconGridSlot;
             set
             {
-                if (SetField(ref _layoutReserveIconGridSlot, value))
+                if (_layoutState.LayoutReserveIconGridSlot != value)
                 {
+                    _layoutState.LayoutReserveIconGridSlot = value;
+                    OnPropertyChanged();
                     SaveSettingsToConfig();
                 }
             }
@@ -798,110 +798,51 @@ namespace IconGrid.ViewModels
 
         public int LayoutIconGridSlot
         {
-            get => _layoutIconGridSlot;
+            get => _layoutState.LayoutIconGridSlot;
             set
             {
                 // Clamp to first 4 slots.
                 var clamped = Math.Max(0, Math.Min(3, value));
-                if (SetField(ref _layoutIconGridSlot, clamped))
+                if (_layoutState.LayoutIconGridSlot != clamped)
                 {
-                    SaveSlotForPreset(_layoutPreset, clamped);
+                    _layoutState.LayoutIconGridSlot = clamped;
+                    _layoutState.SaveSlotForPreset(_layoutState.LayoutPreset, clamped);
+                    OnPropertyChanged();
                     SaveSettingsToConfig();
                 }
             }
         }
 
-        public IReadOnlyDictionary<string, int[]> LayoutLinks => _layoutLinks;
+        public IReadOnlyDictionary<string, int[]> LayoutLinks => _layoutState.LayoutLinks;
 
-        public IReadOnlyDictionary<string, List<CustomLayoutSlot>> SavedLayouts => _savedLayouts;
+        public IReadOnlyDictionary<string, List<CustomLayoutSlot>> SavedLayouts => _layoutState.SavedLayouts;
 
-        public IEnumerable<string> SavedLayoutNames => _savedLayouts.Keys.OrderBy(k => k);
+        public IEnumerable<string> SavedLayoutNames => _layoutState.SavedLayoutNames;
 
-        public IEnumerable<string> LayoutPresetChoices => new[] { "Auto", "Grid2x2", "TwoUp", "ThreePane", "ThreePaneMirror" }.Concat(SavedLayoutNames).Distinct(StringComparer.OrdinalIgnoreCase);
+        public IEnumerable<string> LayoutPresetChoices => _layoutState.LayoutPresetChoices;
 
-        public IReadOnlyList<CustomLayoutSlot> FavoriteLayoutSlots => _favoriteLayoutSlots;
-
-        private int GetSlotForPreset(string preset)
-        {
-            if (string.IsNullOrWhiteSpace(preset))
-                return _layoutIconGridSlot;
-
-            if (_layoutIconGridSlots.TryGetValue(preset, out var slot))
-                return slot;
-
-            return _layoutIconGridSlot;
-        }
-
-        private void SaveSlotForPreset(string preset, int slot)
-        {
-            if (string.IsNullOrWhiteSpace(preset))
-                return;
-
-            _layoutIconGridSlots[preset] = slot;
-        }
+        public IReadOnlyList<CustomLayoutSlot> FavoriteLayoutSlots => _layoutState.FavoriteLayoutSlots;
 
         public void SetLayoutLink(string preset, int[]? slots)
         {
-            if (string.IsNullOrWhiteSpace(preset))
-                return;
-
-            if (slots == null || slots.Length == 0)
-            {
-                if (_layoutLinks.ContainsKey(preset))
-                    _layoutLinks.Remove(preset);
-            }
-            else
-            {
-                _layoutLinks[preset] = slots;
-            }
-
+            _layoutState.SetLayoutLink(preset, slots);
             SaveSettingsToConfig();
         }
 
         public IReadOnlyList<CustomLayoutSlot> GetSavedLayoutSlots(string layoutName)
         {
-            if (TryGetSavedLayout(layoutName, out var slots, out _))
-                return slots;
-
-            if (string.Equals(layoutName, "Favorite", StringComparison.OrdinalIgnoreCase) && _favoriteLayoutSlots.Any())
-                return _favoriteLayoutSlots;
-
-            return Array.Empty<CustomLayoutSlot>();
+            return _layoutState.GetSavedLayoutSlots(layoutName);
         }
 
         public bool TryGetSavedLayout(string layoutName, out List<CustomLayoutSlot> slots, out string? canonicalName)
         {
-            slots = new List<CustomLayoutSlot>();
-            canonicalName = null;
-
-            if (string.IsNullOrWhiteSpace(layoutName))
-                return false;
-
-            foreach (var kvp in _savedLayouts)
-            {
-                if (string.Equals(kvp.Key, layoutName, StringComparison.OrdinalIgnoreCase))
-                {
-                    slots = kvp.Value;
-                    canonicalName = kvp.Key;
-                    return true;
-                }
-            }
-
-            return false;
+            return _layoutState.TryGetSavedLayout(layoutName, out slots, out canonicalName);
         }
 
         public void SaveLayout(string layoutName, IEnumerable<CustomLayoutSlot> slots)
         {
-            if (string.IsNullOrWhiteSpace(layoutName))
-                return;
-
-            _savedLayouts[layoutName] = CloneSlots(slots);
-            _favoriteLayoutSlots = _savedLayouts[layoutName];
-            // Preserve the current slot selection for this saved layout.
-            SaveSlotForPreset(layoutName, _layoutIconGridSlot);
-
-            TrimSavedLayouts();
-
+            _layoutState.LayoutIconGridSlot = LayoutIconGridSlot;
+            _layoutState.SaveLayout(layoutName, slots);
             OnPropertyChanged(nameof(FavoriteLayoutSlots));
             OnPropertyChanged(nameof(SavedLayouts));
             OnPropertyChanged(nameof(SavedLayoutNames));
@@ -911,41 +852,11 @@ namespace IconGrid.ViewModels
 
         public bool RenameLayout(string oldName, string newName)
         {
-            if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName))
+            if (!_layoutState.RenameLayout(oldName, newName))
                 return false;
 
-            if (string.Equals(oldName, "Auto", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(newName, "Auto", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            // No change needed
-            if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            if (!_savedLayouts.ContainsKey(oldName))
-                return false;
-
-            // Avoid duplicate name (case-insensitive dictionary already handles this)
-            if (_savedLayouts.ContainsKey(newName))
-                return false;
-
-            var slots = _savedLayouts[oldName];
-            _savedLayouts.Remove(oldName);
-            _savedLayouts[newName] = slots;
-
-            if (_layoutLinks.TryGetValue(oldName, out var link))
-            {
-                _layoutLinks.Remove(oldName);
-                _layoutLinks[newName] = link;
-            }
-
-            if (string.Equals(_layoutPreset, oldName, StringComparison.OrdinalIgnoreCase))
-            {
-                _layoutPreset = newName;
-                OnPropertyChanged(nameof(LayoutPreset));
-                OnPropertyChanged(nameof(LayoutPresetToolTip));
-            }
-
+            OnPropertyChanged(nameof(LayoutPreset));
+            OnPropertyChanged(nameof(LayoutPresetToolTip));
             OnPropertyChanged(nameof(SavedLayouts));
             OnPropertyChanged(nameof(SavedLayoutNames));
             OnPropertyChanged(nameof(LayoutPresetChoices));
@@ -955,67 +866,24 @@ namespace IconGrid.ViewModels
 
         public bool DeleteLayout(string layoutName)
         {
-            if (string.IsNullOrWhiteSpace(layoutName))
+            var removed = _layoutState.DeleteLayout(layoutName);
+            if (!removed)
                 return false;
 
-            if (string.Equals(layoutName, "Auto", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            var removed = _savedLayouts.Remove(layoutName);
-            if (_layoutLinks.ContainsKey(layoutName))
-            {
-                _layoutLinks.Remove(layoutName);
-            }
-
-            if (removed && string.Equals(_layoutPreset, layoutName, StringComparison.OrdinalIgnoreCase))
-            {
-                _layoutPreset = _savedLayouts.Keys.FirstOrDefault() ?? "Auto";
-                OnPropertyChanged(nameof(LayoutPreset));
-                OnPropertyChanged(nameof(LayoutPresetToolTip));
-            }
-
-            if (removed)
-            {
-                OnPropertyChanged(nameof(SavedLayouts));
-                OnPropertyChanged(nameof(SavedLayoutNames));
-                OnPropertyChanged(nameof(LayoutPresetChoices));
-                SaveSettingsToConfig();
-            }
-
-            return removed;
+            OnPropertyChanged(nameof(LayoutPreset));
+            OnPropertyChanged(nameof(LayoutPresetToolTip));
+            OnPropertyChanged(nameof(SavedLayouts));
+            OnPropertyChanged(nameof(SavedLayoutNames));
+            OnPropertyChanged(nameof(LayoutPresetChoices));
+            SaveSettingsToConfig();
+            return true;
         }
 
         public void SetFavoriteLayoutSlots(IEnumerable<CustomLayoutSlot> slots)
         {
-            _favoriteLayoutSlots = CloneSlots(slots);
-
+            _layoutState.SetFavoriteLayoutSlots(slots);
             SaveSettingsToConfig();
             OnPropertyChanged(nameof(FavoriteLayoutSlots));
-        }
-
-        private static List<CustomLayoutSlot> CloneSlots(IEnumerable<CustomLayoutSlot> slots)
-        {
-            return slots?
-                .Where(s => s != null && s.Width > 0 && s.Height > 0)
-                .Select(s => new CustomLayoutSlot
-                {
-                    X = s.X,
-                    Y = s.Y,
-                    Width = s.Width,
-                    Height = s.Height
-                })
-                .ToList() ?? new List<CustomLayoutSlot>();
-        }
-
-        private void TrimSavedLayouts()
-        {
-            while (_savedLayouts.Count > MaxSavedLayouts)
-            {
-                var oldest = _savedLayouts.Keys.FirstOrDefault();
-                if (oldest == null)
-                    break;
-                _savedLayouts.Remove(oldest);
-            }
         }
 
         private double CalculateContentAreaHeight()
@@ -1083,63 +951,7 @@ namespace IconGrid.ViewModels
             _settingsWindowTop = config.SettingsWindowTop;
             _floatingLeft = config.FloatingIconLeft;
             _floatingTop = config.FloatingIconTop;
-            _layoutPreset = string.IsNullOrWhiteSpace(config.LayoutPreset) ? "Auto" : config.LayoutPreset;
-            _layoutSkipMinimized = config.LayoutSkipMinimized;
-            _layoutCurrentMonitorOnly = config.LayoutCurrentMonitorOnly;
-            _layoutReserveIconGridSlot = config.LayoutReserveIconGridSlot;
-            _layoutIconGridSlots.Clear();
-            if (config.LayoutIconGridSlots != null)
-            {
-                foreach (var kvp in config.LayoutIconGridSlots)
-                {
-                    if (string.IsNullOrWhiteSpace(kvp.Key))
-                        continue;
-                    _layoutIconGridSlots[kvp.Key] = Math.Max(0, Math.Min(3, kvp.Value));
-                }
-            }
-            // Fallback to legacy single slot if no per-profile entry exists.
-            _layoutIconGridSlot = GetSlotForPreset(_layoutPreset);
-            if (_layoutIconGridSlot == 0 && config.LayoutIconGridSlot > 0)
-            {
-                _layoutIconGridSlot = Math.Max(0, Math.Min(3, config.LayoutIconGridSlot));
-                SaveSlotForPreset(_layoutPreset, _layoutIconGridSlot);
-            }
-            _layoutLinks = config.LayoutLinks ?? new Dictionary<string, int[]>();
-            _savedLayouts.Clear();
-            if (config.SavedLayouts != null)
-            {
-                foreach (var kvp in config.SavedLayouts)
-                {
-                    if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value == null)
-                        continue;
-
-                    _savedLayouts[kvp.Key] = CloneSlots(kvp.Value);
-                }
-            }
-
-            if (_savedLayouts.Count == 0 && config.FavoriteLayoutSlots != null && config.FavoriteLayoutSlots.Any())
-            {
-                _savedLayouts["Favorit"] = CloneSlots(config.FavoriteLayoutSlots);
-            }
-
-            if (string.Equals(_layoutPreset, "Favorite", StringComparison.OrdinalIgnoreCase) && _savedLayouts.Count > 0)
-            {
-                _layoutPreset = _savedLayouts.Keys.First();
-            }
-
-            var hasSavedMatch = _savedLayouts.Keys.Any(name => string.Equals(name, _layoutPreset, StringComparison.OrdinalIgnoreCase));
-            var isBuiltInPreset = string.Equals(_layoutPreset, "Auto", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(_layoutPreset, "Grid2x2", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(_layoutPreset, "TwoUp", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(_layoutPreset, "ThreePane", StringComparison.OrdinalIgnoreCase)
-                                  || string.Equals(_layoutPreset, "ThreePaneMirror", StringComparison.OrdinalIgnoreCase);
-
-            if (!hasSavedMatch && !isBuiltInPreset)
-            {
-                _layoutPreset = _savedLayouts.Keys.FirstOrDefault() ?? "Auto";
-            }
-
-            _favoriteLayoutSlots = _savedLayouts.Values.FirstOrDefault() ?? new List<CustomLayoutSlot>();
+            _layoutState.ApplyConfig(config);
             OnPropertyChanged(nameof(FavoriteLayoutSlots));
             OnPropertyChanged(nameof(SavedLayouts));
             OnPropertyChanged(nameof(SavedLayoutNames));
@@ -1388,15 +1200,15 @@ namespace IconGrid.ViewModels
                 SettingsWindowTop = _settingsWindowTop,
                 FloatingIconLeft = _floatingLeft,
                 FloatingIconTop = _floatingTop,
-                LayoutPreset = _layoutPreset,
-                LayoutSkipMinimized = _layoutSkipMinimized,
-                LayoutCurrentMonitorOnly = _layoutCurrentMonitorOnly,
-                LayoutIconGridSlot = _layoutIconGridSlot,
-                LayoutReserveIconGridSlot = _layoutReserveIconGridSlot,
-                LayoutIconGridSlots = new Dictionary<string, int>(_layoutIconGridSlots, StringComparer.OrdinalIgnoreCase),
-                LayoutLinks = _layoutLinks,
-                SavedLayouts = _savedLayouts.ToDictionary(kvp => kvp.Key, kvp => CloneSlots(kvp.Value)),
-                FavoriteLayoutSlots = CloneSlots(_favoriteLayoutSlots),
+                LayoutPreset = _layoutState.LayoutPreset,
+                LayoutSkipMinimized = _layoutState.LayoutSkipMinimized,
+                LayoutCurrentMonitorOnly = _layoutState.LayoutCurrentMonitorOnly,
+                LayoutIconGridSlot = _layoutState.LayoutIconGridSlot,
+                LayoutReserveIconGridSlot = _layoutState.LayoutReserveIconGridSlot,
+                LayoutIconGridSlots = new Dictionary<string, int>(_layoutState.LayoutIconGridSlots, StringComparer.OrdinalIgnoreCase),
+                LayoutLinks = _layoutState.LayoutLinks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                SavedLayouts = _layoutState.SavedLayouts.ToDictionary(kvp => kvp.Key, kvp => LauncherLayoutState.CloneSlots(kvp.Value)),
+                FavoriteLayoutSlots = LauncherLayoutState.CloneSlots(_layoutState.FavoriteLayoutSlots),
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
                 WindowAnimationDurationMs = _windowAnimationDurationMs
@@ -1668,8 +1480,7 @@ namespace IconGrid.ViewModels
             LayoutSkipMinimized = true;
             LayoutCurrentMonitorOnly = true;
             LayoutIconGridSlot = 0;
-            _layoutLinks.Clear();
-            _favoriteLayoutSlots.Clear();
+            _layoutState.ResetRuntimeCollections();
             WindowAnimationDurationMs = 250;
 
             SaveSettingsToConfig();
@@ -1710,6 +1521,7 @@ namespace IconGrid.ViewModels
         }
     }
 }
+
 
 
 
