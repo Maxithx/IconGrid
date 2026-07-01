@@ -3,8 +3,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
+using IconGrid.Helpers;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Hardware;
 
 public static class HardwareMonitorAgent
 {

@@ -6,7 +6,7 @@ using System.Management;
 using System.Text.RegularExpressions;
 using LibreHardwareMonitor.Hardware;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Hardware;
 
 public static class HardwareInfoProvider
 {

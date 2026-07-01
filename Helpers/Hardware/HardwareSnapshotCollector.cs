@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using IconGrid.Helpers;
 using LibreHardwareMonitor.Hardware;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Hardware;
 
 public sealed class HardwareSnapshotCollector : IDisposable
 {

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Hardware;
 using WinForms = System.Windows.Forms;
 using IconGrid.Views;
 

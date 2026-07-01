@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Hardware;
 
 namespace IconGrid.Views;
 

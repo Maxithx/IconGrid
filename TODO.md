@@ -152,6 +152,7 @@
 
 - `Helpers/Hardware/`
 - Flyt `HardwareInfoProvider`, `HardwareMonitorAgent`, `HardwareMonitorSnapshot` og `HardwareSnapshotCollector` hertil som separat spor før eventuel hardware-refactor
+- [x] Næste flyttefase gennemført: hardware-helpers er flyttet til `Helpers/Hardware/`
 
 - `Helpers/Converters/`
 - Saml UI-converters her: `BooleanToAngleConverter`, `BoolToBrushConverter`, `BoolToVisibilityConverter`, `InverseBoolConverter`, `InverseBoolToVisibilityConverter`, `LayoutSlotLabelConverter`, `LayoutSlotMatchConverter`, `PercentToHeightConverter`, `PingSeverityToBrushConverter`, `ScrollButtonsVisibilityConverter`, `SelectedTabMatchConverter`, `TabNameLocalizationConverter` og `TemplateContentWidthConverter`

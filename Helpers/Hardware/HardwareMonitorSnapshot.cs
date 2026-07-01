@@ -1,6 +1,6 @@
 using System;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Hardware;
 
 public sealed class HardwareMonitorSnapshot
 {

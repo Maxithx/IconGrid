@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Windows.Threading;
+using IconGrid.Helpers.Hardware;
 
 namespace IconGrid.Helpers
 {
