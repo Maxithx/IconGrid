@@ -227,15 +227,7 @@ namespace IconGrid.ViewModels
                 if (!_overlayState.SetSettingsOpen(value, out var layoutsChanged, out var helpChanged))
                     return;
 
-                OnPropertyChanged();
-                if (layoutsChanged)
-                    OnPropertyChanged(nameof(IsLayoutsOpen));
-                if (helpChanged)
-                    OnPropertyChanged(nameof(IsHelpOpen));
-                OnPropertyChanged(nameof(IsOverlayOpen));
-                OnPropertyChanged(nameof(WindowDesiredHeight));
-                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                OnPropertyChanged(nameof(ContentHostHeight));
+                NotifyOverlayStateChanged(nameof(IsSettingsOpen), layoutsChanged, nameof(IsLayoutsOpen), helpChanged, nameof(IsHelpOpen));
             }
         }
 
@@ -250,15 +242,7 @@ namespace IconGrid.ViewModels
                 if (!_overlayState.SetLayoutsOpen(value, out var settingsChanged, out var helpChanged))
                     return;
 
-                OnPropertyChanged();
-                if (settingsChanged)
-                    OnPropertyChanged(nameof(IsSettingsOpen));
-                if (helpChanged)
-                    OnPropertyChanged(nameof(IsHelpOpen));
-                OnPropertyChanged(nameof(IsOverlayOpen));
-                OnPropertyChanged(nameof(WindowDesiredHeight));
-                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                OnPropertyChanged(nameof(ContentHostHeight));
+                NotifyOverlayStateChanged(nameof(IsLayoutsOpen), settingsChanged, nameof(IsSettingsOpen), helpChanged, nameof(IsHelpOpen));
             }
         }
 
@@ -270,15 +254,7 @@ namespace IconGrid.ViewModels
                 if (!_overlayState.SetHelpOpen(value, out var settingsChanged, out var layoutsChanged))
                     return;
 
-                OnPropertyChanged();
-                if (settingsChanged)
-                    OnPropertyChanged(nameof(IsSettingsOpen));
-                if (layoutsChanged)
-                    OnPropertyChanged(nameof(IsLayoutsOpen));
-                OnPropertyChanged(nameof(IsOverlayOpen));
-                OnPropertyChanged(nameof(WindowDesiredHeight));
-                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                OnPropertyChanged(nameof(ContentHostHeight));
+                NotifyOverlayStateChanged(nameof(IsHelpOpen), settingsChanged, nameof(IsSettingsOpen), layoutsChanged, nameof(IsLayoutsOpen));
             }
         }
 
@@ -353,11 +329,7 @@ namespace IconGrid.ViewModels
             {
                 if (SetField(ref _isIconPanelExpanded, value))
                 {
-                    // When the panel state changes, the window height needs to be re-evaluated.
-                    OnPropertyChanged(nameof(ContentAreaHeight));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+                    NotifyContentHeightChanged();
                 }
             }
         }
@@ -592,15 +564,11 @@ namespace IconGrid.ViewModels
         public void RefreshLayoutMeasurements()
         {
             OnPropertyChanged(nameof(CurrentItems));
-            OnPropertyChanged(nameof(ContentAreaHeight));
-            OnPropertyChanged(nameof(ContentAreaMaxHeight));
-            OnPropertyChanged(nameof(ContentHostHeight));
+            NotifyContentHeightChanged(includeMaxHeight: true);
             OnPropertyChanged(nameof(ContentMinWidth));
             OnPropertyChanged(nameof(ContentWidth));
             OnPropertyChanged(nameof(ContentMaxWidth));
             OnPropertyChanged(nameof(WindowDesiredWidth));
-            OnPropertyChanged(nameof(WindowDesiredHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
             OnPropertyChanged(nameof(IconMargin));
         }
 
@@ -814,6 +782,35 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(LayoutReserveIconGridSlot));
             OnPropertyChanged(nameof(LayoutIconGridSlot));
             NotifyLayoutCollectionsChanged();
+        }
+
+        private void NotifyOverlayStateChanged(
+            string propertyName,
+            bool secondaryChanged,
+            string secondaryPropertyName,
+            bool tertiaryChanged,
+            string tertiaryPropertyName)
+        {
+            OnPropertyChanged(propertyName);
+            if (secondaryChanged)
+                OnPropertyChanged(secondaryPropertyName);
+            if (tertiaryChanged)
+                OnPropertyChanged(tertiaryPropertyName);
+
+            OnPropertyChanged(nameof(IsOverlayOpen));
+            OnPropertyChanged(nameof(ContentHostHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+        }
+
+        private void NotifyContentHeightChanged(bool includeMaxHeight = false)
+        {
+            OnPropertyChanged(nameof(ContentAreaHeight));
+            if (includeMaxHeight)
+                OnPropertyChanged(nameof(ContentAreaMaxHeight));
+            OnPropertyChanged(nameof(ContentHostHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeight));
+            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
         }
 
         private double CalculateContentAreaHeight()
