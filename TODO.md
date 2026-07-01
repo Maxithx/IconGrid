@@ -151,6 +151,7 @@
 
 - `Helpers/Converters/`
 - Saml UI-converters her: `BooleanToAngleConverter`, `BoolToBrushConverter`, `BoolToVisibilityConverter`, `InverseBoolConverter`, `InverseBoolToVisibilityConverter`, `LayoutSlotLabelConverter`, `LayoutSlotMatchConverter`, `PercentToHeightConverter`, `PingSeverityToBrushConverter`, `ScrollButtonsVisibilityConverter`, `SelectedTabMatchConverter`, `TabNameLocalizationConverter` og `TemplateContentWidthConverter`
+- [x] Første flyttefase gennemført: UI-converters er flyttet til `Helpers/Converters/`
 
 - `Helpers/Common/`
 - Behold `RelayCommand`, `DevInspector` og `UpdateVisitor` her eller flyt dem til en fælles mappe, da de ikke er launcher- eller settings-specifikke
