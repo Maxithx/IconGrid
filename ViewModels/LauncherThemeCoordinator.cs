@@ -1,0 +1,25 @@
+using System;
+using IconGrid.Helpers;
+
+namespace IconGrid.ViewModels
+{
+    public class LauncherThemeCoordinator
+    {
+        public event EventHandler<ThemeSnapshot>? ThemeChanged;
+
+        public LauncherThemeCoordinator()
+        {
+            ThemeHelper.ThemeChanged += ThemeHelper_ThemeChanged;
+        }
+
+        public ThemeSnapshot GetCurrentTheme()
+        {
+            return ThemeHelper.GetTheme();
+        }
+
+        private void ThemeHelper_ThemeChanged(object? sender, ThemeSnapshot e)
+        {
+            ThemeChanged?.Invoke(this, e);
+        }
+    }
+}

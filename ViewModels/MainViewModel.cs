@@ -68,6 +68,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherItemLaunchManager _itemLaunchManager;
         private readonly LauncherThemeState _themeState = new();
+        private readonly LauncherThemeCoordinator _themeCoordinator = new();
         private readonly LauncherLocalizationState _localizationState = new();
         private readonly LauncherOverlayState _overlayState = new();
         private readonly LauncherShortcutManager _shortcutManager;
@@ -95,8 +96,8 @@ namespace IconGrid.ViewModels
             _iconPackFolder = Path.Combine(_dataFolder, "IconPack");
             EnsureIconPackFolder();
 
-            ApplyTheme(ThemeHelper.GetTheme());
-            ThemeHelper.ThemeChanged += ThemeHelper_ThemeChanged;
+            ApplyTheme(_themeCoordinator.GetCurrentTheme());
+            _themeCoordinator.ThemeChanged += ThemeCoordinator_ThemeChanged;
 
             ApplyLocalizationState();
 
@@ -1179,7 +1180,7 @@ namespace IconGrid.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void ThemeHelper_ThemeChanged(object? sender, ThemeSnapshot e)
+        private void ThemeCoordinator_ThemeChanged(object? sender, ThemeSnapshot e)
         {
             ApplyTheme(e);
         }
@@ -1393,7 +1394,7 @@ namespace IconGrid.ViewModels
 
             // Refresh bindings for theme-related brushes.
             NotifyThemePropertiesChanged();
-            ApplyTheme(ThemeHelper.GetTheme());
+            ApplyTheme(_themeCoordinator.GetCurrentTheme());
         }
         private void EnsureIconPackFolder()
         {
