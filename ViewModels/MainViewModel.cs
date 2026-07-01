@@ -891,6 +891,26 @@ namespace IconGrid.ViewModels
             NotifyConfigApplied();
         }
 
+        private void ApplyDefaultSettingsState()
+        {
+            _iconsPerRow = 4;
+            _iconRowSpacing = -20;
+            _lastRowPaddingAdjust = -50;
+            _icon_scale = 1.0;
+            _uiScale = 1.0;
+            _isAlwaysOnTop = false;
+            _isFloatingIconTopmost = true;
+            _showScrollButtons = true;
+            _enableContentScroll = true;
+            _startWithWindows = true;
+            _showDevOverlay = false;
+            _language = "da";
+            _themeState.SetIsLightTheme(true);
+            _floatingLeft = null;
+            _floatingTop = null;
+            _windowAnimationDurationMs = 250;
+        }
+
         private ConfigModel LoadConfiguredState()
         {
             var config = _configManager.LoadConfig();
@@ -957,6 +977,30 @@ namespace IconGrid.ViewModels
         {
             NotifyLayoutCollectionsChanged();
             OnPropertyChanged(nameof(ShowDevOverlay));
+        }
+
+        private void NotifyDefaultSettingsApplied()
+        {
+            RefreshLayoutMeasurements();
+            NotifyAllLayoutPropertiesChanged();
+            NotifyThemePropertiesChanged();
+            NotifyLocalizationPropertiesChanged();
+            OnPropertyChanged(nameof(IsAlwaysOnTop));
+            OnPropertyChanged(nameof(IsFloatingIconTopmost));
+            OnPropertyChanged(nameof(TopmostState));
+            OnPropertyChanged(nameof(ShowScrollButtons));
+            OnPropertyChanged(nameof(StartWithWindows));
+            OnPropertyChanged(nameof(ShowDevOverlay));
+            OnPropertyChanged(nameof(Language));
+            OnPropertyChanged(nameof(IconsPerRow));
+            OnPropertyChanged(nameof(IconRowSpacing));
+            OnPropertyChanged(nameof(LastRowPaddingAdjust));
+            OnPropertyChanged(nameof(IconScale));
+            OnPropertyChanged(nameof(UiScale));
+            OnPropertyChanged(nameof(EnableContentScroll));
+            OnPropertyChanged(nameof(WindowAnimationDurationMs));
+            OnPropertyChanged(nameof(PawnIoMissingMessage));
+            OnPropertyChanged(nameof(PawnIoDownloadLink));
         }
 
         // ---------- Tema (enkle brushes - kun WPF Media) ----------
@@ -1405,30 +1449,19 @@ namespace IconGrid.ViewModels
         private void ResetSettingsToDefaults()
         {
             // Apply default values without touching user tabs or items.
-            IconsPerRow = 4;
-            IconRowSpacing = -20;
-            LastRowPaddingAdjust = -50;
-            IconScale = 1.0;
-            UiScale = 1.0;
-            IsAlwaysOnTop = false;
-            IsFloatingIconTopmost = true;
-            ShowScrollButtons = true;
-            EnableContentScroll = true;
-            StartWithWindows = true;
-            ShowDevOverlay = false;
-            Language = "da";
-            _themeState.SetIsLightTheme(true);
-            _floatingLeft = null;
-            _floatingTop = null;
-            _layoutState.ResetToDefaults();
-            WindowAnimationDurationMs = 250;
+            var previousStartWithWindows = _startWithWindows;
 
-            NotifyAllLayoutPropertiesChanged();
+            ApplyDefaultSettingsState();
+            _layoutState.ResetToDefaults();
+            ApplyLocalizationState();
+            ApplyTheme(_themeCoordinator.GetCurrentTheme());
+            NotifyDefaultSettingsApplied();
             SaveSettingsToConfig();
 
-            // Refresh bindings for theme-related brushes.
-            NotifyThemePropertiesChanged();
-            ApplyTheme(_themeCoordinator.GetCurrentTheme());
+            if (previousStartWithWindows != _startWithWindows)
+            {
+                TryUpdateStartupRegistration(_startWithWindows);
+            }
         }
         private void EnsureIconPackFolder()
         {

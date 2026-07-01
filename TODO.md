@@ -105,6 +105,7 @@
 - [x] Basis config-oversættelse fra `ConfigModel` delegérer nu til `MainViewModelConfigState`
 - [x] Konstruktørens startup-sekvens er opdelt i små init-metoder, så config-load, appearance, managers, commands og persisted item-load er tydeligt separeret
 - [x] `ApplyConfig` bruger nu direkte state-assignments for language/config-load i stedet for at trigge property-setter sideeffekter under init
+- [x] `ResetSettingsToDefaults` bruger nu et samlet default-state/apply-flow i stedet for en lang kæde af property-setter sideeffekter
 - [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
 - [x] `ThemeHelper` subscription og current-theme opslag delegérer nu til `LauncherThemeCoordinator`
 - [x] Localization-lookups og PawnIO-tekster delegérer nu til `LauncherLocalizationState`
