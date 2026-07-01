@@ -101,7 +101,8 @@
 - [ ] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
 - [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
 - [ ] `MainViewModel` koordinerer stadig theme-notifications og `ThemeHelper` subscription
-- [ ] Localization-labels, `RaiseLocalizationChanged` og PawnIO-tekster ligger stadig i `MainViewModel`
+- [x] Localization-lookups og PawnIO-tekster delegérer nu til `LauncherLocalizationState`
+- [ ] `MainViewModel` koordinerer stadig localization-notifications og `Language`-flow
 
 ### Fase 6: Struktur-oprydning
 

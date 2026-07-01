@@ -71,6 +71,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherItemLaunchManager _itemLaunchManager;
         private readonly LauncherThemeState _themeState = new();
+        private readonly LauncherLocalizationState _localizationState = new();
         private readonly LauncherShortcutManager _shortcutManager;
         private readonly LauncherItemsPersistence _itemsPersistence;
         private readonly MainViewModelSettingsPersistence _settingsPersistence;
@@ -1277,56 +1278,46 @@ namespace IconGrid.ViewModels
         }
 
         // ---------- Localization bindings ----------
-        public string SettingsTitle => LocalizationHelper.Get(Language, "SettingsTitle");
-        public string IconsPerRowLabel => LocalizationHelper.Get(Language, "IconsPerRow");
-        public string IconRowSpacingLabel => LocalizationHelper.Get(Language, "IconRowSpacing");
-        public string StartWithWindowsLabel => LocalizationHelper.Get(Language, "StartWithWindows");
-        public string LastRowPaddingLabel => LocalizationHelper.Get(Language, "LastRowPadding");
-        public string IconSizeLabel => LocalizationHelper.Get(Language, "IconSize");
-        public string UiScaleLabel => LocalizationHelper.Get(Language, "UiScale");
-        public string AlwaysOnTopLabel => LocalizationHelper.Get(Language, "AlwaysOnTop");
-        public string FloatingIconTopmostLabel => LocalizationHelper.Get(Language, "FloatingIconTopmost");
-        public string ShowScrollButtonsLabel => LocalizationHelper.Get(Language, "ShowScrollButtons");
-        public string ShowDesktopIconLabel => LocalizationHelper.Get(Language, "ShowDesktopIcon");
-        public string LanguageLabel => LocalizationHelper.Get(Language, "Language");
-        public string ResetDefaultsLabel => LocalizationHelper.Get(Language, "ResetDefaults");
-        public string EnableSlideUpAnimationLabel => LocalizationHelper.Get(Language, "EnableSlideUpAnimation");
-        public string WindowAnimationSpeedLabel => LocalizationHelper.Get(Language, "WindowAnimationSpeed");
-        public string EnableIconScrollLabel => LocalizationHelper.Get(Language, "EnableIconScroll");
-        public string SettingsPlaceholderLabel => LocalizationHelper.Get(Language, "SettingsPlaceholder");
-        public string DevOverlayLabel => LocalizationHelper.Get(Language, "DevOverlayLabel");
-        public string ChangeIconLabel => LocalizationHelper.Get(Language, "ChangeIcon");
-        public string WindowsIconsLabel => LocalizationHelper.Get(Language, "WindowsIcons");
-        public string OpenLabel => LocalizationHelper.Get(Language, "Open");
-        public string RunAsAdminLabel => LocalizationHelper.Get(Language, "RunAsAdmin");
-        public string OpenFileLocationLabel => LocalizationHelper.Get(Language, "OpenFileLocation");
-        public string CopyPathLabel => LocalizationHelper.Get(Language, "CopyPath");
-        public string ResetIconLabel => LocalizationHelper.Get(Language, "ResetIcon");
-        public string RenameLabel => LocalizationHelper.Get(Language, "Rename");
-        public string RemoveLabel => LocalizationHelper.Get(Language, "Remove");
-        public string LayoutsLabel => LocalizationHelper.Get(Language, "MoreLayouts");
-        public string MoreSettingsLabel => LocalizationHelper.Get(Language, "MoreSettings");
-        public string HelpLabel => LocalizationHelper.Get(Language, "MoreHelp");
-        public string AboutLabel => LocalizationHelper.Get(Language, "MoreAbout");
-        public string MonitorNetworkLabel => LocalizationHelper.Get(Language, "MonitorNetworkLabel");
-        public string MonitorDownloadLabel => LocalizationHelper.Get(Language, "MonitorDownloadLabel");
-        public string MonitorUploadLabel => LocalizationHelper.Get(Language, "MonitorUploadLabel");
-        public string MonitorCpuLabel => LocalizationHelper.Get(Language, "MonitorCpuLabel");
-        public string MonitorGpuLabel => LocalizationHelper.Get(Language, "MonitorGpuLabel");
-        private string _pawnIoMissingMessage = "CPU temperatures require PawnIO.";
-        private string _pawnIoDownloadLink = "Download PawnIO";
+        public string SettingsTitle => _localizationState.Get(Language, "SettingsTitle");
+        public string IconsPerRowLabel => _localizationState.Get(Language, "IconsPerRow");
+        public string IconRowSpacingLabel => _localizationState.Get(Language, "IconRowSpacing");
+        public string StartWithWindowsLabel => _localizationState.Get(Language, "StartWithWindows");
+        public string LastRowPaddingLabel => _localizationState.Get(Language, "LastRowPadding");
+        public string IconSizeLabel => _localizationState.Get(Language, "IconSize");
+        public string UiScaleLabel => _localizationState.Get(Language, "UiScale");
+        public string AlwaysOnTopLabel => _localizationState.Get(Language, "AlwaysOnTop");
+        public string FloatingIconTopmostLabel => _localizationState.Get(Language, "FloatingIconTopmost");
+        public string ShowScrollButtonsLabel => _localizationState.Get(Language, "ShowScrollButtons");
+        public string ShowDesktopIconLabel => _localizationState.Get(Language, "ShowDesktopIcon");
+        public string LanguageLabel => _localizationState.Get(Language, "Language");
+        public string ResetDefaultsLabel => _localizationState.Get(Language, "ResetDefaults");
+        public string EnableSlideUpAnimationLabel => _localizationState.Get(Language, "EnableSlideUpAnimation");
+        public string WindowAnimationSpeedLabel => _localizationState.Get(Language, "WindowAnimationSpeed");
+        public string EnableIconScrollLabel => _localizationState.Get(Language, "EnableIconScroll");
+        public string SettingsPlaceholderLabel => _localizationState.Get(Language, "SettingsPlaceholder");
+        public string DevOverlayLabel => _localizationState.Get(Language, "DevOverlayLabel");
+        public string ChangeIconLabel => _localizationState.Get(Language, "ChangeIcon");
+        public string WindowsIconsLabel => _localizationState.Get(Language, "WindowsIcons");
+        public string OpenLabel => _localizationState.Get(Language, "Open");
+        public string RunAsAdminLabel => _localizationState.Get(Language, "RunAsAdmin");
+        public string OpenFileLocationLabel => _localizationState.Get(Language, "OpenFileLocation");
+        public string CopyPathLabel => _localizationState.Get(Language, "CopyPath");
+        public string ResetIconLabel => _localizationState.Get(Language, "ResetIcon");
+        public string RenameLabel => _localizationState.Get(Language, "Rename");
+        public string RemoveLabel => _localizationState.Get(Language, "Remove");
+        public string LayoutsLabel => _localizationState.Get(Language, "MoreLayouts");
+        public string MoreSettingsLabel => _localizationState.Get(Language, "MoreSettings");
+        public string HelpLabel => _localizationState.Get(Language, "MoreHelp");
+        public string AboutLabel => _localizationState.Get(Language, "MoreAbout");
+        public string MonitorNetworkLabel => _localizationState.Get(Language, "MonitorNetworkLabel");
+        public string MonitorDownloadLabel => _localizationState.Get(Language, "MonitorDownloadLabel");
+        public string MonitorUploadLabel => _localizationState.Get(Language, "MonitorUploadLabel");
+        public string MonitorCpuLabel => _localizationState.Get(Language, "MonitorCpuLabel");
+        public string MonitorGpuLabel => _localizationState.Get(Language, "MonitorGpuLabel");
 
-        public string PawnIoMissingMessage
-        {
-            get => _pawnIoMissingMessage;
-            private set => SetField(ref _pawnIoMissingMessage, value);
-        }
+        public string PawnIoMissingMessage => _localizationState.PawnIoMissingMessage;
 
-        public string PawnIoDownloadLink
-        {
-            get => _pawnIoDownloadLink;
-            private set => SetField(ref _pawnIoDownloadLink, value);
-        }
+        public string PawnIoDownloadLink => _localizationState.PawnIoDownloadLink;
 
         private void RaiseLocalizationChanged()
         {
@@ -1370,8 +1361,9 @@ namespace IconGrid.ViewModels
 
         private void UpdatePawnIoLocalizationStrings()
         {
-            PawnIoMissingMessage = LocalizationHelper.Get(Language, "PawnIoMissingMessage");
-            PawnIoDownloadLink = LocalizationHelper.Get(Language, "PawnIoDownloadLink");
+            _localizationState.UpdatePawnIoTexts(Language);
+            OnPropertyChanged(nameof(PawnIoMissingMessage));
+            OnPropertyChanged(nameof(PawnIoDownloadLink));
         }
 
         /// <summary>
