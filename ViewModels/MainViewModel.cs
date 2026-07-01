@@ -87,29 +87,14 @@ namespace IconGrid.ViewModels
         {
             _configManager = new ConfigManager();
             _settingsPersistence = new MainViewModelSettingsPersistence(_configManager);
-            _config = _configManager.LoadConfig();
-            _config.EnsureTabNames();
-            ApplyConfig(_config);
-
-            _dataFolder = _configManager.BaseDirectory;
-            _legacyDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IconGrid");
-            _iconPackFolder = Path.Combine(_dataFolder, "IconPack");
+            _config = LoadConfiguredState();
+            (_dataFolder, _legacyDataFolder, _iconPackFolder) = CreateStoragePaths();
             EnsureIconPackFolder();
-
-            ApplyTheme(_themeCoordinator.GetCurrentTheme());
-            _themeCoordinator.ThemeChanged += ThemeCoordinator_ThemeChanged;
-
-            ApplyLocalizationState();
-
-            _tabsState = new LauncherTabsState(_config.TabNames, "Games");
+            InitializeAppearance();
+            _tabsState = CreateTabsState();
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
-
             Items = new ObservableCollection<LauncherItem>();
-            _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
-            _itemIconManager = new LauncherItemIconManager();
-            _itemLaunchManager = new LauncherItemLaunchManager();
-            _shortcutManager = new LauncherShortcutManager(Items, _itemIconManager);
-            _itemsPersistence = new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json"));
+            (_itemsManager, _itemIconManager, _itemLaunchManager, _shortcutManager, _itemsPersistence) = CreateManagers();
             Items.CollectionChanged += (s, e) =>
             {
                 SaveItemsToFile();
@@ -124,23 +109,8 @@ namespace IconGrid.ViewModels
                 OnPropertyChanged(nameof(IconMargin));
             };
 
-            // Ensure startup registration matches the saved setting on app launch.
-            TryUpdateStartupRegistration(_startWithWindows);
-
-            // Command for selecting tabs from the UI
-            SelectTabCommand = new RelayCommand(p =>
-            {
-                // When a tab is selected, close any settings/theme overlays so the main content becomes visible.
-                IsSettingsOpen = false;
-                if (p is string name && !string.IsNullOrWhiteSpace(name))
-                    SelectedTab = name;
-            });
-
-            ResetSettingsCommand = new RelayCommand(_ => ResetSettingsToDefaults());
-
-            // Load persisted items if present
-            MaybeMigrateItemsFromLegacy();
-            LoadItemsFromFile();
+            (SelectTabCommand, ResetSettingsCommand) = CreateCommands();
+            RunStartupInitialization();
             _isInitializing = false;
         }
 
@@ -906,7 +876,7 @@ namespace IconGrid.ViewModels
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
             _enableContentScroll = state.EnableContentScroll;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
-            Language = state.Language;
+            _language = state.Language;
             _windowLeft = state.WindowLeft;
             _windowTop = state.WindowTop;
             _settingsWindowLeft = state.SettingsWindowLeft;
@@ -914,6 +884,73 @@ namespace IconGrid.ViewModels
             _floatingLeft = state.FloatingIconLeft;
             _floatingTop = state.FloatingIconTop;
             _layoutState.ApplyConfig(config);
+            NotifyConfigApplied();
+        }
+
+        private ConfigModel LoadConfiguredState()
+        {
+            var config = _configManager.LoadConfig();
+            config.EnsureTabNames();
+            ApplyConfig(config);
+            return config;
+        }
+
+        private (string DataFolder, string LegacyDataFolder, string IconPackFolder) CreateStoragePaths()
+        {
+            var dataFolder = _configManager.BaseDirectory;
+            var legacyDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "IconGrid");
+            var iconPackFolder = Path.Combine(dataFolder, "IconPack");
+            return (dataFolder, legacyDataFolder, iconPackFolder);
+        }
+
+        private void InitializeAppearance()
+        {
+            ApplyTheme(_themeCoordinator.GetCurrentTheme());
+            _themeCoordinator.ThemeChanged += ThemeCoordinator_ThemeChanged;
+            ApplyLocalizationState();
+        }
+
+        private LauncherTabsState CreateTabsState()
+        {
+            return new LauncherTabsState(_config.TabNames, "Games");
+        }
+
+        private (LauncherItemsManager ItemsManager, LauncherItemIconManager ItemIconManager, LauncherItemLaunchManager ItemLaunchManager, LauncherShortcutManager ShortcutManager, LauncherItemsPersistence ItemsPersistence) CreateManagers()
+        {
+            var itemIconManager = new LauncherItemIconManager();
+            return (
+                new LauncherItemsManager(Items, () => SelectedTab),
+                itemIconManager,
+                new LauncherItemLaunchManager(),
+                new LauncherShortcutManager(Items, itemIconManager),
+                new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json")));
+        }
+
+        private (ICommand SelectTabCommand, ICommand ResetSettingsCommand) CreateCommands()
+        {
+            return (
+                new RelayCommand(p =>
+                {
+                    // When a tab is selected, close any settings/theme overlays so the main content becomes visible.
+                    IsSettingsOpen = false;
+                    if (p is string name && !string.IsNullOrWhiteSpace(name))
+                        SelectedTab = name;
+                }),
+                new RelayCommand(_ => ResetSettingsToDefaults()));
+        }
+
+        private void RunStartupInitialization()
+        {
+            // Ensure startup registration matches the saved setting on app launch.
+            TryUpdateStartupRegistration(_startWithWindows);
+
+            // Load persisted items if present.
+            MaybeMigrateItemsFromLegacy();
+            LoadItemsFromFile();
+        }
+
+        private void NotifyConfigApplied()
+        {
             NotifyLayoutCollectionsChanged();
             OnPropertyChanged(nameof(ShowDevOverlay));
         }

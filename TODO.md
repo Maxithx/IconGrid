@@ -99,8 +99,10 @@
 - [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
 - [ ] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
 - [x] Overlay-state (`IsSettingsOpen`, `IsLayoutsOpen`, `IsHelpOpen`) delegérer nu til `LauncherOverlayState`
-- [ ] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
+- [~] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
 - [x] Basis config-oversættelse fra `ConfigModel` delegérer nu til `MainViewModelConfigState`
+- [x] Konstruktørens startup-sekvens er opdelt i små init-metoder, så config-load, appearance, managers, commands og persisted item-load er tydeligt separeret
+- [x] `ApplyConfig` bruger nu direkte state-assignments for language/config-load i stedet for at trigge property-setter sideeffekter under init
 - [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
 - [x] `ThemeHelper` subscription og current-theme opslag delegérer nu til `LauncherThemeCoordinator`
 - [x] Localization-lookups og PawnIO-tekster delegérer nu til `LauncherLocalizationState`
