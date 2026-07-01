@@ -889,28 +889,30 @@ namespace IconGrid.ViewModels
 
         private void ApplyConfig(ConfigModel config)
         {
-            _iconsPerRow = Math.Max(4, config.IconsPerRow);
-            _icon_scale = config.IconScale;
-            _isAlwaysOnTop = config.IsAlwaysOnTop;
-            _isFloatingIconTopmost = config.IsFloatingIconTopmost;
-            _showScrollButtons = config.ShowScrollButtons;
+            var state = MainViewModelConfigState.FromConfig(config);
+
+            _iconsPerRow = state.IconsPerRow;
+            _icon_scale = state.IconScale;
+            _isAlwaysOnTop = state.IsAlwaysOnTop;
+            _isFloatingIconTopmost = state.IsFloatingIconTopmost;
+            _showScrollButtons = state.ShowScrollButtons;
             _themeState.ApplyConfig(config);
-            _startWithWindows = config.StartWithWindows;
-            _uiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale));
-            _showDesktopIcon = config.ShowDesktopIcon;
-            _showDevOverlay = config.ShowDevOverlay;
-            _iconRowSpacing = config.IconRowSpacing;
-            _lastRowPaddingAdjust = config.LastRowPaddingAdjust;
-            _enableSlideUpAnimation = config.EnableSlideUpAnimation;
-            _enableContentScroll = config.EnableContentScroll;
-            _windowAnimationDurationMs = config.WindowAnimationDurationMs;
-            Language = string.IsNullOrWhiteSpace(config.Language) ? "da" : config.Language;
-            _windowLeft = config.WindowLeft;
-            _windowTop = config.WindowTop;
-            _settingsWindowLeft = config.SettingsWindowLeft;
-            _settingsWindowTop = config.SettingsWindowTop;
-            _floatingLeft = config.FloatingIconLeft;
-            _floatingTop = config.FloatingIconTop;
+            _startWithWindows = state.StartWithWindows;
+            _uiScale = state.UiScale;
+            _showDesktopIcon = state.ShowDesktopIcon;
+            _showDevOverlay = state.ShowDevOverlay;
+            _iconRowSpacing = state.IconRowSpacing;
+            _lastRowPaddingAdjust = state.LastRowPaddingAdjust;
+            _enableSlideUpAnimation = state.EnableSlideUpAnimation;
+            _enableContentScroll = state.EnableContentScroll;
+            _windowAnimationDurationMs = state.WindowAnimationDurationMs;
+            Language = state.Language;
+            _windowLeft = state.WindowLeft;
+            _windowTop = state.WindowTop;
+            _settingsWindowLeft = state.SettingsWindowLeft;
+            _settingsWindowTop = state.SettingsWindowTop;
+            _floatingLeft = state.FloatingIconLeft;
+            _floatingTop = state.FloatingIconTop;
             _layoutState.ApplyConfig(config);
             NotifyLayoutCollectionsChanged();
             OnPropertyChanged(nameof(ShowDevOverlay));
