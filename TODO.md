@@ -90,6 +90,7 @@
 - [x] `UpdateItemIcon` og ikon-fallback er flyttet til `LauncherItemIconManager`
 - [x] `HandleFileDrop` bruger nu fælles ikon-initialisering via `LauncherItemIconManager`
 - [x] `HandleFileDrop` og `CreateCustomShortcut` delegérer nu til `LauncherShortcutManager`
+- [x] `LaunchItem` delegérer nu til `LauncherItemLaunchManager`
 - [ ] Restvurder om launch/open/run-as-admin/file-location/copy-path stadig bør skilles yderligere ud fra `MainViewModel`
 - [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
 - [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`

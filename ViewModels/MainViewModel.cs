@@ -79,6 +79,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherTabsState _tabsState;
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
+        private readonly LauncherItemLaunchManager _itemLaunchManager;
         private readonly LauncherShortcutManager _shortcutManager;
         private readonly LauncherItemsPersistence _itemsPersistence;
         private readonly MainViewModelSettingsPersistence _settingsPersistence;
@@ -115,6 +116,7 @@ namespace IconGrid.ViewModels
             Items = new ObservableCollection<LauncherItem>();
             _itemsManager = new LauncherItemsManager(Items, () => SelectedTab);
             _itemIconManager = new LauncherItemIconManager();
+            _itemLaunchManager = new LauncherItemLaunchManager();
             _shortcutManager = new LauncherShortcutManager(Items, _itemIconManager);
             _itemsPersistence = new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json"));
             Items.CollectionChanged += (s, e) =>
@@ -1119,33 +1121,7 @@ namespace IconGrid.ViewModels
 
         public void LaunchItem(LauncherItem item)
         {
-            if (item == null || string.IsNullOrWhiteSpace(item.Path))
-                return;
-
-            try
-            {
-                var psi = new ProcessStartInfo(item.Path)
-                {
-                    UseShellExecute = true
-                };
-
-                var workingDirectory = Path.GetDirectoryName(item.Path);
-                if (!string.IsNullOrWhiteSpace(workingDirectory))
-                {
-                    psi.WorkingDirectory = workingDirectory;
-                }
-
-                if (!string.IsNullOrWhiteSpace(item.Arguments))
-                {
-                    psi.Arguments = item.Arguments;
-                }
-
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to launch {item.Path}: {ex}");
-            }
+            _itemLaunchManager.LaunchItem(item);
         }
 
         /// <summary>
