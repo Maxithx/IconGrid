@@ -131,6 +131,7 @@
 
 - `Views/Settings/Pages/`
 - Flyt `AboutPage`, `GenvejsIkonerPage`, `HardwarePage`, `HjaelpPage`, `LayoutPage`, `StartsidePage` og `TemplatePage` hertil
+- [x] Næste flyttefase gennemført: settings-sider er flyttet til `Views/Settings/Pages/`
 - Behold `Views/Settings/SettingsWindow.xaml` som settings-shell
 - Behold `Views/Settings/Dialogs/` som næste naturlige hjem for `PawnIoWarningWindow`, hvis den fortsat kun hører til settings-flowet
 
