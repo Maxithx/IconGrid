@@ -148,6 +148,7 @@
 
 - `Helpers/Launcher/`
 - Flyt `FloatingIconController`, `DynamicIconHelper`, `IconHelper`, `IconResourceUpdater`, `ShortcutHelper`, `ShellIconLabel`, `ShellIconTextBlock`, `SystemMonitor` og evt. `EmbeddedIconLibrary` hertil
+- [x] Næste flyttefase gennemført: launcher-helpers er flyttet til `Helpers/Launcher/`
 
 - `Helpers/Settings/`
 - Flyt `LocalizationHelper`, `PawnIoHelper`, `ThemeHelper`, `StartupTaskManager` og `ConfigManager` hertil hvis de fortsat primært bruges af settings/configuration
