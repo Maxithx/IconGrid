@@ -27,7 +27,6 @@ namespace IconGrid.ViewModels
         private bool _isSettingsOpen;
         private bool _isLayoutsOpen;
         private bool _isHelpOpen;
-        private bool _isLightTheme = true;
 
         // NEW: UI settings backing fields
         private bool _isAlwaysOnTop = true;
@@ -62,15 +61,6 @@ namespace IconGrid.ViewModels
         private const double WindowHorizontalPadding = 0;     // remove outer shell padding to keep full-mode window tight to content
         private double _headerHeight = 140;                   // measured height for top chrome + tabs
         private double _iconRowSpacing = -20;                 // adjustable extra spacing between rows (default tightened)
-        private WMedia.Brush _accentBrush = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(37, 99, 235));
-        private WMedia.Brush _topBarBackground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(243, 243, 243));
-        private WMedia.Brush _topBarForeground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(15, 23, 42)); // default light foreground
-        private WMedia.Brush _settingsWindowBackground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(244, 245, 247));
-        private WMedia.Brush _settingsCardBackground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(255, 255, 255));
-        private WMedia.Brush _settingsCardBorderBrush = new WMedia.SolidColorBrush(WMedia.Color.FromArgb(96, 15, 23, 42));
-        private WMedia.Brush _settingsSubtextForeground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(63, 63, 70));
-        private WMedia.Color _settingsShadowColor = WMedia.Color.FromArgb(60, 0, 0, 0);
-
         private readonly string _dataFolder;
         private readonly string _legacyDataFolder;
         private readonly string _iconPackFolder;
@@ -80,6 +70,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherItemLaunchManager _itemLaunchManager;
+        private readonly LauncherThemeState _themeState = new();
         private readonly LauncherShortcutManager _shortcutManager;
         private readonly LauncherItemsPersistence _itemsPersistence;
         private readonly MainViewModelSettingsPersistence _settingsPersistence;
@@ -662,67 +653,35 @@ namespace IconGrid.ViewModels
 
         public bool IsLightTheme
         {
-            get => _isLightTheme;
+            get => _themeState.IsLightTheme;
             set
             {
-                if (SetField(ref _isLightTheme, value))
-                {
-                    OnPropertyChanged(nameof(IsDarkTheme));
-                    SaveSettingsToConfig();
-                }
+                if (!_themeState.SetIsLightTheme(value))
+                    return;
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsDarkTheme));
+                SaveSettingsToConfig();
             }
         }
 
         public bool IsDarkTheme => !IsLightTheme;
 
-        public WMedia.Brush AccentBrush
-        {
-            get => _accentBrush;
-            private set => SetField(ref _accentBrush, value);
-        }
+        public WMedia.Brush AccentBrush => _themeState.AccentBrush;
 
-        public WMedia.Brush TopBarBackground
-        {
-            get => _topBarBackground;
-            private set => SetField(ref _topBarBackground, value);
-        }
+        public WMedia.Brush TopBarBackground => _themeState.TopBarBackground;
 
-        public WMedia.Brush TopBarForeground
-        {
-            get => _topBarForeground;
-            private set => SetField(ref _topBarForeground, value);
-        }
+        public WMedia.Brush TopBarForeground => _themeState.TopBarForeground;
 
-        public WMedia.Brush SettingsWindowBackground
-        {
-            get => _settingsWindowBackground;
-            private set => SetField(ref _settingsWindowBackground, value);
-        }
+        public WMedia.Brush SettingsWindowBackground => _themeState.SettingsWindowBackground;
 
-        public WMedia.Brush SettingsCardBackground
-        {
-            get => _settingsCardBackground;
-            private set => SetField(ref _settingsCardBackground, value);
-        }
+        public WMedia.Brush SettingsCardBackground => _themeState.SettingsCardBackground;
 
-        public WMedia.Brush SettingsCardBorderBrush
-        {
-            get => _settingsCardBorderBrush;
-            private set => SetField(ref _settingsCardBorderBrush, value);
-        }
+        public WMedia.Brush SettingsCardBorderBrush => _themeState.SettingsCardBorderBrush;
 
+        public WMedia.Brush SettingsSubtextForeground => _themeState.SettingsSubtextForeground;
 
-        public WMedia.Brush SettingsSubtextForeground
-        {
-            get => _settingsSubtextForeground;
-            private set => SetField(ref _settingsSubtextForeground, value);
-        }
-
-        public WMedia.Color SettingsShadowColor
-        {
-            get => _settingsShadowColor;
-            private set => SetField(ref _settingsShadowColor, value);
-        }
+        public WMedia.Color SettingsShadowColor => _themeState.SettingsShadowColor;
 
         public string LayoutPreset
         {
@@ -941,7 +900,7 @@ namespace IconGrid.ViewModels
             _isAlwaysOnTop = config.IsAlwaysOnTop;
             _isFloatingIconTopmost = config.IsFloatingIconTopmost;
             _showScrollButtons = config.ShowScrollButtons;
-            _isLightTheme = config.IsLightTheme;
+            _themeState.ApplyConfig(config);
             _startWithWindows = config.StartWithWindows;
             _uiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale));
             _showDesktopIcon = config.ShowDesktopIcon;
@@ -1165,7 +1124,7 @@ namespace IconGrid.ViewModels
                 IsAlwaysOnTop = _isAlwaysOnTop,
                 IsFloatingIconTopmost = _isFloatingIconTopmost,
                 ShowScrollButtons = _showScrollButtons,
-                IsLightTheme = _isLightTheme,
+                IsLightTheme = _themeState.IsLightTheme,
                 StartWithWindows = _startWithWindows,
                 ShowDevOverlay = _showDevOverlay,
                 IconRowSpacing = _iconRowSpacing,
@@ -1232,6 +1191,20 @@ namespace IconGrid.ViewModels
             ApplyTheme(e);
         }
 
+        private void NotifyThemePropertiesChanged()
+        {
+            OnPropertyChanged(nameof(IsLightTheme));
+            OnPropertyChanged(nameof(IsDarkTheme));
+            OnPropertyChanged(nameof(AccentBrush));
+            OnPropertyChanged(nameof(TopBarBackground));
+            OnPropertyChanged(nameof(TopBarForeground));
+            OnPropertyChanged(nameof(SettingsWindowBackground));
+            OnPropertyChanged(nameof(SettingsCardBackground));
+            OnPropertyChanged(nameof(SettingsCardBorderBrush));
+            OnPropertyChanged(nameof(SettingsSubtextForeground));
+            OnPropertyChanged(nameof(SettingsShadowColor));
+        }
+
         private void TabsState_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName != nameof(LauncherTabsState.SelectedTab))
@@ -1247,30 +1220,8 @@ namespace IconGrid.ViewModels
 
         private void ApplyTheme(ThemeSnapshot snapshot)
         {
-            IsLightTheme = snapshot.IsLightTheme;
-            AccentBrush = new WMedia.SolidColorBrush(snapshot.AccentColor);
-            TopBarBackground = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromRgb(243, 243, 243))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromRgb(32, 32, 32));
-            TopBarForeground = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromRgb(15, 23, 42))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromRgb(229, 229, 229));
-
-            SettingsWindowBackground = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromRgb(244, 245, 247))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromRgb(9, 12, 24));
-            SettingsCardBackground = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromRgb(255, 255, 255))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromRgb(15, 20, 38));
-            SettingsCardBorderBrush = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromArgb(96, 15, 23, 42))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromArgb(110, 255, 255, 255));
-            SettingsSubtextForeground = snapshot.IsLightTheme
-                ? new WMedia.SolidColorBrush(WMedia.Color.FromRgb(63, 63, 70))
-                : new WMedia.SolidColorBrush(WMedia.Color.FromRgb(148, 163, 184));
-            SettingsShadowColor = snapshot.IsLightTheme
-                ? WMedia.Color.FromArgb(60, 0, 0, 0)
-                : WMedia.Color.FromArgb(120, 0, 0, 0);
+            _themeState.ApplyThemeSnapshot(snapshot);
+            NotifyThemePropertiesChanged();
         }
 
         /// <summary>
@@ -1443,7 +1394,7 @@ namespace IconGrid.ViewModels
             StartWithWindows = true;
             ShowDevOverlay = false;
             Language = "da";
-            _isLightTheme = true;
+            _themeState.SetIsLightTheme(true);
             _floatingLeft = null;
             _floatingTop = null;
             _layoutState.ResetToDefaults();
@@ -1453,7 +1404,7 @@ namespace IconGrid.ViewModels
             SaveSettingsToConfig();
 
             // Refresh bindings for theme-related brushes.
-            OnPropertyChanged(nameof(IsLightTheme));
+            NotifyThemePropertiesChanged();
             ApplyTheme(ThemeHelper.GetTheme());
         }
         private void EnsureIconPackFolder()

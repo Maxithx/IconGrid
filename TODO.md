@@ -99,7 +99,8 @@
 - [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
 - [ ] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
 - [ ] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
-- [ ] Theme-state, brushes og `ApplyTheme` ligger stadig i `MainViewModel`
+- [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
+- [ ] `MainViewModel` koordinerer stadig theme-notifications og `ThemeHelper` subscription
 - [ ] Localization-labels, `RaiseLocalizationChanged` og PawnIO-tekster ligger stadig i `MainViewModel`
 
 ### Fase 6: Struktur-oprydning
