@@ -623,10 +623,10 @@ namespace IconGrid.ViewModels
                 if (!_layoutState.SetLayoutPreset(value, out var slotForPreset))
                     return;
 
-                OnPropertyChanged();
-                LayoutIconGridSlot = slotForPreset;
+                _layoutState.LayoutIconGridSlot = slotForPreset;
+                NotifyLayoutPresetChanged();
+                OnPropertyChanged(nameof(LayoutIconGridSlot));
                 SaveSettingsToConfig();
-                OnPropertyChanged(nameof(LayoutPresetToolTip));
             }
         }
 
@@ -652,8 +652,7 @@ namespace IconGrid.ViewModels
                 if (!_layoutState.SetLayoutSkipMinimized(value))
                     return;
 
-                OnPropertyChanged();
-                SaveSettingsToConfig();
+                PersistLayoutPropertyChange(nameof(LayoutSkipMinimized));
             }
         }
 
@@ -665,8 +664,7 @@ namespace IconGrid.ViewModels
                 if (!_layoutState.SetLayoutCurrentMonitorOnly(value))
                     return;
 
-                OnPropertyChanged();
-                SaveSettingsToConfig();
+                PersistLayoutPropertyChange(nameof(LayoutCurrentMonitorOnly));
             }
         }
 
@@ -678,8 +676,7 @@ namespace IconGrid.ViewModels
                 if (!_layoutState.SetLayoutReserveIconGridSlot(value))
                     return;
 
-                OnPropertyChanged();
-                SaveSettingsToConfig();
+                PersistLayoutPropertyChange(nameof(LayoutReserveIconGridSlot));
             }
         }
 
@@ -691,8 +688,7 @@ namespace IconGrid.ViewModels
                 if (!_layoutState.SetLayoutIconGridSlot(value))
                     return;
 
-                OnPropertyChanged();
-                SaveSettingsToConfig();
+                PersistLayoutPropertyChange(nameof(LayoutIconGridSlot));
             }
         }
 
@@ -726,8 +722,7 @@ namespace IconGrid.ViewModels
         {
             _layoutState.LayoutIconGridSlot = LayoutIconGridSlot;
             _layoutState.SaveLayout(layoutName, slots);
-            NotifyLayoutCollectionsChanged();
-            SaveSettingsToConfig();
+            PersistLayoutCollectionChange(notifyPreset: false);
         }
 
         public bool RenameLayout(string oldName, string newName)
@@ -735,9 +730,7 @@ namespace IconGrid.ViewModels
             if (!_layoutState.RenameLayout(oldName, newName))
                 return false;
 
-            NotifyLayoutPresetChanged();
-            NotifyLayoutCollectionsChanged();
-            SaveSettingsToConfig();
+            PersistLayoutCollectionChange(notifyPreset: true);
             return true;
         }
 
@@ -747,9 +740,7 @@ namespace IconGrid.ViewModels
             if (!removed)
                 return false;
 
-            NotifyLayoutPresetChanged();
-            NotifyLayoutCollectionsChanged();
-            SaveSettingsToConfig();
+            PersistLayoutCollectionChange(notifyPreset: true);
             return true;
         }
 
@@ -766,12 +757,27 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(LayoutPresetToolTip));
         }
 
+        private void PersistLayoutPropertyChange(string propertyName)
+        {
+            OnPropertyChanged(propertyName);
+            SaveSettingsToConfig();
+        }
+
         private void NotifyLayoutCollectionsChanged()
         {
             OnPropertyChanged(nameof(FavoriteLayoutSlots));
             OnPropertyChanged(nameof(SavedLayouts));
             OnPropertyChanged(nameof(SavedLayoutNames));
             OnPropertyChanged(nameof(LayoutPresetChoices));
+        }
+
+        private void PersistLayoutCollectionChange(bool notifyPreset)
+        {
+            if (notifyPreset)
+                NotifyLayoutPresetChanged();
+
+            NotifyLayoutCollectionsChanged();
+            SaveSettingsToConfig();
         }
 
         private void NotifyAllLayoutPropertiesChanged()
