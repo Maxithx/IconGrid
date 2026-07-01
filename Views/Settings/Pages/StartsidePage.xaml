@@ -6,18 +6,18 @@
              Background="Transparent">
     <views:TemplatePage Margin="12">
         <views:TemplatePage.HeroContent>
-            <StackPanel helpers:DevInspector.Metadata="Startside hero card → Views/StartsidePage.xaml">
-                <TextBlock Text="Startside"
+            <StackPanel helpers:DevInspector.Metadata="Startside hero card -> Views/StartsidePage.xaml">
+                <TextBlock Text="{Binding HomeTitle}"
                            FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                 <TextBlock Margin="0,8,0,0"
-                           Text="Administrer generelle indstillinger og hvordan IconGrid interagerer med dit system."
+                           Text="{Binding HomeIntroLine1}"
                            TextWrapping="Wrap"
                            FontSize="13"
                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                 <TextBlock Margin="0,4,0,0"
-                           Text="Konfigurer opstart, visning og kernefunktioner fra ét sted."
+                           Text="{Binding HomeIntroLine2}"
                            TextWrapping="Wrap"
                            FontSize="13"
                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -26,9 +26,9 @@
         <views:TemplatePage.CardsContent>
             <StackPanel>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="System and startup card → Views/StartsidePage.xaml">
+                        helpers:DevInspector.Metadata="System and startup card -> Views/StartsidePage.xaml">
                     <StackPanel>
-                        <TextBlock Text="System og opstart"
+                        <TextBlock Text="{Binding SystemAndStartupTitle}"
                                    FontSize="16"
                                    FontWeight="SemiBold"
                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -39,7 +39,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="IconGrid vises altid øverst"
+                                <TextBlock Text="{Binding AlwaysOnTopDescription}"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <ToggleButton Grid.Column="1"
@@ -52,7 +52,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Start med Windows"
+                                <TextBlock Text="{Binding StartWithWindowsLabel}"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <ToggleButton Grid.Column="1"
@@ -65,7 +65,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Vis rulleknapper på kategori menuen"
+                                <TextBlock Text="{Binding ShowScrollButtonsDescription}"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <ToggleButton Grid.Column="1"
@@ -78,7 +78,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Vis udvikler overlay"
+                                <TextBlock Text="{Binding DevOverlayDescription}"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <ToggleButton Grid.Column="1"
@@ -89,7 +89,7 @@
 
                         <StackPanel Margin="0,18,0,0">
                             <TextBlock Margin="0,0,0,4"
-                                       Text="UI størrelse"
+                                       Text="{Binding UiScaleDescription}"
                                        FontSize="14"
                                        Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                             <Grid Margin="0,4,0,0">
@@ -118,7 +118,42 @@
                 </Border>
 
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="Reset card → Views/StartsidePage.xaml">
+                        helpers:DevInspector.Metadata="Language card -> Views/StartsidePage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding LanguageSectionTitle}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                        <TextBlock Margin="0,8,0,0"
+                                   Text="{Binding LanguageSectionDescription}"
+                                   TextWrapping="Wrap"
+                                   FontSize="13"
+                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding LanguageLabel}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ComboBox Grid.Column="1"
+                                      SelectedValue="{Binding Language, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Tag"
+                                      HorizontalAlignment="Stretch"
+                                      Padding="8,6">
+                                <ComboBoxItem Content="{Binding LanguageOptionDanish}"
+                                              Tag="da" />
+                                <ComboBoxItem Content="{Binding LanguageOptionEnglish}"
+                                              Tag="en" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Reset card -> Views/StartsidePage.xaml">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -126,7 +161,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center"
                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="Nulstil til standard" />
+                                   Text="{Binding ResetDefaultsLabel}" />
                         <ToggleButton Grid.Column="1"
                                       Style="{StaticResource ToggleSwitchStyle}"
                                       IsChecked="{Binding ResetSettingsToggle, Mode=TwoWay}" />

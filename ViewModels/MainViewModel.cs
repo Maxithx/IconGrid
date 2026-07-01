@@ -1393,6 +1393,18 @@ namespace IconGrid.ViewModels
         public string MonitorUploadLabel => _localizationState.Get(Language, "MonitorUploadLabel");
         public string MonitorCpuLabel => _localizationState.Get(Language, "MonitorCpuLabel");
         public string MonitorGpuLabel => _localizationState.Get(Language, "MonitorGpuLabel");
+        public string HomeTitle => _localizationState.Get(Language, "HomeTitle");
+        public string HomeIntroLine1 => _localizationState.Get(Language, "HomeIntroLine1");
+        public string HomeIntroLine2 => _localizationState.Get(Language, "HomeIntroLine2");
+        public string SystemAndStartupTitle => _localizationState.Get(Language, "SystemAndStartupTitle");
+        public string LanguageSectionTitle => _localizationState.Get(Language, "LanguageSectionTitle");
+        public string LanguageSectionDescription => _localizationState.Get(Language, "LanguageSectionDescription");
+        public string AlwaysOnTopDescription => _localizationState.Get(Language, "AlwaysOnTopDescription");
+        public string ShowScrollButtonsDescription => _localizationState.Get(Language, "ShowScrollButtonsDescription");
+        public string DevOverlayDescription => _localizationState.Get(Language, "DevOverlayDescription");
+        public string UiScaleDescription => _localizationState.Get(Language, "UiScaleDescription");
+        public string LanguageOptionDanish => _localizationState.Get(Language, "LanguageOptionDanish");
+        public string LanguageOptionEnglish => _localizationState.Get(Language, "LanguageOptionEnglish");
 
         public string PawnIoMissingMessage => _localizationState.PawnIoMissingMessage;
 
@@ -1436,6 +1448,18 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(MonitorUploadLabel));
             OnPropertyChanged(nameof(MonitorCpuLabel));
             OnPropertyChanged(nameof(MonitorGpuLabel));
+            OnPropertyChanged(nameof(HomeTitle));
+            OnPropertyChanged(nameof(HomeIntroLine1));
+            OnPropertyChanged(nameof(HomeIntroLine2));
+            OnPropertyChanged(nameof(SystemAndStartupTitle));
+            OnPropertyChanged(nameof(LanguageSectionTitle));
+            OnPropertyChanged(nameof(LanguageSectionDescription));
+            OnPropertyChanged(nameof(AlwaysOnTopDescription));
+            OnPropertyChanged(nameof(ShowScrollButtonsDescription));
+            OnPropertyChanged(nameof(DevOverlayDescription));
+            OnPropertyChanged(nameof(UiScaleDescription));
+            OnPropertyChanged(nameof(LanguageOptionDanish));
+            OnPropertyChanged(nameof(LanguageOptionEnglish));
         }
 
         private void ApplyLocalizationState()

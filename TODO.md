@@ -192,6 +192,12 @@
 - [x] Hold `README.md` opdateret efter hver større refactor-fase
 - [ ] Dokumentér nye controls/helpers når de bliver arkitektonisk vigtige
 
+## Localization TODO
+
+- [x] Tilføj sprogskift (Dansk/Engelsk) på `StartsidePage`
+- [x] Bind sprogskift til eksisterende localization-flow i `MainViewModel`
+- [ ] Bekræft at launcher, settings-sider og labels opdateres live uden restart
+
 ## Arbejdsregel
 
 - Lav små sikre refactors

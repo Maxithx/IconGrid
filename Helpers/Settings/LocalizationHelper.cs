@@ -55,7 +55,19 @@ public static class LocalizationHelper
             ["MonitorDownloadLabel"] = "↓ Download",
             ["MonitorUploadLabel"] = "↑ Upload",
             ["MonitorCpuLabel"] = "CPU",
-            ["MonitorGpuLabel"] = "GPU"
+            ["MonitorGpuLabel"] = "GPU",
+            ["HomeTitle"] = "Home",
+            ["HomeIntroLine1"] = "Manage general settings and how IconGrid interacts with your system.",
+            ["HomeIntroLine2"] = "Configure startup, display, and core behavior from one place.",
+            ["SystemAndStartupTitle"] = "System and startup",
+            ["LanguageSectionTitle"] = "Language and region",
+            ["LanguageSectionDescription"] = "Choose which language IconGrid uses across the launcher and settings pages.",
+            ["AlwaysOnTopDescription"] = "IconGrid always stays above other windows",
+            ["ShowScrollButtonsDescription"] = "Show scroll buttons on the category bar",
+            ["DevOverlayDescription"] = "Show developer overlay",
+            ["UiScaleDescription"] = "UI size",
+            ["LanguageOptionDanish"] = "Dansk",
+            ["LanguageOptionEnglish"] = "English"
         },
         ["da"] = new()
         {
@@ -106,7 +118,19 @@ public static class LocalizationHelper
             ["MonitorDownloadLabel"] = "↓ Hent",
             ["MonitorUploadLabel"] = "↑ Send",
             ["MonitorCpuLabel"] = "CPU",
-            ["MonitorGpuLabel"] = "GPU"
+            ["MonitorGpuLabel"] = "GPU",
+            ["HomeTitle"] = "Startside",
+            ["HomeIntroLine1"] = "Administrer generelle indstillinger og hvordan IconGrid interagerer med dit system.",
+            ["HomeIntroLine2"] = "Konfigurer opstart, visning og kernefunktioner fra et sted.",
+            ["SystemAndStartupTitle"] = "System og opstart",
+            ["LanguageSectionTitle"] = "Sprog og region",
+            ["LanguageSectionDescription"] = "Vælg hvilket sprog IconGrid bruger i launcheren og på indstillingssiderne.",
+            ["AlwaysOnTopDescription"] = "IconGrid vises altid øverst",
+            ["ShowScrollButtonsDescription"] = "Vis rulleknapper på kategori menuen",
+            ["DevOverlayDescription"] = "Vis udvikler overlay",
+            ["UiScaleDescription"] = "UI størrelse",
+            ["LanguageOptionDanish"] = "Dansk",
+            ["LanguageOptionEnglish"] = "English"
         }
     };
 
