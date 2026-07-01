@@ -130,6 +130,7 @@
 
 - `Views/Launcher/`
 - Behold `MainWindow` som launcher-shell og flyt det hertil sammen med evt. launcher-specifikke dialoger, hvis de opstår senere
+- [x] Næste flyttefase gennemført: `MainWindow` er flyttet til `Views/Launcher/`
 
 - `Views/Settings/Pages/`
 - Flyt `AboutPage`, `GenvejsIkonerPage`, `HardwarePage`, `HjaelpPage`, `LayoutPage`, `StartsidePage` og `TemplatePage` hertil
