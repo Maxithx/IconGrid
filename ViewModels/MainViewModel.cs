@@ -833,10 +833,7 @@ namespace IconGrid.ViewModels
         {
             _layoutState.LayoutIconGridSlot = LayoutIconGridSlot;
             _layoutState.SaveLayout(layoutName, slots);
-            OnPropertyChanged(nameof(FavoriteLayoutSlots));
-            OnPropertyChanged(nameof(SavedLayouts));
-            OnPropertyChanged(nameof(SavedLayoutNames));
-            OnPropertyChanged(nameof(LayoutPresetChoices));
+            NotifyLayoutCollectionsChanged();
             SaveSettingsToConfig();
         }
 
@@ -845,11 +842,8 @@ namespace IconGrid.ViewModels
             if (!_layoutState.RenameLayout(oldName, newName))
                 return false;
 
-            OnPropertyChanged(nameof(LayoutPreset));
-            OnPropertyChanged(nameof(LayoutPresetToolTip));
-            OnPropertyChanged(nameof(SavedLayouts));
-            OnPropertyChanged(nameof(SavedLayoutNames));
-            OnPropertyChanged(nameof(LayoutPresetChoices));
+            NotifyLayoutPresetChanged();
+            NotifyLayoutCollectionsChanged();
             SaveSettingsToConfig();
             return true;
         }
@@ -860,11 +854,8 @@ namespace IconGrid.ViewModels
             if (!removed)
                 return false;
 
-            OnPropertyChanged(nameof(LayoutPreset));
-            OnPropertyChanged(nameof(LayoutPresetToolTip));
-            OnPropertyChanged(nameof(SavedLayouts));
-            OnPropertyChanged(nameof(SavedLayoutNames));
-            OnPropertyChanged(nameof(LayoutPresetChoices));
+            NotifyLayoutPresetChanged();
+            NotifyLayoutCollectionsChanged();
             SaveSettingsToConfig();
             return true;
         }
@@ -874,6 +865,30 @@ namespace IconGrid.ViewModels
             _layoutState.SetFavoriteLayoutSlots(slots);
             SaveSettingsToConfig();
             OnPropertyChanged(nameof(FavoriteLayoutSlots));
+        }
+
+        private void NotifyLayoutPresetChanged()
+        {
+            OnPropertyChanged(nameof(LayoutPreset));
+            OnPropertyChanged(nameof(LayoutPresetToolTip));
+        }
+
+        private void NotifyLayoutCollectionsChanged()
+        {
+            OnPropertyChanged(nameof(FavoriteLayoutSlots));
+            OnPropertyChanged(nameof(SavedLayouts));
+            OnPropertyChanged(nameof(SavedLayoutNames));
+            OnPropertyChanged(nameof(LayoutPresetChoices));
+        }
+
+        private void NotifyAllLayoutPropertiesChanged()
+        {
+            NotifyLayoutPresetChanged();
+            OnPropertyChanged(nameof(LayoutSkipMinimized));
+            OnPropertyChanged(nameof(LayoutCurrentMonitorOnly));
+            OnPropertyChanged(nameof(LayoutReserveIconGridSlot));
+            OnPropertyChanged(nameof(LayoutIconGridSlot));
+            NotifyLayoutCollectionsChanged();
         }
 
         private double CalculateContentAreaHeight()
@@ -942,10 +957,7 @@ namespace IconGrid.ViewModels
             _floatingLeft = config.FloatingIconLeft;
             _floatingTop = config.FloatingIconTop;
             _layoutState.ApplyConfig(config);
-            OnPropertyChanged(nameof(FavoriteLayoutSlots));
-            OnPropertyChanged(nameof(SavedLayouts));
-            OnPropertyChanged(nameof(SavedLayoutNames));
-            OnPropertyChanged(nameof(LayoutPresetChoices));
+            NotifyLayoutCollectionsChanged();
             OnPropertyChanged(nameof(ShowDevOverlay));
         }
 
@@ -1461,16 +1473,7 @@ namespace IconGrid.ViewModels
             _layoutState.ResetToDefaults();
             WindowAnimationDurationMs = 250;
 
-            OnPropertyChanged(nameof(LayoutPreset));
-            OnPropertyChanged(nameof(LayoutPresetToolTip));
-            OnPropertyChanged(nameof(LayoutSkipMinimized));
-            OnPropertyChanged(nameof(LayoutCurrentMonitorOnly));
-            OnPropertyChanged(nameof(LayoutReserveIconGridSlot));
-            OnPropertyChanged(nameof(LayoutIconGridSlot));
-            OnPropertyChanged(nameof(FavoriteLayoutSlots));
-            OnPropertyChanged(nameof(SavedLayouts));
-            OnPropertyChanged(nameof(SavedLayoutNames));
-            OnPropertyChanged(nameof(LayoutPresetChoices));
+            NotifyAllLayoutPropertiesChanged();
             SaveSettingsToConfig();
 
             // Refresh bindings for theme-related brushes.

@@ -94,6 +94,7 @@
 - [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`
 - [x] Layout preset, saved layouts, favorite layout og layout-links delegérer nu til `LauncherLayoutState`
 - [x] Layout-mutationer, defaults-reset og settings-snapshot delegérer nu primært til `LauncherLayoutState`
+- [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
 
 ### Fase 6: Struktur-oprydning
 
