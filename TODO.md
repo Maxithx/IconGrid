@@ -2,16 +2,17 @@
 
 ## Status
 
-- Floating icon refactor phase 1 er færdig
-- `FloatingIconButton` er udskilt fra `MainWindow`
-- `FloatingIconController` er udskilt fra `MainWindow`
-- `LauncherTopBar` er udskilt fra `MainWindow`
-- README er opdateret med vigtige `Helpers`
+- MainWindow-/launcher-refactor er gennemført i stabile faser
+- Settings-shell og settings-sider er modulariseret
+- README og views-dokumentation er opdateret til den nye struktur
+- HardwarePage deler nu live hardware-telemetri med launcher-topbaren
+- Sprogskift mellem `Dansk` og `English` er lagt på `StartsidePage`
 
 ## Næste fokus
 
-- Start refactor af `ViewModels/MainViewModel.cs` i små, sikre faser
-- Holde hardware/temperature-forskellen som separat spor
+- Afklar om `PawnIO`/admin-flow skal gøres tydeligere i `SettingsWindow`
+- Dokumentér kun de controls/helpers som stadig er arkitektonisk vigtige
+- Tag kun nye faser hvis de giver reel funktionel værdi
 
 ## MainWindow refactor
 
@@ -175,7 +176,7 @@
 ### Observation
 
 - Launcher topbar viser live `CPU`/`GPU` temperaturer
-- `SettingsWindow` → `Hardware` side viser kun hardware-information
+- `SettingsWindow` → `Hardware` side viser nu også live telemetri
 - Begge områder bruger relateret hardware-infrastruktur (`LibreHardwareMonitor` / `PawnIO`)
 
 ### Afklaring
@@ -196,7 +197,7 @@
 
 - [x] Tilføj sprogskift (Dansk/Engelsk) på `StartsidePage`
 - [x] Bind sprogskift til eksisterende localization-flow i `MainViewModel`
-- [ ] Bekræft at launcher, settings-sider og labels opdateres live uden restart
+- [x] Bekræft at launcher, settings-sider og labels opdateres live uden restart
 
 ## Arbejdsregel
 
