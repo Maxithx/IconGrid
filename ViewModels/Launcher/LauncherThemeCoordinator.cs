@@ -1,5 +1,5 @@
 using System;
-using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 
 namespace IconGrid.ViewModels.Launcher
 {

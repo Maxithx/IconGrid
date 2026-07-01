@@ -1,7 +1,8 @@
 using System;
 using System.IO;
-using IconGrid.Models;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
+using IconGrid.Models;
 
 namespace IconGrid.Helpers
 {

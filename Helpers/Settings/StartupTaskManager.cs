@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Settings;
 
 public static class StartupTaskManager
 {

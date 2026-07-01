@@ -1,4 +1,4 @@
-using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 using WMedia = System.Windows.Media;
 

@@ -20,6 +20,7 @@ using System.Windows.Media.Imaging;
 using System.Drawing;
 using System.Windows.Threading;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 using IconGrid.ViewModels;
 using IconGrid.ViewModels.Launcher;

@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 using IconGrid.ViewModels;
 using IconGrid.ViewModels.Launcher;
 using IconGrid.ViewModels.Settings;

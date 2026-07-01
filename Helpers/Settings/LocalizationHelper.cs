@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Settings;
 
 public static class LocalizationHelper
 {

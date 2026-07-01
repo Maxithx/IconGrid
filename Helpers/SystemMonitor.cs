@@ -8,6 +8,7 @@ using System.Security.Principal;
 using System.Text.Json;
 using System.Windows.Threading;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Settings;
 
 namespace IconGrid.Helpers
 {

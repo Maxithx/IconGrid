@@ -5,7 +5,7 @@ using System.IO;
 using System.ServiceProcess;
 using Microsoft.Win32;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Settings;
 
 public static class PawnIoHelper
 {

@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 
 namespace IconGrid.ViewModels.Settings

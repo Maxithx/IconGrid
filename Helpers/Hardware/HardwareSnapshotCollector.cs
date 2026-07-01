@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 using LibreHardwareMonitor.Hardware;
 
 namespace IconGrid.Helpers.Hardware;

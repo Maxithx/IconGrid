@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Settings;
 
 namespace IconGrid.Helpers.Hardware;
 

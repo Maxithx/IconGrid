@@ -149,6 +149,7 @@
 
 - `Helpers/Settings/`
 - Flyt `LocalizationHelper`, `PawnIoHelper`, `ThemeHelper`, `StartupTaskManager` og `ConfigManager` hertil hvis de fortsat primært bruges af settings/configuration
+- [x] Næste flyttefase gennemført: settings-helpers er flyttet til `Helpers/Settings/`
 
 - `Helpers/Hardware/`
 - Flyt `HardwareInfoProvider`, `HardwareMonitorAgent`, `HardwareMonitorSnapshot` og `HardwareSnapshotCollector` hertil som separat spor før eventuel hardware-refactor

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using MediaColor = System.Windows.Media.Color;
 
-namespace IconGrid.Helpers
+namespace IconGrid.Helpers.Settings
 {
     public record ThemeSnapshot(bool IsLightTheme, MediaColor AccentColor);
 

@@ -4,7 +4,7 @@ using System.Linq;
 using IconGrid.Models;
 using Newtonsoft.Json;
 
-namespace IconGrid.Helpers;
+namespace IconGrid.Helpers.Settings;
 
 public class ConfigManager
 {

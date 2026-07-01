@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using IconGrid.Helpers;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Settings;
 using WinForms = System.Windows.Forms;
 using IconGrid.Views;
 
