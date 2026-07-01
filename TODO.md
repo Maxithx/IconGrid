@@ -122,6 +122,7 @@
 
 - `Controls/Launcher/`
 - Flyt `LauncherGrid`, `LauncherLogoArea`, `LauncherMonitorRow`, `LauncherTabsBar`, `LauncherTopBar` og `LauncherWindowButtons` hertil
+- [x] Næste flyttefase gennemført: launcher-controls er flyttet til `Controls/Launcher/`
 - Behold `Controls/Floating/` som næste naturlige hjem for `FloatingIconButton`
 - Behold `Controls/Common/` som næste naturlige hjem for `SliderRow` og evt. `LauncherLogo`, hvis den fortsat bruges bredt
 
