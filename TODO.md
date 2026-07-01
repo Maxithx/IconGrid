@@ -98,6 +98,7 @@
 - [x] Layout-mutationer, defaults-reset og settings-snapshot delegérer nu primært til `LauncherLayoutState`
 - [x] Layout-related property notifications i `MainViewModel` bruger nu fælles hjælpe-metoder i stedet for gentagne notify-blokke
 - [ ] Restvurder om overlay-/layout-triggerlogik og sidste layout-hjælpere stadig bør samles yderligere
+- [x] Overlay-state (`IsSettingsOpen`, `IsLayoutsOpen`, `IsHelpOpen`) delegérer nu til `LauncherOverlayState`
 - [ ] Restvurder om load/apply-config-flow kan deles yderligere op uden at gøre startup mere skrøbelig
 - [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
 - [ ] `MainViewModel` koordinerer stadig theme-notifications og `ThemeHelper` subscription

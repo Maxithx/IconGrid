@@ -24,9 +24,6 @@ namespace IconGrid.ViewModels
         private int _iconsPerRow = 4;
         private double _icon_scale = 1.0;
 
-        private bool _isSettingsOpen;
-        private bool _isLayoutsOpen;
-        private bool _isHelpOpen;
 
         // NEW: UI settings backing fields
         private bool _isAlwaysOnTop = true;
@@ -72,6 +69,7 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemLaunchManager _itemLaunchManager;
         private readonly LauncherThemeState _themeState = new();
         private readonly LauncherLocalizationState _localizationState = new();
+        private readonly LauncherOverlayState _overlayState = new();
         private readonly LauncherShortcutManager _shortcutManager;
         private readonly LauncherItemsPersistence _itemsPersistence;
         private readonly MainViewModelSettingsPersistence _settingsPersistence;
@@ -252,23 +250,21 @@ namespace IconGrid.ViewModels
         /// </summary>
         public bool IsSettingsOpen
         {
-            get => _isSettingsOpen;
+            get => _overlayState.IsSettingsOpen;
             set
             {
-                if (SetField(ref _isSettingsOpen, value))
-                {
-                    if (_isSettingsOpen)
-                    {
-                        _isLayoutsOpen = false;
-                        _isHelpOpen = false;
-                        OnPropertyChanged(nameof(IsLayoutsOpen));
-                        OnPropertyChanged(nameof(IsHelpOpen));
-                    }
-                    OnPropertyChanged(nameof(IsOverlayOpen));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                }
+                if (!_overlayState.SetSettingsOpen(value, out var layoutsChanged, out var helpChanged))
+                    return;
+
+                OnPropertyChanged();
+                if (layoutsChanged)
+                    OnPropertyChanged(nameof(IsLayoutsOpen));
+                if (helpChanged)
+                    OnPropertyChanged(nameof(IsHelpOpen));
+                OnPropertyChanged(nameof(IsOverlayOpen));
+                OnPropertyChanged(nameof(WindowDesiredHeight));
+                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+                OnPropertyChanged(nameof(ContentHostHeight));
             }
         }
 
@@ -277,52 +273,48 @@ namespace IconGrid.ViewModels
         /// </summary>
         public bool IsLayoutsOpen
         {
-            get => _isLayoutsOpen;
+            get => _overlayState.IsLayoutsOpen;
             set
             {
-                if (SetField(ref _isLayoutsOpen, value))
-                {
-                    if (_isLayoutsOpen)
-                    {
-                        _isSettingsOpen = false;
-                        _isHelpOpen = false;
-                        OnPropertyChanged(nameof(IsSettingsOpen));
-                        OnPropertyChanged(nameof(IsHelpOpen));
-                    }
-                    OnPropertyChanged(nameof(IsOverlayOpen));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                }
+                if (!_overlayState.SetLayoutsOpen(value, out var settingsChanged, out var helpChanged))
+                    return;
+
+                OnPropertyChanged();
+                if (settingsChanged)
+                    OnPropertyChanged(nameof(IsSettingsOpen));
+                if (helpChanged)
+                    OnPropertyChanged(nameof(IsHelpOpen));
+                OnPropertyChanged(nameof(IsOverlayOpen));
+                OnPropertyChanged(nameof(WindowDesiredHeight));
+                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+                OnPropertyChanged(nameof(ContentHostHeight));
             }
         }
 
         public bool IsHelpOpen
         {
-            get => _isHelpOpen;
+            get => _overlayState.IsHelpOpen;
             set
             {
-                if (SetField(ref _isHelpOpen, value))
-                {
-                    if (_isHelpOpen)
-                    {
-                        _isSettingsOpen = false;
-                        _isLayoutsOpen = false;
-                        OnPropertyChanged(nameof(IsSettingsOpen));
-                        OnPropertyChanged(nameof(IsLayoutsOpen));
-                    }
-                    OnPropertyChanged(nameof(IsOverlayOpen));
-                    OnPropertyChanged(nameof(WindowDesiredHeight));
-                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-                    OnPropertyChanged(nameof(ContentHostHeight));
-                }
+                if (!_overlayState.SetHelpOpen(value, out var settingsChanged, out var layoutsChanged))
+                    return;
+
+                OnPropertyChanged();
+                if (settingsChanged)
+                    OnPropertyChanged(nameof(IsSettingsOpen));
+                if (layoutsChanged)
+                    OnPropertyChanged(nameof(IsLayoutsOpen));
+                OnPropertyChanged(nameof(IsOverlayOpen));
+                OnPropertyChanged(nameof(WindowDesiredHeight));
+                OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+                OnPropertyChanged(nameof(ContentHostHeight));
             }
         }
 
         /// <summary>
         /// Indicates any overlay (settings or layouts) is active.
         /// </summary>
-        public bool IsOverlayOpen => IsSettingsOpen || IsLayoutsOpen || IsHelpOpen;
+        public bool IsOverlayOpen => _overlayState.IsOverlayOpen;
 
         /// <summary>
         /// Whether the full IconGrid UI is visible (vs. floating icon mode).
