@@ -727,16 +727,13 @@ namespace IconGrid.ViewModels
             get => _layoutState.LayoutPreset;
             set
             {
-                if (string.Equals(_layoutState.LayoutPreset, value, StringComparison.Ordinal))
+                if (!_layoutState.SetLayoutPreset(value, out var slotForPreset))
                     return;
 
-                _layoutState.LayoutPreset = value;
                 OnPropertyChanged();
-                {
-                    LayoutIconGridSlot = _layoutState.GetSlotForPreset(_layoutState.LayoutPreset);
-                    SaveSettingsToConfig();
-                    OnPropertyChanged(nameof(LayoutPresetToolTip));
-                }
+                LayoutIconGridSlot = slotForPreset;
+                SaveSettingsToConfig();
+                OnPropertyChanged(nameof(LayoutPresetToolTip));
             }
         }
 
@@ -759,12 +756,11 @@ namespace IconGrid.ViewModels
             get => _layoutState.LayoutSkipMinimized;
             set
             {
-                if (_layoutState.LayoutSkipMinimized != value)
-                {
-                    _layoutState.LayoutSkipMinimized = value;
-                    OnPropertyChanged();
-                    SaveSettingsToConfig();
-                }
+                if (!_layoutState.SetLayoutSkipMinimized(value))
+                    return;
+
+                OnPropertyChanged();
+                SaveSettingsToConfig();
             }
         }
 
@@ -773,12 +769,11 @@ namespace IconGrid.ViewModels
             get => _layoutState.LayoutCurrentMonitorOnly;
             set
             {
-                if (_layoutState.LayoutCurrentMonitorOnly != value)
-                {
-                    _layoutState.LayoutCurrentMonitorOnly = value;
-                    OnPropertyChanged();
-                    SaveSettingsToConfig();
-                }
+                if (!_layoutState.SetLayoutCurrentMonitorOnly(value))
+                    return;
+
+                OnPropertyChanged();
+                SaveSettingsToConfig();
             }
         }
 
@@ -787,12 +782,11 @@ namespace IconGrid.ViewModels
             get => _layoutState.LayoutReserveIconGridSlot;
             set
             {
-                if (_layoutState.LayoutReserveIconGridSlot != value)
-                {
-                    _layoutState.LayoutReserveIconGridSlot = value;
-                    OnPropertyChanged();
-                    SaveSettingsToConfig();
-                }
+                if (!_layoutState.SetLayoutReserveIconGridSlot(value))
+                    return;
+
+                OnPropertyChanged();
+                SaveSettingsToConfig();
             }
         }
 
@@ -801,15 +795,11 @@ namespace IconGrid.ViewModels
             get => _layoutState.LayoutIconGridSlot;
             set
             {
-                // Clamp to first 4 slots.
-                var clamped = Math.Max(0, Math.Min(3, value));
-                if (_layoutState.LayoutIconGridSlot != clamped)
-                {
-                    _layoutState.LayoutIconGridSlot = clamped;
-                    _layoutState.SaveSlotForPreset(_layoutState.LayoutPreset, clamped);
-                    OnPropertyChanged();
-                    SaveSettingsToConfig();
-                }
+                if (!_layoutState.SetLayoutIconGridSlot(value))
+                    return;
+
+                OnPropertyChanged();
+                SaveSettingsToConfig();
             }
         }
 
@@ -1200,20 +1190,12 @@ namespace IconGrid.ViewModels
                 SettingsWindowTop = _settingsWindowTop,
                 FloatingIconLeft = _floatingLeft,
                 FloatingIconTop = _floatingTop,
-                LayoutPreset = _layoutState.LayoutPreset,
-                LayoutSkipMinimized = _layoutState.LayoutSkipMinimized,
-                LayoutCurrentMonitorOnly = _layoutState.LayoutCurrentMonitorOnly,
-                LayoutIconGridSlot = _layoutState.LayoutIconGridSlot,
-                LayoutReserveIconGridSlot = _layoutState.LayoutReserveIconGridSlot,
-                LayoutIconGridSlots = new Dictionary<string, int>(_layoutState.LayoutIconGridSlots, StringComparer.OrdinalIgnoreCase),
-                LayoutLinks = _layoutState.LayoutLinks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
-                SavedLayouts = _layoutState.SavedLayouts.ToDictionary(kvp => kvp.Key, kvp => LauncherLayoutState.CloneSlots(kvp.Value)),
-                FavoriteLayoutSlots = LauncherLayoutState.CloneSlots(_layoutState.FavoriteLayoutSlots),
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
                 WindowAnimationDurationMs = _windowAnimationDurationMs
             };
 
+            _layoutState.ApplyToSettingsState(state);
             _settingsPersistence.Save(_config, state);
         }
 
@@ -1476,13 +1458,19 @@ namespace IconGrid.ViewModels
             _isLightTheme = true;
             _floatingLeft = null;
             _floatingTop = null;
-            LayoutPreset = "Auto";
-            LayoutSkipMinimized = true;
-            LayoutCurrentMonitorOnly = true;
-            LayoutIconGridSlot = 0;
-            _layoutState.ResetRuntimeCollections();
+            _layoutState.ResetToDefaults();
             WindowAnimationDurationMs = 250;
 
+            OnPropertyChanged(nameof(LayoutPreset));
+            OnPropertyChanged(nameof(LayoutPresetToolTip));
+            OnPropertyChanged(nameof(LayoutSkipMinimized));
+            OnPropertyChanged(nameof(LayoutCurrentMonitorOnly));
+            OnPropertyChanged(nameof(LayoutReserveIconGridSlot));
+            OnPropertyChanged(nameof(LayoutIconGridSlot));
+            OnPropertyChanged(nameof(FavoriteLayoutSlots));
+            OnPropertyChanged(nameof(SavedLayouts));
+            OnPropertyChanged(nameof(SavedLayoutNames));
+            OnPropertyChanged(nameof(LayoutPresetChoices));
             SaveSettingsToConfig();
 
             // Refresh bindings for theme-related brushes.

@@ -93,6 +93,7 @@
 - [x] Items save/load/migrering er flyttet til `LauncherItemsPersistence`
 - [x] `SaveSettingsToConfig` bygger nu et state-snapshot og delegérer save til `MainViewModelSettingsPersistence`
 - [x] Layout preset, saved layouts, favorite layout og layout-links delegérer nu til `LauncherLayoutState`
+- [x] Layout-mutationer, defaults-reset og settings-snapshot delegérer nu primært til `LauncherLayoutState`
 
 ### Fase 6: Struktur-oprydning
 
