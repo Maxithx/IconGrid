@@ -19,7 +19,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="StartsideStyles.xaml" />
+                <ResourceDictionary Source="../StartsideStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <SolidColorBrush x:Key="ButtonHoverDark" Color="#2b2d31" />

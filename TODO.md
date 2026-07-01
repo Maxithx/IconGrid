@@ -135,7 +135,9 @@
 - Flyt `AboutPage`, `GenvejsIkonerPage`, `HardwarePage`, `HjaelpPage`, `LayoutPage`, `StartsidePage` og `TemplatePage` hertil
 - [x] Næste flyttefase gennemført: settings-sider er flyttet til `Views/Settings/Pages/`
 - Behold `Views/Settings/SettingsWindow.xaml` som settings-shell
+- [x] Næste flyttefase gennemført: `SettingsWindow` er flyttet til `Views/Settings/`
 - Behold `Views/Settings/Dialogs/` som næste naturlige hjem for `PawnIoWarningWindow`, hvis den fortsat kun hører til settings-flowet
+- [x] Næste flyttefase gennemført: `PawnIoWarningWindow` er flyttet til `Views/Settings/Dialogs/`
 
 - `ViewModels/Launcher/`
 - Flyt `LauncherTabsState`, `LauncherItemsManager`, `LauncherItemIconManager`, `LauncherItemLaunchManager`, `LauncherShortcutManager`, `LauncherItemsPersistence`, `LauncherLayoutState`, `LauncherOverlayState`, `LauncherThemeState`, `LauncherThemeCoordinator` og `LauncherLocalizationState` hertil
