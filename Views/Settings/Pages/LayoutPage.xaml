@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="StartsideStyles.xaml" />
+                <ResourceDictionary Source="../../StartsideStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <helpers:LayoutSlotMatchConverter x:Key="LayoutSlotMatchConverter" />
             <helpers:LayoutSlotLabelConverter x:Key="LayoutSlotLabelConverter" />

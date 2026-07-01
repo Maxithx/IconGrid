@@ -10,7 +10,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="TemplateGuidelines.xaml" />
+                <ResourceDictionary Source="../../TemplateGuidelines.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <helpers:TemplateContentWidthConverter x:Key="TemplateContentWidthConverter"
                                                    MaxWidth="1280"
