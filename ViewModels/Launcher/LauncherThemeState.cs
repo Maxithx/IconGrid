@@ -2,7 +2,7 @@ using IconGrid.Helpers;
 using IconGrid.Models;
 using WMedia = System.Windows.Media;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherThemeState
     {

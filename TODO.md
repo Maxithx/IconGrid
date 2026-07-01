@@ -137,10 +137,12 @@
 
 - `ViewModels/Launcher/`
 - Flyt `LauncherTabsState`, `LauncherItemsManager`, `LauncherItemIconManager`, `LauncherItemLaunchManager`, `LauncherShortcutManager`, `LauncherItemsPersistence`, `LauncherLayoutState`, `LauncherOverlayState`, `LauncherThemeState`, `LauncherThemeCoordinator` og `LauncherLocalizationState` hertil
+- [x] Næste flyttefase gennemført: launcher-viewmodels er flyttet til `ViewModels/Launcher/`
 - Behold `MainViewModel` i roden af `ViewModels/`, så launcherens samlede entry-viewmodel stadig er let at finde
 
 - `ViewModels/Settings/`
 - Flyt `MainViewModelSettingsState`, `MainViewModelSettingsPersistence` og `MainViewModelConfigState` hertil, fordi de nu primært beskriver settings/config-flow
+- [x] Næste flyttefase gennemført: settings-viewmodels er flyttet til `ViewModels/Settings/`
 
 - `Helpers/Launcher/`
 - Flyt `FloatingIconController`, `DynamicIconHelper`, `IconHelper`, `IconResourceUpdater`, `ShortcutHelper`, `ShellIconLabel`, `ShellIconTextBlock`, `SystemMonitor` og evt. `EmbeddedIconLibrary` hertil

@@ -14,6 +14,8 @@ using Microsoft.Win32;
 using WMedia = System.Windows.Media;
 using IconGrid.Helpers;
 using IconGrid.Models;
+using IconGrid.ViewModels.Launcher;
+using IconGrid.ViewModels.Settings;
 
 namespace IconGrid.ViewModels
 {

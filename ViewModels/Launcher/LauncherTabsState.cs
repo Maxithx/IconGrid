@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherTabsState : INotifyPropertyChanged
     {

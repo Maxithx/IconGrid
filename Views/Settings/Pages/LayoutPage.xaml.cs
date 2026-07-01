@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using WpfButton = System.Windows.Controls.Button;
 using IconGrid.ViewModels;
+using IconGrid.ViewModels.Launcher;
 
 namespace IconGrid.Views
 {

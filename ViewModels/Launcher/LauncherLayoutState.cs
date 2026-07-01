@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using IconGrid.Models;
+using IconGrid.ViewModels.Settings;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherLayoutState
     {

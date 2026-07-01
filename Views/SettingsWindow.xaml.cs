@@ -9,6 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using IconGrid.Helpers;
 using IconGrid.ViewModels;
+using IconGrid.ViewModels.Launcher;
+using IconGrid.ViewModels.Settings;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfButton = System.Windows.Controls.Button;
 using WpfMenuItem = System.Windows.Controls.MenuItem;

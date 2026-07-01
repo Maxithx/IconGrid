@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Settings
 {
     public class MainViewModelSettingsState
     {

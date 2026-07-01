@@ -1,6 +1,6 @@
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Settings
 {
     public class MainViewModelConfigState
     {

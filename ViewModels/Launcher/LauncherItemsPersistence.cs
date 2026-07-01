@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherItemsPersistence
     {

@@ -1,6 +1,6 @@
 using IconGrid.Helpers;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherLocalizationState
     {

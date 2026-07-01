@@ -22,6 +22,7 @@ using System.Windows.Threading;
 using IconGrid.Helpers;
 using IconGrid.Models;
 using IconGrid.ViewModels;
+using IconGrid.ViewModels.Launcher;
 using Microsoft.VisualBasic;
 using Microsoft.Win32;
 using RadioButton = System.Windows.Controls.RadioButton;

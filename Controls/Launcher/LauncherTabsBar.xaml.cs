@@ -1,5 +1,6 @@
 using System.Windows;
 using IconGrid.ViewModels;
+using IconGrid.ViewModels.Launcher;
 
 namespace IconGrid.Controls
 {

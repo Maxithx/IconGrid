@@ -3,7 +3,7 @@ using System.Diagnostics;
 using IconGrid.Helpers;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Settings
 {
     public class MainViewModelSettingsPersistence
     {

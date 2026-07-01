@@ -2,7 +2,7 @@ using System.IO;
 using IconGrid.Helpers;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherItemIconManager
     {

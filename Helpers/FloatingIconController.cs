@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using IconGrid.ViewModels;
+using IconGrid.ViewModels.Launcher;
 
 namespace IconGrid.Helpers
 {

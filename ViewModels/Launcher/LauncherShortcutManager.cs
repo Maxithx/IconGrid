@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using IconGrid.Helpers;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherShortcutManager
     {

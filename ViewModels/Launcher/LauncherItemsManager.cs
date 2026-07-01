@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherItemsManager
     {

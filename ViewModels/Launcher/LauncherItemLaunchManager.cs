@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using IconGrid.Models;
 
-namespace IconGrid.ViewModels
+namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherItemLaunchManager
     {
