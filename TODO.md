@@ -102,7 +102,7 @@
 - [x] Theme-state og theme-brushes delegérer nu til `LauncherThemeState`
 - [ ] `MainViewModel` koordinerer stadig theme-notifications og `ThemeHelper` subscription
 - [x] Localization-lookups og PawnIO-tekster delegérer nu til `LauncherLocalizationState`
-- [ ] `MainViewModel` koordinerer stadig localization-notifications og `Language`-flow
+- [x] `Language`-flow og localization-notifications bruger nu fælles lokalization-koordinering i `MainViewModel`
 
 ### Fase 6: Struktur-oprydning
 

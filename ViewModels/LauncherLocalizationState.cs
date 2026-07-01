@@ -4,6 +4,17 @@ namespace IconGrid.ViewModels
 {
     public class LauncherLocalizationState
     {
+        public bool ApplyLanguage(string language)
+        {
+            var previousMissingMessage = PawnIoMissingMessage;
+            var previousDownloadLink = PawnIoDownloadLink;
+
+            UpdatePawnIoTexts(language);
+
+            return previousMissingMessage != PawnIoMissingMessage
+                || previousDownloadLink != PawnIoDownloadLink;
+        }
+
         public string Get(string language, string key)
         {
             return LocalizationHelper.Get(language, key);

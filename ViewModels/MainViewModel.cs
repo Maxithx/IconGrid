@@ -100,7 +100,7 @@ namespace IconGrid.ViewModels
             ApplyTheme(ThemeHelper.GetTheme());
             ThemeHelper.ThemeChanged += ThemeHelper_ThemeChanged;
 
-            UpdatePawnIoLocalizationStrings();
+            ApplyLocalizationState();
 
             _tabsState = new LauncherTabsState(_config.TabNames, "Games");
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
@@ -1271,8 +1271,7 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _language, value))
                 {
                     SaveSettingsToConfig();
-                    UpdatePawnIoLocalizationStrings();
-                    RaiseLocalizationChanged();
+                    ApplyLocalizationState();
                 }
             }
         }
@@ -1319,7 +1318,7 @@ namespace IconGrid.ViewModels
 
         public string PawnIoDownloadLink => _localizationState.PawnIoDownloadLink;
 
-        private void RaiseLocalizationChanged()
+        private void NotifyLocalizationPropertiesChanged()
         {
             OnPropertyChanged(nameof(SettingsTitle));
             OnPropertyChanged(nameof(IconsPerRowLabel));
@@ -1359,11 +1358,16 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(MonitorGpuLabel));
         }
 
-        private void UpdatePawnIoLocalizationStrings()
+        private void ApplyLocalizationState()
         {
-            _localizationState.UpdatePawnIoTexts(Language);
-            OnPropertyChanged(nameof(PawnIoMissingMessage));
-            OnPropertyChanged(nameof(PawnIoDownloadLink));
+            var pawnIoTextsChanged = _localizationState.ApplyLanguage(Language);
+            NotifyLocalizationPropertiesChanged();
+
+            if (pawnIoTextsChanged)
+            {
+                OnPropertyChanged(nameof(PawnIoMissingMessage));
+                OnPropertyChanged(nameof(PawnIoDownloadLink));
+            }
         }
 
         /// <summary>
