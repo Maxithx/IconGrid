@@ -124,7 +124,9 @@
 - Flyt `LauncherGrid`, `LauncherLogoArea`, `LauncherMonitorRow`, `LauncherTabsBar`, `LauncherTopBar` og `LauncherWindowButtons` hertil
 - [x] Næste flyttefase gennemført: launcher-controls er flyttet til `Controls/Launcher/`
 - Behold `Controls/Floating/` som næste naturlige hjem for `FloatingIconButton`
+- [x] Næste flyttefase gennemført: `FloatingIconButton` er flyttet til `Controls/Floating/`
 - Behold `Controls/Common/` som næste naturlige hjem for `SliderRow` og evt. `LauncherLogo`, hvis den fortsat bruges bredt
+- [x] Næste flyttefase gennemført: `SliderRow` og `LauncherLogo` er flyttet til `Controls/Common/`
 
 - `Views/Launcher/`
 - Behold `MainWindow` som launcher-shell og flyt det hertil sammen med evt. launcher-specifikke dialoger, hvis de opstår senere
