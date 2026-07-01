@@ -259,7 +259,7 @@
                                     </Grid>
                                 </Grid>
                                 <TextBlock Margin="0,8,0,0"
-                                           Text="Oversigt over processorens model, kerner og boost-hastighed."
+                                           Text="Oversigt over processorens model, kerner, boost-hastighed og live telemetri."
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding SettingsSubtextForeground}" />
@@ -302,6 +302,42 @@
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}"
                                                        Text="{Binding Overview.Cpu.Threads, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Live temp"
+                                                       FontSize="12"
+                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Live usage"
+                                                       FontSize="12"
+                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding DataContext.SystemMonitor.CpuUsage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Live clock"
+                                                       FontSize="12"
+                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding DataContext.SystemMonitor.CpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
@@ -396,7 +432,7 @@
                                     </Grid>
                                 </Grid>
                                 <TextBlock Margin="0,8,0,0"
-                                           Text="Oversigt over grafikkortets model, producent og videohukommelse."
+                                           Text="Oversigt over grafikkortets model, producent, videohukommelse og live telemetri."
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding SettingsSubtextForeground}" />
@@ -427,6 +463,30 @@
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}"
                                                        Text="{Binding Overview.Gpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Live temp"
+                                                       FontSize="12"
+                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Live clock"
+                                                       FontSize="12"
+                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding DataContext.SystemMonitor.GpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">

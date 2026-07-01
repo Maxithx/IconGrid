@@ -9,5 +9,7 @@ public sealed class HardwareMonitorSnapshot
     public string? GpuTemp { get; set; }
     public string? CpuUsage { get; set; }
     public double? CpuUsagePercent { get; set; }
+    public string? CpuClock { get; set; }
+    public string? GpuClock { get; set; }
     public bool IsPawnIoAvailable { get; set; }
 }

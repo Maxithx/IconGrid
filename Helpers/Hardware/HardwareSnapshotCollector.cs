@@ -44,6 +44,8 @@ public sealed class HardwareSnapshotCollector : IDisposable
 
         var (cpuTemp, gpuTemp) = CaptureTemperatures();
         var cpuUsage = CaptureCpuUsage();
+        var cpuClock = CaptureCpuClock();
+        var gpuClock = CaptureGpuClock();
         var smoothedUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
         var displayUsage = smoothedUsage.HasValue ? Math.Clamp(smoothedUsage.Value, 1d, 100d) : (double?)null;
 
@@ -54,6 +56,8 @@ public sealed class HardwareSnapshotCollector : IDisposable
             GpuTemp = gpuTemp,
             CpuUsage = displayUsage.HasValue ? $"{displayUsage.Value:F0}%" : null,
             CpuUsagePercent = displayUsage.HasValue ? displayUsage.Value : null,
+            CpuClock = cpuClock,
+            GpuClock = gpuClock,
             IsPawnIoAvailable = pawnIoAvailable
         };
     }
@@ -123,6 +127,62 @@ public sealed class HardwareSnapshotCollector : IDisposable
         return null;
     }
 
+    private string? CaptureCpuClock()
+    {
+        try
+        {
+            _computer.Accept(_visitor);
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (hardware.HardwareType != HardwareType.Cpu)
+                {
+                    continue;
+                }
+
+                var clockSensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Clock && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetCpuClockPriority(sensor.Name))
+                    .ThenByDescending(sensor => sensor.Value)
+                    .FirstOrDefault();
+
+                return FormatClock(clockSensor?.Value);
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private string? CaptureGpuClock()
+    {
+        try
+        {
+            _computer.Accept(_visitor);
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var clockSensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Clock && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetGpuClockPriority(sensor.Name))
+                    .ThenByDescending(sensor => sensor.Value)
+                    .FirstOrDefault();
+
+                return FormatClock(clockSensor?.Value);
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
     private double SmoothCpuUsage(double latestValue)
     {
         const double alpha = 0.35;
@@ -166,6 +226,39 @@ public sealed class HardwareSnapshotCollector : IDisposable
         if (name.Contains("CPU", StringComparison.OrdinalIgnoreCase))
         {
             return 1;
+        }
+
+        return 0;
+    }
+
+    private static int GetCpuClockPriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("Core Max", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Max Clock", StringComparison.OrdinalIgnoreCase))
+        {
+            return 4;
+        }
+
+        if (name.Contains("Bus Speed", StringComparison.OrdinalIgnoreCase))
+        {
+            return -1;
+        }
+
+        if (name.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Effective Clock", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("Clock", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
         }
 
         return 0;
@@ -216,6 +309,33 @@ public sealed class HardwareSnapshotCollector : IDisposable
         return 0;
     }
 
+    private static int GetGpuClockPriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("GPU Clock", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Graphics", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("Clock", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("Memory", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
     private static string? FormatTemperature(float? value)
     {
         if (!value.HasValue)
@@ -224,6 +344,21 @@ public sealed class HardwareSnapshotCollector : IDisposable
         }
 
         return $"{value.Value:F0}°C";
+    }
+
+    private static string? FormatClock(float? value)
+    {
+        if (!value.HasValue || value.Value <= 0)
+        {
+            return null;
+        }
+
+        if (value.Value >= 1000f)
+        {
+            return $"{value.Value / 1000f:F2} GHz";
+        }
+
+        return $"{value.Value:F0} MHz";
     }
 
     private static bool IsGpuHardwareType(HardwareType hardwareType)

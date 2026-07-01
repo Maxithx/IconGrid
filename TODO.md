@@ -180,11 +180,12 @@
 
 ### Afklaring
 
-- [ ] Kortlæg hvor launcher-topbaren får live temp-data fra
-- [ ] Kortlæg hvilke services/models `Hardware`-siden bruger nu
-- [ ] Beslut om `Hardware`-siden også skal vise live temperaturer
-- [ ] Beslut om launcher og hardware-side skal dele samme monitor-service
+- [x] Kortlæg hvor launcher-topbaren får live temp-data fra
+- [x] Kortlæg hvilke services/models `Hardware`-siden bruger nu
+- [x] Beslut om `Hardware`-siden også skal vise live temperaturer
+- [x] Beslut om launcher og hardware-side skal dele samme monitor-service
 - [ ] Undersøg om `PawnIO`-krav/admin-flow skal vises tydeligere i `SettingsWindow`
+- [x] Første live integration: `HardwarePage` viser nu samme delte `SystemMonitor`-telemetri som launcher-topbaren, inkl. temperaturer, CPU-usage og clock-værdier
 
 ## Dokumentation
 

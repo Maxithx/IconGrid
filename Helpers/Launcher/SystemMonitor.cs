@@ -35,6 +35,8 @@ namespace IconGrid.Helpers
         private string _gpuTemp = "--";
         private string _cpuUsage = "--%";
         private double _cpuUsagePercent;
+        private string _cpuClock = "--";
+        private string _gpuClock = "--";
         private string _downloadStatus = "--";
         private string _uploadStatus = "--";
         private bool _isHighPing;
@@ -50,6 +52,8 @@ namespace IconGrid.Helpers
         public string GpuTemp { get => _gpuTemp; private set { _gpuTemp = value; OnPropertyChanged(); } }
         public string CpuUsage { get => _cpuUsage; private set { _cpuUsage = value; OnPropertyChanged(); } }
         public double CpuUsagePercent { get => _cpuUsagePercent; private set { _cpuUsagePercent = value; OnPropertyChanged(); } }
+        public string CpuClock { get => _cpuClock; private set { _cpuClock = value; OnPropertyChanged(); } }
+        public string GpuClock { get => _gpuClock; private set { _gpuClock = value; OnPropertyChanged(); } }
         public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
         public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
 
@@ -130,6 +134,16 @@ namespace IconGrid.Helpers
                     {
                         CpuUsage = hardware.CpuUsage;
                         CpuUsagePercent = hardware.CpuUsagePercent.Value;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.CpuClock))
+                    {
+                        CpuClock = hardware.CpuClock;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuClock))
+                    {
+                        GpuClock = hardware.GpuClock;
                     }
 
                     IsPawnIoAvailable = hardware.IsPawnIoAvailable;
