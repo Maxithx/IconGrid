@@ -8,8 +8,6 @@ namespace IconGrid.Views
 {
 public partial class LayoutPage : System.Windows.Controls.UserControl
     {
-        private bool _isUpdatingScrollBar;
-
         public LayoutPage()
         {
             InitializeComponent();
@@ -44,23 +42,5 @@ public partial class LayoutPage : System.Windows.Controls.UserControl
             }
         }
 
-        private void LayoutScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            if (LayoutScrollBar == null)
-                return;
-
-            _isUpdatingScrollBar = true;
-            LayoutScrollBar.Value = e.VerticalOffset;
-            LayoutScrollBar.Visibility = e.ExtentHeight > e.ViewportHeight ? Visibility.Visible : Visibility.Collapsed;
-            _isUpdatingScrollBar = false;
-        }
-
-        private void LayoutScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (_isUpdatingScrollBar || LayoutScrollViewer == null)
-                return;
-
-            LayoutScrollViewer.ScrollToVerticalOffset(e.NewValue);
-        }
     }
 }

@@ -14,10 +14,13 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="../../StartsideStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
             <helpers:LayoutSlotMatchConverter x:Key="LayoutSlotMatchConverter" />
             <helpers:LayoutSlotLabelConverter x:Key="LayoutSlotLabelConverter" />
             <helpers:BooleanToAngleConverter x:Key="LayoutExpanderAngleConverter" />
+
             <CornerRadius x:Key="LayoutControlCornerRadius">6</CornerRadius>
+
             <Style x:Key="LayoutExpanderToggleButtonStyle" TargetType="ToggleButton">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderThickness" Value="0" />
@@ -57,6 +60,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
             <Style x:Key="LayoutExpanderStyle" TargetType="Expander">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -89,242 +93,149 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            <SolidColorBrush x:Key="LayoutScrollBarTrackDarkBrush" Color="#323232" />
-        <SolidColorBrush x:Key="LayoutScrollBarTrackLightBrush" Color="#F0F0F0" />
-        <SolidColorBrush x:Key="LayoutScrollBarThumbDarkBrush" Color="#A0A0A0" />
-        <SolidColorBrush x:Key="LayoutScrollBarThumbLightBrush" Color="#E1E1E1" />
-        <Style x:Key="LayoutSlotButtonStyle" TargetType="Button">
-            <Setter Property="MinWidth" Value="90" />
-            <Setter Property="MinHeight" Value="90" />
-            <Setter Property="Margin" Value="4" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="#343434" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#4d4d4d" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="Template">
-                <Setter.Value>
+
+            <Style x:Key="LayoutSlotButtonStyle" TargetType="Button">
+                <Setter Property="MinWidth" Value="90" />
+                <Setter Property="MinHeight" Value="90" />
+                <Setter Property="Margin" Value="4" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Background" Value="#343434" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderBrush" Value="#4D4D4D" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="Template">
+                    <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="{StaticResource LayoutControlCornerRadius}"
                                     SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="#6B7284" />
-                </Trigger>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding LayoutReserveIconGridSlot}" Value="True" />
-                        <Condition Value="True">
-                            <Condition.Binding>
-                                <MultiBinding Converter="{StaticResource LayoutSlotMatchConverter}">
-                                    <Binding Path="LayoutIconGridSlot" />
-                                    <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
-                                </MultiBinding>
-                            </Condition.Binding>
-                        </Condition>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="Background" Value="{Binding AccentBrush}" />
-                    <Setter Property="BorderBrush" Value="{Binding AccentBrush}" />
-                    <Setter Property="BorderThickness" Value="2" />
-                </MultiDataTrigger>
-            </Style.Triggers>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="BorderBrush" Value="#6B7284" />
+                    </Trigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding LayoutReserveIconGridSlot}" Value="True" />
+                            <Condition Value="True">
+                                <Condition.Binding>
+                                    <MultiBinding Converter="{StaticResource LayoutSlotMatchConverter}">
+                                        <Binding Path="LayoutIconGridSlot" />
+                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
+                                    </MultiBinding>
+                                </Condition.Binding>
+                            </Condition>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{Binding AccentBrush}" />
+                        <Setter Property="BorderBrush" Value="{Binding AccentBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </MultiDataTrigger>
+                </Style.Triggers>
             </Style>
-        <Style x:Key="LayoutActionButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Margin" Value="0" />
-            <Setter Property="Background" Value="#343434" />
-            <Setter Property="BorderBrush" Value="#4D4D4D" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="MinWidth" Value="140" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{StaticResource LayoutControlCornerRadius}"
-                                SnapsToDevicePixels="True"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="#9CA3AF" />
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="BorderBrush" Value="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
-                </Trigger>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Background" Value="#F3F4F7" />
-                    <Setter Property="BorderBrush" Value="#D1D5DB" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
-                    <Setter Property="Background" Value="#343434" />
-                    <Setter Property="BorderBrush" Value="#4D4D4D" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="LayoutActionComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-            <Setter Property="Background" Value="#1C2237" />
-            <Setter Property="BorderBrush" Value="#2D3748" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="4" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-        <Style x:Key="LayoutDropdownComboBoxItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="Black" />
-        </Style>
-        <Style x:Key="LayoutDropdownComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="Black" />
-            <Setter Property="ItemContainerStyle" Value="{StaticResource LayoutDropdownComboBoxItemStyle}" />
-            <Setter Property="Background" Value="#1C2237" />
-            <Setter Property="BorderBrush" Value="#2D3748" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="SnapsToDevicePixels" Value="True" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource StartsideLightCardFill}" />
-                    <Setter Property="BorderBrush" Value="#D1D5DB" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="ModernScrollBarRepeatButtonStyle" TargetType="RepeatButton">
-            <Setter Property="Width" Value="0" />
-            <Setter Property="Height" Value="0" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RepeatButton">
-                        <Border Background="Transparent" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="LayoutScrollBarThumbStyle" TargetType="Thumb">
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="MinWidth" Value="2" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="ThumbBorder"
-                                Width="2"
-                                MinHeight="40"
-                                CornerRadius="4"
-                                Background="{StaticResource LayoutScrollBarThumbDarkBrush}"
-                                HorizontalAlignment="Center"
-                                SnapsToDevicePixels="True">
-                            <!-- Flat Windows 11-inspired thumb -->
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Width" Value="4" />
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#FFFFFF" />
-                            </Trigger>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
-                                </MultiDataTrigger.Conditions>
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource LayoutScrollBarThumbLightBrush}" />
-                            </MultiDataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="LayoutScrollBarStyle" TargetType="ScrollBar">
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Width" Value="8" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollBar">
-                        <Border x:Name="Bg"
-                                Background="{StaticResource LayoutScrollBarTrackDarkBrush}"
-                                CornerRadius="1"
-                                Width="2"
-                                HorizontalAlignment="Center"
-                                Margin="0,2"
-                                SnapsToDevicePixels="True">
-                            <Track x:Name="PART_Track"
-                                   IsDirectionReversed="True">
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton Style="{StaticResource ModernScrollBarRepeatButtonStyle}" />
-                                </Track.DecreaseRepeatButton>
-                                <Track.Thumb>
-                                    <Thumb Style="{StaticResource LayoutScrollBarThumbStyle}" />
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton Style="{StaticResource ModernScrollBarRepeatButtonStyle}" />
-                                </Track.IncreaseRepeatButton>
-                            </Track>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Width" Value="4" />
-                                <Setter TargetName="Bg" Property="CornerRadius" Value="2" />
-                            </Trigger>
-                            <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource LayoutScrollBarTrackLightBrush}" />
-                            </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="Orientation" Value="Horizontal">
-                    <Setter Property="Height" Value="10" />
-                    <Setter Property="Width" Value="Auto" />
-                    <Setter Property="Margin" Value="0,1,0,1" />
-                </Trigger>
-                <Trigger Property="Orientation" Value="Vertical">
-                    <Setter Property="Width" Value="10" />
-                    <Setter Property="Height" Value="Auto" />
-                    <Setter Property="Margin" Value="1,0,1,0" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-        <Style TargetType="ScrollBar" BasedOn="{StaticResource LayoutScrollBarStyle}" />
 
+            <Style x:Key="LayoutActionButtonStyle" TargetType="Button">
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Background" Value="#343434" />
+                <Setter Property="BorderBrush" Value="#4D4D4D" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="MinWidth" Value="140" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{StaticResource LayoutControlCornerRadius}"
+                                    SnapsToDevicePixels="True"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="BorderBrush" Value="#9CA3AF" />
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter Property="BorderBrush" Value="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    </Trigger>
+                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                        <Setter Property="Background" Value="#F3F4F7" />
+                        <Setter Property="BorderBrush" Value="#D1D5DB" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                        <Setter Property="Background" Value="#343434" />
+                        <Setter Property="BorderBrush" Value="#4D4D4D" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="LayoutActionComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <Setter Property="Background" Value="#1C2237" />
+                <Setter Property="BorderBrush" Value="#2D3748" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="4" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
+            <Style x:Key="LayoutDropdownComboBoxItemStyle" TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="Black" />
+            </Style>
+
+            <Style x:Key="LayoutDropdownComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Foreground" Value="Black" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource LayoutDropdownComboBoxItemStyle}" />
+                <Setter Property="Background" Value="#1C2237" />
+                <Setter Property="BorderBrush" Value="#2D3748" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="6,4" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource StartsideLightCardFill}" />
+                        <Setter Property="BorderBrush" Value="#D1D5DB" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid ClipToBounds="False"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
-          helpers:DevInspector.Metadata="Layout scroll container → Views/LayoutPage.xaml">
-        <ScrollViewer x:Name="LayoutScrollViewer"
-                      VerticalScrollBarVisibility="Hidden"
+          helpers:DevInspector.Metadata="Layout scroll container -> Views/LayoutPage.xaml">
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       CanContentScroll="False"
                       Padding="0"
                       Focusable="False"
                       PanningMode="VerticalOnly"
-                      ScrollChanged="LayoutScrollViewer_ScrollChanged"
-                      helpers:DevInspector.Metadata="Layout scroll host → Views/LayoutPage.xaml">
-            <views:TemplatePage Margin="12">
+                      helpers:DevInspector.Metadata="Layout scroll host -> Views/LayoutPage.xaml">
+            <ScrollViewer.Resources>
+                <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+            </ScrollViewer.Resources>
+
+            <views:TemplatePage Margin="12,12,8,12">
                 <views:TemplatePage.HeroContent>
-                    <StackPanel helpers:DevInspector.Metadata="Layout hero card → Views/LayoutPage.xaml">
+                    <StackPanel helpers:DevInspector.Metadata="Layout hero card -> Views/LayoutPage.xaml">
                         <TextBlock Text="{Binding LayoutTitleText}"
                                    FontSize="20"
                                    FontWeight="SemiBold"
@@ -340,12 +251,12 @@
                 <views:TemplatePage.CardsContent>
                     <StackPanel>
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="Layout presets card → Views/LayoutPage.xaml">
+                                helpers:DevInspector.Metadata="Layout presets card -> Views/LayoutPage.xaml">
                             <Expander Style="{StaticResource LayoutExpanderStyle}"
                                       IsExpanded="False"
                                       IsEnabled="True"
                                       Margin="0"
-                                      helpers:DevInspector.Metadata="Standard layout expander → Views/LayoutPage.xaml">
+                                      helpers:DevInspector.Metadata="Standard layout expander -> Views/LayoutPage.xaml">
                                 <Expander.Header>
                                     <StackPanel>
                                         <TextBlock Text="{Binding LayoutPresetsTitleText}"
@@ -365,68 +276,69 @@
                                             CornerRadius="0,0,6,6"
                                             BorderThickness="0,1,1,1">
                                         <StackPanel>
-                                        <Grid Margin="0,0,0,12">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding LayoutFieldLabelText}"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <ComboBox Grid.Column="1"
-                                                      Width="260"
-                                                      Style="{StaticResource LayoutDropdownComboBoxStyle}"
-                                                      ItemsSource="{Binding LayoutPresetChoices}"
-                                                      SelectedItem="{Binding LayoutPreset, Mode=TwoWay}"
-                                                      Margin="12,0,0,0"
-                                                      Padding="4"
-                                                      HorizontalContentAlignment="Stretch"
-                                                      FontSize="14"
-                                                      helpers:DevInspector.Metadata="Layout preset picker → Views/LayoutPage.xaml" />
-                                        </Grid>
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding LayoutFieldLabelText}"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <ComboBox Grid.Column="1"
+                                                          Width="260"
+                                                          Style="{StaticResource LayoutDropdownComboBoxStyle}"
+                                                          ItemsSource="{Binding LayoutPresetChoices}"
+                                                          SelectedItem="{Binding LayoutPreset, Mode=TwoWay}"
+                                                          Margin="12,0,0,0"
+                                                          Padding="4"
+                                                          HorizontalContentAlignment="Stretch"
+                                                          FontSize="14"
+                                                          helpers:DevInspector.Metadata="Layout preset picker -> Views/LayoutPage.xaml" />
+                                            </Grid>
 
-                                        <StackPanel Orientation="Horizontal"
-                                                    HorizontalAlignment="Stretch"
-                                                    Margin="0,0,0,12">
-                                            <Button Content="{Binding LayoutRunNowText}"
-                                                    Style="{StaticResource LayoutActionButtonStyle}"
-                                                    Click="RunLayoutButton_Click"
-                                                    helpers:DevInspector.Metadata="Run layout button → Views/LayoutPage.xaml" />
-                                            <Button Content="{Binding LayoutSaveAsText}"
-                                                    Style="{StaticResource LayoutActionButtonStyle}"
-                                                    Margin="12,0,0,0"
-                                                    Click="SaveLayoutButton_Click"
-                                                    helpers:DevInspector.Metadata="Save layout button → Views/LayoutPage.xaml" />
-                                        </StackPanel>
+                                            <StackPanel Orientation="Horizontal"
+                                                        HorizontalAlignment="Stretch"
+                                                        Margin="0,0,0,12">
+                                                <Button Content="{Binding LayoutRunNowText}"
+                                                        Style="{StaticResource LayoutActionButtonStyle}"
+                                                        Click="RunLayoutButton_Click"
+                                                        helpers:DevInspector.Metadata="Run layout button -> Views/LayoutPage.xaml" />
+                                                <Button Content="{Binding LayoutSaveAsText}"
+                                                        Style="{StaticResource LayoutActionButtonStyle}"
+                                                        Margin="12,0,0,0"
+                                                        Click="SaveLayoutButton_Click"
+                                                        helpers:DevInspector.Metadata="Save layout button -> Views/LayoutPage.xaml" />
+                                            </StackPanel>
 
-                                        <Grid Margin="0,6,0,0"
-                                              helpers:DevInspector.Metadata="Skip minimized toggle → Views/LayoutPage.xaml">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding LayoutSkipMinimizedText}"
-                                                       VerticalAlignment="Center"
-                                                       FontSize="13"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <ToggleButton Grid.Column="1"
-                                                          Style="{StaticResource ToggleSwitchStyle}"
-                                                          IsChecked="{Binding LayoutSkipMinimized, Mode=TwoWay}" />
-                                        </Grid>
-                                        <Grid Margin="0,6,0,0"
-                                              helpers:DevInspector.Metadata="Active screen toggle → Views/LayoutPage.xaml">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding LayoutActiveScreenOnlyText}"
-                                                       VerticalAlignment="Center"
-                                                       FontSize="13"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <ToggleButton Grid.Column="1"
-                                                          Style="{StaticResource ToggleSwitchStyle}"
-                                                          IsChecked="{Binding LayoutCurrentMonitorOnly, Mode=TwoWay}" />
-                                        </Grid>
+                                            <Grid Margin="0,6,0,0"
+                                                  helpers:DevInspector.Metadata="Skip minimized toggle -> Views/LayoutPage.xaml">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding LayoutSkipMinimizedText}"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="13"
+                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <ToggleButton Grid.Column="1"
+                                                              Style="{StaticResource ToggleSwitchStyle}"
+                                                              IsChecked="{Binding LayoutSkipMinimized, Mode=TwoWay}" />
+                                            </Grid>
+
+                                            <Grid Margin="0,6,0,0"
+                                                  helpers:DevInspector.Metadata="Active screen toggle -> Views/LayoutPage.xaml">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding LayoutActiveScreenOnlyText}"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="13"
+                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <ToggleButton Grid.Column="1"
+                                                              Style="{StaticResource ToggleSwitchStyle}"
+                                                              IsChecked="{Binding LayoutCurrentMonitorOnly, Mode=TwoWay}" />
+                                            </Grid>
                                         </StackPanel>
                                     </Border>
                                 </Expander.Content>
@@ -434,11 +346,11 @@
                         </Border>
 
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="Layout slot card → Views/LayoutPage.xaml">
+                                helpers:DevInspector.Metadata="Layout slot card -> Views/LayoutPage.xaml">
                             <Expander Style="{StaticResource LayoutExpanderStyle}"
                                       IsExpanded="False"
                                       Margin="0"
-                                      helpers:DevInspector.Metadata="Reserve slot expander → Views/LayoutPage.xaml">
+                                      helpers:DevInspector.Metadata="Reserve slot expander -> Views/LayoutPage.xaml">
                                 <Expander.Header>
                                     <StackPanel>
                                         <TextBlock Text="{Binding LayoutReserveSlotTitleText}"
@@ -458,81 +370,81 @@
                                             CornerRadius="0,0,6,6"
                                             BorderThickness="0,1,1,1">
                                         <StackPanel>
-                                        <Grid Margin="0,0,0,12"
-                                              helpers:DevInspector.Metadata="Reserve slot toggle → Views/LayoutPage.xaml">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding LayoutReserveSlotToggleText}"
-                                                       VerticalAlignment="Center"
-                                                       FontSize="13"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <ToggleButton Grid.Column="1"
-                                                          Style="{StaticResource ToggleSwitchStyle}"
-                                                          IsChecked="{Binding LayoutReserveIconGridSlot, Mode=TwoWay}" />
-                                        </Grid>
+                                            <Grid Margin="0,0,0,12"
+                                                  helpers:DevInspector.Metadata="Reserve slot toggle -> Views/LayoutPage.xaml">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding LayoutReserveSlotToggleText}"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="13"
+                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <ToggleButton Grid.Column="1"
+                                                              Style="{StaticResource ToggleSwitchStyle}"
+                                                              IsChecked="{Binding LayoutReserveIconGridSlot, Mode=TwoWay}" />
+                                            </Grid>
 
-                                        <TextBlock Text="{Binding LayoutChooseSlotText}"
-                                                   FontSize="13"
-                                                   Margin="0,0,0,12"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                        <UniformGrid Columns="2"
-                                                     Rows="2"
-                                                     HorizontalAlignment="Left"
-                                                     VerticalAlignment="Top"
-                                                     Margin="0,0,0,12">
-                                            <Button Tag="0"
-                                                    Style="{StaticResource LayoutSlotButtonStyle}"
-                                                    Click="LayoutSlotButton_Click"
-                                                    helpers:DevInspector.Metadata="Layout slot button → Views/LayoutPage.xaml">
-                                                <Button.Content>
-                                                    <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
-                                                        <Binding Path="LayoutReserveIconGridSlot" />
-                                                        <Binding Path="LayoutIconGridSlot" />
-                                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
-                                                    </MultiBinding>
-                                                </Button.Content>
-                                            </Button>
-                                            <Button Tag="1"
-                                                    Style="{StaticResource LayoutSlotButtonStyle}"
-                                                    Click="LayoutSlotButton_Click">
-                                                <Button.Content>
-                                                    <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
-                                                        <Binding Path="LayoutReserveIconGridSlot" />
-                                                        <Binding Path="LayoutIconGridSlot" />
-                                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
-                                                    </MultiBinding>
-                                                </Button.Content>
-                                            </Button>
-                                            <Button Tag="2"
-                                                    Style="{StaticResource LayoutSlotButtonStyle}"
-                                                    Click="LayoutSlotButton_Click">
-                                                <Button.Content>
-                                                    <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
-                                                        <Binding Path="LayoutReserveIconGridSlot" />
-                                                        <Binding Path="LayoutIconGridSlot" />
-                                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
-                                                    </MultiBinding>
-                                                </Button.Content>
-                                            </Button>
-                                            <Button Tag="3"
-                                                    Style="{StaticResource LayoutSlotButtonStyle}"
-                                                    Click="LayoutSlotButton_Click">
-                                                <Button.Content>
-                                                    <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
-                                                        <Binding Path="LayoutReserveIconGridSlot" />
-                                                        <Binding Path="LayoutIconGridSlot" />
-                                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
-                                                    </MultiBinding>
-                                                </Button.Content>
-                                            </Button>
-                                        </UniformGrid>
-                                        <TextBlock Text="{Binding LayoutSlotTipText}"
-                                                   Margin="0,12,0,0"
-                                                   FontSize="12"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   helpers:DevInspector.Metadata="Slot tip → Views/LayoutPage.xaml" />
+                                            <TextBlock Text="{Binding LayoutChooseSlotText}"
+                                                       FontSize="13"
+                                                       Margin="0,0,0,12"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <UniformGrid Columns="2"
+                                                         Rows="2"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalAlignment="Top"
+                                                         Margin="0,0,0,12">
+                                                <Button Tag="0"
+                                                        Style="{StaticResource LayoutSlotButtonStyle}"
+                                                        Click="LayoutSlotButton_Click"
+                                                        helpers:DevInspector.Metadata="Layout slot button -> Views/LayoutPage.xaml">
+                                                    <Button.Content>
+                                                        <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
+                                                            <Binding Path="LayoutReserveIconGridSlot" />
+                                                            <Binding Path="LayoutIconGridSlot" />
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
+                                                        </MultiBinding>
+                                                    </Button.Content>
+                                                </Button>
+                                                <Button Tag="1"
+                                                        Style="{StaticResource LayoutSlotButtonStyle}"
+                                                        Click="LayoutSlotButton_Click">
+                                                    <Button.Content>
+                                                        <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
+                                                            <Binding Path="LayoutReserveIconGridSlot" />
+                                                            <Binding Path="LayoutIconGridSlot" />
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
+                                                        </MultiBinding>
+                                                    </Button.Content>
+                                                </Button>
+                                                <Button Tag="2"
+                                                        Style="{StaticResource LayoutSlotButtonStyle}"
+                                                        Click="LayoutSlotButton_Click">
+                                                    <Button.Content>
+                                                        <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
+                                                            <Binding Path="LayoutReserveIconGridSlot" />
+                                                            <Binding Path="LayoutIconGridSlot" />
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
+                                                        </MultiBinding>
+                                                    </Button.Content>
+                                                </Button>
+                                                <Button Tag="3"
+                                                        Style="{StaticResource LayoutSlotButtonStyle}"
+                                                        Click="LayoutSlotButton_Click">
+                                                    <Button.Content>
+                                                        <MultiBinding Converter="{StaticResource LayoutSlotLabelConverter}">
+                                                            <Binding Path="LayoutReserveIconGridSlot" />
+                                                            <Binding Path="LayoutIconGridSlot" />
+                                                            <Binding Path="Tag" RelativeSource="{RelativeSource Self}" />
+                                                        </MultiBinding>
+                                                    </Button.Content>
+                                                </Button>
+                                            </UniformGrid>
+                                            <TextBlock Text="{Binding LayoutSlotTipText}"
+                                                       Margin="0,12,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       helpers:DevInspector.Metadata="Slot tip -> Views/LayoutPage.xaml" />
                                         </StackPanel>
                                     </Border>
                                 </Expander.Content>
@@ -540,22 +452,7 @@
                         </Border>
                     </StackPanel>
                 </views:TemplatePage.CardsContent>
-                </views:TemplatePage>
+            </views:TemplatePage>
         </ScrollViewer>
-        <ScrollBar x:Name="LayoutScrollBar"
-                   Style="{StaticResource LayoutScrollBarStyle}"
-                   Orientation="Vertical"
-                   VerticalAlignment="Stretch"
-                   HorizontalAlignment="Right"
-                   Margin="0,0,-28,0"
-                   Width="10"
-                   Maximum="{Binding ScrollableHeight, ElementName=LayoutScrollViewer}"
-                   ViewportSize="{Binding ViewportHeight, ElementName=LayoutScrollViewer}"
-                   LargeChange="{Binding ViewportHeight, ElementName=LayoutScrollViewer}"
-                   SmallChange="16"
-                   ValueChanged="LayoutScrollBar_ValueChanged"
-                   Visibility="Collapsed"
-                   helpers:DevInspector.Metadata="Layout scrollbar → Views/LayoutPage.xaml" />
     </Grid>
-
 </UserControl>

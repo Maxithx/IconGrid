@@ -2,6 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <SolidColorBrush x:Key="StartsideLightCardFill" Color="#F3F4F7" />
     <SolidColorBrush x:Key="StartsideCardFill" Color="#323232" />
+    <SolidColorBrush x:Key="SettingsPageScrollBarTrackDarkBrush" Color="#323232" />
+    <SolidColorBrush x:Key="SettingsPageScrollBarTrackLightBrush" Color="#F0F2F5" />
+    <SolidColorBrush x:Key="SettingsPageScrollBarThumbDarkBrush" Color="#9CA3AF" />
+    <SolidColorBrush x:Key="SettingsPageScrollBarThumbLightBrush" Color="#CBD5E1" />
     <Style x:Key="StartsideCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource StartsideCardFill}" />
         <Setter Property="CornerRadius" Value="8" />
@@ -29,6 +33,85 @@
                 <Setter Property="BorderBrush" Value="#D1D5DB" />
             </DataTrigger>
         </Style.Triggers>
+    </Style>
+    <Style x:Key="SettingsPageScrollBarRepeatButtonStyle" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsPageScrollBarThumbStyle" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="ThumbBorder"
+                            Width="5"
+                            Margin="3,4"
+                            HorizontalAlignment="Center"
+                            Background="{StaticResource SettingsPageScrollBarThumbDarkBrush}"
+                            CornerRadius="3"
+                            Opacity="0.78" />
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource SettingsPageScrollBarThumbLightBrush}" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Width" Value="7" />
+                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.95" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Width" Value="7" />
+                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsPageScrollBarStyle" TargetType="ScrollBar">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="TrackBackground"
+                                Background="{StaticResource SettingsPageScrollBarTrackDarkBrush}"
+                                CornerRadius="6"
+                                Opacity="0.72" />
+                        <Track x:Name="PART_Track"
+                               IsDirectionReversed="True"
+                               IsEnabled="{TemplateBinding IsEnabled}">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.LineUpCommand"
+                                              Style="{StaticResource SettingsPageScrollBarRepeatButtonStyle}" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource SettingsPageScrollBarThumbStyle}" />
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.LineDownCommand"
+                                              Style="{StaticResource SettingsPageScrollBarRepeatButtonStyle}" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="TrackBackground" Property="Background" Value="{StaticResource SettingsPageScrollBarTrackLightBrush}" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TrackBackground" Property="Opacity" Value="0.9" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
         <Setter Property="Width" Value="Auto" />
