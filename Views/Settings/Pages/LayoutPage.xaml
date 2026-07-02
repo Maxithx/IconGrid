@@ -352,7 +352,7 @@
                                                    FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                        <TextBlock Text="Vælg det layout, som IconGrid skal bruge til at arrangere åbne vinduer."
+                                        <TextBlock Text="{Binding LayoutPresetsIntroText}"
                                                    FontSize="13"
                                                    Margin="0,4,0,0"
                                                    TextWrapping="Wrap"
@@ -388,11 +388,11 @@
                                         <StackPanel Orientation="Horizontal"
                                                     HorizontalAlignment="Stretch"
                                                     Margin="0,0,0,12">
-                                            <Button Content="Kør layout nu"
+                                            <Button Content="{Binding LayoutRunNowText}"
                                                     Style="{StaticResource LayoutActionButtonStyle}"
                                                     Click="RunLayoutButton_Click"
                                                     helpers:DevInspector.Metadata="Run layout button → Views/LayoutPage.xaml" />
-                                            <Button Content="Gem layout som..."
+                                            <Button Content="{Binding LayoutSaveAsText}"
                                                     Style="{StaticResource LayoutActionButtonStyle}"
                                                     Margin="12,0,0,0"
                                                     Click="SaveLayoutButton_Click"
@@ -419,7 +419,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Brug kun den aktive skærm"
+                                            <TextBlock Text="{Binding LayoutActiveScreenOnlyText}"
                                                        VerticalAlignment="Center"
                                                        FontSize="13"
                                                        Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -445,7 +445,7 @@
                                                    FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                        <TextBlock Text="Vælg den position IconGrid skal bruge, når du reserverer plads i dit layout."
+                                        <TextBlock Text="{Binding LayoutReserveSlotIntroText}"
                                                    FontSize="13"
                                                    Margin="0,4,0,0"
                                                    TextWrapping="Wrap"
@@ -464,7 +464,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Reserver IconGrid-slot"
+                                            <TextBlock Text="{Binding LayoutReserveSlotToggleText}"
                                                        VerticalAlignment="Center"
                                                        FontSize="13"
                                                        Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -473,7 +473,7 @@
                                                           IsChecked="{Binding LayoutReserveIconGridSlot, Mode=TwoWay}" />
                                         </Grid>
 
-                                        <TextBlock Text="Vælg ikon-slot"
+                                        <TextBlock Text="{Binding LayoutChooseSlotText}"
                                                    FontSize="13"
                                                    Margin="0,0,0,12"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -528,7 +528,7 @@
                                                 </Button.Content>
                                             </Button>
                                         </UniformGrid>
-                                        <TextBlock Text="Slot-knapperne er kun aktive, når reserven er slået til."
+                                        <TextBlock Text="{Binding LayoutSlotTipText}"
                                                    Margin="0,12,0,0"
                                                    FontSize="12"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"

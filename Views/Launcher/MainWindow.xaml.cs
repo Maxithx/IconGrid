@@ -939,8 +939,8 @@ namespace IconGrid.Views
                 }
 
                 var menu = new Forms.ContextMenuStrip();
-                menu.Items.Add("Open", null, (_, __) => Dispatcher.Invoke(EnterFullMode));
-                menu.Items.Add("Exit", null, (_, __) => Dispatcher.Invoke(ExitApplication));
+                menu.Items.Add(_viewModel.OpenLabel, null, (_, __) => Dispatcher.Invoke(EnterFullMode));
+                menu.Items.Add(_viewModel.ExitLabel, null, (_, __) => Dispatcher.Invoke(ExitApplication));
                 _trayIcon.ContextMenuStrip = menu;
                 _trayIcon.DoubleClick += (_, __) => Dispatcher.Invoke(EnterFullMode);
             }
@@ -948,6 +948,18 @@ namespace IconGrid.Views
             {
                 _trayIcon = null;
             }
+        }
+
+        private void RefreshTrayIconMenuLabels()
+        {
+            var menu = _trayIcon?.ContextMenuStrip;
+            if (menu == null || menu.Items.Count < 2)
+            {
+                return;
+            }
+
+            menu.Items[0].Text = _viewModel.OpenLabel;
+            menu.Items[1].Text = _viewModel.ExitLabel;
         }
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -964,6 +976,7 @@ namespace IconGrid.Views
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), StringComparison.OrdinalIgnoreCase))
             {
                 LoadWindowsShortcuts();
+                RefreshTrayIconMenuLabels();
             }
 
             // Handle Dynamic Layout when icon panel expands/collapses
@@ -2274,7 +2287,7 @@ namespace IconGrid.Views
 
                 var selectItem = new System.Windows.Controls.MenuItem
                 {
-                    Header = "Vælg",
+                    Header = _viewModel.SelectLabel,
                     Tag = name, // Tag for the click handler
                     IsCheckable = true
                 };
@@ -2283,11 +2296,11 @@ namespace IconGrid.Views
 
                 containerItem.Items.Add(new Separator());
 
-                var renameItem = new System.Windows.Controls.MenuItem { Header = "Omdøb...", Tag = name };
+                var renameItem = new System.Windows.Controls.MenuItem { Header = _viewModel.RenameLabel, Tag = name };
                 renameItem.Click += RenameLayoutMenuItem_Click;
                 containerItem.Items.Add(renameItem);
 
-                var deleteItem = new System.Windows.Controls.MenuItem { Header = "Slet", Tag = name };
+                var deleteItem = new System.Windows.Controls.MenuItem { Header = _viewModel.RemoveLabel, Tag = name };
                 deleteItem.Click += DeleteLayoutMenuItem_Click;
                 containerItem.Items.Add(deleteItem);
                 
@@ -2299,7 +2312,7 @@ namespace IconGrid.Views
                 menuItems.Add(new Separator());
             }
             
-            var saveItem = new System.Windows.Controls.MenuItem { Header = "Gem layout som..." };
+            var saveItem = new System.Windows.Controls.MenuItem { Header = _viewModel.LayoutSaveAsText };
             saveItem.Click += SaveLayoutAsMenuItem_Click;
             menuItems.Add(saveItem);
         }

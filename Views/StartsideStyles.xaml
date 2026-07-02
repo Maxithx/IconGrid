@@ -48,7 +48,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0"
-                                   Text="Slået"
+                                   Text="{Binding DataContext.ToggleStatePrefixText, RelativeSource={RelativeSource AncestorType=Window}}"
                                    VerticalAlignment="Center"
                                    FontSize="12"
                                    FontWeight="Normal"
@@ -65,7 +65,7 @@
                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Margin="0,0,12,0"
                                    TextAlignment="Left"
-                                   Text="fra" />
+                                   Text="{Binding DataContext.ToggleStateOffText, RelativeSource={RelativeSource AncestorType=Window}}" />
                         <Border x:Name="Track"
                                 Grid.Column="2"
                                 Width="40"
@@ -92,10 +92,14 @@
                             <Setter TargetName="Track" Property="BorderBrush" Value="#0F000000" />
                             <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
                             <Setter TargetName="Thumb" Property="Fill" Value="White" />
-                            <Setter TargetName="StateSuffix" Property="Text" Value="til" />
+                            <Setter TargetName="StateSuffix"
+                                    Property="Text"
+                                    Value="{Binding DataContext.ToggleStateOnText, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="False">
-                            <Setter TargetName="StateSuffix" Property="Text" Value="fra" />
+                            <Setter TargetName="StateSuffix"
+                                    Property="Text"
+                                    Value="{Binding DataContext.ToggleStateOffText, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Track" Property="Background" Value="#8A8E9B" />

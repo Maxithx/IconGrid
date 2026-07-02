@@ -21,7 +21,7 @@
             ToolTip="{Binding ToolTipText, ElementName=Root}">
         <Button.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="Luk programmet helt" Click="ExitMenuItem_Click" />
+                <MenuItem Header="{Binding ExitLabel}" Click="ExitMenuItem_Click" />
             </ContextMenu>
         </Button.ContextMenu>
         <Button.Template>

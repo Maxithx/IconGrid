@@ -39,8 +39,8 @@
                                          helpers:DevInspector.Metadata="{Binding ., StringFormat=Tab: {0} (ViewModels/MainViewModel.cs)}">
                                 <RadioButton.ContextMenu>
                                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                                        <MenuItem Header="Rename tab" Click="RenameTabMenuItem_Click" />
-                                        <MenuItem Header="Remove tab" Click="RemoveTabMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RenameLabel, Source={x:Reference Root}}" Click="RenameTabMenuItem_Click" />
+                                        <MenuItem Header="{Binding DataContext.RemoveLabel, Source={x:Reference Root}}" Click="RemoveTabMenuItem_Click" />
                                     </ContextMenu>
                                 </RadioButton.ContextMenu>
                                 <RadioButton.IsChecked>

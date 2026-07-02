@@ -1378,6 +1378,10 @@ namespace IconGrid.ViewModels
         public string ChangeIconLabel => _localizationState.Get(Language, "ChangeIcon");
         public string WindowsIconsLabel => _localizationState.Get(Language, "WindowsIcons");
         public string OpenLabel => _localizationState.Get(Language, "Open");
+        public string CloseLabel => _localizationState.Get(Language, "Close");
+        public string MinimizeLabel => _localizationState.Get(Language, "Minimize");
+        public string SelectLabel => _localizationState.Get(Language, "Select");
+        public string ExitLabel => _localizationState.Get(Language, "Exit");
         public string RunAsAdminLabel => _localizationState.Get(Language, "RunAsAdmin");
         public string OpenFileLocationLabel => _localizationState.Get(Language, "OpenFileLocation");
         public string CopyPathLabel => _localizationState.Get(Language, "CopyPath");
@@ -1399,6 +1403,9 @@ namespace IconGrid.ViewModels
         public string SystemAndStartupTitle => _localizationState.Get(Language, "SystemAndStartupTitle");
         public string LanguageSectionTitle => _localizationState.Get(Language, "LanguageSectionTitle");
         public string LanguageSectionDescription => _localizationState.Get(Language, "LanguageSectionDescription");
+        public string ToggleStatePrefixText => _localizationState.Get(Language, "ToggleStatePrefix");
+        public string ToggleStateOnText => _localizationState.Get(Language, "ToggleStateOn");
+        public string ToggleStateOffText => _localizationState.Get(Language, "ToggleStateOff");
         public string AlwaysOnTopDescription => _localizationState.Get(Language, "AlwaysOnTopDescription");
         public string ShowScrollButtonsDescription => _localizationState.Get(Language, "ShowScrollButtonsDescription");
         public string DevOverlayDescription => _localizationState.Get(Language, "DevOverlayDescription");
@@ -1481,6 +1488,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(ChangeIconLabel));
             OnPropertyChanged(nameof(WindowsIconsLabel));
             OnPropertyChanged(nameof(OpenLabel));
+            OnPropertyChanged(nameof(CloseLabel));
+            OnPropertyChanged(nameof(MinimizeLabel));
+            OnPropertyChanged(nameof(SelectLabel));
+            OnPropertyChanged(nameof(ExitLabel));
             OnPropertyChanged(nameof(RunAsAdminLabel));
             OnPropertyChanged(nameof(OpenFileLocationLabel));
             OnPropertyChanged(nameof(CopyPathLabel));
@@ -1502,6 +1513,9 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SystemAndStartupTitle));
             OnPropertyChanged(nameof(LanguageSectionTitle));
             OnPropertyChanged(nameof(LanguageSectionDescription));
+            OnPropertyChanged(nameof(ToggleStatePrefixText));
+            OnPropertyChanged(nameof(ToggleStateOnText));
+            OnPropertyChanged(nameof(ToggleStateOffText));
             OnPropertyChanged(nameof(AlwaysOnTopDescription));
             OnPropertyChanged(nameof(ShowScrollButtonsDescription));
             OnPropertyChanged(nameof(DevOverlayDescription));
