@@ -22,6 +22,22 @@
                           VerticalScrollBarVisibility="Disabled"
                           Margin="0"
                           helpers:DevInspector.Metadata="Tabs scroll area → Views/MainWindow.xaml (Tabs controls)">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="Margin" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Value="Visible">
+                                <DataTrigger.Binding>
+                                    <MultiBinding Converter="{StaticResource ScrollButtonsVisibilityConverter}" ConverterParameter="6">
+                                        <Binding Path="ShowScrollButtons" />
+                                        <Binding Path="Tabs.Count" />
+                                    </MultiBinding>
+                                </DataTrigger.Binding>
+                                <Setter Property="Margin" Value="0,0,82,0" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
                 <ItemsControl ItemsSource="{Binding Tabs}"
                               helpers:DevInspector.Metadata="Tabs items host → Views/MainWindow.xaml (Tabs controls)">
                     <ItemsControl.ItemsPanel>
@@ -64,7 +80,7 @@
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,8,0"
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,20,0"
                     helpers:DevInspector.Metadata="Tab scroll controls → Views/MainWindow.xaml (Tabs controls)">
             <Button Style="{DynamicResource IconButtonStyle}"
                     Click="ScrollTabsLeft_Click"

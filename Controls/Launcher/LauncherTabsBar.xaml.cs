@@ -1,4 +1,8 @@
+using RadioButton = System.Windows.Controls.RadioButton;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
 using IconGrid.ViewModels;
 using IconGrid.ViewModels.Launcher;
 
@@ -31,6 +35,13 @@ namespace IconGrid.Controls
         private void TabToggle_Click(object sender, RoutedEventArgs e)
         {
             TabToggleClick?.Invoke(sender, e);
+
+            if (sender is System.Windows.Controls.RadioButton radioButton)
+            {
+                Dispatcher.BeginInvoke(
+                    DispatcherPriority.Loaded,
+                    new Action(() => EnsureTabVisible(radioButton)));
+            }
         }
 
         private void RenameTabMenuItem_Click(object sender, RoutedEventArgs e)
@@ -79,6 +90,36 @@ namespace IconGrid.Controls
         private static string ShowInputBox(string prompt, string title, string defaultValue)
         {
             return Microsoft.VisualBasic.Interaction.InputBox(prompt, title, defaultValue);
+        }
+
+        private void EnsureTabVisible(RadioButton tabButton)
+        {
+            if (TabsScrollViewer == null || !tabButton.IsVisible)
+                return;
+
+            if (VisualTreeHelper.GetParent(tabButton) is not Visual)
+                return;
+
+            var transform = tabButton.TransformToAncestor(TabsScrollViewer);
+            var bounds = transform.TransformBounds(new Rect(0, 0, tabButton.ActualWidth, tabButton.ActualHeight));
+            var leftEdge = bounds.Left;
+            var rightEdge = bounds.Right;
+            var viewportWidth = TabsScrollViewer.ViewportWidth;
+
+            if (viewportWidth <= 0)
+                return;
+
+            if (leftEdge < 0)
+            {
+                TabsScrollViewer.ScrollToHorizontalOffset(TabsScrollViewer.HorizontalOffset + leftEdge);
+                return;
+            }
+
+            if (rightEdge > viewportWidth)
+            {
+                var delta = rightEdge - viewportWidth;
+                TabsScrollViewer.ScrollToHorizontalOffset(TabsScrollViewer.HorizontalOffset + delta);
+            }
         }
     }
 }
