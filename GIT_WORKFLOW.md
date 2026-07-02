@@ -133,6 +133,47 @@ Preferred default:
 
 That keeps GitHub clean and makes it obvious what is still active.
 
+## Important Safety Note
+
+These three things are not the same:
+
+- deleting a branch
+- deleting files
+- deleting a repository
+
+### Deleting a branch
+
+Deleting a branch only removes a Git branch name.
+
+It does not delete the project files in `E:\IconGrid`.
+It does not delete the code already merged into `main`.
+It does not delete the repository history.
+
+Example:
+
+- deleting `refactor-mainwindow` later is only removing the extra branch reference after the work is safely in `main`
+
+### Deleting files
+
+Deleting files changes the actual project contents.
+
+That means code, assets, or documents are removed from the working project.
+This is completely different from deleting a branch.
+
+### Deleting a repository
+
+Deleting a repository removes the whole GitHub repository itself.
+
+That is the biggest action of the three and has nothing to do with normal branch cleanup.
+
+### Simple Memory Rule
+
+Think of it like this:
+
+- branch = a Git pointer
+- files = the actual project contents
+- repo = the whole project container and history
+
 ## Practical Rule For This Repo
 
 From now on, treat:
