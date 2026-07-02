@@ -1,1 +1,56 @@
+IconGrid kommandoer
+
+Build og clean
+
 dotnet build IconGrid.sln -c Debug
+Bygger projektet i Debug. Brug denne som standard build-test under udvikling.
+
+dotnet clean IconGrid.sln
+Rydder gamle build-filer. Brug denne hvis du får mærkelige WPF- eller obj/bin-fejl.
+
+dotnet build IconGrid.sln
+Bygger med standard konfiguration. Fin som hurtig generel build-kontrol.
+
+Git status og sync
+
+git status
+Viser om du har lokale ændringer, og hvilken branch du står på.
+
+git branch --show-current
+Viser den aktuelle branch. God sikkerhed før du begynder nyt arbejde.
+
+git pull origin main
+Henter nyeste ændringer fra main. Brug denne når du står på main og vil være helt opdateret.
+
+Nyt arbejde fra main
+
+git checkout main
+Skifter til main.
+
+git checkout -b fix/mit-navn-her
+Laver en ny branch fra main. Brug fx fix/... , feat/... , docs/... eller refactor/...
+
+Commit og push
+
+git add .
+Stager alle ændringer. Brug kun denne når du er sikker på, at alt i working tree skal med.
+
+git add filnavn
+Stager kun en bestemt fil. Sikrere end git add . når du vil holde commits små og rene.
+
+git commit -m "fix: kort beskrivelse"
+Laver et commit med en kort forklarende besked.
+
+git push origin branch-navn
+Pusher din branch til GitHub.
+
+Nyttige kontroller
+
+git log --oneline -5
+Viser de 5 seneste commits i kort form.
+
+git branch -a
+Viser både lokale og remote branches.
+
+git diff
+Viser hvilke ændringer du har lavet, men ikke committet endnu.

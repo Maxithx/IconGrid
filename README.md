@@ -16,7 +16,7 @@ IconGrid uses Semantic Versioning with beta builds during active refactor and fe
 
 - IconGrid starts in floating-icon mode.
 - Left-click expands the main launcher window.
-- Right-click opens the exit menu with `Luk programmet helt`.
+- Right-click opens the localized exit menu for fully closing the app.
 
 ### Main launcher
 
@@ -34,7 +34,7 @@ IconGrid uses Semantic Versioning with beta builds during active refactor and fe
 
 ## Settings pages
 
-- `StartsidePage.xaml`: startup, topmost behavior, UI scale, and general launcher options.
+- `StartsidePage.xaml`: startup, topmost behavior, UI scale, general launcher options, and the built-in `Dansk` / `English` language switcher.
 - `GenvejsIkonerPage.xaml`: launcher shortcut and icon settings.
 - `LayoutPage.xaml`: layout preset and saved-layout configuration.
 - `HardwarePage.xaml`: hardware diagnostics and related status.
