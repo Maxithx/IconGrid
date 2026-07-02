@@ -325,11 +325,11 @@
             <views:TemplatePage Margin="12">
                 <views:TemplatePage.HeroContent>
                     <StackPanel helpers:DevInspector.Metadata="Layout hero card → Views/LayoutPage.xaml">
-                        <TextBlock Text="Layout"
+                        <TextBlock Text="{Binding LayoutTitleText}"
                                    FontSize="20"
                                    FontWeight="SemiBold"
                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                        <TextBlock Text="Finjuster opstillingen af dine vinduer og gem hurtige layout-genveje i IconGrid."
+                        <TextBlock Text="{Binding LayoutIntroText}"
                                    FontSize="13"
                                    Margin="0,8,0,0"
                                    TextWrapping="Wrap"
@@ -348,7 +348,7 @@
                                       helpers:DevInspector.Metadata="Standard layout expander → Views/LayoutPage.xaml">
                                 <Expander.Header>
                                     <StackPanel>
-                                        <TextBlock Text="Standard layout"
+                                        <TextBlock Text="{Binding LayoutPresetsTitleText}"
                                                    FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -370,7 +370,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Layout"
+                                            <TextBlock Text="{Binding LayoutFieldLabelText}"
                                                        VerticalAlignment="Center"
                                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                             <ComboBox Grid.Column="1"
@@ -405,7 +405,7 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Spring minimerede vinduer over"
+                                            <TextBlock Text="{Binding LayoutSkipMinimizedText}"
                                                        VerticalAlignment="Center"
                                                        FontSize="13"
                                                        Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -441,7 +441,7 @@
                                       helpers:DevInspector.Metadata="Reserve slot expander → Views/LayoutPage.xaml">
                                 <Expander.Header>
                                     <StackPanel>
-                                        <TextBlock Text="Reserver IconGrid-slot"
+                                        <TextBlock Text="{Binding LayoutReserveSlotTitleText}"
                                                    FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />

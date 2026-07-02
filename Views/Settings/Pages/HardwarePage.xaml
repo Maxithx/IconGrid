@@ -135,7 +135,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="136" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Motherboard"
+                            <TextBlock Text="{Binding HardwareBoardTitleText}"
                                        VerticalAlignment="Center"
                                        FontSize="20"
                                        FontWeight="SemiBold"
@@ -164,7 +164,7 @@
                             </Image>
                         </Grid>
                         <TextBlock Margin="0,8,0,0"
-                                   Text="Oversigt over dit bundkort og den aktive BIOS-version."
+                                   Text="{Binding HardwareBoardIntroText}"
                                    TextWrapping="Wrap"
                                    FontSize="13"
                                    Foreground="{Binding SettingsSubtextForeground}" />
@@ -174,7 +174,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,18,0">
-                                <TextBlock Text="Model"
+                                <TextBlock Text="{Binding HardwareModelLabelText}"
                                            FontSize="12"
                                            Foreground="{Binding SettingsSubtextForeground}" />
                                 <TextBlock Margin="0,4,0,0"
@@ -184,7 +184,7 @@
                                            Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="BIOS"
+                                <TextBlock Text="{Binding HardwareBiosLabelText}"
                                            FontSize="12"
                                            Foreground="{Binding SettingsSubtextForeground}" />
                                 <TextBlock Margin="0,4,0,0"
@@ -259,7 +259,7 @@
                                     </Grid>
                                 </Grid>
                                 <TextBlock Margin="0,8,0,0"
-                                           Text="Oversigt over processorens model, kerner, boost-hastighed og live telemetri."
+                                           Text="{Binding HardwareCpuIntroText}"
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding SettingsSubtextForeground}" />
@@ -268,7 +268,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <TextBlock Text="Model"
+                                    <TextBlock Text="{Binding HardwareModelLabelText}"
                                                FontSize="12"
                                                Foreground="{Binding SettingsSubtextForeground}" />
                                     <TextBlock Grid.Row="1"
@@ -282,7 +282,7 @@
                                 <WrapPanel Margin="0,18,0,0">
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Cores"
+                                            <TextBlock Text="{Binding HardwareCoresLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -294,7 +294,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Threads"
+                                            <TextBlock Text="{Binding HardwareThreadsLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -306,7 +306,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Live temp"
+                                            <TextBlock Text="{Binding HardwareLiveTempLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -318,7 +318,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Live usage"
+                                            <TextBlock Text="{Binding HardwareLiveUsageLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -330,7 +330,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Live clock"
+                                            <TextBlock Text="{Binding HardwareLiveClockLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -342,7 +342,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
                                         <StackPanel>
-                                            <TextBlock Text="Boost"
+                                            <TextBlock Text="{Binding HardwareBoostLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -432,7 +432,7 @@
                                     </Grid>
                                 </Grid>
                                 <TextBlock Margin="0,8,0,0"
-                                           Text="Oversigt over grafikkortets model, producent, videohukommelse og live telemetri."
+                                           Text="{Binding HardwareGpuIntroText}"
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding SettingsSubtextForeground}" />
@@ -441,7 +441,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <TextBlock Text="Model"
+                                     <TextBlock Text="{Binding HardwareModelLabelText}"
                                                FontSize="12"
                                                Foreground="{Binding SettingsSubtextForeground}" />
                                     <TextBlock Grid.Row="1"
@@ -455,7 +455,7 @@
                                 <WrapPanel Margin="-6,18,0,0">
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Vendor"
+                                            <TextBlock Text="{Binding HardwareVendorLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -467,7 +467,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Live temp"
+                                            <TextBlock Text="{Binding HardwareLiveTempLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -479,7 +479,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Live clock"
+                                            <TextBlock Text="{Binding HardwareLiveClockLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -491,7 +491,7 @@
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
                                         <StackPanel>
-                                            <TextBlock Text="VRAM"
+                                            <TextBlock Text="{Binding HardwareVramLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -513,7 +513,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="136" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Memory"
+                                    <TextBlock Text="{Binding HardwareMemoryTitleText}"
                                                VerticalAlignment="Center"
                                                FontSize="20"
                                                FontWeight="SemiBold"
@@ -534,7 +534,7 @@
                                     </Border>
                                 </Grid>
                                 <TextBlock Margin="0,8,0,0"
-                                           Text="Oversigt over RAM-layout, type, hastighed og timing."
+                                           Text="{Binding HardwareMemoryIntroText}"
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding SettingsSubtextForeground}" />
@@ -543,7 +543,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <TextBlock Text="Layout"
+                                    <TextBlock Text="{Binding HardwareLayoutLabelText}"
                                                FontSize="12"
                                                Foreground="{Binding SettingsSubtextForeground}" />
                                     <TextBlock Grid.Row="1"
@@ -557,7 +557,7 @@
                                 <WrapPanel Margin="0,18,0,0">
                                     <Border Style="{StaticResource MemoryMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Type"
+                                            <TextBlock Text="{Binding HardwareTypeLabelText}"
                                                     FontSize="12"
                                                     Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -569,7 +569,7 @@
                                     </Border>
                                     <Border Style="{StaticResource MemoryMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Speed"
+                                            <TextBlock Text="{Binding HardwareSpeedLabelText}"
                                                     FontSize="12"
                                                     Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -581,7 +581,7 @@
                                     </Border>
                                     <Border Style="{StaticResource MemoryMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Timing"
+                                            <TextBlock Text="{Binding HardwareTimingLabelText}"
                                                     FontSize="12"
                                                     Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -593,7 +593,7 @@
                                     </Border>
                                     <Border Style="{StaticResource MemoryMetricTileStyle}">
                                         <StackPanel>
-                                            <TextBlock Text="Modules"
+                                            <TextBlock Text="{Binding HardwareModulesLabelText}"
                                                     FontSize="12"
                                                     Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"
@@ -605,7 +605,7 @@
                                     </Border>
                                     <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
                                         <StackPanel>
-                                            <TextBlock Text="Voltage"
+                                            <TextBlock Text="{Binding HardwareVoltageLabelText}"
                                                     FontSize="12"
                                                     Foreground="{Binding SettingsSubtextForeground}" />
                                             <TextBlock Margin="0,4,0,0"

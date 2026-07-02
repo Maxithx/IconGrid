@@ -13,12 +13,12 @@
                 <TextBlock FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                           Text="Om IconGrid" />
+                           Text="{Binding AboutTitleText}" />
                 <TextBlock Margin="0,8,0,0"
                            FontSize="13"
                            TextWrapping="Wrap"
                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                           Text="Hold styr på dine ikoner, layout og detaljerede indstillinger fra ét sted." />
+                           Text="{Binding AboutIntroText}" />
             </StackPanel>
         </views:TemplatePage.HeroContent>
         <views:TemplatePage.CardsContent>

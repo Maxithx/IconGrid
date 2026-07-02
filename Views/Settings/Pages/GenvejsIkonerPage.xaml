@@ -12,11 +12,11 @@
         <views:TemplatePage.HeroContent>
             <StackPanel helpers:DevInspector.Metadata="Genvejs hero card â†’ Views/GenvejsIkonerPage.xaml">
                 <StackPanel>
-                    <TextBlock Text="Genvejs ikoner"
+                    <TextBlock Text="{Binding ShortcutsTitle}"
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Text="Finjuster layoutet af genvejsikoner og deres spacing."
+                    <TextBlock Text="{Binding ShortcutsIntro}"
                                FontSize="13"
                                Margin="0,8,0,0"
                                Foreground="{Binding SettingsSubtextForeground}"
@@ -25,7 +25,7 @@
 
                 <StackPanel Margin="0,16,0,0"
                             helpers:DevInspector.Metadata="Genvejs slider group → Views/GenvejsIkonerPage.xaml">
-                    <controls:SliderRow Label="Mellemrumm mellem ikonrækkerne"
+                    <controls:SliderRow Label="{Binding IconRowSpacingLabel}"
                                         Minimum="-50"
                                         Maximum="50"
                                         Value="{Binding IconRowSpacing, Mode=TwoWay}"
@@ -33,7 +33,7 @@
                                         LabelForeground="{Binding SettingsSubtextForeground}"
                                         helpers:DevInspector.Metadata="Mellemrumm slider → Views/GenvejsIkonerPage.xaml" />
 
-                    <controls:SliderRow Label="Luft under sidste række"
+                    <controls:SliderRow Label="{Binding LastRowPaddingLabel}"
                                         Minimum="-100"
                                         Maximum="100"
                                         Value="{Binding LastRowPaddingAdjust, Mode=TwoWay}"
@@ -41,7 +41,7 @@
                                         LabelForeground="{Binding SettingsSubtextForeground}"
                                         helpers:DevInspector.Metadata="Luft slider → Views/GenvejsIkonerPage.xaml" />
 
-                    <controls:SliderRow Label="Ikonstørrelse"
+                    <controls:SliderRow Label="{Binding IconSizeLabel}"
                                         Minimum="0.5"
                                         Maximum="1.5"
                                         Value="{Binding IconScale, Mode=TwoWay}"
@@ -72,11 +72,11 @@
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
                         helpers:DevInspector.Metadata="Genvejs animation card â†’ Views/GenvejsIkonerPage.xaml">
                     <StackPanel>
-                        <TextBlock Text="Genvejs ikoner baggrunds slide op/ned animation"
+                        <TextBlock Text="{Binding ShortcutsAnimationTitle}"
                                    FontSize="16"
                                    FontWeight="SemiBold"
                                    Foreground="{Binding TopBarForeground}" />
-                        <TextBlock Text="Finjuster op/ned animation og hastighed."
+                        <TextBlock Text="{Binding ShortcutsAnimationIntro}"
                                    FontSize="13"
                                    Margin="0,6,0,10"
                                    Foreground="{Binding SettingsSubtextForeground}"
@@ -86,14 +86,14 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Genvejs ikoner baggrunds animation"
+                            <TextBlock Text="{Binding ShortcutsAnimationToggle}"
                                        VerticalAlignment="Center"
                                        Foreground="{Binding SettingsSubtextForeground}" />
                             <ToggleButton Grid.Column="1"
                                           Style="{StaticResource ToggleSwitchStyle}"
                                           IsChecked="{Binding EnableSlideUpAnimation, Mode=TwoWay}" />
                         </Grid>
-                        <controls:SliderRow Label="Animation hastighed"
+                        <controls:SliderRow Label="{Binding WindowAnimationSpeedLabel}"
                                             Minimum="100"
                                             Maximum="2000"
                                             SmallChange="50"

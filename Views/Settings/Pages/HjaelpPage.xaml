@@ -10,11 +10,11 @@
     <views:TemplatePage Margin="12">
         <views:TemplatePage.HeroContent>
             <StackPanel helpers:DevInspector.Metadata="Hjælp hero card → Views/HjaelpPage.xaml">
-                <TextBlock Text="Hjælp"
+                <TextBlock Text="{Binding HelpTitleText}"
                            FontSize="20"
                            FontWeight="SemiBold"
                            Foreground="{Binding TopBarForeground}" />
-                <TextBlock Text="Guiden forklarer, hvordan drag &amp; drop og sensorer fungerer, når IconGrid kører."
+                <TextBlock Text="{Binding HelpIntroText}"
                            FontSize="13"
                            Margin="0,8,0,0"
                            TextWrapping="Wrap"
@@ -25,21 +25,21 @@
             <StackPanel>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
                         helpers:DevInspector.Metadata="Drag &amp; drop info card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="Drag &amp; drop fungerer kun, når IconGrid kører uden administratorrettigheder. Windows' UIPI forhindrer Explorer i at sende drag-beskeder til vinduer med højere privilegier."
+                    <TextBlock Text="{Binding HelpDragDropText}"
                                TextWrapping="Wrap"
                                Foreground="{Binding SettingsSubtextForeground}"
                                LineHeight="20" />
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
                         helpers:DevInspector.Metadata="Sensor info card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="Når IconGrid kører uden admin, kan LibreHardwareMonitor ikke læse CPU-sensorerne, så temperaturerne forbliver som '--'. Hvis du har brug for temperaturdata, kør IconGrid som administrator og brug 'Tilføj'-knappen ved at højreklikke på et ikonområde i en kategori."
+                    <TextBlock Text="{Binding HelpSensorsText}"
                                TextWrapping="Wrap"
                                Foreground="{Binding SettingsSubtextForeground}"
                                LineHeight="20" />
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
                         helpers:DevInspector.Metadata="More tips card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="Har du brug for flere tips? Brug de andre kategorier til at finde layout-genveje, og kig efter ikoner der matcher din workflow."
+                    <TextBlock Text="{Binding HelpMoreTipsText}"
                                TextWrapping="Wrap"
                                Foreground="{Binding SettingsSubtextForeground}"
                                LineHeight="20" />
