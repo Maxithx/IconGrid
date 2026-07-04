@@ -2096,7 +2096,7 @@ namespace IconGrid.Views
                     : IntPtr.Zero;
 
                 var workArea = GetWorkArea(targetMonitor);
-                var windows = CollectCandidateWindows(targetMonitor, _viewModel.LayoutReserveIconGridSlot);
+                var windows = CollectCandidateWindows(targetMonitor, includeIconGridWindow: false);
                 if (windows.Count == 0)
                 {
                     LogTrace($"Layout '{layoutName}' not saved: no candidate windows were found.");
@@ -2573,7 +2573,6 @@ namespace IconGrid.Views
                     }
                 }
 
-                var reserveIconSlot = _viewModel.LayoutReserveIconGridSlot;
                 var myHandle = _hwndSource?.Handle ?? IntPtr.Zero;
                 foreach (var assignment in ordered)
                 {
@@ -2591,16 +2590,21 @@ namespace IconGrid.Views
                     var width = Math.Max(100, slot.Right - slot.Left);
                     var height = Math.Max(100, slot.Bottom - slot.Top);
 
-                    if (!reserveIconSlot && hwnd == myHandle)
+                    if (hwnd == myHandle)
                     {
                         continue;
                     }
 
-                    if (myHandle != IntPtr.Zero && hwnd == myHandle)
+                    if (myHandle == IntPtr.Zero)
                     {
                         // This is our own window. Use physical pixels (disable DPI scaling for layout test).
                         // By using physical coordinates here, vi afprøver om DPI transform er årsagen til ghost-box.
-                        SetWindowPos(hwnd, IntPtr.Zero, slot.Left, slot.Top, width, height,
+                        var currentWidth = width;
+                        var currentHeight = height;
+                        var iconLeft = slot.Left;
+                        var iconTop = slot.Top;
+
+                        SetWindowPos(hwnd, IntPtr.Zero, iconLeft, iconTop, currentWidth, currentHeight,
                             SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
                     }
                     else
@@ -2609,6 +2613,11 @@ namespace IconGrid.Views
                         SetWindowPos(hwnd, IntPtr.Zero, slot.Left, slot.Top, width, height,
                             SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
                     }
+                }
+
+                if (_viewModel.LayoutReserveIconGridSlot && myHandle != IntPtr.Zero && selectedSlot >= 0 && selectedSlot < slots.Count)
+                {
+                    MoveIconGridToReservedSlot(slots[selectedSlot], workArea);
                 }
             }
             catch (Exception ex)
@@ -2654,7 +2663,7 @@ namespace IconGrid.Views
             var remainingWindows = new List<(IntPtr Hwnd, RECT Rect)>(windows);
             var openSlots = Enumerable.Range(0, slotCount).ToList();
 
-            // Reserve IconGrid slot if available.
+            // Reserve IconGrid slot even if IconGrid itself is not part of the arranged window set.
             if (reserveIconGridSlot && iconGridHandle.HasValue && iconGridHandle.Value != IntPtr.Zero && preferredIconSlot >= 0 && preferredIconSlot < slotCount)
             {
                 var idx = remainingWindows.FindIndex(w => w.Hwnd == iconGridHandle.Value);
@@ -2662,8 +2671,9 @@ namespace IconGrid.Views
                 {
                     ordered[preferredIconSlot] = (remainingWindows[idx].Hwnd, slots[preferredIconSlot]);
                     remainingWindows.RemoveAt(idx);
-                    openSlots.Remove(preferredIconSlot);
                 }
+
+                openSlots.Remove(preferredIconSlot);
             }
 
             // If a link pair is defined for this preset, try to place the best matching windows into the link slots.
@@ -2700,6 +2710,39 @@ namespace IconGrid.Views
             }
 
             return ordered.ToList();
+        }
+
+        private void MoveIconGridToReservedSlot(RECT slot, RECT workArea)
+        {
+            var hwnd = _hwndSource?.Handle ?? IntPtr.Zero;
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var currentRect = GetWindowRect(hwnd);
+            var currentWidth = Math.Max(100, currentRect.Right - currentRect.Left);
+            var currentHeight = Math.Max(100, currentRect.Bottom - currentRect.Top);
+            var slotWidth = Math.Max(1, slot.Right - slot.Left);
+            var slotHeight = Math.Max(1, slot.Bottom - slot.Top);
+            var workCenterX = workArea.Left + ((workArea.Right - workArea.Left) / 2);
+            var workCenterY = workArea.Top + ((workArea.Bottom - workArea.Top) / 2);
+            var slotCenterX = slot.Left + (slotWidth / 2);
+            var slotCenterY = slot.Top + (slotHeight / 2);
+
+            var left = currentWidth <= slotWidth
+                ? slot.Left + ((slotWidth - currentWidth) / 2)
+                : (slotCenterX >= workCenterX ? slot.Right - currentWidth : slot.Left);
+
+            var top = currentHeight <= slotHeight
+                ? slot.Top + ((slotHeight - currentHeight) / 2)
+                : (slotCenterY >= workCenterY ? slot.Bottom - currentHeight : slot.Top);
+
+            left = Math.Max(workArea.Left, Math.Min(left, workArea.Right - currentWidth));
+            top = Math.Max(workArea.Top, Math.Min(top, workArea.Bottom - currentHeight));
+
+            SetWindowPos(hwnd, IntPtr.Zero, left, top, currentWidth, currentHeight,
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
         }
 
         private List<(int SlotIndex, (IntPtr Hwnd, RECT Rect) Window)> MatchWindowsToSlotsWithSlots(List<(IntPtr Hwnd, RECT Rect)> windows, List<int> slotIndices, List<RECT> allSlots)
@@ -3107,7 +3150,7 @@ namespace IconGrid.Views
             var remainingWindows = new List<(IntPtr Hwnd, RECT Rect)>(windows);
             var availableSlots = Enumerable.Range(0, slotCount).ToList();
 
-            // Pin IconGrid to its saved slot if present.
+            // Reserve IconGrid's saved slot even if IconGrid itself is not part of the arranged window set.
             if (reserveIconGridSlot && iconGridHandle != IntPtr.Zero && preferredIconSlot >= 0 && preferredIconSlot < slotCount)
             {
                 var idx = remainingWindows.FindIndex(w => w.Hwnd == iconGridHandle);
@@ -3115,8 +3158,9 @@ namespace IconGrid.Views
                 {
                     assignments[preferredIconSlot] = (iconGridHandle, slots[preferredIconSlot]);
                     remainingWindows.RemoveAt(idx);
-                    availableSlots.Remove(preferredIconSlot);
                 }
+
+                availableSlots.Remove(preferredIconSlot);
             }
 
             if (remainingWindows.Count == 0 || availableSlots.Count == 0)
