@@ -21,7 +21,7 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 ![IconGrid Screenshot](Assets/git-img/IconGrid.png)
 
 ## IconGrid collapsed state
-![IconGrid collapsed state Screenshot](Assets/git-img/IconGrid.png)(Assets/git-img/IconGrid-collapsed.png)
+![IconGrid collapsed state Screenshot](Assets/git-img/IconGrid-collapsed.png)
 
 ### Settings window
 
