@@ -1423,6 +1423,7 @@ namespace IconGrid.ViewModels
         public string HelpIntroText => _localizationState.Get(Language, "HelpIntro");
         public string HelpDragDropText => _localizationState.Get(Language, "HelpDragDrop");
         public string HelpSensorsText => _localizationState.Get(Language, "HelpSensors");
+        public string HelpTopBarText => _localizationState.Get(Language, "HelpTopBar");
         public string HelpMoreTipsText => _localizationState.Get(Language, "HelpMoreTips");
         public string LayoutTitleText => _localizationState.Get(Language, "LayoutTitle");
         public string LayoutIntroText => _localizationState.Get(Language, "LayoutIntro");
@@ -1533,6 +1534,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HelpIntroText));
             OnPropertyChanged(nameof(HelpDragDropText));
             OnPropertyChanged(nameof(HelpSensorsText));
+            OnPropertyChanged(nameof(HelpTopBarText));
             OnPropertyChanged(nameof(HelpMoreTipsText));
             OnPropertyChanged(nameof(LayoutTitleText));
             OnPropertyChanged(nameof(LayoutIntroText));

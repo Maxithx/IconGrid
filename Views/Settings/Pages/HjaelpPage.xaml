@@ -38,6 +38,13 @@
                                LineHeight="20" />
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Top bar info card → Views/HjaelpPage.xaml">
+                    <TextBlock Text="{Binding HelpTopBarText}"
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}"
+                               LineHeight="20" />
+                </Border>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
                         helpers:DevInspector.Metadata="More tips card → Views/HjaelpPage.xaml">
                     <TextBlock Text="{Binding HelpMoreTipsText}"
                                TextWrapping="Wrap"
