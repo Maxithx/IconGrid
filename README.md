@@ -20,7 +20,9 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 
 ![IconGrid Screenshot](Assets/git-img/IconGrid.png)
 
-## IconGrid collapsed state
+## IconGrid collapsed state Toggle UI View
+
+IconGrid features a clean and simple way to toggle between full and collapsed views. If a category is selected (for example, Games), clicking it once will hide the icon area, collapsing the UI to only show the top bar and system monitors. Clicking the category again will smoothly slide the icon area back down into full view.
 ![IconGrid collapsed state Screenshot](Assets/git-img/IconGrid-collapsed.png)
 
 ### Settings window
