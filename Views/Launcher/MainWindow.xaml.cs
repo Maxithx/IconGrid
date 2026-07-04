@@ -2096,7 +2096,8 @@ namespace IconGrid.Views
                     : IntPtr.Zero;
 
                 var workArea = GetWorkArea(targetMonitor);
-                var windows = CollectCandidateWindows(targetMonitor, includeIconGridWindow: false);
+                var includeIconGridWindow = _viewModel.LayoutReserveIconGridSlot || _viewModel.IsFullWindowVisible;
+                var windows = CollectCandidateWindows(targetMonitor, includeIconGridWindow);
                 if (windows.Count == 0)
                 {
                     LogTrace($"Layout '{layoutName}' not saved: no candidate windows were found.");
