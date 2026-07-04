@@ -2,12 +2,6 @@
 
 IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, settings pages, and live hardware telemetry in a launcher that can collapse into a floating desktop button.
 
-![IconGrid Screenshot](Assets/git-img/IconGrid.png)
-
-## Versioning
-
-IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
-
 ## User flow
 
 ### Floating icon
@@ -23,6 +17,11 @@ IconGrid uses Semantic Versioning with beta builds during active refactor and fe
 - `Views/Launcher/MainWindow.xaml` is the main launcher shell.
 - The launcher contains the logo area, live monitor strip, tab bar, shortcut grid, and the `Indstillinger` entry point.
 - Closing the launcher hides it back to floating-icon mode instead of terminating the process.
+
+![IconGrid Screenshot](Assets/git-img/IconGrid.png)
+
+## IconGrid collapsed state
+![IconGrid collapsed state Screenshot](Assets/git-img/IconGrid.png)(Assets/git-img/IconGrid-collapsed.png)
 
 ### Settings window
 
@@ -98,3 +97,7 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 - After the current refactor, launcher UI, settings UI, helpers, and feature-specific view-model code are grouped by responsibility rather than staying flat in a few root folders.
 - See [ARCHITECTURE_RULES.md](/E:/IconGrid/ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
 - See [GIT_WORKFLOW.md](/E:/IconGrid/GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
+
+## Versioning
+
+IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
