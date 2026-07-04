@@ -13,6 +13,17 @@
 - Afklar om `PawnIO`/admin-flow skal gøres tydeligere i `SettingsWindow`
 - Dokumentér kun de controls/helpers som stadig er arkitektonisk vigtige
 - Tag kun nye faser hvis de giver reel funktionel værdi
+- Byg modulær preview/drag-UI for reserveret `IconGrid`-slot uden at vokse `MainWindow` eller `MainViewModel`
+
+## Næste session: IconGrid slot preview UI
+
+- [ ] Tilføj preview af den valgte reserverede `IconGrid`-slot på `LayoutPage`
+- [ ] Vis en mindre `IconGrid`-preview inde i slot-previewen
+- [ ] Gør `IconGrid`-previewen dragbar, så brugeren kan vælge placering visuelt
+- [ ] Gem preview-position som normaliseret `X/Y`-offset i config/layout-state
+- [ ] Brug de gemte offset-værdier i runtime-placeringen af `IconGrid`
+- [ ] Hold implementationen modulær via separat control i stedet for at vokse `LayoutPage`, `MainWindow` eller `MainViewModel`
+- [ ] Følg reglerne i `ARCHITECTURE_RULES.md` under arbejdet
 
 ## MainWindow refactor
 

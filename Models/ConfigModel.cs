@@ -34,6 +34,8 @@ public class ConfigModel
     public int LayoutIconGridSlot { get; set; } = 0;
     public Dictionary<string, int> LayoutIconGridSlots { get; set; } = new();
     public bool LayoutReserveIconGridSlot { get; set; } = true;
+    public double LayoutIconGridSlotOffsetX { get; set; } = 0.5;
+    public double LayoutIconGridSlotOffsetY { get; set; } = 0.5;
     public Dictionary<string, int[]> LayoutLinks { get; set; } = new();
     public Dictionary<string, List<CustomLayoutSlot>> SavedLayouts { get; set; } = new();
     public List<CustomLayoutSlot> FavoriteLayoutSlots { get; set; } = new();

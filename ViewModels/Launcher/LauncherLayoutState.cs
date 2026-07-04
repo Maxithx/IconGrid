@@ -16,6 +16,8 @@ namespace IconGrid.ViewModels.Launcher
         public bool LayoutCurrentMonitorOnly { get; set; } = true;
         public bool LayoutReserveIconGridSlot { get; set; } = true;
         public int LayoutIconGridSlot { get; set; }
+        public double LayoutIconGridSlotOffsetX { get; set; } = 0.5;
+        public double LayoutIconGridSlotOffsetY { get; set; } = 0.5;
         public Dictionary<string, int> LayoutIconGridSlots { get; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<string, int[]> LayoutLinks { get; private set; } = new();
         public Dictionary<string, List<CustomLayoutSlot>> SavedLayouts { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -74,6 +76,26 @@ namespace IconGrid.ViewModels.Launcher
 
             LayoutIconGridSlot = clamped;
             SaveSlotForPreset(LayoutPreset, clamped);
+            return true;
+        }
+
+        public bool SetLayoutIconGridSlotOffsetX(double value)
+        {
+            var clamped = Math.Max(0, Math.Min(1, value));
+            if (Math.Abs(LayoutIconGridSlotOffsetX - clamped) < 0.0001)
+                return false;
+
+            LayoutIconGridSlotOffsetX = clamped;
+            return true;
+        }
+
+        public bool SetLayoutIconGridSlotOffsetY(double value)
+        {
+            var clamped = Math.Max(0, Math.Min(1, value));
+            if (Math.Abs(LayoutIconGridSlotOffsetY - clamped) < 0.0001)
+                return false;
+
+            LayoutIconGridSlotOffsetY = clamped;
             return true;
         }
 
@@ -223,6 +245,8 @@ namespace IconGrid.ViewModels.Launcher
             LayoutSkipMinimized = config.LayoutSkipMinimized;
             LayoutCurrentMonitorOnly = config.LayoutCurrentMonitorOnly;
             LayoutReserveIconGridSlot = config.LayoutReserveIconGridSlot;
+            LayoutIconGridSlotOffsetX = Math.Max(0, Math.Min(1, config.LayoutIconGridSlotOffsetX));
+            LayoutIconGridSlotOffsetY = Math.Max(0, Math.Min(1, config.LayoutIconGridSlotOffsetY));
 
             LayoutIconGridSlots.Clear();
             if (config.LayoutIconGridSlots != null)
@@ -278,6 +302,8 @@ namespace IconGrid.ViewModels.Launcher
             state.LayoutCurrentMonitorOnly = LayoutCurrentMonitorOnly;
             state.LayoutIconGridSlot = LayoutIconGridSlot;
             state.LayoutReserveIconGridSlot = LayoutReserveIconGridSlot;
+            state.LayoutIconGridSlotOffsetX = LayoutIconGridSlotOffsetX;
+            state.LayoutIconGridSlotOffsetY = LayoutIconGridSlotOffsetY;
             state.LayoutIconGridSlots = new Dictionary<string, int>(LayoutIconGridSlots, StringComparer.OrdinalIgnoreCase);
             state.LayoutLinks = LayoutLinks.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             state.SavedLayouts = SavedLayouts.ToDictionary(kvp => kvp.Key, kvp => CloneSlots(kvp.Value));
@@ -291,6 +317,8 @@ namespace IconGrid.ViewModels.Launcher
             LayoutCurrentMonitorOnly = true;
             LayoutReserveIconGridSlot = true;
             LayoutIconGridSlot = 0;
+            LayoutIconGridSlotOffsetX = 0.5;
+            LayoutIconGridSlotOffsetY = 0.5;
             LayoutIconGridSlots.Clear();
             ResetRuntimeCollections();
         }

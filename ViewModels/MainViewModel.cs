@@ -695,6 +695,30 @@ namespace IconGrid.ViewModels
             }
         }
 
+        public double LayoutIconGridSlotOffsetX
+        {
+            get => _layoutState.LayoutIconGridSlotOffsetX;
+            set
+            {
+                if (!_layoutState.SetLayoutIconGridSlotOffsetX(value))
+                    return;
+
+                PersistLayoutPropertyChange(nameof(LayoutIconGridSlotOffsetX));
+            }
+        }
+
+        public double LayoutIconGridSlotOffsetY
+        {
+            get => _layoutState.LayoutIconGridSlotOffsetY;
+            set
+            {
+                if (!_layoutState.SetLayoutIconGridSlotOffsetY(value))
+                    return;
+
+                PersistLayoutPropertyChange(nameof(LayoutIconGridSlotOffsetY));
+            }
+        }
+
         public IReadOnlyDictionary<string, int[]> LayoutLinks => _layoutState.LayoutLinks;
 
         public IReadOnlyDictionary<string, List<CustomLayoutSlot>> SavedLayouts => _layoutState.SavedLayouts;
@@ -1438,7 +1462,10 @@ namespace IconGrid.ViewModels
         public string LayoutReserveSlotIntroText => _localizationState.Get(Language, "LayoutReserveSlotIntro");
         public string LayoutReserveSlotToggleText => _localizationState.Get(Language, "LayoutReserveSlotToggle");
         public string LayoutChooseSlotText => _localizationState.Get(Language, "LayoutChooseSlot");
+        public string LayoutPreviewPositionText => _localizationState.Get(Language, "LayoutPreviewPosition");
         public string LayoutSlotTipText => _localizationState.Get(Language, "LayoutSlotTip");
+        public string LayoutPreviewTipText => _localizationState.Get(Language, "LayoutPreviewTip");
+        public string HardwareNavTitleText => _localizationState.Get(Language, "HardwareNavTitle");
         public string HardwareBoardTitleText => _localizationState.Get(Language, "HardwareBoardTitle");
         public string HardwareBoardIntroText => _localizationState.Get(Language, "HardwareBoardIntro");
         public string HardwareCpuIntroText => _localizationState.Get(Language, "HardwareCpuIntro");
@@ -1549,7 +1576,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(LayoutReserveSlotIntroText));
             OnPropertyChanged(nameof(LayoutReserveSlotToggleText));
             OnPropertyChanged(nameof(LayoutChooseSlotText));
+            OnPropertyChanged(nameof(LayoutPreviewPositionText));
             OnPropertyChanged(nameof(LayoutSlotTipText));
+            OnPropertyChanged(nameof(LayoutPreviewTipText));
+            OnPropertyChanged(nameof(HardwareNavTitleText));
             OnPropertyChanged(nameof(HardwareBoardTitleText));
             OnPropertyChanged(nameof(HardwareBoardIntroText));
             OnPropertyChanged(nameof(HardwareCpuIntroText));

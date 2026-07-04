@@ -409,7 +409,7 @@
                                 Style="{StaticResource NavButtonStyle}"
                                 Tag="Selected"
                                 Margin="0,6,0,0"
-                                AutomationProperties.Name="Startside"
+                                AutomationProperties.Name="{Binding HomeTitle}"
                                 Click="StartsideNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -422,7 +422,7 @@
                                            Stretch="Uniform"
                                            Opacity="1" />
                                 </Border>
-                                <TextBlock Text="Startside"
+                                <TextBlock Text="{Binding HomeTitle}"
                                            Margin="12,0,0,0"
                                            FontSize="14"
                                            VerticalAlignment="Center"
@@ -445,7 +445,7 @@
                                            Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Genvejs ikoner"
+                                           Text="{Binding ShortcutsTitle}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
@@ -466,7 +466,7 @@
                                            Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Layout"
+                                           Text="{Binding LayoutTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
@@ -489,7 +489,7 @@
                                                Foreground="White" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Hardware"
+                                           Text="{Binding HardwareNavTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
@@ -511,7 +511,7 @@
                                            Opacity="0.9" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Hjælp"
+                                           Text="{Binding HelpTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
@@ -533,7 +533,7 @@
                                            Opacity="0.95" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Om"
+                                           Text="{Binding AboutTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />

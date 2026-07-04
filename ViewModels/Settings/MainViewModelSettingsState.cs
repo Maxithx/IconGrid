@@ -31,6 +31,8 @@ namespace IconGrid.ViewModels.Settings
         public bool LayoutCurrentMonitorOnly { get; set; }
         public int LayoutIconGridSlot { get; set; }
         public bool LayoutReserveIconGridSlot { get; set; }
+        public double LayoutIconGridSlotOffsetX { get; set; } = 0.5;
+        public double LayoutIconGridSlotOffsetY { get; set; } = 0.5;
         public Dictionary<string, int> LayoutIconGridSlots { get; set; } = new();
         public Dictionary<string, int[]> LayoutLinks { get; set; } = new();
         public Dictionary<string, List<CustomLayoutSlot>> SavedLayouts { get; set; } = new();

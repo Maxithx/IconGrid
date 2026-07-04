@@ -44,6 +44,8 @@ namespace IconGrid.ViewModels.Settings
                 config.LayoutCurrentMonitorOnly = state.LayoutCurrentMonitorOnly;
                 config.LayoutIconGridSlot = state.LayoutIconGridSlot;
                 config.LayoutReserveIconGridSlot = state.LayoutReserveIconGridSlot;
+                config.LayoutIconGridSlotOffsetX = state.LayoutIconGridSlotOffsetX;
+                config.LayoutIconGridSlotOffsetY = state.LayoutIconGridSlotOffsetY;
                 config.LayoutIconGridSlots = state.LayoutIconGridSlots;
                 config.LayoutLinks = state.LayoutLinks;
                 config.SavedLayouts = state.SavedLayouts;

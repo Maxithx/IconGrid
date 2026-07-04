@@ -96,4 +96,5 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 
 - The project targets Windows and is organized around small WPF shells plus modular controls/state helpers.
 - After the current refactor, launcher UI, settings UI, helpers, and feature-specific view-model code are grouped by responsibility rather than staying flat in a few root folders.
+- See [ARCHITECTURE_RULES.md](/E:/IconGrid/ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
 - See [GIT_WORKFLOW.md](/E:/IconGrid/GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
