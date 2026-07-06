@@ -37,29 +37,23 @@ namespace IconGrid.Helpers
         }
 
         /// <summary>
-        /// Returnerer true hvis filen er en type, vi understøtter som launcher-genvej (.lnk, .exe, .url) eller en mappe.
+        /// Returnerer true hvis stien peger på noget, vi kan pinne som en launcher-genvej.
+        /// Det omfatter mapper og eksisterende filer som .exe, .lnk, .txt, .url osv.
         /// </summary>
         public static bool IsSupportedLauncherFile(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return false;
 
-            // Tillad mapper så brugeren kan pinne fx OneDrive-mappen direkte.
             if (Directory.Exists(path))
                 return true;
 
-            var extension = Path.GetExtension(path);
-            if (string.IsNullOrWhiteSpace(extension))
-                return false;
-
-            return IsShortcut(path) ||
-                   IsExecutable(path) ||
-                   string.Equals(extension, ".url", StringComparison.OrdinalIgnoreCase);
+            return File.Exists(path);
         }
 
         /// <summary>
         /// Opretter et LauncherItem ud fra en filsti og den aktuelle kategori/tab.
-        /// Vi bruger selve filstien som Path (Process.Start hǾndterer .lnk fint).
+        /// Vi bruger selve filstien som Path (Process.Start håndterer .lnk fint).
         /// </summary>
         public static LauncherItem? CreateLauncherItemFromFile(string filePath, string category)
         {

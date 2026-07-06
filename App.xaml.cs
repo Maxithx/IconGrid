@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Windows;
 using System.Windows.Threading;
 using IconGrid.Helpers;
@@ -31,15 +32,27 @@ public partial class App : System.Windows.Application
             if (_isMonitorAgentMode)
             {
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                WriteTrace("Starting hardware monitor agent mode.");
+                WriteTrace($"Starting hardware monitor agent mode. Elevated={IsCurrentProcessElevated()}");
                 var exitCode = HardwareMonitorAgent.Run(e.Args, WriteTrace);
                 Shutdown(exitCode);
                 return;
             }
 
+            WriteTrace($"Starting launcher UI. Elevated={IsCurrentProcessElevated()}");
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
+            if (IsCurrentProcessElevated())
+            {
+                WriteTrace("Launcher UI is running elevated; drag-and-drop from Explorer may be blocked by UIPI.");
+                System.Windows.MessageBox.Show(
+                    "IconGrid launcher UI is running with administrator privileges.\n\n" +
+                    "The UI should normally run as a standard user. If drag-and-drop from Explorer does not work, " +
+                    "start IconGrid without elevation.",
+                    "IconGrid",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
             WriteTrace("MainWindow shown");
         }
         catch (Exception ex)
@@ -140,6 +153,20 @@ public partial class App : System.Windows.Application
     }
 
     private static readonly IntPtr DpiAwarenessContextPerMonitorV2 = new IntPtr(-4);
+
+    private static bool IsCurrentProcessElevated()
+    {
+        try
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private enum ProcessDpiAwareness
     {

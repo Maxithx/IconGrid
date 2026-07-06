@@ -180,6 +180,7 @@ namespace IconGrid.Views
             _monitorTimer.Start();
             _viewModel.SystemMonitor.Update();
             UpdatePawnIoWarningWindow();
+            LogTrace($"MainWindow created. Elevated={IsCurrentProcessElevated()}");
 
             // Start in floating icon mode; final position is set on load
             Left = 0;
@@ -808,6 +809,20 @@ namespace IconGrid.Views
             }
         }
 
+        private static bool IsCurrentProcessElevated()
+        {
+            try
+            {
+                using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+                var principal = new System.Security.Principal.WindowsPrincipal(identity);
+                return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void SystemMonitor_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e?.PropertyName == nameof(SystemMonitor.IsPawnIoAvailable))
@@ -1329,11 +1344,43 @@ namespace IconGrid.Views
         {
             files = Array.Empty<string>();
 
-            if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is not string[] raw || raw.Length == 0)
+            if (!TryGetRawDropPaths(e, out var raw) || raw.Length == 0)
                 return false;
 
             files = raw.Where(ShortcutHelper.IsSupportedLauncherFile).ToArray();
             return files.Length > 0;
+        }
+
+        private static bool TryGetRawDropPaths(System.Windows.DragEventArgs e, out string[] files)
+        {
+            files = Array.Empty<string>();
+
+            if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] fileDrop && fileDrop.Length > 0)
+            {
+                files = fileDrop;
+                return true;
+            }
+
+            if (e.Data.GetDataPresent("Shell IDList Array"))
+            {
+                // Explorer sometimes exposes shell objects without a FileDrop array.
+                // We still accept the drag so Windows doesn't show a blocked-drop cursor.
+                return true;
+            }
+
+            if (e.Data.GetDataPresent("FileNameW") && e.Data.GetData("FileNameW") is string[] fileNamesW && fileNamesW.Length > 0)
+            {
+                files = fileNamesW;
+                return true;
+            }
+
+            if (e.Data.GetDataPresent("FileName") && e.Data.GetData("FileName") is string[] fileNames && fileNames.Length > 0)
+            {
+                files = fileNames;
+                return true;
+            }
+
+            return false;
         }
 
         private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
@@ -1342,7 +1389,7 @@ namespace IconGrid.Views
                 return;
 
             e.Handled = true;
-            if (TryGetSupportedDropFiles(e, out _))
+            if (TryGetRawDropPaths(e, out _))
             {
                 e.Effects = System.Windows.DragDropEffects.Copy;
             }
@@ -1376,10 +1423,11 @@ namespace IconGrid.Views
                     return; // tile-level handler will show move effect
                 }
                 e.Effects = System.Windows.DragDropEffects.Move;
+                e.Handled = true;
                 return;
             }
 
-            if (TryGetSupportedDropFiles(e, out _))
+            if (TryGetRawDropPaths(e, out _))
             {
                 e.Effects = System.Windows.DragDropEffects.Copy;
             }
@@ -1445,7 +1493,15 @@ namespace IconGrid.Views
         private void LauncherItem_Drop(object sender, System.Windows.DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(typeof(LauncherItem)) && !e.Data.GetDataPresent("LauncherItem"))
+            {
+                if (TryGetSupportedDropFiles(e, out var files))
+                {
+                    e.Handled = true;
+                    _viewModel.HandleFileDrop(files);
+                }
+
                 return;
+            }
 
             var source = e.Data.GetData(typeof(LauncherItem)) as LauncherItem ?? e.Data.GetData("LauncherItem") as LauncherItem;
             if (source == null)
