@@ -27,6 +27,7 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         OnPropertyChanged(nameof(IsNvidiaRtx));
         OnPropertyChanged(nameof(IsNvidiaGtx));
         OnPropertyChanged(nameof(IsIntelGpu));
+        OnPropertyChanged(nameof(GpuVendorDisplay));
     }
 }
 
@@ -50,6 +51,11 @@ public bool IsNvidiaRtx =>
 
 public bool IsNvidiaGtx =>
     IsNvidiaGpu && Overview.Gpu.Name.Contains("GTX", System.StringComparison.OrdinalIgnoreCase);
+
+    public string GpuVendorDisplay =>
+        Overview.Gpu.Name.Contains("Intel", System.StringComparison.OrdinalIgnoreCase)
+            ? "Intel"
+            : Overview.Gpu.Vendor;
 
     public System.Windows.Media.Brush CpuBadgeBackground => CreateVendorBrush(Overview.Cpu.Vendor);
     public System.Windows.Media.Brush GpuBadgeBackground => CreateVendorBrush(Overview.Gpu.Vendor);

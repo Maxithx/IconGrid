@@ -504,7 +504,7 @@
                                                        FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding Overview.Gpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                       Text="{Binding GpuVendorDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource HardwareMetricTileStyle}">
