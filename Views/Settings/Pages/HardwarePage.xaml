@@ -226,6 +226,9 @@
                                                         <DataTrigger Binding="{Binding IsAmdCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
                                                             <Setter Property="Visibility" Value="Collapsed" />
                                                         </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
@@ -251,6 +254,24 @@
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                                             <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/AMDlogo-lighttheme.png" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+
+                                        <Image Width="136"
+                                               Height="34"
+                                               HorizontalAlignment="Right"
+                                               Stretch="Uniform"
+                                               SnapsToDevicePixels="True">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -373,14 +394,17 @@
                                           HorizontalAlignment="Right"
                                           VerticalAlignment="Center">
                                         <Border MinWidth="76"
-                                                Padding="12,6"
-                                                Background="{Binding GpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                CornerRadius="12">
+                                                 Padding="12,6"
+                                                 Background="{Binding GpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                 CornerRadius="12">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Visibility" Value="Visible" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsNvidiaGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
                                                             <Setter Property="Visibility" Value="Collapsed" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -423,6 +447,24 @@
                                                     <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Nvidia-GTX-logo.png" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsNvidiaGtx, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+
+                                        <Image Width="136"
+                                               Height="34"
+                                               HorizontalAlignment="Right"
+                                               Stretch="Uniform"
+                                               SnapsToDevicePixels="True">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
                                                             <Setter Property="Visibility" Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>

@@ -20,12 +20,13 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         OnPropertyChanged(nameof(Overview));
         OnPropertyChanged(nameof(IsAsusMotherboard));
         OnPropertyChanged(nameof(IsAmdCpu));
+        OnPropertyChanged(nameof(IsIntelCpu));
         OnPropertyChanged(nameof(CpuBadgeBackground));
         OnPropertyChanged(nameof(GpuBadgeBackground));
-        // Tilføj disse tre linjer:
         OnPropertyChanged(nameof(IsNvidiaGpu));
         OnPropertyChanged(nameof(IsNvidiaRtx));
         OnPropertyChanged(nameof(IsNvidiaGtx));
+        OnPropertyChanged(nameof(IsIntelGpu));
     }
 }
 
@@ -35,8 +36,14 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
     public bool IsAmdCpu =>
         string.Equals(Overview.Cpu.Vendor, "AMD", System.StringComparison.OrdinalIgnoreCase);
+    public bool IsIntelCpu =>
+        Overview.Cpu.Vendor.Contains("Intel", System.StringComparison.OrdinalIgnoreCase);
     public bool IsNvidiaGpu =>
-    Overview.Gpu.Vendor.Contains("NVIDIA", System.StringComparison.OrdinalIgnoreCase);
+        Overview.Gpu.Vendor.Contains("NVIDIA", System.StringComparison.OrdinalIgnoreCase);
+
+    public bool IsIntelGpu =>
+        Overview.Gpu.Vendor.Contains("Intel", System.StringComparison.OrdinalIgnoreCase) ||
+        Overview.Gpu.Name.Contains("Intel", System.StringComparison.OrdinalIgnoreCase);
 
 public bool IsNvidiaRtx =>
     IsNvidiaGpu && Overview.Gpu.Name.Contains("RTX", System.StringComparison.OrdinalIgnoreCase);
