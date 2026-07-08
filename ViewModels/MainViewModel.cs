@@ -1057,15 +1057,14 @@ namespace IconGrid.ViewModels
 
                 if (enable)
                 {
+                    StartupTaskManager.CleanupLegacyStartupEntries();
                     StartupTaskManager.Register(exePath);
                 }
                 else
                 {
                     StartupTaskManager.Unregister();
+                    StartupTaskManager.CleanupLegacyStartupEntries();
                 }
-
-                using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                key?.DeleteValue("IconGrid", throwOnMissingValue: false);
             }
             catch (Exception ex)
             {
@@ -1406,6 +1405,7 @@ namespace IconGrid.ViewModels
         public string MinimizeLabel => _localizationState.Get(Language, "Minimize");
         public string SelectLabel => _localizationState.Get(Language, "Select");
         public string ExitLabel => _localizationState.Get(Language, "Exit");
+        public string ExitFullyLabel => _localizationState.Get(Language, "ExitFully");
         public string RunAsAdminLabel => _localizationState.Get(Language, "RunAsAdmin");
         public string OpenFileLocationLabel => _localizationState.Get(Language, "OpenFileLocation");
         public string CopyPathLabel => _localizationState.Get(Language, "CopyPath");
@@ -1520,6 +1520,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(MinimizeLabel));
             OnPropertyChanged(nameof(SelectLabel));
             OnPropertyChanged(nameof(ExitLabel));
+            OnPropertyChanged(nameof(ExitFullyLabel));
             OnPropertyChanged(nameof(RunAsAdminLabel));
             OnPropertyChanged(nameof(OpenFileLocationLabel));
             OnPropertyChanged(nameof(CopyPathLabel));

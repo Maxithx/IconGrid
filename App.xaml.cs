@@ -39,6 +39,7 @@ public partial class App : System.Windows.Application
             }
 
             WriteTrace($"Starting launcher UI. Elevated={IsCurrentProcessElevated()}");
+            HardwareMonitorTaskManager.StartAgent(() => Environment.ProcessPath ?? string.Empty, WriteTrace);
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();

@@ -101,6 +101,34 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 - See [ARCHITECTURE_RULES.md](/E:/IconGrid/ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
 - See [GIT_WORKFLOW.md](/E:/IconGrid/GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
 
+## Local data folder
+
+IconGrid stores user data in `%APPDATA%\IconGrid`, which on a standard Windows profile resolves to `C:\Users\<user>\AppData\Roaming\IconGrid`.
+
+Current files and folders in that directory:
+
+- `config.json`: launcher settings, layout settings, window positions, language, theme, startup toggle, and saved layout data.
+- `items.json`: launcher shortcuts grouped by category/tab. This is installation-specific and may not be portable to a new PC if shortcut paths change.
+- `monitor-state.json`: temporary live state used by the hardware-monitor row to show current CPU/GPU readings.
+- `trace.log`: app trace output for startup and runtime diagnostics.
+- `error.log`: fatal error log written after unhandled startup/runtime failures.
+- `IconPack\`: optional cached icon pack assets used by the launcher. This folder can be empty if no pack has been migrated or installed yet.
+
+The data folder is created automatically on startup by `ConfigManager`.
+`config.json` is the main file for restoring a user's IconGrid setup after reinstall or migration. `items.json` can be useful on the same machine, but should be treated as machine-specific rather than guaranteed portable.
+
+## Hardware monitor startup
+
+IconGrid starts the hardware monitor as a separate elevated child process named `--monitor-agent`.
+
+- The launcher stays standard-user for drag-and-drop compatibility.
+- The monitor agent is launched with `runas` so Windows shows UAC when elevation is needed.
+- The agent receives the launcher PID through `--parent-pid` so the two processes stay linked.
+- A legacy scheduled task entry is removed opportunistically if it is still present from an older build.
+- If Windows startup ever launches a duplicate or elevated IconGrid instance again, the first thing to check is Task Scheduler for a stale `IconGrid` task. That can create the extra instance and the `Conhost` / `schtasks` chain.
+
+This keeps the UI non-elevated while preserving a direct parent-child relationship between the launcher and the hardware monitor.
+
 ## Versioning
 
 IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.

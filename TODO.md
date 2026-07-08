@@ -7,10 +7,15 @@
 - README og views-dokumentation er opdateret til den nye struktur
 - HardwarePage deler nu live hardware-telemetri med launcher-topbaren
 - Sprogskift mellem `Dansk` og `English` er lagt på `StartsidePage`
+- Der er tilføjet en ny `Test`-side i Settings til diagnose af processer, elevation og hardware-task
+- `Test`-siden har nu scrollbar som startsiden
+- `Luk` fra normal UI sender stadig appen i floating mode, mens `Luk helt` i floating-menuen afslutter processen
 
 ## Næste fokus
 
 - Afklar om `PawnIO`/admin-flow skal gøres tydeligere i `SettingsWindow`
+- Brug `Test`-siden til at afklare hvorfor startup stadig kan give to `IconGrid.exe`-processer
+- Afklar om hardware-monitor-tasken stadig starter forkert UI-kopi eller om der ligger en ekstra startup-entry i Windows
 - Dokumentér kun de controls/helpers som stadig er arkitektonisk vigtige
 - Tag kun nye faser hvis de giver reel funktionel værdi
 - Byg modulær preview/drag-UI for reserveret `IconGrid`-slot uden at vokse `MainWindow` eller `MainViewModel`
@@ -202,7 +207,18 @@
 ## Dokumentation
 
 - [x] Hold `README.md` opdateret efter hver større refactor-fase
+- [x] Dokumentér `AppData\\Roaming\\IconGrid` og hvad de enkelte filer bruges til
+- [x] Dokumentér hardware-monitor startup via Scheduled Task
+- [ ] Dokumentér den endelige startup-model, når dobbelt-instans-problemet er helt afklaret
 - [ ] Dokumentér nye controls/helpers når de bliver arkitektonisk vigtige
+
+## Kendte åbne problemer
+
+- Startup kan stadig give to `IconGrid.exe`-processer ved Windows-login
+- Det skal afklares om begge processer er rigtige roller, eller om en gammel startup/task-kopi stadig starter forkert
+- UI-start starter ikke længere selv monitor-tasken direkte; monitoren bør komme fra den installerede logon-task
+- Test-siden viser nu process-id, command line, elevation, task-status og kan bruges til at sammenligne to instanser direkte
+- CPU-temp virker ved manuel start, men vi skal stadig bekræfte at samme adfærd holder efter reboot/startup
 
 ## Localization TODO
 
