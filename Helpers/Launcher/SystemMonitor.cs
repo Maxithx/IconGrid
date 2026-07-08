@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
-using System.Security.Principal;
 using System.Text.Json;
 using System.Windows.Threading;
 using IconGrid.Helpers.Hardware;
@@ -24,11 +23,8 @@ namespace IconGrid.Helpers
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
-        private static readonly TimeSpan AgentRestartCooldown = TimeSpan.FromMinutes(1);
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
-        private DateTime _nextAgentStartAttemptUtc = DateTime.MinValue;
-        private bool _elevatedAgentLaunchAttempted;
 
         private string _networkStatus = "--";
         private string _cpuTemp = "--";
@@ -108,7 +104,6 @@ namespace IconGrid.Helpers
             var configManager = new ConfigManager();
             _monitorStatePath = Path.Combine(configManager.BaseDirectory, "monitor-state.json");
             InitializeNetworkStats();
-            TryStartHardwareMonitorAgent(force: true);
         }
 
         public void Update()
@@ -166,14 +161,12 @@ namespace IconGrid.Helpers
             {
                 if (!File.Exists(_monitorStatePath))
                 {
-                    TryStartHardwareMonitorAgent();
                     return null;
                 }
 
                 var info = new FileInfo(_monitorStatePath);
                 if (DateTime.UtcNow - info.LastWriteTimeUtc > HardwareSnapshotMaxAge)
                 {
-                    TryStartHardwareMonitorAgent();
                     return null;
                 }
 
@@ -181,7 +174,6 @@ namespace IconGrid.Helpers
                 var snapshot = JsonSerializer.Deserialize<HardwareMonitorSnapshot>(json, JsonOptions);
                 if (snapshot == null || DateTime.UtcNow - snapshot.CapturedAtUtc > HardwareSnapshotMaxAge)
                 {
-                    TryStartHardwareMonitorAgent();
                     return null;
                 }
 
@@ -189,67 +181,7 @@ namespace IconGrid.Helpers
             }
             catch
             {
-                TryStartHardwareMonitorAgent();
                 return null;
-            }
-        }
-
-        private void TryStartHardwareMonitorAgent(bool force = false)
-        {
-            var now = DateTime.UtcNow;
-            if (!force && now < _nextAgentStartAttemptUtc)
-            {
-                return;
-            }
-
-            _nextAgentStartAttemptUtc = now + AgentRestartCooldown;
-
-            try
-            {
-                var currentProcessPath = Environment.ProcessPath;
-                if (string.IsNullOrWhiteSpace(currentProcessPath) || !File.Exists(currentProcessPath))
-                {
-                    return;
-                }
-
-                var startInfo = new ProcessStartInfo(currentProcessPath)
-                {
-                    UseShellExecute = true,
-                    WorkingDirectory = Path.GetDirectoryName(currentProcessPath) ?? AppContext.BaseDirectory,
-                    Arguments = $"--monitor-agent --parent-pid {Environment.ProcessId}"
-                };
-
-                if (ShouldRequestElevatedAgent(force))
-                {
-                    startInfo.Verb = "runas";
-                    _elevatedAgentLaunchAttempted = true;
-                }
-
-                Process.Start(startInfo);
-            }
-            catch
-            {
-            }
-        }
-
-        private bool ShouldRequestElevatedAgent(bool force)
-        {
-            return force &&
-                   !_elevatedAgentLaunchAttempted &&
-                   !IsCurrentProcessElevated();
-        }
-
-        private static bool IsCurrentProcessElevated()
-        {
-            try
-            {
-                using var identity = WindowsIdentity.GetCurrent();
-                var principal = new WindowsPrincipal(identity);
-                return principal.IsInRole(WindowsBuiltInRole.Administrator);
-            }
-            catch
-            {
-                return false;
             }
         }
 
