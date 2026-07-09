@@ -32,7 +32,7 @@ namespace IconGrid.ViewModels
         private bool _isAlwaysOnTop = true;
         private bool _showScrollButtons = true;
         private bool _startWithWindows = false;
-        private StartupLaunchMode _startupLaunchMode = StartupLaunchMode.LegacyRun;
+        private StartupLaunchMode _startupLaunchMode = StartupLaunchMode.TaskScheduler;
         private bool _isFloatingIconTopmost = true;
         private double _lastRowPaddingAdjust = 0;
         private double _uiScale = 1.0;
@@ -508,22 +508,6 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
-        /// Chooses the startup mechanism used when Windows startup is enabled.
-        /// </summary>
-        public StartupLaunchMode StartupMode
-        {
-            get => _startupLaunchMode;
-            set
-            {
-                if (SetField(ref _startupLaunchMode, value))
-                {
-                    SaveSettingsToConfig();
-                    TryUpdateStartupRegistration(_startWithWindows, value);
-                }
-            }
-        }
-
-        /// <summary>
         /// Fixed width for the content area so all categories align the same.
         /// </summary>
         public double FixedContentWidth
@@ -922,7 +906,7 @@ namespace IconGrid.ViewModels
             _showScrollButtons = state.ShowScrollButtons;
             _themeState.ApplyConfig(config);
             _startWithWindows = state.StartWithWindows;
-            _startupLaunchMode = state.StartupLaunchMode;
+            _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
             _showDesktopIcon = state.ShowDesktopIcon;
             _showDevOverlay = state.ShowDevOverlay;
@@ -954,7 +938,7 @@ namespace IconGrid.ViewModels
             _showScrollButtons = true;
             _enableContentScroll = true;
             _startWithWindows = true;
-            _startupLaunchMode = StartupLaunchMode.LegacyRun;
+            _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _showDevOverlay = false;
             _language = "da";
             _themeState.SetIsLightTheme(true);
@@ -1039,7 +1023,6 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(TopmostState));
             OnPropertyChanged(nameof(ShowScrollButtons));
             OnPropertyChanged(nameof(StartWithWindows));
-            OnPropertyChanged(nameof(StartupMode));
             OnPropertyChanged(nameof(ShowDevOverlay));
             OnPropertyChanged(nameof(Language));
             OnPropertyChanged(nameof(IconsPerRow));
@@ -1453,10 +1436,6 @@ namespace IconGrid.ViewModels
         public string IconsPerRowLabel => _localizationState.Get(Language, "IconsPerRow");
         public string IconRowSpacingLabel => _localizationState.Get(Language, "IconRowSpacing");
         public string StartWithWindowsLabel => _localizationState.Get(Language, "StartWithWindows");
-        public string StartupModeLabel => _localizationState.Get(Language, "StartupMode");
-        public string StartupModeDescription => _localizationState.Get(Language, "StartupModeDescription");
-        public string StartupModeLegacyLabel => _localizationState.Get(Language, "StartupModeLegacy");
-        public string StartupModeTaskSchedulerLabel => _localizationState.Get(Language, "StartupModeTaskScheduler");
         public string LastRowPaddingLabel => _localizationState.Get(Language, "LastRowPadding");
         public string IconSizeLabel => _localizationState.Get(Language, "IconSize");
         public string UiScaleLabel => _localizationState.Get(Language, "UiScale");
@@ -1572,10 +1551,6 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(IconsPerRowLabel));
             OnPropertyChanged(nameof(IconRowSpacingLabel));
             OnPropertyChanged(nameof(StartWithWindowsLabel));
-            OnPropertyChanged(nameof(StartupModeLabel));
-            OnPropertyChanged(nameof(StartupModeDescription));
-            OnPropertyChanged(nameof(StartupModeLegacyLabel));
-            OnPropertyChanged(nameof(StartupModeTaskSchedulerLabel));
             OnPropertyChanged(nameof(LastRowPaddingLabel));
             OnPropertyChanged(nameof(IconSizeLabel));
             OnPropertyChanged(nameof(UiScaleLabel));

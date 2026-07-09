@@ -55,6 +55,8 @@ It is intended to survive chat drift and should be treated as the temporary sour
   - one scheduled task for UI startup with `--startup-launch`
   - one scheduled task for the monitor agent with `--monitor-agent`
 - The startup UI task no longer starts the monitor directly when launched by Windows.
+- The startup mode selector has been removed from Startside.
+- Task Scheduler is now the default and only startup mode exposed in the UI.
 
 ## Verified working state
 
