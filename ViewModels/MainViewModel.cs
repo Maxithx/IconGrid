@@ -32,6 +32,7 @@ namespace IconGrid.ViewModels
         private bool _isAlwaysOnTop = true;
         private bool _showScrollButtons = true;
         private bool _startWithWindows = false;
+        private StartupLaunchMode _startupLaunchMode = StartupLaunchMode.LegacyRun;
         private bool _isFloatingIconTopmost = true;
         private double _lastRowPaddingAdjust = 0;
         private double _uiScale = 1.0;
@@ -501,7 +502,23 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _startWithWindows, value))
                 {
                     SaveSettingsToConfig();
-                    TryUpdateStartupRegistration(value);
+                    TryUpdateStartupRegistration(value, _startupLaunchMode);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Chooses the startup mechanism used when Windows startup is enabled.
+        /// </summary>
+        public StartupLaunchMode StartupMode
+        {
+            get => _startupLaunchMode;
+            set
+            {
+                if (SetField(ref _startupLaunchMode, value))
+                {
+                    SaveSettingsToConfig();
+                    TryUpdateStartupRegistration(_startWithWindows, value);
                 }
             }
         }
@@ -905,6 +922,7 @@ namespace IconGrid.ViewModels
             _showScrollButtons = state.ShowScrollButtons;
             _themeState.ApplyConfig(config);
             _startWithWindows = state.StartWithWindows;
+            _startupLaunchMode = state.StartupLaunchMode;
             _uiScale = state.UiScale;
             _showDesktopIcon = state.ShowDesktopIcon;
             _showDevOverlay = state.ShowDevOverlay;
@@ -936,6 +954,7 @@ namespace IconGrid.ViewModels
             _showScrollButtons = true;
             _enableContentScroll = true;
             _startWithWindows = true;
+            _startupLaunchMode = StartupLaunchMode.LegacyRun;
             _showDevOverlay = false;
             _language = "da";
             _themeState.SetIsLightTheme(true);
@@ -998,9 +1017,6 @@ namespace IconGrid.ViewModels
 
         private void RunStartupInitialization()
         {
-            // Ensure startup registration matches the saved setting on app launch.
-            TryUpdateStartupRegistration(_startWithWindows);
-
             // Load persisted items if present.
             MaybeMigrateItemsFromLegacy();
             LoadItemsFromFile();
@@ -1023,6 +1039,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(TopmostState));
             OnPropertyChanged(nameof(ShowScrollButtons));
             OnPropertyChanged(nameof(StartWithWindows));
+            OnPropertyChanged(nameof(StartupMode));
             OnPropertyChanged(nameof(ShowDevOverlay));
             OnPropertyChanged(nameof(Language));
             OnPropertyChanged(nameof(IconsPerRow));
@@ -1045,7 +1062,7 @@ namespace IconGrid.ViewModels
         // ---------- Commands / handling ----------
 
         [SupportedOSPlatform("windows")]
-        private void TryUpdateStartupRegistration(bool enable)
+        private void TryUpdateStartupRegistration(bool enable, StartupLaunchMode mode)
         {
             if (!OperatingSystem.IsWindows())
                 return;
@@ -1055,20 +1072,71 @@ namespace IconGrid.ViewModels
                 if (string.IsNullOrWhiteSpace(exePath))
                     return;
 
+                var needsElevatedTaskSchedulerChange =
+                    mode == StartupLaunchMode.TaskScheduler &&
+                    !IsCurrentProcessElevated() &&
+                    (enable || StartupTaskManager.TaskSchedulerExists());
+
+                if (needsElevatedTaskSchedulerChange)
+                {
+                    LaunchStartupTaskInstallerElevated();
+                    return;
+                }
+
                 if (enable)
                 {
-                    StartupTaskManager.CleanupLegacyStartupEntries();
-                    StartupTaskManager.Register(exePath);
+                    StartupTaskManager.ApplyStartupMode(exePath, mode, enable);
                 }
                 else
                 {
                     StartupTaskManager.Unregister();
+                    StartupTaskManager.UnregisterTaskScheduler();
                     StartupTaskManager.CleanupLegacyStartupEntries();
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine("Failed to update startup registration: " + ex);
+            }
+        }
+
+        [SupportedOSPlatform("windows")]
+        private void LaunchStartupTaskInstallerElevated()
+        {
+            try
+            {
+                var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (string.IsNullOrWhiteSpace(exePath))
+                    return;
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    Arguments = "--install-startup-task",
+                    UseShellExecute = true,
+                    Verb = "runas",
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                Process.Start(startInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Failed to launch elevated startup task installer: " + ex);
+            }
+        }
+
+        private static bool IsCurrentProcessElevated()
+        {
+            try
+            {
+                using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+                var principal = new System.Security.Principal.WindowsPrincipal(identity);
+                return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -1239,6 +1307,7 @@ namespace IconGrid.ViewModels
                 ShowScrollButtons = _showScrollButtons,
                 IsLightTheme = _themeState.IsLightTheme,
                 StartWithWindows = _startWithWindows,
+                StartupLaunchMode = _startupLaunchMode,
                 ShowDevOverlay = _showDevOverlay,
                 IconRowSpacing = _iconRowSpacing,
                 LastRowPaddingAdjust = _lastRowPaddingAdjust,
@@ -1384,6 +1453,10 @@ namespace IconGrid.ViewModels
         public string IconsPerRowLabel => _localizationState.Get(Language, "IconsPerRow");
         public string IconRowSpacingLabel => _localizationState.Get(Language, "IconRowSpacing");
         public string StartWithWindowsLabel => _localizationState.Get(Language, "StartWithWindows");
+        public string StartupModeLabel => _localizationState.Get(Language, "StartupMode");
+        public string StartupModeDescription => _localizationState.Get(Language, "StartupModeDescription");
+        public string StartupModeLegacyLabel => _localizationState.Get(Language, "StartupModeLegacy");
+        public string StartupModeTaskSchedulerLabel => _localizationState.Get(Language, "StartupModeTaskScheduler");
         public string LastRowPaddingLabel => _localizationState.Get(Language, "LastRowPadding");
         public string IconSizeLabel => _localizationState.Get(Language, "IconSize");
         public string UiScaleLabel => _localizationState.Get(Language, "UiScale");
@@ -1499,6 +1572,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(IconsPerRowLabel));
             OnPropertyChanged(nameof(IconRowSpacingLabel));
             OnPropertyChanged(nameof(StartWithWindowsLabel));
+            OnPropertyChanged(nameof(StartupModeLabel));
+            OnPropertyChanged(nameof(StartupModeDescription));
+            OnPropertyChanged(nameof(StartupModeLegacyLabel));
+            OnPropertyChanged(nameof(StartupModeTaskSchedulerLabel));
             OnPropertyChanged(nameof(LastRowPaddingLabel));
             OnPropertyChanged(nameof(IconSizeLabel));
             OnPropertyChanged(nameof(UiScaleLabel));
@@ -1626,6 +1703,7 @@ namespace IconGrid.ViewModels
         {
             // Apply default values without touching user tabs or items.
             var previousStartWithWindows = _startWithWindows;
+            var previousStartupLaunchMode = _startupLaunchMode;
 
             ApplyDefaultSettingsState();
             _layoutState.ResetToDefaults();
@@ -1634,9 +1712,9 @@ namespace IconGrid.ViewModels
             NotifyDefaultSettingsApplied();
             SaveSettingsToConfig();
 
-            if (previousStartWithWindows != _startWithWindows)
+            if (previousStartWithWindows != _startWithWindows || previousStartupLaunchMode != _startupLaunchMode)
             {
-                TryUpdateStartupRegistration(_startWithWindows);
+                TryUpdateStartupRegistration(_startWithWindows, _startupLaunchMode);
             }
         }
         private void EnsureIconPackFolder()

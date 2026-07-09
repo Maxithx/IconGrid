@@ -37,7 +37,7 @@
                            FontSize="13"
                            TextWrapping="Wrap"
                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                           Text="This page helps compare two running instances of IconGrid." />
+                           Text="This page helps compare startup state, elevation, and running instances of IconGrid." />
                 </StackPanel>
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
@@ -75,12 +75,12 @@
                         <TextBlock FontSize="16"
                                    FontWeight="SemiBold"
                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="Hardware monitor task" />
+                                   Text="Startup diagnostics" />
                         <TextBlock Margin="0,10,0,0"
                                    FontFamily="Consolas"
                                    TextWrapping="Wrap"
                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="{Binding TaskInfo, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                                   Text="{Binding StartupDiagnosticsInfo, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
                     </StackPanel>
                 </Border>
 
@@ -93,7 +93,7 @@
                         <TextBlock Margin="0,10,0,0"
                                    TextWrapping="Wrap"
                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="If one instance can drag-and-drop shortcuts and the other cannot, compare the command line and elevation data here." />
+                                   Text="If Windows startup creates a duplicate or elevated IconGrid instance again, check the Task Scheduler and legacy startup entries shown above before changing code." />
                     </StackPanel>
                 </Border>
                 </StackPanel>

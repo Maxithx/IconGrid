@@ -28,6 +28,7 @@ namespace IconGrid.ViewModels.Settings
                 config.ShowScrollButtons = state.ShowScrollButtons;
                 config.IsLightTheme = state.IsLightTheme;
                 config.StartWithWindows = state.StartWithWindows;
+                config.StartupLaunchMode = state.StartupLaunchMode;
                 config.ShowDevOverlay = state.ShowDevOverlay;
                 config.IconRowSpacing = state.IconRowSpacing;
                 config.LastRowPaddingAdjust = state.LastRowPaddingAdjust;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using IconGrid.Helpers.Hardware;
+using Microsoft.Win32;
 
 namespace IconGrid.Views;
 
@@ -16,7 +17,7 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
 {
     private string _instanceInfo = string.Empty;
     private string _processInfo = string.Empty;
-    private string _taskInfo = string.Empty;
+    private string _startupDiagnosticsInfo = string.Empty;
     private string _summaryText = string.Empty;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -33,10 +34,10 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         private set => SetField(ref _processInfo, value);
     }
 
-    public string TaskInfo
+    public string StartupDiagnosticsInfo
     {
-        get => _taskInfo;
-        private set => SetField(ref _taskInfo, value);
+        get => _startupDiagnosticsInfo;
+        private set => SetField(ref _startupDiagnosticsInfo, value);
     }
 
     public string SummaryText
@@ -55,7 +56,7 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         Loaded -= UserControl_Loaded;
         InstanceInfo = BuildInstanceInfo();
         ProcessInfo = BuildProcessInfo();
-        TaskInfo = BuildTaskInfo();
+        StartupDiagnosticsInfo = BuildStartupDiagnosticsInfo();
         SummaryText = BuildSummaryText();
     }
 
@@ -87,14 +88,25 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         return sb.ToString().TrimEnd();
     }
 
-    private static string BuildTaskInfo()
+    private static string BuildStartupDiagnosticsInfo()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Task Scheduler");
+        sb.AppendLine(BuildTaskSchedulerInfo());
+        sb.AppendLine();
+        sb.AppendLine("Legacy startup entries");
+        sb.AppendLine(BuildLegacyStartupInfo());
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string BuildTaskSchedulerInfo()
     {
         try
         {
             var startInfo = new ProcessStartInfo
             {
                 FileName = "schtasks.exe",
-                Arguments = "/Query /TN \"IconGrid Hardware Monitor Agent\" /FO LIST /V",
+                Arguments = "/Query /FO LIST /V",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -119,11 +131,149 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
                     : error.Trim();
             }
 
-            return output.Trim();
+            var matches = ParseScheduledTasks(output);
+            if (matches.Count == 0)
+            {
+                return "No Task Scheduler entries containing IconGrid were found.";
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Found {matches.Count} Task Scheduler entr{(matches.Count == 1 ? "y" : "ies")} containing IconGrid:");
+            foreach (var match in matches)
+            {
+                sb.AppendLine($"- {match}");
+            }
+
+            return sb.ToString().TrimEnd();
         }
         catch (Exception ex)
         {
             return $"Task query failed: {ex.Message}";
+        }
+    }
+
+    private static List<string> ParseScheduledTasks(string output)
+    {
+        var matches = new List<string>();
+        var blocks = output.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var block in blocks)
+        {
+            string? taskName = null;
+            string? status = null;
+
+            foreach (var rawLine in block.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var line = rawLine.Trim();
+                if (line.StartsWith("TaskName:", StringComparison.OrdinalIgnoreCase))
+                {
+                    taskName = line["TaskName:".Length..].Trim();
+                }
+                else if (line.StartsWith("Status:", StringComparison.OrdinalIgnoreCase))
+                {
+                    status = line["Status:".Length..].Trim();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(taskName) &&
+                taskName.Contains("IconGrid", StringComparison.OrdinalIgnoreCase))
+            {
+                var entry = taskName;
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    entry += $" ({status})";
+                }
+
+                matches.Add(entry);
+            }
+        }
+
+        return matches.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static string BuildLegacyStartupInfo()
+    {
+        var matches = new List<string>();
+
+        AddRunEntryMatches(matches, Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKCU Run");
+        AddRunEntryMatches(matches, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", "HKLM Run");
+        AddStartupApprovedMatches(matches, Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", "HKCU StartupApproved");
+        AddStartupApprovedMatches(matches, Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", "HKLM StartupApproved");
+        AddStartupFolderMatches(matches, Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Current user Startup folder");
+        AddStartupFolderMatches(matches, Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup), "All users Startup folder");
+
+        if (matches.Count == 0)
+        {
+            return "No legacy startup entries containing IconGrid were found.";
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Found {matches.Count} legacy startup entr{(matches.Count == 1 ? "y" : "ies")} containing IconGrid:");
+        foreach (var match in matches)
+        {
+            sb.AppendLine($"- {match}");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static void AddRunEntryMatches(List<string> matches, RegistryKey root, string subKeyPath, string label)
+    {
+        try
+        {
+            using var key = root.OpenSubKey(subKeyPath, writable: false);
+            if (key == null)
+            {
+                return;
+            }
+
+            var value = key.GetValue("IconGrid");
+            if (value != null)
+            {
+                matches.Add($"{label}: {value}");
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void AddStartupApprovedMatches(List<string> matches, RegistryKey root, string subKeyPath, string label)
+    {
+        try
+        {
+            using var key = root.OpenSubKey(subKeyPath, writable: false);
+            if (key == null)
+            {
+                return;
+            }
+
+            if (key.GetValue("IconGrid") != null)
+            {
+                matches.Add($"{label}: IconGrid");
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    private static void AddStartupFolderMatches(List<string> matches, string folder, string label)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(folder, "*IconGrid*.lnk", SearchOption.TopDirectoryOnly))
+            {
+                matches.Add($"{label}: {Path.GetFileName(file)}");
+            }
+        }
+        catch
+        {
         }
     }
 

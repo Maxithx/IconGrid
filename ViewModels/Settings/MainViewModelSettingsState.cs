@@ -15,6 +15,7 @@ namespace IconGrid.ViewModels.Settings
         public bool ShowScrollButtons { get; set; }
         public bool IsLightTheme { get; set; }
         public bool StartWithWindows { get; set; }
+        public StartupLaunchMode StartupLaunchMode { get; set; }
         public bool ShowDevOverlay { get; set; }
         public double IconRowSpacing { get; set; }
         public double LastRowPaddingAdjust { get; set; }

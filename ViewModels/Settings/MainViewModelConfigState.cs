@@ -10,6 +10,7 @@ namespace IconGrid.ViewModels.Settings
         public bool IsFloatingIconTopmost { get; init; }
         public bool ShowScrollButtons { get; init; }
         public bool StartWithWindows { get; init; }
+        public StartupLaunchMode StartupLaunchMode { get; init; }
         public double UiScale { get; init; }
         public bool ShowDesktopIcon { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -36,6 +37,7 @@ namespace IconGrid.ViewModels.Settings
                 IsFloatingIconTopmost = config.IsFloatingIconTopmost,
                 ShowScrollButtons = config.ShowScrollButtons,
                 StartWithWindows = config.StartWithWindows,
+                StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 ShowDevOverlay = config.ShowDevOverlay,

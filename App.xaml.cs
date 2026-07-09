@@ -14,6 +14,7 @@ namespace IconGrid;
 public partial class App : System.Windows.Application
 {
     private bool _isMonitorAgentMode;
+    private bool _isWindowsStartupLaunch;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -22,6 +23,27 @@ public partial class App : System.Windows.Application
         WinForms.Application.SetHighDpiMode(WinForms.HighDpiMode.PerMonitorV2);
         base.OnStartup(e);
 
+        if (e.Args.Any(arg => string.Equals(arg, "--install-startup-task", StringComparison.OrdinalIgnoreCase)))
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try
+            {
+                var configManager = new ConfigManager();
+                var config = configManager.LoadConfig();
+                var exePath = Environment.ProcessPath ?? string.Empty;
+                var ok = StartupTaskManager.ApplyStartupMode(exePath, config.StartupLaunchMode, config.StartWithWindows);
+                WriteTrace($"Startup task installer finished. Success={ok}, Mode={config.StartupLaunchMode}, Enabled={config.StartWithWindows}");
+                Shutdown(ok ? 0 : -1);
+            }
+            catch (Exception ex)
+            {
+                ReportFatal(ex, "startup-task-installer");
+                Shutdown(-1);
+            }
+            return;
+        }
+
+        _isWindowsStartupLaunch = e.Args.Any(arg => string.Equals(arg, "--startup-launch", StringComparison.OrdinalIgnoreCase));
         _isMonitorAgentMode = e.Args.Any(arg => string.Equals(arg, "--monitor-agent", StringComparison.OrdinalIgnoreCase));
 
         WriteTrace("OnStartup begin");
@@ -39,7 +61,14 @@ public partial class App : System.Windows.Application
             }
 
             WriteTrace($"Starting launcher UI. Elevated={IsCurrentProcessElevated()}");
-            HardwareMonitorTaskManager.StartAgent(() => Environment.ProcessPath ?? string.Empty, WriteTrace);
+            if (_isWindowsStartupLaunch)
+            {
+                WriteTrace("Windows startup launch detected; monitor agent is expected to be started by its own scheduled task.");
+            }
+            else
+            {
+                HardwareMonitorTaskManager.StartAgent(() => Environment.ProcessPath ?? string.Empty, WriteTrace);
+            }
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();
