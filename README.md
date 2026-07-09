@@ -119,15 +119,17 @@ The data folder is created automatically on startup by `ConfigManager`.
 
 ## Hardware monitor startup
 
-IconGrid starts the hardware monitor as a separate elevated child process named `--monitor-agent`.
+IconGrid uses a split startup model:
 
-- The launcher stays standard-user for drag-and-drop compatibility.
-- The monitor agent is launched with `runas` so Windows shows UAC when elevation is needed.
-- The agent receives the launcher PID through `--parent-pid` so the two processes stay linked.
-- A legacy scheduled task entry is removed opportunistically if it is still present from an older build.
-- If Windows startup ever launches a duplicate or elevated IconGrid instance again, the first thing to check is Task Scheduler for a stale `IconGrid` task. That can create the extra instance and the `Conhost` / `schtasks` chain.
+- Windows startup launches the launcher UI silently through Task Scheduler.
+- The launcher UI starts with `--startup-launch` when Windows logs in.
+- The hardware monitor runs as a separate scheduled task named `IconGrid Monitor` with `--monitor-agent`.
+- The monitor task is elevated so CPU/GPU telemetry can still work.
+- Manual launcher starts still keep the normal UAC behavior for the monitor path.
+- The startup-mode selector was removed from `StartsidePage.xaml` after the Task Scheduler vs. legacy test phase.
+- If Windows startup ever launches a duplicate or elevated IconGrid instance again, the first thing to check is Task Scheduler for stale `IconGrid` or `IconGrid Monitor` tasks.
 
-This keeps the UI non-elevated while preserving a direct parent-child relationship between the launcher and the hardware monitor.
+This keeps the UI non-elevated while preserving hardware telemetry access and avoiding the extra `Conhost` / `schtasks` startup chain.
 
 ## Versioning
 
