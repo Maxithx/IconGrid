@@ -45,11 +45,16 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 ## Architecture
 
+### Models
+
+- `Models/` contains the shared data contracts and enums used across the app, including launcher config, layout data, and startup mode definitions.
+
 ### ViewModels
 
 - `ViewModels/MainViewModel.cs` remains the root launcher view model.
 - `ViewModels/Launcher/` contains launcher-specific state and managers such as tabs, items, layout, theme, overlay, localization, and item launch handling.
 - `ViewModels/Settings/` contains config and persistence helpers used to translate and save launcher settings state.
+- `ViewModels/Settings/` also contains the smaller state objects that keep `MainViewModel` from turning into a feature dump.
 
 ### Views
 
@@ -98,8 +103,8 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 
 - The project targets Windows and is organized around small WPF shells plus modular controls/state helpers.
 - After the current refactor, launcher UI, settings UI, helpers, and feature-specific view-model code are grouped by responsibility rather than staying flat in a few root folders.
-- See [ARCHITECTURE_RULES.md](/E:/IconGrid/ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
-- See [GIT_WORKFLOW.md](/E:/IconGrid/GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
+- See [ARCHITECTURE_RULES.md](C:\THX-Projekter\IconGrid\ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
+- See [GIT_WORKFLOW.md](C:\THX-Projekter\IconGrid\GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
 
 ## Local data folder
 
