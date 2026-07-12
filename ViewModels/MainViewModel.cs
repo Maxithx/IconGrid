@@ -937,7 +937,7 @@ namespace IconGrid.ViewModels
             _isFloatingIconTopmost = true;
             _showScrollButtons = true;
             _enableContentScroll = true;
-            _startWithWindows = true;
+            _startWithWindows = false;
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _showDevOverlay = false;
             _language = "da";
@@ -1058,7 +1058,7 @@ namespace IconGrid.ViewModels
                 var needsElevatedTaskSchedulerChange =
                     mode == StartupLaunchMode.TaskScheduler &&
                     !IsCurrentProcessElevated() &&
-                    (enable || StartupTaskManager.TaskSchedulerExists());
+                    (enable || StartupTaskManager.TaskSchedulerExists() || StartupTaskManager.MonitorTaskSchedulerExists());
 
                 if (needsElevatedTaskSchedulerChange)
                 {
@@ -1074,6 +1074,7 @@ namespace IconGrid.ViewModels
                 {
                     StartupTaskManager.Unregister();
                     StartupTaskManager.UnregisterTaskScheduler();
+                    StartupTaskManager.UnregisterMonitorTaskScheduler();
                     StartupTaskManager.CleanupLegacyStartupEntries();
                 }
             }

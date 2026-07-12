@@ -96,12 +96,22 @@ public static class StartupTaskManager
 
     public static bool TaskSchedulerExists()
     {
+        return ScheduledTaskExists(TaskName);
+    }
+
+    public static bool MonitorTaskSchedulerExists()
+    {
+        return ScheduledTaskExists(MonitorTaskName);
+    }
+
+    private static bool ScheduledTaskExists(string taskName)
+    {
         try
         {
             var script = string.Join(Environment.NewLine, new[]
             {
                 "Import-Module ScheduledTasks",
-                $"$task = Get-ScheduledTask -TaskName '{TaskName}' -ErrorAction SilentlyContinue",
+                $"$task = Get-ScheduledTask -TaskName '{EscapePowerShellSingleQuotedString(taskName)}' -ErrorAction SilentlyContinue",
                 "if ($null -ne $task) { exit 0 }",
                 "exit 1"
             });

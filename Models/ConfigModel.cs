@@ -16,7 +16,7 @@ public class ConfigModel
     public bool ShowScrollButtons { get; set; } = true;
     public bool EnableContentScroll { get; set; } = true;
     public bool IsLightTheme { get; set; } = true;
-    public bool StartWithWindows { get; set; } = true;
+    public bool StartWithWindows { get; set; } = false;
     public StartupLaunchMode StartupLaunchMode { get; set; } = StartupLaunchMode.TaskScheduler;
     public bool ShowDevOverlay { get; set; } = false;
     public double IconRowSpacing { get; set; } = -20;       // px
