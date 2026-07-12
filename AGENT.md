@@ -23,6 +23,7 @@ Before making changes, read these files in this order:
 - If startup or elevation behavior is involved, verify it against the actual code and Windows state.
 - If Windows startup creates a duplicate or elevated IconGrid instance, inspect Task Scheduler first for a stale `IconGrid` task before changing application code.
 - Keep changes small and verify them with a build before claiming the issue is fixed.
+- An active GitHub CLI (`gh`) login is not required for `git commit` or `git push`; use the repository's configured Git credentials. Only require `gh` authentication for GitHub CLI operations such as creating pull requests.
 
 ## Current focus
 
