@@ -2,6 +2,9 @@
 bin/
 obj/
 .vs/
+.nuget/
+.vscode/launch.json
+.vscode/settings.json
 *.user
 *.log
 *.suo

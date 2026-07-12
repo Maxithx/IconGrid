@@ -37,6 +37,7 @@ namespace IconGrid.ViewModels
         private double _lastRowPaddingAdjust = 0;
         private double _uiScale = 1.0;
         private bool _showDesktopIcon = true;
+        private bool _startDirectlyInLauncher = false;
         private bool _showDevOverlay = false;
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
@@ -459,6 +460,18 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _showDesktopIcon, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        public bool StartDirectlyInLauncher
+        {
+            get => _startDirectlyInLauncher;
+            set
+            {
+                if (SetField(ref _startDirectlyInLauncher, value))
                 {
                     SaveSettingsToConfig();
                 }
@@ -909,6 +922,7 @@ namespace IconGrid.ViewModels
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
             _showDesktopIcon = state.ShowDesktopIcon;
+            _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
             _iconRowSpacing = state.IconRowSpacing;
             _lastRowPaddingAdjust = state.LastRowPaddingAdjust;
@@ -940,6 +954,7 @@ namespace IconGrid.ViewModels
             _startWithWindows = false;
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _showDevOverlay = false;
+            _startDirectlyInLauncher = false;
             _language = "da";
             _themeState.SetIsLightTheme(true);
             _floatingLeft = null;
@@ -1286,6 +1301,7 @@ namespace IconGrid.ViewModels
                 IconScale = _icon_scale,
                 UiScale = _uiScale,
                 ShowDesktopIcon = _showDesktopIcon,
+                StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,
                 IsFloatingIconTopmost = _isFloatingIconTopmost,
                 ShowScrollButtons = _showScrollButtons,
@@ -1444,6 +1460,8 @@ namespace IconGrid.ViewModels
         public string FloatingIconTopmostLabel => _localizationState.Get(Language, "FloatingIconTopmost");
         public string ShowScrollButtonsLabel => _localizationState.Get(Language, "ShowScrollButtons");
         public string ShowDesktopIconLabel => _localizationState.Get(Language, "ShowDesktopIcon");
+        public string StartDirectlyInLauncherLabel => _localizationState.Get(Language, "StartDirectlyInLauncher");
+        public string StartDirectlyInLauncherDescription => _localizationState.Get(Language, "StartDirectlyInLauncherDescription");
         public string LanguageLabel => _localizationState.Get(Language, "Language");
         public string ResetDefaultsLabel => _localizationState.Get(Language, "ResetDefaults");
         public string EnableSlideUpAnimationLabel => _localizationState.Get(Language, "EnableSlideUpAnimation");
@@ -1559,6 +1577,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(FloatingIconTopmostLabel));
             OnPropertyChanged(nameof(ShowScrollButtonsLabel));
             OnPropertyChanged(nameof(ShowDesktopIconLabel));
+            OnPropertyChanged(nameof(StartDirectlyInLauncherLabel));
+            OnPropertyChanged(nameof(StartDirectlyInLauncherDescription));
             OnPropertyChanged(nameof(LanguageLabel));
             OnPropertyChanged(nameof(ResetDefaultsLabel));
             OnPropertyChanged(nameof(EnableSlideUpAnimationLabel));

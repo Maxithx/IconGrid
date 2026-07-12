@@ -23,6 +23,7 @@ namespace IconGrid.ViewModels.Settings
                 config.IconScale = state.IconScale;
                 config.UiScale = state.UiScale;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
+                config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;
                 config.IsFloatingIconTopmost = state.IsFloatingIconTopmost;
                 config.ShowScrollButtons = state.ShowScrollButtons;

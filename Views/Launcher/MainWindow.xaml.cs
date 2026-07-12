@@ -905,8 +905,15 @@ namespace IconGrid.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            EnterFloatingMode(showTray: false);
-            PositionFloatingIcon();
+            if (_viewModel.StartDirectlyInLauncher)
+            {
+                EnterFullMode();
+            }
+            else
+            {
+                EnterFloatingMode(showTray: false);
+                PositionFloatingIcon();
+            }
             Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Background);
 
         }
@@ -1291,7 +1298,14 @@ namespace IconGrid.Views
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            EnterFloatingMode(showTray: true);
+            if (_viewModel.StartDirectlyInLauncher)
+            {
+                ExitApplication();
+            }
+            else
+            {
+                EnterFloatingMode(showTray: true);
+            }
         }
 
         private void FloatingIconButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

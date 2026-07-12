@@ -10,6 +10,7 @@ namespace IconGrid.ViewModels.Settings
         public double IconScale { get; set; }
         public double UiScale { get; set; }
         public bool ShowDesktopIcon { get; set; }
+        public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }
         public bool IsFloatingIconTopmost { get; set; }
         public bool ShowScrollButtons { get; set; }

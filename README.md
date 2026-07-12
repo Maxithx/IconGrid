@@ -8,7 +8,7 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 
 ![IconGrid Floating icon Screenshot](Assets/git-img/Floatingicon.png)
 
-- IconGrid starts in floating-icon mode.
+- IconGrid can start in floating-icon mode, or go directly into the full launcher if the new "start directly in launcher" option is enabled on the Startside page.
 - Left-click expands the main launcher window.
 - Right-click opens the localized exit menu for fully closing the app.
 
@@ -131,6 +131,7 @@ IconGrid uses a split startup model:
 - The hardware monitor runs as a separate scheduled task named `IconGrid Monitor` with `--monitor-agent`.
 - The monitor task is elevated so CPU/GPU telemetry can still work.
 - Manual launcher starts still keep the normal UAC behavior for the monitor path.
+- If "start directly in launcher" is enabled, the launcher opens straight into the full UI and skips the floating icon on Windows sign-in, logon, and restart.
 - The startup-mode selector was removed from `StartsidePage.xaml` after the Task Scheduler vs. legacy test phase.
 - If Windows startup ever launches a duplicate or elevated IconGrid instance again, the first thing to check is Task Scheduler for stale `IconGrid` or `IconGrid Monitor` tasks.
 

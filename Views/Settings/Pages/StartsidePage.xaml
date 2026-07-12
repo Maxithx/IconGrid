@@ -96,6 +96,25 @@
                                 </Grid>
                             </StackPanel>
 
+                            <Grid Margin="0,18,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding StartDirectlyInLauncherLabel}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Text="{Binding StartDirectlyInLauncherDescription}"
+                                               Margin="0,4,20,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding StartDirectlyInLauncher, Mode=TwoWay}" />
+                            </Grid>
+
                             <StackPanel Margin="0,18,0,0">
                                 <TextBlock Margin="0,0,0,4"
                                            Text="{Binding UiScaleDescription}"

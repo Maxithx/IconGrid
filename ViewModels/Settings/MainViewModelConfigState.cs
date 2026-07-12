@@ -13,6 +13,7 @@ namespace IconGrid.ViewModels.Settings
         public StartupLaunchMode StartupLaunchMode { get; init; }
         public double UiScale { get; init; }
         public bool ShowDesktopIcon { get; init; }
+        public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
         public double IconRowSpacing { get; init; }
         public double LastRowPaddingAdjust { get; init; }
@@ -40,6 +41,7 @@ namespace IconGrid.ViewModels.Settings
                 StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
                 ShowDesktopIcon = config.ShowDesktopIcon,
+                StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
                 IconRowSpacing = config.IconRowSpacing,
                 LastRowPaddingAdjust = config.LastRowPaddingAdjust,

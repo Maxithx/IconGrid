@@ -13,6 +13,7 @@ public class ConfigModel
     public double IconScale { get; set; } = 1.0;           // 100%
     public double UiScale { get; set; } = 1.0;             // 100% UI scaling
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
+    public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
     public bool EnableContentScroll { get; set; } = true;
     public bool IsLightTheme { get; set; } = true;
