@@ -254,7 +254,11 @@ namespace IconGrid.Helpers
         {
             long r = 0;
             long s = 0;
-            var interfaces = NetworkInterface.GetAllNetworkInterfaces().Where(x => x.OperationalStatus == OperationalStatus.Up);
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(x => x.NetworkInterfaceType != NetworkInterfaceType.Loopback
+                         && x.OperationalStatus == OperationalStatus.Up
+                         && x.GetIPProperties().GatewayAddresses.Count > 0
+                         && x.GetIPProperties().GatewayAddresses.Any(g => g.Address.ToString() != "0.0.0.0"));
             foreach (var adapter in interfaces)
             {
                 try
