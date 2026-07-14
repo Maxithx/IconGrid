@@ -33,6 +33,9 @@ namespace IconGrid.Helpers
         private double _cpuUsagePercent;
         private string _cpuClock = "--";
         private string _gpuClock = "--";
+        private string _gpuUsage = "--%";
+        private double _gpuUsagePercent;
+        private string _gpuName = "";
         private string _downloadStatus = "--";
         private string _uploadStatus = "--";
         private bool _isHighPing;
@@ -50,6 +53,9 @@ namespace IconGrid.Helpers
         public double CpuUsagePercent { get => _cpuUsagePercent; private set { _cpuUsagePercent = value; OnPropertyChanged(); } }
         public string CpuClock { get => _cpuClock; private set { _cpuClock = value; OnPropertyChanged(); } }
         public string GpuClock { get => _gpuClock; private set { _gpuClock = value; OnPropertyChanged(); } }
+        public string GpuUsage { get => _gpuUsage; private set { _gpuUsage = value; OnPropertyChanged(); } }
+        public double GpuUsagePercent { get => _gpuUsagePercent; private set { _gpuUsagePercent = value; OnPropertyChanged(); } }
+        public string GpuName { get => _gpuName; private set { _gpuName = value; OnPropertyChanged(); } }
         public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
         public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
 
@@ -139,6 +145,17 @@ namespace IconGrid.Helpers
                     if (!string.IsNullOrWhiteSpace(hardware.GpuClock))
                     {
                         GpuClock = hardware.GpuClock;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuUsage) && hardware.GpuUsagePercent.HasValue)
+                    {
+                        GpuUsage = hardware.GpuUsage;
+                        GpuUsagePercent = hardware.GpuUsagePercent.Value;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuName))
+                    {
+                        GpuName = hardware.GpuName;
                     }
 
                     IsPawnIoAvailable = hardware.IsPawnIoAvailable;

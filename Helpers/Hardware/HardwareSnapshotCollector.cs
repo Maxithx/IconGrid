@@ -12,6 +12,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
     private readonly Computer _computer;
     private readonly UpdateVisitor _visitor = new();
     private double? _cpuUsageEma;
+    private string? _gpuName;
 
     public HardwareSnapshotCollector()
     {
@@ -44,20 +45,25 @@ public sealed class HardwareSnapshotCollector : IDisposable
 
         var (cpuTemp, gpuTemp) = CaptureTemperatures();
         var cpuUsage = CaptureCpuUsage();
+        var gpuUsage = CaptureGpuUsage();
         var cpuClock = CaptureCpuClock();
         var gpuClock = CaptureGpuClock();
-        var smoothedUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
-        var displayUsage = smoothedUsage.HasValue ? Math.Clamp(smoothedUsage.Value, 1d, 100d) : (double?)null;
+        var smoothedCpuUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
+        var displayCpuUsage = smoothedCpuUsage.HasValue ? Math.Clamp(smoothedCpuUsage.Value, 1d, 100d) : (double?)null;
+        var displayGpuUsage = gpuUsage.HasValue ? Math.Clamp(gpuUsage.Value, 0d, 100d) : (double?)null;
 
         return new HardwareMonitorSnapshot
         {
             CapturedAtUtc = DateTime.UtcNow,
             CpuTemp = cpuTemp,
             GpuTemp = gpuTemp,
-            CpuUsage = displayUsage.HasValue ? $"{displayUsage.Value:F0}%" : null,
-            CpuUsagePercent = displayUsage.HasValue ? displayUsage.Value : null,
+            CpuUsage = displayCpuUsage.HasValue ? $"{displayCpuUsage.Value:F0}%" : null,
+            CpuUsagePercent = displayCpuUsage.HasValue ? displayCpuUsage.Value : null,
+            GpuUsage = displayGpuUsage.HasValue ? $"{displayGpuUsage.Value:F0}%" : null,
+            GpuUsagePercent = displayGpuUsage.HasValue ? displayGpuUsage.Value : null,
             CpuClock = cpuClock,
             GpuClock = gpuClock,
+            GpuName = _gpuName,
             IsPawnIoAvailable = pawnIoAvailable
         };
     }
@@ -153,6 +159,87 @@ public sealed class HardwareSnapshotCollector : IDisposable
         }
 
         return null;
+    }
+
+    private float? CaptureGpuUsage()
+    {
+        _gpuName = null;
+        try
+        {
+            _computer.Accept(_visitor);
+            float? nvidiaUsage = null;
+            string? nvidiaName = null;
+            float? fallbackUsage = null;
+            string? fallbackName = null;
+
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var usageSensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Load && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetGpuUsagePriority(sensor.Name))
+                    .FirstOrDefault();
+
+                if (usageSensor == null)
+                    continue;
+
+                // Prefer NVIDIA GPU (dGPU) over integrated AMD/Intel GPU
+                if (hardware.Name.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+                {
+                    nvidiaUsage = usageSensor.Value;
+                    nvidiaName = hardware.Name;
+                    break; // NVIDIA found, stop looking
+                }
+
+                // Keep fallback in case no NVIDIA is found
+                fallbackUsage ??= usageSensor.Value;
+                fallbackName ??= hardware.Name;
+            }
+
+            if (nvidiaUsage.HasValue)
+            {
+                _gpuName = nvidiaName;
+                return nvidiaUsage.Value;
+            }
+
+            _gpuName = fallbackName;
+            return fallbackUsage;
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private static int GetGpuUsagePriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("GPU Core", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("D3D", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("GPU", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private string? CaptureGpuClock()
