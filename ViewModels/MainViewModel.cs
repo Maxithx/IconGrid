@@ -59,7 +59,7 @@ namespace IconGrid.ViewModels
         private const double ContentVerticalPaddingTop = 36;  // upper padding portion (matches XAML padding)
         private const double ContentVerticalPaddingBottom = 0; // remove bottom padding to eliminate extra space
         private const double ExtraBottomPaddingPerRow = 0;    // no extra bottom padding per row
-        private const double ContentHorizontalPadding = 40;   // content border padding left+right
+        private const double ContentHorizontalPadding = 60;   // content border padding left+right
         private const double WindowHorizontalPadding = 0;     // remove outer shell padding to keep full-mode window tight to content
         private double _headerHeight = 140;                   // measured height for top chrome + tabs
         private double _iconRowSpacing = -20;                 // adjustable extra spacing between rows (default tightened)

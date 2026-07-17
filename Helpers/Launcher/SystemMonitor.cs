@@ -299,10 +299,10 @@ namespace IconGrid.Helpers
         {
             if (bytesPerSecond >= 1048576)
             {
-                return string.Format("{0,3:F1} MB/s", (double)bytesPerSecond / 1048576);
+                return string.Format("{0:F1} MB/s", (double)bytesPerSecond / 1048576);
             }
 
-            return string.Format("{0,3:F0} KB/s", (double)bytesPerSecond / 1024);
+            return string.Format("{0:F0} KB/s", (double)bytesPerSecond / 1024);
         }
 
         private record NetworkSnapshot(
