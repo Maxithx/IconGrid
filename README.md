@@ -34,6 +34,14 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - The window hosts sidebar navigation and loads modular pages from `Views/Settings/Pages/`.
 - `Views/Settings/SettingsWindowCoordinator.cs` now handles launcher-side opening, reuse, placement, and shutdown of the settings window so `MainWindow` no longer owns that lifecycle directly.
 
+### Gaming overlay monitor
+
+- `Views/Launcher/GamingOverlayWindow.xaml` is the compact always-on-top gaming overlay monitor.
+- The overlay reuses the live telemetry stack for network, download/upload, CPU, GPU, and FPS status presentation in a dedicated single-row shell.
+- `Views/GamingOverlayWindowCoordinator.cs` owns opening, reuse, placement, and shutdown of the overlay window.
+- The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
+- The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
+
 ## Settings pages
 
 - `StartsidePage.xaml`: startup, topmost behavior, UI scale, general launcher options, and the built-in `Dansk` / `English` language switcher.
@@ -42,6 +50,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - `HardwarePage.xaml`: hardware diagnostics and related status.
 - `HjaelpPage.xaml`: help and troubleshooting content.
 - `AboutPage.xaml`: version and project information.
+- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale.
 
 ## Architecture
 
@@ -59,6 +68,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 ### Views
 
 - `Views/Launcher/` contains the launcher shell.
+- `Views/Launcher/GamingOverlayWindow.xaml` contains the dedicated gaming overlay monitor shell and inline settings row.
 - `Views/Settings/` contains the settings shell, its pages, dialogs, and coordination helpers.
 - `Views/StartsideStyles.xaml` and `Views/TemplateGuidelines.xaml` are shared view resources.
 
@@ -80,6 +90,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 - Drag-and-drop shortcut management in the launcher grid.
 - Live CPU, GPU, ping, and network telemetry in the launcher top bar.
+- A dedicated gaming overlay monitor with saved window position, inline quick settings, and dedicated overlay settings page.
 - Layout presets and saved desktop layout restoration.
 - Theme synchronization with Windows accent and dark/light mode.
 - Built-in developer overlay via `DevInspector`.
@@ -98,6 +109,13 @@ To ensure both maximum security and compatibility with Windows User Interface Pr
 ## Hardware monitoring
 
 IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware access may require administrator privileges at startup because PawnIO and hardware driver access are part of the monitoring flow.
+
+## Gaming overlay roadmap
+
+- The current gaming overlay already exposes a visible FPS field so the layout, scaling, and quick-settings flow can stabilize first.
+- The next planned step is a real FPS counter implementation for the gaming overlay.
+- That FPS work should stay passive and low-risk only: no injection, no DLL detours, and no graphics API hooking.
+- Near-term work is expected to focus on filling the current FPS field with a production-ready passive source as soon as the telemetry path is ready.
 
 ## Developer notes
 

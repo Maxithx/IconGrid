@@ -22,6 +22,7 @@ namespace IconGrid.ViewModels.Settings
                 config.IconsPerRow = state.IconsPerRow;
                 config.IconScale = state.IconScale;
                 config.UiScale = state.UiScale;
+                config.GamingOverlayUiScale = state.GamingOverlayUiScale;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
                 config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;
@@ -39,6 +40,8 @@ namespace IconGrid.ViewModels.Settings
                 config.WindowTop = state.WindowTop;
                 config.SettingsWindowLeft = state.SettingsWindowLeft;
                 config.SettingsWindowTop = state.SettingsWindowTop;
+                config.GamingOverlayWindowLeft = state.GamingOverlayWindowLeft;
+                config.GamingOverlayWindowTop = state.GamingOverlayWindowTop;
                 config.FloatingIconLeft = state.FloatingIconLeft;
                 config.FloatingIconTop = state.FloatingIconTop;
                 config.LayoutPreset = state.LayoutPreset;

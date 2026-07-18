@@ -151,6 +151,7 @@ namespace IconGrid.Views
         private double _lastLoggedTop = double.NaN;
         private readonly FloatingIconController _floatingIconController = new();
         private readonly SettingsWindowCoordinator _settingsWindowCoordinator = new();
+        private readonly GamingOverlayWindowCoordinator _gamingOverlayWindowCoordinator = new();
 
         private record WindowsShortcutTemplate(string DisplayName, string FullPath);
 
@@ -1293,6 +1294,7 @@ namespace IconGrid.Views
             if (!_viewModel.IsFullWindowVisible)
                 return;
 
+            ShowInTaskbar = true;
             WindowState = WindowState.Minimized;
         }
 
@@ -2330,6 +2332,28 @@ namespace IconGrid.Views
         {
             menuItems.Clear();
 
+            var gamingOverlayMenu = new System.Windows.Controls.MenuItem
+            {
+                Header = "Gaming overlay"
+            };
+
+            var gamingHorizontal = new System.Windows.Controls.MenuItem
+            {
+                Header = "Open horizontal"
+            };
+            gamingHorizontal.Click += (_, _) => ShowGamingOverlay(GamingOverlayLayout.Horizontal);
+
+            var gamingVertical = new System.Windows.Controls.MenuItem
+            {
+                Header = "Open vertical"
+            };
+            gamingVertical.Click += (_, _) => ShowGamingOverlay(GamingOverlayLayout.Vertical);
+
+            gamingOverlayMenu.Items.Add(gamingHorizontal);
+            gamingOverlayMenu.Items.Add(gamingVertical);
+            menuItems.Add(gamingOverlayMenu);
+            menuItems.Add(new Separator());
+
             // Add the static "Auto" option
             var autoItem = new System.Windows.Controls.MenuItem
             {
@@ -2466,6 +2490,11 @@ namespace IconGrid.Views
                 UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
                 RefreshLayoutCardSelection();
             }
+        }
+
+        private void ShowGamingOverlay(GamingOverlayLayout layout)
+        {
+            _gamingOverlayWindowCoordinator.Show(this, _viewModel, layout);
         }
 
         private void RefreshLayoutCardSelection()
@@ -3317,6 +3346,7 @@ namespace IconGrid.Views
             }
             ClosePawnIoWarningWindow();
             _settingsWindowCoordinator.Close();
+            _gamingOverlayWindowCoordinator.Close();
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;
@@ -3337,6 +3367,7 @@ namespace IconGrid.Views
             _autoHideTimer?.Stop();
             ClosePawnIoWarningWindow();
             _settingsWindowCoordinator.Close();
+            _gamingOverlayWindowCoordinator.Close();
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;

@@ -12,6 +12,7 @@ namespace IconGrid.ViewModels.Settings
         public bool StartWithWindows { get; init; }
         public StartupLaunchMode StartupLaunchMode { get; init; }
         public double UiScale { get; init; }
+        public double GamingOverlayUiScale { get; init; }
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -25,6 +26,8 @@ namespace IconGrid.ViewModels.Settings
         public double? WindowTop { get; init; }
         public double? SettingsWindowLeft { get; init; }
         public double? SettingsWindowTop { get; init; }
+        public double? GamingOverlayWindowLeft { get; init; }
+        public double? GamingOverlayWindowTop { get; init; }
         public double? FloatingIconLeft { get; init; }
         public double? FloatingIconTop { get; init; }
 
@@ -40,6 +43,7 @@ namespace IconGrid.ViewModels.Settings
                 StartWithWindows = config.StartWithWindows,
                 StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
+                GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, config.GamingOverlayUiScale)),
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
@@ -53,6 +57,8 @@ namespace IconGrid.ViewModels.Settings
                 WindowTop = config.WindowTop,
                 SettingsWindowLeft = config.SettingsWindowLeft,
                 SettingsWindowTop = config.SettingsWindowTop,
+                GamingOverlayWindowLeft = config.GamingOverlayWindowLeft,
+                GamingOverlayWindowTop = config.GamingOverlayWindowTop,
                 FloatingIconLeft = config.FloatingIconLeft,
                 FloatingIconTop = config.FloatingIconTop
             };

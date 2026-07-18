@@ -141,6 +141,11 @@ namespace IconGrid.Views
             ShowPage(new TestPage(), TestNavButton);
         }
 
+        private void GamingOverlayNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowGamingOverlayPage();
+        }
+
         private void AboutNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new AboutPage(), AboutNavButton);
@@ -355,6 +360,16 @@ namespace IconGrid.Views
             {
                 _selectedNavButton.Tag = "Selected";
             }
+        }
+
+        public void NavigateToGamingOverlayPage()
+        {
+            ShowGamingOverlayPage();
+        }
+
+        private void ShowGamingOverlayPage()
+        {
+            ShowPage(new GamingOverlayPage(), GamingOverlayNavButton);
         }
 
         private static FrameworkElement? FindFrameworkElement(DependencyObject? source)

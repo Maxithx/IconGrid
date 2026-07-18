@@ -12,6 +12,7 @@ public class ConfigModel
     public bool IsAlwaysOnTop { get; set; } = false;
     public double IconScale { get; set; } = 1.0;           // 100%
     public double UiScale { get; set; } = 1.0;             // 100% UI scaling
+    public double GamingOverlayUiScale { get; set; } = 1.0; // 100% gaming overlay scaling
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
@@ -27,6 +28,8 @@ public class ConfigModel
     public double? WindowTop { get; set; }
     public double? SettingsWindowLeft { get; set; }
     public double? SettingsWindowTop { get; set; }
+    public double? GamingOverlayWindowLeft { get; set; }
+    public double? GamingOverlayWindowTop { get; set; }
     public bool IsFloatingIconTopmost { get; set; } = true;
     public double? FloatingIconLeft { get; set; }
     public double? FloatingIconTop { get; set; }

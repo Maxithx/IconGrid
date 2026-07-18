@@ -1,0 +1,343 @@
+<Window x:Class="IconGrid.Views.GamingOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helpers="clr-namespace:IconGrid.Helpers"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="IconGrid Gaming Overlay"
+        Width="720"
+        Height="44"
+        MinWidth="720"
+        MinHeight="44"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Foreground="White"
+        ShowInTaskbar="False"
+        Topmost="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                             CornerRadius="0"
+                             GlassFrameThickness="0"
+                             NonClientFrameEdges="None"
+                             ResizeBorderThickness="0" />
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
+        <helpers:PingSeverityToBrushConverter x:Key="PingSeverityBrush" />
+        <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
+        <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
+        <SolidColorBrush x:Key="OverlayCloseHoverBrush" Color="#333333" />
+        <SolidColorBrush x:Key="OverlayClosePressedBrush" Color="#444444" />
+        <SolidColorBrush x:Key="OverlayMenuBorderBrush" Color="#33FFFFFF" />
+
+        <Style x:Key="MonitorTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="#111" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="NetworkMonitorTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SystemMonitor.IsHighPing}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource MonitorHighPingColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="OverlayCloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="OverlayToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid HorizontalAlignment="Right"
+              VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border x:Name="OverlayRoot"
+                    Grid.Row="0"
+                    Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
+                    BorderThickness="0"
+                    CornerRadius="8"
+                    Padding="0"
+                    MouseLeftButtonDown="OverlayRoot_MouseLeftButtonDown">
+                <Grid Height="44">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Margin="14,0,0,0">
+                        <Border Width="10"
+                                Height="10"
+                                CornerRadius="5"
+                                VerticalAlignment="Center"
+                                Margin="0,0,6,0"
+                                Background="{Binding SystemMonitor.PingSeverityLevel, Converter={StaticResource PingSeverityBrush}}" />
+                        <TextBlock Style="{StaticResource NetworkMonitorTextStyle}"
+                                   MinWidth="70"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="{Binding MonitorNetworkLabel, Mode=OneWay}" />
+                            <Run Text=": " />
+                            <Run Text="{Binding SystemMonitor.NetworkStatus, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Margin="2,0,0,0"
+                                   Width="122"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="{Binding MonitorDownloadLabel, Mode=OneWay}" />
+                            <Run Text=": " />
+                            <Run FontFamily="Consolas" Text="{Binding SystemMonitor.DownloadStatus, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Margin="12,0,0,0"
+                                   Width="110"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="{Binding MonitorUploadLabel, Mode=OneWay}" />
+                            <Run Text=": " />
+                            <Run FontFamily="Consolas" Text="{Binding SystemMonitor.UploadStatus, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Margin="0,0,9,0"
+                                   Width="75"
+                                   TextAlignment="Right"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" />
+                            <Run Text=": " />
+                            <Run Text="{Binding SystemMonitor.CpuTemp, Mode=OneWay}" />
+                        </TextBlock>
+                        <Border Width="12"
+                                Height="14"
+                                Margin="0,0,10,0"
+                                Background="#22000000"
+                                BorderBrush="#80FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="2"
+                                ToolTip="{Binding SystemMonitor.CpuUsage}">
+                            <Rectangle Fill="#22C55E"
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Bottom"
+                                       RadiusX="2"
+                                       RadiusY="2"
+                                       Height="{Binding SystemMonitor.CpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
+                        </Border>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Width="64"
+                                   Margin="0,0,9,0"
+                                   TextAlignment="Right"
+                                   ToolTip="{Binding SystemMonitor.GpuName}"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="{Binding MonitorGpuLabel, Mode=OneWay}" />
+                            <Run Text=": " />
+                            <Run Text="{Binding SystemMonitor.GpuTemp, Mode=OneWay}" />
+                        </TextBlock>
+                        <Border Width="12"
+                                Height="14"
+                                Margin="0,0,10,0"
+                                Background="#22000000"
+                                BorderBrush="#80FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="2"
+                                ToolTip="{Binding SystemMonitor.GpuUsage}">
+                            <Rectangle Fill="#A855F7"
+                                       HorizontalAlignment="Stretch"
+                                       VerticalAlignment="Bottom"
+                                       RadiusX="2"
+                                       RadiusY="2"
+                                       Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
+                        </Border>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Width="52"
+                                   Margin="0,0,10,0"
+                                   TextAlignment="Right"
+                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Run Text="FPS" />
+                            <Run Text=": " />
+                            <Run FontFamily="Consolas" Text="{Binding SystemMonitor.FpsStatus, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                Margin="0,0,2,0">
+                        <ToggleButton x:Name="SettingsMenuButton"
+                                      Style="{StaticResource OverlayToggleButtonStyle}"
+                                      Width="36"
+                                      Height="32"
+                                      Margin="0,0,-4,0"
+                                      Padding="0"
+                                      Checked="SettingsMenuButton_Checked"
+                                      Unchecked="SettingsMenuButton_Unchecked"
+                                      ToolTip="Overlay settings">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       Text="&#xE713;"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       Foreground="White" />
+                        </ToggleButton>
+                        <Button x:Name="CloseButton"
+                                Style="{StaticResource OverlayCloseButtonStyle}"
+                                Width="44"
+                                Height="32"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Click="CloseButton_Click"
+                                ToolTip="Close">
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       Text="&#xE8BB;"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       Foreground="White" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid x:Name="PopupPanelsRow"
+                  Grid.Row="1"
+                  HorizontalAlignment="Right"
+                  Margin="0,8,0,0"
+                  Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="244" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="244" />
+                </Grid.ColumnDefinitions>
+
+                <Border x:Name="ScalePopupPanel"
+                        Grid.Column="0"
+                        Visibility="Collapsed"
+                        Padding="12"
+                        Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        BorderBrush="{StaticResource OverlayMenuBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <StackPanel>
+                        <TextBlock Text="Overlay scale"
+                                   Foreground="White"
+                                   FontWeight="SemiBold" />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Minimum="0.7"
+                                    Maximum="1.2"
+                                    TickFrequency="0.05"
+                                    SmallChange="0.05"
+                                    LargeChange="0.1"
+                                    IsSnapToTickEnabled="True"
+                                    PreviewMouseLeftButtonDown="PopupScaleSlider_PreviewMouseLeftButtonDown"
+                                    PreviewMouseLeftButtonUp="PopupScaleSlider_PreviewMouseLeftButtonUp"
+                                    LostMouseCapture="PopupScaleSlider_LostMouseCapture"
+                                    Value="{Binding GamingOverlayUiScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource ModernSliderStyle}" />
+                            <TextBlock Grid.Column="1"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="#D1D5DB"
+                                       Text="{Binding GamingOverlayUiScale, StringFormat={}{0:P0}}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2"
+                        Padding="12"
+                        Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        BorderBrush="{StaticResource OverlayMenuBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <StackPanel>
+                        <Button Style="{StaticResource OverlayCloseButtonStyle}"
+                                x:Name="ScaleMenuButton"
+                                Height="34"
+                                HorizontalAlignment="Stretch"
+                                Click="ScaleMenuButton_Click">
+                            <TextBlock Text="Overlay scale"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                        <Button Style="{StaticResource OverlayCloseButtonStyle}"
+                                Height="34"
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Stretch"
+                                Click="OpenGamingOverlaySettings_Click">
+                            <TextBlock Text="Open gaming overlay settings"
+                                       Foreground="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

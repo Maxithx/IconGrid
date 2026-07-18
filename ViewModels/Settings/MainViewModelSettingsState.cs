@@ -9,6 +9,7 @@ namespace IconGrid.ViewModels.Settings
         public int IconsPerRow { get; set; }
         public double IconScale { get; set; }
         public double UiScale { get; set; }
+        public double GamingOverlayUiScale { get; set; }
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }
@@ -26,6 +27,8 @@ namespace IconGrid.ViewModels.Settings
         public double? WindowTop { get; set; }
         public double? SettingsWindowLeft { get; set; }
         public double? SettingsWindowTop { get; set; }
+        public double? GamingOverlayWindowLeft { get; set; }
+        public double? GamingOverlayWindowTop { get; set; }
         public double? FloatingIconLeft { get; set; }
         public double? FloatingIconTop { get; set; }
         public string LayoutPreset { get; set; } = "Auto";

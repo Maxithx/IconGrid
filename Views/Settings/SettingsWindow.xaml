@@ -540,6 +540,29 @@
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
+                        <Button x:Name="GamingOverlayNavButton"
+                                Style="{StaticResource NavButtonStyle}"
+                                Margin="0,6,0,0"
+                                Click="GamingOverlayNavButton_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="28"
+                                        Height="28"
+                                        CornerRadius="6"
+                                        Background="{Binding AccentBrush}">
+                                    <TextBlock Text="GO"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="White" />
+                                </Border>
+                                <TextBlock Margin="12,0,0,0"
+                                           Text="Gaming overlay"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="AboutNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"

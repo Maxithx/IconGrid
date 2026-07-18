@@ -41,6 +41,9 @@ namespace IconGrid.ViewModels
         private bool _showDevOverlay = false;
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
+        private double _gamingOverlayUiScale = 1.0;
+        private const double GamingOverlayBaseWidth = 720;
+        private const double GamingOverlayBaseHeight = 44;
         private bool _isFullWindowVisible = false;
         private bool _enableSlideUpAnimation = true;
         private bool _enableContentScroll = true;
@@ -51,6 +54,8 @@ namespace IconGrid.ViewModels
         private double? _windowTop;
         private double? _settingsWindowLeft;
         private double? _settingsWindowTop;
+        private double? _gamingOverlayWindowLeft;
+        private double? _gamingOverlayWindowTop;
         private double? _floatingLeft;
         private double? _floatingTop;
         private readonly LauncherLayoutState _layoutState = new();
@@ -219,6 +224,25 @@ namespace IconGrid.ViewModels
             }
         }
 
+        public double GamingOverlayUiScale
+        {
+            get => _gamingOverlayUiScale;
+            set
+            {
+                var clamped = Math.Max(0.7, Math.Min(1.2, value));
+                if (SetField(ref _gamingOverlayUiScale, clamped))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(GamingOverlayUiScale));
+                    OnPropertyChanged(nameof(GamingOverlayWindowWidth));
+                    OnPropertyChanged(nameof(GamingOverlayWindowHeight));
+                }
+            }
+        }
+
+        public double GamingOverlayWindowWidth => GamingOverlayBaseWidth * _gamingOverlayUiScale;
+        public double GamingOverlayWindowHeight => GamingOverlayBaseHeight * _gamingOverlayUiScale;
+
         public double EffectiveIconScale => _icon_scale;
 
         /// <summary>
@@ -378,6 +402,27 @@ namespace IconGrid.ViewModels
         {
             _settingsWindowLeft = left;
             _settingsWindowTop = top;
+            SaveSettingsToConfig();
+        }
+
+        public bool TryGetSavedGamingOverlayWindowPosition(out double left, out double top)
+        {
+            if (_gamingOverlayWindowLeft.HasValue && _gamingOverlayWindowTop.HasValue)
+            {
+                left = _gamingOverlayWindowLeft.Value;
+                top = _gamingOverlayWindowTop.Value;
+                return true;
+            }
+
+            left = 0;
+            top = 0;
+            return false;
+        }
+
+        public void SaveGamingOverlayWindowPosition(double left, double top)
+        {
+            _gamingOverlayWindowLeft = left;
+            _gamingOverlayWindowTop = top;
             SaveSettingsToConfig();
         }
 
@@ -921,6 +966,7 @@ namespace IconGrid.ViewModels
             _startWithWindows = state.StartWithWindows;
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
+            _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, state.GamingOverlayUiScale));
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
@@ -934,6 +980,8 @@ namespace IconGrid.ViewModels
             _windowTop = state.WindowTop;
             _settingsWindowLeft = state.SettingsWindowLeft;
             _settingsWindowTop = state.SettingsWindowTop;
+            _gamingOverlayWindowLeft = state.GamingOverlayWindowLeft;
+            _gamingOverlayWindowTop = state.GamingOverlayWindowTop;
             _floatingLeft = state.FloatingIconLeft;
             _floatingTop = state.FloatingIconTop;
             _layoutState.ApplyConfig(config);
@@ -1300,6 +1348,7 @@ namespace IconGrid.ViewModels
                 IconsPerRow = _iconsPerRow,
                 IconScale = _icon_scale,
                 UiScale = _uiScale,
+                GamingOverlayUiScale = _gamingOverlayUiScale,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,
@@ -1317,6 +1366,8 @@ namespace IconGrid.ViewModels
                 WindowTop = _windowTop,
                 SettingsWindowLeft = _settingsWindowLeft,
                 SettingsWindowTop = _settingsWindowTop,
+                GamingOverlayWindowLeft = _gamingOverlayWindowLeft,
+                GamingOverlayWindowTop = _gamingOverlayWindowTop,
                 FloatingIconLeft = _floatingLeft,
                 FloatingIconTop = _floatingTop,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
