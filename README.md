@@ -51,8 +51,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - `HardwarePage.xaml`: hardware diagnostics and related status.
 - `HjaelpPage.xaml`: help and troubleshooting content.
 - `AboutPage.xaml`: version and project information.
-- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale.
-- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale, FPS responsiveness, and ETW/FPS setup status.
+- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale and ETW/FPS setup status.
 
 ## Architecture
 
@@ -85,7 +84,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - `Helpers/Launcher/` contains launcher-facing infrastructure such as `FloatingIconController`, `SystemMonitor`, `DynamicIconHelper`, and shortcut/icon helpers.
 - `Helpers/Settings/` contains config, localization, startup, PawnIO, and theme helpers used by the settings/configuration flow.
 - `Helpers/Hardware/` contains hardware-monitor integration types.
-- `Helpers/Hardware/` now also contains the ETW/FPS pipeline, native FPS agent launch flow, probe helpers, and FPS smoothing logic.
+- `Helpers/Hardware/` now also contains the ETW/FPS pipeline, native FPS agent launch flow, shared-memory live FPS handoff, probe helpers, and FPS smoothing/fallback logic.
 - `Helpers/Converters/` contains shared WPF value converters.
 - `Helpers/Common/` contains shared infrastructure such as `RelayCommand` and `DevInspector`.
 
@@ -93,7 +92,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 - Drag-and-drop shortcut management in the launcher grid.
 - Live CPU, GPU, ping, and network telemetry in the launcher top bar.
-- A dedicated gaming overlay monitor with saved window position, inline quick settings, dedicated overlay settings page, and live FPS via ETW.
+- A dedicated gaming overlay monitor with saved window position, inline quick settings, dedicated overlay settings page, dividers for readability, and live FPS via ETW.
 - Layout presets and saved desktop layout restoration.
 - Theme synchronization with Windows accent and dark/light mode.
 - Built-in developer overlay via `DevInspector`.
@@ -140,29 +139,33 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 
 - game renders frames
 - native FPS worker captures present events through ETW
+- native FPS worker publishes live FPS through:
+  - a shared-memory live channel for the hottest path
+  - `native-fps-state.json` as fallback / diagnostics
 - elevated hardware agent reads native FPS state
-- `FpsMeter` keeps both:
-  - a fast `live` FPS value
-  - a smoothed `trend` FPS value
-- launcher / gaming overlay reads `fps-state.json`
-- overlay shows the live value with the trend value beside it
+- `FpsMeter` still maintains:
+  - a direct `live` FPS path
+  - a smoothed `trend` FPS path for fallback / diagnostics
+- launcher / gaming overlay prefers the shared-memory live FPS path
+- `fps-state.json` remains as a compatibility / fallback handoff for broader monitor state
+- overlay shows a single live FPS number tuned for faster response
 
 ### Current limitation
 
-- ETW capture is now working, but the remaining work is display responsiveness.
-- The new live-vs-trend split exposes short spikes better, but the file-based handoff still adds extra latency compared with an in-game counter.
+- ETW capture is now working, but the remaining work is still the last bit of display responsiveness for very small FPS changes.
+- Shared memory removed a meaningful chunk of handoff latency, but an in-game counter can still feel slightly closer to the render loop.
 - Near-term improvement work is expected to focus on:
-  - validating the new `live` vs `trend` behavior across more games
-  - optional display presets such as `Smooth`, `Balanced`, and `Realtime`
-  - possible frametime display
-  - possibly replacing file-based handoff with lower-latency IPC later
+  - validating the new shared-memory live path across more games
+  - catching tiny FPS dips/spikes even earlier
+  - optional frametime display
+  - deciding whether the remaining live FPS fallback path should be simplified further
 
 ## Developer notes
 
 - The project targets Windows and is organized around small WPF shells plus modular controls/state helpers.
 - After the current refactor, launcher UI, settings UI, helpers, and feature-specific view-model code are grouped by responsibility rather than staying flat in a few root folders.
-- See [ARCHITECTURE_RULES.md](C:\THX-Projekter\IconGrid\ARCHITECTURE_RULES.md) for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
-- See [GIT_WORKFLOW.md](C:\THX-Projekter\IconGrid\GIT_WORKFLOW.md) for the recommended branch and merge workflow after the completed `refactor-mainwindow` phase.
+- See `ARCHITECTURE_RULES.md` for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
+- Local workflow/planning notes such as Git workflow reminders are intentionally kept under `.local-state/` and are not part of the GitHub-facing repo documentation.
 
 ## Local data folder
 
@@ -173,7 +176,7 @@ Current files and folders in that directory:
 - `config.json`: launcher settings, layout settings, window positions, language, theme, startup toggle, and saved layout data.
 - `items.json`: launcher shortcuts grouped by category/tab. This is installation-specific and may not be portable to a new PC if shortcut paths change.
 - `monitor-state.json`: temporary live state used by the hardware-monitor row to show current CPU/GPU readings.
-- `fps-state.json`: temporary live state used by the launcher and gaming overlay to show FPS.
+- `fps-state.json`: compatibility/fallback live state used by the launcher and gaming overlay when the direct live path is unavailable.
 - `native-fps-state.json`: raw native FPS worker state used by the elevated monitor path and diagnostics.
 - `trace.log`: app trace output for startup and runtime diagnostics.
 - `error.log`: fatal error log written after unhandled startup/runtime failures.

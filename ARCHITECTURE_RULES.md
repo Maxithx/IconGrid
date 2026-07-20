@@ -29,6 +29,8 @@ Do not let launcher-shell code become the default place for new behavior.
 - Reusable interactive UI should become a control under `Controls/`.
 - Shared calculations, transforms, or persistence helpers should become focused helper/state classes.
 - WPF converters stay in `Helpers/Converters/`.
+- Background or worker-process responsibilities should stay outside the launcher shell and UI view models.
+- Cross-process state handoff should prefer dedicated helper/agent classes instead of leaking process concerns into `MainWindow` or `MainViewModel`.
 
 ## Preferred Extension Pattern
 
@@ -39,6 +41,20 @@ When adding a feature:
 3. Expose only the minimal properties needed through `MainViewModel`.
 4. Build dedicated UI in a settings page or separate control.
 5. Keep Win32/runtime window placement logic isolated in the launcher shell where necessary.
+
+## Recent Good Examples
+
+- Gaming overlay UI stayed in `Views/Launcher/GamingOverlayWindow.xaml` instead of being folded into `MainWindow`.
+- Overlay-side FPS display behavior stayed in `Helpers/Launcher/SystemMonitor.cs` instead of turning `MainViewModel` into a realtime telemetry loop.
+- Native ETW FPS capture stayed in `Native/FpsAgent/src/main.cpp` and `Helpers/Hardware/NativeFpsAgentRunner.cs` instead of bleeding native/worker concerns into launcher UI files.
+- Shared-memory live FPS handoff was added as a focused helper (`Helpers/Hardware/NativeFpsSharedMemory.cs`) instead of spreading IPC details across multiple view or shell files.
+- Hardware and FPS background flow remained in `Helpers/Hardware/HardwareMonitorAgent.cs` rather than pushing worker orchestration into `MainWindow.xaml.cs`.
+
+## Coordinator / Helper Rule
+
+- If a feature opens, owns, or reuses a separate window, prefer a focused coordinator/helper instead of growing shell code.
+- If a feature needs cross-process orchestration, state polling, or IPC, prefer a focused helper/agent class instead of adding that logic to a view model.
+- If a feature has a dedicated hot path, such as live FPS updates, isolate that path in the smallest responsible module and keep fallback/diagnostic behavior separate.
 
 ## When To Create A Separate Control
 
@@ -59,6 +75,13 @@ If a change adds:
 - non-trivial preview rendering
 
 then stop and ask whether the feature should become its own module or control before continuing.
+
+Also stop and ask the same question if a change starts adding:
+
+- worker-process launch/restart logic to UI files
+- IPC/shared-memory details to view models
+- realtime polling loops to `MainViewModel`
+- feature-specific window ownership logic directly in the launcher shell
 
 ## Goal
 

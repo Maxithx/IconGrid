@@ -10,9 +10,13 @@
   - add the user to `Brugere af ydelseslog` (`Performance Log Users`)
   - restart Windows or log out/in
 - The gaming overlay UI/settings flow is now integrated and committed.
-- The overlay FPS path now exposes both:
-  - a fast `live` FPS value for short spikes
-  - a smoothed `trend` FPS value for readability
+- The overlay FPS path now prefers a direct shared-memory `live` FPS path from the native ETW worker.
+- File-based FPS state still exists as fallback / diagnostics, but it is no longer the preferred hot path.
+- The gaming overlay now shows a single live FPS number again.
+- The gaming overlay row also has:
+  - fixed-width FPS layout so the number does not shift when digits change
+  - subtle `|` dividers between monitor sections
+  - green FPS accent styling
 - `README.md` has been updated to describe the real ETW/FPS architecture instead of the old roadmap wording.
 
 ## Proven result
@@ -55,11 +59,13 @@
   - require logout/login or reboot before FPS ETW is expected to work
 
 ## Current technical state
-- The single-number FPS bottleneck has now been addressed by splitting overlay FPS into:
-  - `live` / raw-facing FPS
-  - `trend` / smoothed FPS
-- The overlay can now show short spikes more clearly without giving up a calmer companion value.
-- The remaining likely next architecture step is lower-latency IPC instead of file-based FPS handoff.
+- The largest display-latency step after ETW capture has now been reduced by adding shared memory between the native FPS worker and the overlay-side reader.
+- The current effective hot path is:
+  - native ETW worker
+  - shared-memory live FPS publish
+  - launcher / gaming overlay direct read
+- File-based state still exists for fallback, diagnostics, and broader monitor flow integration.
+- The remaining FPS issue is now mostly about the last bit of feel for very tiny drops/spikes, not about ETW access or the main IPC direction.
 
 ## Relevant files
 - `.local-state/fps-etw.md`
@@ -82,10 +88,10 @@
 - `b25e98e` `Tighten ignore rules for local ETW and tooling artifacts`
 - `ed634f0` `Add native ETW FPS pipeline and overlay monitor integration`
 - `9bc508e` `Polish gaming overlay UI and add FPS setup/settings flow`
+- `165d7e8` `Improve ETW FPS overlay responsiveness and shared-memory live path`
 
 ## Good next steps
-- validate the live vs trend overlay behavior in real gameplay
+- validate the shared-memory live path across more real games
 - decide whether to add frametime as a companion metric
-- decide whether to add explicit display presets or modes on top of the live/trend split
-- evaluate whether file-based FPS handoff should later be replaced by IPC
+- decide whether to keep simplifying the fallback FPS layers around the live path
 - document installer/setup requirements more formally
