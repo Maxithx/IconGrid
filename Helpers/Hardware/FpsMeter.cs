@@ -18,10 +18,11 @@ namespace IconGrid.Helpers.Hardware;
 /// </summary>
 internal sealed class FpsMeter : IDisposable
 {
-    private const int PollIntervalMs = 10; // 100Hz - keeps the overlay closer to realtime
+    private const int PollIntervalMs = 2; // 500Hz - intentionally aggressive tuning for realtime feel testing
     private const double FpsDecayFactor = 0.85; // 85% decay when no new data (15% drop per tick)
+    private const double LiveFpsDecayFactor = 0.55; // live FPS should fall faster when the feed goes stale
     private const double FpsThreshold = 0.5; // below this = "--"
-    private const double DefaultResponsiveness = 0.78;
+    private const double DefaultResponsiveness = 1.0;
 
     private bool _disposed;
     private readonly System.Threading.Timer _pollTimer;
@@ -30,11 +31,12 @@ internal sealed class FpsMeter : IDisposable
     private readonly double _emaAlpha;
     private bool _initialized;
     private bool _initAttempted; // prevent infinite init retries
-    private double _currentFps;
+    private double _smoothedFps;
+    private double _liveFps;
     private DateTime _lastFpsUpdate = DateTime.MinValue;
 
     // FPS value fed by external providers (PresentMon, ETW, etc.)
-    private int _externalFps = -1;
+    private double _externalFps = -1;
     private DateTime _lastExternalFeed = DateTime.MinValue;
     private static readonly TimeSpan ExternalFeedTimeout = TimeSpan.FromSeconds(2);
 
@@ -54,7 +56,7 @@ internal sealed class FpsMeter : IDisposable
     public FpsMeter(double responsiveness = DefaultResponsiveness, Action<string>? log = null)
     {
         _log = log;
-        _emaAlpha = Math.Max(0.15, Math.Min(0.95, responsiveness));
+        _emaAlpha = Math.Max(0.15, Math.Min(1.0, responsiveness));
         _pollTimer = new System.Threading.Timer(PollTimerCallback, null, 20, PollIntervalMs);
     }
 
@@ -62,12 +64,15 @@ internal sealed class FpsMeter : IDisposable
     /// Called by HardwareMonitorAgent to set the real FPS value from PresentMon.
     /// This is the PRIMARY data source for FPS.
     /// </summary>
-    public void SetFps(int fps)
+    public void SetFps(double fps)
     {
         lock (_sync)
         {
             _externalFps = fps;
             _lastExternalFeed = DateTime.UtcNow;
+            _liveFps = fps;
+            _smoothedFps = (_smoothedFps * (1.0 - _emaAlpha)) + (fps * _emaAlpha);
+            _lastFpsUpdate = _lastExternalFeed;
         }
     }
 
@@ -82,15 +87,27 @@ internal sealed class FpsMeter : IDisposable
 
     public double GetCurrentFps()
     {
-        lock (_sync) { return _currentFps; }
+        lock (_sync) { return _smoothedFps; }
     }
 
     public string GetCurrentFpsFormatted()
     {
         lock (_sync)
         {
-            if (_currentFps <= FpsThreshold) return "--";
-            return Math.Round(_currentFps).ToString("F0");
+            if (_smoothedFps <= FpsThreshold) return "--";
+            return Math.Round(_smoothedFps).ToString("F0");
+        }
+    }
+
+    public FpsSnapshot GetSnapshot()
+    {
+        lock (_sync)
+        {
+            return new FpsSnapshot(
+                _liveFps,
+                _smoothedFps,
+                FormatFps(_liveFps),
+                FormatFps(_smoothedFps));
         }
     }
 
@@ -284,18 +301,21 @@ internal sealed class FpsMeter : IDisposable
                 // TIER 1: External FPS feed from PresentMon (PRIMARY)
                 if (_externalFps >= 0 && (DateTime.UtcNow - _lastExternalFeed) <= ExternalFeedTimeout)
                 {
-                    // Apply EMA smoothing to PresentMon's real FPS
-                    _currentFps = (_currentFps * (1.0 - _emaAlpha)) + (_externalFps * _emaAlpha);
-                    _lastFpsUpdate = DateTime.UtcNow;
                     return;
                 }
 
                 // TIER 2: If external feed is stale, decay current FPS to "--"
                 // This handles the case where the game closes
-                if (_currentFps > FpsThreshold)
+                if (_liveFps > FpsThreshold)
                 {
-                    _currentFps *= FpsDecayFactor;
-                    if (_currentFps < FpsThreshold) _currentFps = 0;
+                    _liveFps *= LiveFpsDecayFactor;
+                    if (_liveFps < FpsThreshold) _liveFps = 0;
+                }
+
+                if (_smoothedFps > FpsThreshold)
+                {
+                    _smoothedFps *= FpsDecayFactor;
+                    if (_smoothedFps < FpsThreshold) _smoothedFps = 0;
                 }
             }
         }
@@ -304,4 +324,20 @@ internal sealed class FpsMeter : IDisposable
             _log?.Invoke($"[FpsMeter] Error: {ex.Message}");
         }
     }
+
+    private static string FormatFps(double fps)
+    {
+        if (fps <= FpsThreshold)
+        {
+            return "--";
+        }
+
+        return Math.Round(fps).ToString("F0");
+    }
 }
+
+internal readonly record struct FpsSnapshot(
+    double LiveFps,
+    double SmoothedFps,
+    string LiveFpsFormatted,
+    string SmoothedFpsFormatted);

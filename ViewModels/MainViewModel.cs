@@ -42,7 +42,7 @@ namespace IconGrid.ViewModels
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
         private double _gamingOverlayUiScale = 1.0;
-        private double _gamingOverlayFpsResponsiveness = 0.65;
+        private double _gamingOverlayFpsResponsiveness = 1.0;
         private const double GamingOverlayBaseWidth = 720;
         private const double GamingOverlayBaseHeight = 44;
         private bool _isFullWindowVisible = false;
@@ -247,7 +247,7 @@ namespace IconGrid.ViewModels
             get => _gamingOverlayFpsResponsiveness;
             set
             {
-                var clamped = Math.Max(0.15, Math.Min(0.95, value));
+                var clamped = Math.Max(0.15, Math.Min(1.0, value));
                 if (SetField(ref _gamingOverlayFpsResponsiveness, clamped))
                 {
                     SaveSettingsToConfig();
@@ -1010,7 +1010,7 @@ namespace IconGrid.ViewModels
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
             _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, state.GamingOverlayUiScale));
-            _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, state.GamingOverlayFpsResponsiveness));
+            _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 1.0 : Math.Max(0.15, Math.Min(1.0, state.GamingOverlayFpsResponsiveness));
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
@@ -1041,7 +1041,7 @@ namespace IconGrid.ViewModels
             _icon_scale = 1.0;
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
-            _gamingOverlayFpsResponsiveness = 0.65;
+            _gamingOverlayFpsResponsiveness = 1.0;
             _isAlwaysOnTop = false;
             _isFloatingIconTopmost = true;
             _showScrollButtons = true;

@@ -37,7 +37,8 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 ### Gaming overlay monitor
 
 - `Views/Launcher/GamingOverlayWindow.xaml` is the compact always-on-top gaming overlay monitor.
-- The overlay reuses the live telemetry stack for network, download/upload, CPU, GPU, and FPS status presentation in a dedicated single-row shell.
+- The overlay reuses the live telemetry stack for network, CPU, GPU, and FPS status presentation in a dedicated single-row shell.
+- The gaming overlay is intentionally more game-focused than the main launcher monitor row, so `Download` / `Upload` are currently excluded from the in-game strip.
 - `Views/GamingOverlayWindowCoordinator.cs` owns opening, reuse, placement, and shutdown of the overlay window.
 - The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
 - The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
@@ -51,6 +52,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - `HjaelpPage.xaml`: help and troubleshooting content.
 - `AboutPage.xaml`: version and project information.
 - `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale.
+- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale, FPS responsiveness, and ETW/FPS setup status.
 
 ## Architecture
 
@@ -83,6 +85,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - `Helpers/Launcher/` contains launcher-facing infrastructure such as `FloatingIconController`, `SystemMonitor`, `DynamicIconHelper`, and shortcut/icon helpers.
 - `Helpers/Settings/` contains config, localization, startup, PawnIO, and theme helpers used by the settings/configuration flow.
 - `Helpers/Hardware/` contains hardware-monitor integration types.
+- `Helpers/Hardware/` now also contains the ETW/FPS pipeline, native FPS agent launch flow, probe helpers, and FPS smoothing logic.
 - `Helpers/Converters/` contains shared WPF value converters.
 - `Helpers/Common/` contains shared infrastructure such as `RelayCommand` and `DevInspector`.
 
@@ -90,7 +93,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 - Drag-and-drop shortcut management in the launcher grid.
 - Live CPU, GPU, ping, and network telemetry in the launcher top bar.
-- A dedicated gaming overlay monitor with saved window position, inline quick settings, and dedicated overlay settings page.
+- A dedicated gaming overlay monitor with saved window position, inline quick settings, dedicated overlay settings page, and live FPS via ETW.
 - Layout presets and saved desktop layout restoration.
 - Theme synchronization with Windows accent and dark/light mode.
 - Built-in developer overlay via `DevInspector`.
@@ -110,12 +113,49 @@ To ensure both maximum security and compatibility with Windows User Interface Pr
 
 IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware access may require administrator privileges at startup because PawnIO and hardware driver access are part of the monitoring flow.
 
-## Gaming overlay roadmap
+## FPS capture and ETW access
 
-- The current gaming overlay already exposes a visible FPS field so the layout, scaling, and quick-settings flow can stabilize first.
-- The next planned step is a real FPS counter implementation for the gaming overlay.
-- That FPS work should stay passive and low-risk only: no injection, no DLL detours, and no graphics API hooking.
-- Near-term work is expected to focus on filling the current FPS field with a production-ready passive source as soon as the telemetry path is ready.
+- IconGrid now captures FPS through a passive ETW-based pipeline.
+- The current implementation uses a separate native FPS worker:
+  - `Native/FpsAgent/src/main.cpp`
+  - launched via `Helpers/Hardware/NativeFpsAgentRunner.cs`
+- The ETW path is passive only:
+  - no injection
+  - no DLL detours
+  - no graphics API hooking
+- Relevant Windows graphics providers are:
+  - `Microsoft-Windows-DxgKrnl`
+  - `Microsoft-Windows-DXGI`
+  - `Microsoft-Windows-D3D9`
+
+### Important Windows requirement
+
+- On systems where ETW graphics access is restricted, the current Windows user may need to be added to:
+  - `Performance Log Users`
+  - Danish Windows name: `Brugere af ydelseslog`
+- After adding the user, a sign-out/in or reboot may be required before FPS capture starts working.
+- The Gaming overlay settings page now includes an FPS setup status section to help confirm whether this requirement is already satisfied.
+
+### Current FPS pipeline
+
+- game renders frames
+- native FPS worker captures present events through ETW
+- elevated hardware agent reads native FPS state
+- `FpsMeter` keeps both:
+  - a fast `live` FPS value
+  - a smoothed `trend` FPS value
+- launcher / gaming overlay reads `fps-state.json`
+- overlay shows the live value with the trend value beside it
+
+### Current limitation
+
+- ETW capture is now working, but the remaining work is display responsiveness.
+- The new live-vs-trend split exposes short spikes better, but the file-based handoff still adds extra latency compared with an in-game counter.
+- Near-term improvement work is expected to focus on:
+  - validating the new `live` vs `trend` behavior across more games
+  - optional display presets such as `Smooth`, `Balanced`, and `Realtime`
+  - possible frametime display
+  - possibly replacing file-based handoff with lower-latency IPC later
 
 ## Developer notes
 
@@ -133,6 +173,8 @@ Current files and folders in that directory:
 - `config.json`: launcher settings, layout settings, window positions, language, theme, startup toggle, and saved layout data.
 - `items.json`: launcher shortcuts grouped by category/tab. This is installation-specific and may not be portable to a new PC if shortcut paths change.
 - `monitor-state.json`: temporary live state used by the hardware-monitor row to show current CPU/GPU readings.
+- `fps-state.json`: temporary live state used by the launcher and gaming overlay to show FPS.
+- `native-fps-state.json`: raw native FPS worker state used by the elevated monitor path and diagnostics.
 - `trace.log`: app trace output for startup and runtime diagnostics.
 - `error.log`: fatal error log written after unhandled startup/runtime failures.
 - `IconPack\`: optional cached icon pack assets used by the launcher. This folder can be empty if no pack has been migrated or installed yet.
@@ -148,6 +190,7 @@ IconGrid uses a split startup model:
 - The launcher UI starts with `--startup-launch` when Windows logs in.
 - The hardware monitor runs as a separate scheduled task named `IconGrid Monitor` with `--monitor-agent`.
 - The monitor task is elevated so CPU/GPU telemetry can still work.
+- The FPS worker is separate from the desktop-facing UI and is launched through the monitor-side flow when gaming overlay FPS is needed.
 - Manual launcher starts still keep the normal UAC behavior for the monitor path.
 - If "start directly in launcher" is enabled, the launcher opens straight into the full UI and skips the floating icon on Windows sign-in, logon, and restart.
 - The startup-mode selector was removed from `StartsidePage.xaml` after the Task Scheduler vs. legacy test phase.

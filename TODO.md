@@ -6,6 +6,7 @@
 - Settings-shell og settings-sider er modulariseret
 - README og views-dokumentation er opdateret til den nye struktur
 - HardwarePage deler nu live hardware-telemetri med launcher-topbaren
+- Gaming overlay monitor er tilføjet som separat overlay-vindue med egen settings-side, inline quick settings og gemt vinduesposition
 - Sprogskift mellem `Dansk` og `English` er lagt på `StartsidePage`
 - Der er tilføjet en ny `Test`-side i Settings til diagnose af processer, elevation og hardware-task
 - `Test`-siden har nu scrollbar som startsiden
@@ -19,6 +20,7 @@
 - Dokumentér kun de controls/helpers som stadig er arkitektonisk vigtige
 - Tag kun nye faser hvis de giver reel funktionel værdi
 - Byg modulær preview/drag-UI for reserveret `IconGrid`-slot uden at vokse `MainWindow` eller `MainViewModel`
+- Udfas `PresentMon` helt og byg den endelige FPS-løsning som en dedikeret native C++ worker baseret på den eksisterende ETW-kode i `E:\Maxithx projekter\fps-overlay-1.7.0-beta`
 
 ## Næste session: IconGrid slot preview UI
 
@@ -204,6 +206,22 @@
 - [ ] Undersøg om `PawnIO`-krav/admin-flow skal vises tydeligere i `SettingsWindow`
 - [x] Første live integration: `HardwarePage` viser nu samme delte `SystemMonitor`-telemetri som launcher-topbaren, inkl. temperaturer, CPU-usage og clock-værdier
 
+## Gaming overlay TODO
+
+- [x] Tilføj separat gaming overlay monitor-vindue
+- [x] Tilføj dedikeret `Gaming overlay` settings-side
+- [x] Tilføj inline quick settings under overlayet med scale-slider og settings-link
+- [x] Lad gaming overlayet huske sin sidste position efter lukning og restart
+- [x] Få popup-rækken til at følge overlayets højre alignment og UI-scale
+- [ ] Isolér den mindste genbrugelige FPS-kerne fra `fps-overlay-1.7.0-beta` uden ImGui/UI-afhængigheder
+- [ ] Opret `Native/FpsAgent/` som separat C++ worker i repoet
+- [ ] Flyt ETW/PID/FPS-logikken over i den native worker og hold den uafhængig af WPF-processen
+- [ ] Definér en simpel output-kontrakt til C# med `fpsStatus`, `targetPid`, `targetProcessName`, `lastSampleUtc` og `error`
+- [ ] Lad `SystemMonitor`/hardware-monitor-flowet kun forbruge FPS-data fra den native worker
+- [ ] Få stabil FPS-visning i både launcher-topbar og gaming overlay for `Path of Exile`
+- [ ] Fjern `PresentMonFpsProvider`, den bundtede `PresentMon`-binær og al CLI-baseret FPS-logik når native worker-sporet virker
+- [ ] Hold FPS-løsningen passiv og lav-risiko uden injection, DLL-detours eller graphics API hooking
+
 ## Dokumentation
 
 - [x] Hold `README.md` opdateret efter hver større refactor-fase
@@ -211,6 +229,7 @@
 - [x] Dokumentér hardware-monitor startup via Scheduled Task
 - [ ] Dokumentér den endelige startup-model, når dobbelt-instans-problemet er helt afklaret
 - [ ] Dokumentér nye controls/helpers når de bliver arkitektonisk vigtige
+- [ ] Dokumentér den endelige C++/C# FPS-arkitektur, når den native worker er på plads
 
 ## Kendte åbne problemer
 

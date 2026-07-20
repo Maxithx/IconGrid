@@ -257,7 +257,7 @@ namespace IconGrid.Views
                 PageIntroText = "Dedikeret indstillingsside til gaming overlayet. Hold den adskilt fra de normale launcher-indstillinger.";
                 OverlayScaleTitleText = "Overlay storrelse";
                 FpsResponsivenessTitleText = "FPS opdateringshastighed";
-                FpsResponsivenessIntroText = "Juster hvor hurtigt FPS-visningen reagerer paa nye ETW-data. Hojejere vaerdi foeles mere realtime, lavere vaerdi giver roligere tal.";
+                FpsResponsivenessIntroText = "IconGrid viser nu et live FPS-tal i overlayet og et mere stabilt trend-tal ved siden af. Denne slider styrer, hvor hurtigt trend-tallet foelger de nye ETW-data.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW afhaenger af, at den aktuelle Windows-bruger har den rigtige tracing-adgang. Denne sektion tjekker det kendte krav om Brugere af ydelseslog.";
                 RefreshFpsSetupButtonText = "Opdater FPS setup-status";
@@ -265,8 +265,8 @@ namespace IconGrid.Views
                 RunFpsSetupFixHelpText = "Kun noedvendig hvis den aktuelle bruger mangler medlemskab af Brugere af ydelseslog.";
                 TechnicalDetailsTitleText = "Tekniske detaljer";
                 TechnicalDetailsIntroText = "Vis den tekniske ETW-status og den foreslaaede kommando.";
-                PlannedOverlaySettingsTitleText = "Planlagte overlay-indstillinger";
-                PlannedOverlaySettingsIntroText = "Placeholder-side til overlay-specifikke valg.";
+                PlannedOverlaySettingsTitleText = "Live vs trend";
+                PlannedOverlaySettingsIntroText = "Overlayet viser nu et hurtigt live-tal for korte spikes og et mere smooth trend-tal for laesbarhed.";
                 ReadyBadgeText = "Klar";
             }
             else
@@ -275,7 +275,7 @@ namespace IconGrid.Views
                 PageIntroText = "Dedicated settings page for the gaming overlay. Keep this separate from the standard launcher settings.";
                 OverlayScaleTitleText = "Overlay scale";
                 FpsResponsivenessTitleText = "FPS update responsiveness";
-                FpsResponsivenessIntroText = "Adjust how quickly the FPS display reacts to new ETW data. Higher values feel more realtime, lower values smooth the numbers more.";
+                FpsResponsivenessIntroText = "IconGrid now shows a live FPS number in the overlay and a steadier trend number beside it. This slider controls how quickly the trend number follows new ETW data.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW depends on the current Windows user having the right tracing access. This section checks the known Performance Log Users requirement.";
                 RefreshFpsSetupButtonText = "Refresh FPS setup status";
@@ -283,8 +283,8 @@ namespace IconGrid.Views
                 RunFpsSetupFixHelpText = "Only needed when the current user is missing Performance Log Users membership.";
                 TechnicalDetailsTitleText = "Technical details";
                 TechnicalDetailsIntroText = "Show the technical ETW status and the suggested command.";
-                PlannedOverlaySettingsTitleText = "Planned overlay settings";
-                PlannedOverlaySettingsIntroText = "Placeholder page for overlay-specific options.";
+                PlannedOverlaySettingsTitleText = "Live vs trend";
+                PlannedOverlaySettingsIntroText = "The overlay now shows a fast live number for short spikes and a smoother trend number for readability.";
                 ReadyBadgeText = "Ready";
             }
         }

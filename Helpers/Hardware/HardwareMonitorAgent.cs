@@ -12,7 +12,7 @@ public static class HardwareMonitorAgent
 {
     private const string AgentMutexName = @"Local\IconGrid.HardwareMonitorAgent";
     private const int SnapshotIntervalMs = 500;
-    private const int FpsStateIntervalMs = 10;
+    private const int FpsStateIntervalMs = 2;
     private const int AtomicWriteRetryCount = 8;
     private const int AtomicWriteRetryDelayMs = 6;
     private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromSeconds(5);
@@ -40,6 +40,7 @@ public static class HardwareMonitorAgent
 
         var config = configManager.LoadConfig();
         var fpsTarget = config.FpsTarget;
+        var activeFpsTargetSignature = NativeFpsAgentRunner.CreateTargetSignature(fpsTarget);
         var gameExeNames = new System.Collections.Generic.List<string>();
         if (fpsTarget != null)
         {
@@ -88,12 +89,23 @@ public static class HardwareMonitorAgent
                     parentMissingSinceUtc = null;
                 }
 
+                var latestConfig = configManager.LoadConfig();
+                var latestFpsTargetSignature = NativeFpsAgentRunner.CreateTargetSignature(latestConfig.FpsTarget);
+                if (!string.Equals(latestFpsTargetSignature, activeFpsTargetSignature, StringComparison.Ordinal))
+                {
+                    log?.Invoke($"FPS target changed. Restarting native FPS agent. Old={activeFpsTargetSignature} New={latestFpsTargetSignature}");
+                    activeFpsTargetSignature = latestFpsTargetSignature;
+                    nativeFpsLoggedSummary = string.Empty;
+                    nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid);
+                }
+
                 // Full hardware snapshot (every 500ms)
                 var snapshot = collector.Capture();
 
                 var nativeState = nativeFpsStarted ? nativeFpsAgent.ReadState() : null;
                 var nativeFpsStatus = nativeState?.FpsStatus;
-                var hasNativeFps = int.TryParse(nativeFpsStatus, out var nativeFpsValue) && nativeFpsValue > 0;
+                var nativeFpsValue = nativeState?.FpsValue;
+                var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0;
 
                 if (nativeState != null)
                 {
@@ -116,19 +128,19 @@ public static class HardwareMonitorAgent
 
                 if (hasNativeFps)
                 {
-                    fpsMeter.SetFps(nativeFpsValue);
-                    snapshot.FpsStatus = nativeFpsValue.ToString();
+                    fpsMeter.SetFps(nativeFpsValue!.Value);
+                    snapshot.FpsStatus = Math.Round(nativeFpsValue.Value).ToString("F0");
                     snapshot.FpsSource = nativeState?.FpsSource ?? "NativeFpsAgent";
                 }
                 else if (nativeFpsStarted)
                 {
-                    snapshot.FpsStatus = fpsMeter.GetCurrentFpsFormatted();
+                    snapshot.FpsStatus = fpsMeter.GetSnapshot().LiveFpsFormatted;
                     snapshot.FpsSource = "NativeFpsAgent";
                 }
                 else
                 {
                     // Native agent unavailable; degrade to local fallback formatting only.
-                    snapshot.FpsStatus = fpsMeter.GetCurrentFpsFormatted();
+                    snapshot.FpsStatus = fpsMeter.GetSnapshot().LiveFpsFormatted;
                     snapshot.FpsSource = "FpsMeter";
                 }
 
@@ -155,14 +167,33 @@ public static class HardwareMonitorAgent
                         parentMissingSinceUtc = null;
                     }
 
-                    var fpsStatus = snapshot.FpsStatus;
-                    var fpsSource = snapshot.FpsSource;
+                    var liveNativeState = nativeFpsStarted ? nativeFpsAgent.ReadState() : null;
+                    var liveNativeFpsStatus = liveNativeState?.FpsStatus;
+                    var liveNativeFpsValue = liveNativeState?.FpsValue;
+                    var hasLiveNativeFps = liveNativeFpsValue.HasValue && liveNativeFpsValue.Value > 0;
+                    if (hasLiveNativeFps)
+                    {
+                        fpsMeter.SetFps(liveNativeFpsValue!.Value);
+                    }
+
+                    var fpsSnapshot = fpsMeter.GetSnapshot();
+                    var fpsSource = liveNativeState?.FpsSource ?? snapshot.FpsSource;
+                    var fpsStatus = hasLiveNativeFps
+                        ? Math.Round(liveNativeFpsValue!.Value).ToString("F0")
+                        : fpsSnapshot.LiveFpsFormatted;
+                    var liveFpsValueForState = hasLiveNativeFps
+                        ? liveNativeFpsValue
+                        : (fpsSnapshot.LiveFps > 0 ? fpsSnapshot.LiveFps : null);
 
                     var fpsState = new FpsState
                     {
                         CapturedAtUtc = DateTime.UtcNow,
                         FpsStatus = fpsStatus,
-                        FpsSource = fpsSource
+                        FpsSource = fpsSource,
+                        LiveFpsStatus = fpsStatus,
+                        TrendFpsStatus = fpsSnapshot.SmoothedFpsFormatted,
+                        LiveFpsValue = liveFpsValueForState,
+                        TrendFpsValue = fpsSnapshot.SmoothedFps > 0 ? fpsSnapshot.SmoothedFps : null
                     };
 
                     WriteFpsState(fpsStatePath, fpsTempPath, fpsState);
@@ -279,4 +310,8 @@ public sealed class FpsState
     public DateTime CapturedAtUtc { get; set; }
     public string FpsStatus { get; set; } = "--";
     public string FpsSource { get; set; } = "";
+    public string LiveFpsStatus { get; set; } = "--";
+    public string TrendFpsStatus { get; set; } = "--";
+    public double? LiveFpsValue { get; set; }
+    public double? TrendFpsValue { get; set; }
 }

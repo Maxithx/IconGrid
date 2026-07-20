@@ -7,6 +7,7 @@ public sealed class NativeFpsAgentState
     public DateTime CapturedAtUtc { get; set; }
     public string? FpsStatus { get; set; }
     public string? FpsSource { get; set; }
+    public double? FpsValue { get; set; }
     public int ParentPid { get; set; }
     public int RootPid { get; set; }
     public int TargetPid { get; set; }

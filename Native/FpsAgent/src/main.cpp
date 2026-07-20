@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <fstream>
 #include <locale>
 #include <mutex>
@@ -21,6 +22,7 @@
 namespace
 {
     constexpr wchar_t kIgnoredProcessName[] = L"IconGrid.exe";
+    constexpr wchar_t kSharedMemoryName[] = L"Local\\IconGrid.NativeFps.Live";
     constexpr char kSessionName[] = "IconGridFpsAgent_ETW";
     constexpr unsigned long long kDxgKrnlKeywordPresent = 0x8000000;
     constexpr unsigned long long kDxgKrnlKeywordBase = 0x1;
@@ -29,7 +31,11 @@ namespace
     constexpr USHORT kDxgKrnlPresentInfoEventId = 0x00B8;
     constexpr USHORT kDxgKrnlFlipInfoEventId = 0x00A8;
     constexpr USHORT kDxgKrnlBlitInfoEventId = 0x00A6;
-    constexpr DWORD kPollIntervalMs = 500;
+    constexpr DWORD kTargetPollIntervalMs = 500;
+    constexpr DWORD kStateWriteIntervalMs = 2;
+    constexpr double kRollingFpsWindowSeconds = 0.025;
+    constexpr double kInstantFrameFloorSeconds = 1.0 / 360.0;
+    constexpr double kInstantFrameCeilingSeconds = 1.0 / 8.0;
 
     const GUID kDxgiProvider = {0xCA11C036, 0x0102, 0x4A2D, {0xA6, 0xAD, 0xF0, 0x3C, 0xFE, 0xD5, 0xD3, 0xC9}};
     const GUID kD3D9Provider = {0x783ACA0A, 0x790E, 0x4D7F, {0x84, 0x51, 0xAA, 0x85, 0x05, 0x11, 0xC6, 0xB9}};
@@ -39,6 +45,7 @@ namespace
     {
         std::wstring fpsStatus = L"--";
         std::wstring fpsSource = L"NativeFpsAgent";
+        double fpsValue = 0.0;
         DWORD parentPid = 0;
         DWORD rootPid = 0;
         DWORD targetPid = 0;
@@ -87,6 +94,22 @@ namespace
         unsigned long long launchFileTimeUtc = 0;
     };
 
+#pragma pack(push, 1)
+    struct SharedFpsState
+    {
+        long long sequenceStart = 0;
+        unsigned int magic = 0x49474650; // "IGFP"
+        unsigned int version = 1;
+        long long capturedTicksUtc = 0;
+        double fpsValue = 0.0;
+        unsigned int targetPid = 0;
+        unsigned int flags = 0;
+        unsigned int reserved1 = 0;
+        unsigned int reserved2 = 0;
+        long long sequenceEnd = 0;
+    };
+#pragma pack(pop)
+
     struct ProcessCandidate
     {
         DWORD pid = 0;
@@ -105,6 +128,9 @@ namespace
     TRACEHANDLE g_etwSession = 0;
     TRACEHANDLE g_etwTrace = 0;
     std::thread g_etwThread;
+    HANDLE g_sharedMemoryHandle = nullptr;
+    SharedFpsState* g_sharedMemoryView = nullptr;
+    std::atomic<long long> g_sharedSequence = 0;
     double g_qpcFrequency = 0.0;
     std::wstring g_targetExeName;
     std::wstring g_targetPath;
@@ -122,6 +148,8 @@ namespace
     std::atomic<int> g_d3d9EventCount = 0;
     std::atomic<int> g_dxgKrnlEventCount = 0;
     constexpr DWORD kEtwRetryIntervalMs = 3000;
+    constexpr unsigned int kSharedFlagHasFps = 0x1;
+    constexpr unsigned int kSharedFlagEtwRunning = 0x2;
 
     std::wstring GetIsoUtcNow()
     {
@@ -139,6 +167,17 @@ namespace
             systemTime.wSecond,
             systemTime.wMilliseconds);
         return buffer;
+    }
+
+    long long GetUtcTicksNow()
+    {
+        FILETIME fileTime{};
+        GetSystemTimeAsFileTime(&fileTime);
+        ULARGE_INTEGER value{};
+        value.LowPart = fileTime.dwLowDateTime;
+        value.HighPart = fileTime.dwHighDateTime;
+        constexpr long long ticksBetween1601And0001 = 504911232000000000LL;
+        return static_cast<long long>(value.QuadPart) + ticksBetween1601And0001;
     }
 
     std::wstring EscapeJson(const std::wstring& value)
@@ -221,6 +260,81 @@ namespace
         g_state.debugMessage = message;
     }
 
+    void WriteSharedFpsState(double fpsValue, bool hasFps)
+    {
+        if (g_sharedMemoryView == nullptr)
+        {
+            return;
+        }
+
+        SharedFpsState snapshot{};
+        snapshot.magic = 0x49474650;
+        snapshot.version = 1;
+        snapshot.capturedTicksUtc = GetUtcTicksNow();
+        snapshot.fpsValue = hasFps ? fpsValue : 0.0;
+        snapshot.targetPid = g_targetPid.load(std::memory_order_relaxed);
+        snapshot.flags = g_etwRunning.load(std::memory_order_relaxed) ? kSharedFlagEtwRunning : 0;
+        if (hasFps)
+        {
+            snapshot.flags |= kSharedFlagHasFps;
+        }
+
+        const auto sequence = g_sharedSequence.fetch_add(2, std::memory_order_relaxed) + 2;
+        snapshot.sequenceStart = sequence;
+        snapshot.sequenceEnd = sequence;
+
+        std::atomic_thread_fence(std::memory_order_release);
+        *g_sharedMemoryView = snapshot;
+        std::atomic_thread_fence(std::memory_order_release);
+    }
+
+    bool InitializeSharedMemory()
+    {
+        g_sharedMemoryHandle = CreateFileMappingW(
+            INVALID_HANDLE_VALUE,
+            nullptr,
+            PAGE_READWRITE,
+            0,
+            sizeof(SharedFpsState),
+            kSharedMemoryName);
+        if (g_sharedMemoryHandle == nullptr)
+        {
+            return false;
+        }
+
+        g_sharedMemoryView = static_cast<SharedFpsState*>(MapViewOfFile(
+            g_sharedMemoryHandle,
+            FILE_MAP_READ | FILE_MAP_WRITE,
+            0,
+            0,
+            sizeof(SharedFpsState)));
+        if (g_sharedMemoryView == nullptr)
+        {
+            CloseHandle(g_sharedMemoryHandle);
+            g_sharedMemoryHandle = nullptr;
+            return false;
+        }
+
+        ZeroMemory(g_sharedMemoryView, sizeof(SharedFpsState));
+        WriteSharedFpsState(0.0, false);
+        return true;
+    }
+
+    void CleanupSharedMemory()
+    {
+        if (g_sharedMemoryView != nullptr)
+        {
+            UnmapViewOfFile(g_sharedMemoryView);
+            g_sharedMemoryView = nullptr;
+        }
+
+        if (g_sharedMemoryHandle != nullptr)
+        {
+            CloseHandle(g_sharedMemoryHandle);
+            g_sharedMemoryHandle = nullptr;
+        }
+    }
+
     std::wstring FormatEtwError(const wchar_t* operation, unsigned long errorCode)
     {
         std::wostringstream message;
@@ -258,6 +372,8 @@ namespace
         if (pid == 0)
         {
             g_state.fpsStatus = L"--";
+            g_state.fpsValue = 0.0;
+            WriteSharedFpsState(0.0, false);
         }
         else
         {
@@ -272,15 +388,18 @@ namespace
         g_state.candidateProcessName = processName;
     }
 
-    void UpdateFpsState(const std::wstring& fpsStatus)
+    void UpdateFpsState(const std::wstring& fpsStatus, double fpsValue = 0.0)
     {
         std::scoped_lock lock(g_stateMutex);
         g_state.fpsStatus = fpsStatus;
         g_state.fpsSource = L"NativeFpsAgent";
+        g_state.fpsValue = fpsValue;
         if (fpsStatus != L"--")
         {
             g_state.error.clear();
         }
+
+        WriteSharedFpsState(fpsValue, fpsStatus != L"--" && fpsValue > 0.0);
     }
 
     void RecordEtwAttempt()
@@ -650,6 +769,7 @@ namespace
              << L"\"capturedAtUtc\":\"" << EscapeJson(GetIsoUtcNow()) << L"\","
              << L"\"fpsStatus\":\"" << EscapeJson(stateCopy.fpsStatus) << L"\","
              << L"\"fpsSource\":\"" << EscapeJson(stateCopy.fpsSource) << L"\","
+             << L"\"fpsValue\":" << stateCopy.fpsValue << L","
              << L"\"parentPid\":" << stateCopy.parentPid << L","
              << L"\"rootPid\":" << stateCopy.rootPid << L","
              << L"\"targetPid\":" << stateCopy.targetPid << L","
@@ -707,7 +827,7 @@ namespace
                 UpdateCandidateState(lockedPid, processName);
                 UpdateTargetState(lockedPid, processName);
 
-                Sleep(kPollIntervalMs);
+                Sleep(kTargetPollIntervalMs);
                 continue;
             }
 
@@ -740,7 +860,7 @@ namespace
                 SetDebugMessage(message.str());
             }
 
-            Sleep(kPollIntervalMs);
+            Sleep(kTargetPollIntervalMs);
         }
     }
 
@@ -790,61 +910,126 @@ namespace
 
         const double timestampSeconds = static_cast<double>(eventRecord->EventHeader.TimeStamp.QuadPart) / g_qpcFrequency;
         static DWORD lastPid = 0;
-        static double startTimestamp = 0.0;
-        static int dxgiCount = 0;
-        static int d3d9Count = 0;
-        static int dxgKrnlCount = 0;
+        static std::deque<double> dxgiTimestamps;
+        static std::deque<double> d3d9Timestamps;
+        static std::deque<double> dxgKrnlTimestamps;
+        static double lastMatchedTimestampSeconds = 0.0;
+
+        const auto trimWindow = [](std::deque<double>& timestamps, double nowSeconds)
+        {
+            while (!timestamps.empty() && (nowSeconds - timestamps.front()) > kRollingFpsWindowSeconds)
+            {
+                timestamps.pop_front();
+            }
+        };
+
+        const auto computeRollingFps = [](const std::deque<double>& timestamps) -> float
+        {
+            if (timestamps.size() < 2)
+            {
+                return 0.0f;
+            }
+
+            const auto span = timestamps.back() - timestamps.front();
+            if (span <= 0.0)
+            {
+                return static_cast<float>(timestamps.size() / kRollingFpsWindowSeconds);
+            }
+
+            return static_cast<float>((timestamps.size() - 1) / span);
+        };
 
         if (pid != lastPid)
         {
             lastPid = pid;
-            dxgiCount = 0;
-            d3d9Count = 0;
-            dxgKrnlCount = 0;
-            startTimestamp = timestampSeconds;
+            dxgiTimestamps.clear();
+            d3d9Timestamps.clear();
+            dxgKrnlTimestamps.clear();
+            lastMatchedTimestampSeconds = 0.0;
             g_dxgiEventCount.store(0, std::memory_order_relaxed);
             g_d3d9EventCount.store(0, std::memory_order_relaxed);
             g_dxgKrnlEventCount.store(0, std::memory_order_relaxed);
-            return;
         }
 
-        if (isDxgiEvent) ++dxgiCount;
-        if (isD3D9Event) ++d3d9Count;
-        if (isDxgKrnlOnlyEvent) ++dxgKrnlCount;
+        if (isDxgiEvent)
+        {
+            dxgiTimestamps.push_back(timestampSeconds);
+        }
+
+        if (isD3D9Event)
+        {
+            d3d9Timestamps.push_back(timestampSeconds);
+        }
+
+        if (isDxgKrnlOnlyEvent)
+        {
+            dxgKrnlTimestamps.push_back(timestampSeconds);
+        }
+
+        trimWindow(dxgiTimestamps, timestampSeconds);
+        trimWindow(d3d9Timestamps, timestampSeconds);
+        trimWindow(dxgKrnlTimestamps, timestampSeconds);
+
+        const auto dxgiCount = static_cast<int>(dxgiTimestamps.size());
+        const auto d3d9Count = static_cast<int>(d3d9Timestamps.size());
+        const auto dxgKrnlCount = static_cast<int>(dxgKrnlTimestamps.size());
         g_dxgiEventCount.store(dxgiCount, std::memory_order_relaxed);
         g_d3d9EventCount.store(d3d9Count, std::memory_order_relaxed);
         g_dxgKrnlEventCount.store(dxgKrnlCount, std::memory_order_relaxed);
 
-        const auto elapsed = timestampSeconds - startTimestamp;
-        if (elapsed < 1.0)
+        float rollingFps = 0.0f;
+        if (d3d9Count >= 2)
         {
-            return;
+            rollingFps = computeRollingFps(d3d9Timestamps);
         }
-
-        int frameCount = 0;
-        if (d3d9Count > 0)
+        else if (dxgiCount >= 2)
         {
-            frameCount = d3d9Count;
+            rollingFps = computeRollingFps(dxgiTimestamps);
         }
-        else if (dxgiCount > 0)
+        else if (dxgKrnlCount >= 2)
         {
-            frameCount = dxgiCount;
-        }
-        else if (dxgKrnlCount > 0)
-        {
-            const auto potentialFps = static_cast<float>(dxgKrnlCount) / static_cast<float>(elapsed);
+            const auto potentialFps = computeRollingFps(dxgKrnlTimestamps);
             if (potentialFps >= 20.0f)
             {
-                frameCount = dxgKrnlCount;
+                rollingFps = potentialFps;
             }
         }
 
-        if (frameCount > 0)
+        float instantFps = 0.0f;
+        if (lastMatchedTimestampSeconds > 0.0)
         {
-            const auto fps = static_cast<float>(frameCount) / static_cast<float>(elapsed);
+            const auto frameSeconds = timestampSeconds - lastMatchedTimestampSeconds;
+            if (frameSeconds >= kInstantFrameFloorSeconds && frameSeconds <= kInstantFrameCeilingSeconds)
+            {
+                instantFps = static_cast<float>(1.0 / frameSeconds);
+            }
+        }
+        lastMatchedTimestampSeconds = timestampSeconds;
+
+        float fps = rollingFps;
+        if (instantFps > 0.0f)
+        {
+            if (fps <= 0.0f)
+            {
+                fps = instantFps;
+            }
+            else if (instantFps < fps)
+            {
+                // Make short drops hit almost immediately.
+                fps = (instantFps * 0.985f) + (fps * 0.015f);
+            }
+            else
+            {
+                // Let rises follow the instant signal even more aggressively too.
+                fps = (instantFps * 0.78f) + (fps * 0.22f);
+            }
+        }
+
+        if (fps > 0.0f)
+        {
             wchar_t fpsBuffer[16];
             swprintf_s(fpsBuffer, L"%.0f", std::round(fps));
-            UpdateFpsState(fpsBuffer);
+            UpdateFpsState(fpsBuffer, fps);
 
             std::wostringstream message;
             message << L"ETW window PID=" << pid
@@ -856,7 +1041,7 @@ namespace
         }
         else
         {
-            UpdateFpsState(L"--");
+            UpdateFpsState(L"--", 0.0);
 
             std::wostringstream message;
             message << L"ETW events but no usable frame count for PID=" << pid
@@ -866,13 +1051,6 @@ namespace
             SetDebugMessage(message.str());
         }
 
-        dxgiCount = 0;
-        d3d9Count = 0;
-        dxgKrnlCount = 0;
-        g_dxgiEventCount.store(0, std::memory_order_relaxed);
-        g_d3d9EventCount.store(0, std::memory_order_relaxed);
-        g_dxgKrnlEventCount.store(0, std::memory_order_relaxed);
-        startTimestamp = timestampSeconds;
     }
 
     bool StartEtwSession()
@@ -1108,6 +1286,8 @@ int wmain(int argc, wchar_t* argv[])
         g_state.lockedExecutablePath = g_targetPath;
     }
 
+    InitializeSharedMemory();
+
     std::thread targetThread(PollLockedTarget);
     auto nextEtwRetryAt = std::chrono::steady_clock::now();
     bool reportedWaitingForTarget = false;
@@ -1143,7 +1323,7 @@ int wmain(int argc, wchar_t* argv[])
 
         UpdateDebugCounts();
         WriteStateFile(parsedArgs->statePath);
-        Sleep(kPollIntervalMs);
+        Sleep(kStateWriteIntervalMs);
     }
 
     g_running.store(false, std::memory_order_relaxed);
@@ -1155,5 +1335,6 @@ int wmain(int argc, wchar_t* argv[])
     StopEtwSession();
     UpdateDebugCounts();
     WriteStateFile(parsedArgs->statePath);
+    CleanupSharedMemory();
     return 0;
 }

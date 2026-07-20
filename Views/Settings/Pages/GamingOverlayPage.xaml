@@ -181,46 +181,6 @@
                             </Grid>
                         </StackPanel>
                     </Border>
-                    <Border Margin="0,12,0,0"
-                            Padding="12"
-                            CornerRadius="8"
-                            Background="{StaticResource StartsideCardFill}">
-                        <StackPanel>
-                            <TextBlock Text="{Binding FpsResponsivenessTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <TextBlock Margin="0,6,0,0"
-                                       Text="{Binding FpsResponsivenessIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       TextWrapping="Wrap"
-                                       FontSize="13"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Slider Minimum="0.15"
-                                        Maximum="0.95"
-                                        TickFrequency="0.05"
-                                        SmallChange="0.05"
-                                        LargeChange="0.1"
-                                        IsSnapToTickEnabled="True"
-                                        Value="{Binding DataContext.GamingOverlayFpsResponsiveness, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        Style="{StaticResource ModernSliderStyle}" />
-                                <TextBlock Grid.Column="1"
-                                           Margin="12,0,0,0"
-                                           VerticalAlignment="Center"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           Text="{Binding DataContext.GamingOverlayFpsResponsivenessPercent, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </Grid>
-                            <TextBlock Margin="0,8,0,0"
-                                       Text="{Binding DataContext.GamingOverlayFpsResponsivenessDescription, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       TextWrapping="Wrap"
-                                       FontSize="12"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>

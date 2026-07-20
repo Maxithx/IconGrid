@@ -30,7 +30,7 @@ using Microsoft.Win32;
 using RadioButton = System.Windows.Controls.RadioButton;
 using Forms = System.Windows.Forms;
 
-namespace IconGrid.Views
+namespace IconGrid.Views.Launcher
 {
     public partial class MainWindow : Window
     {

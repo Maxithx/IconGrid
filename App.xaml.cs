@@ -8,6 +8,7 @@ using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Settings;
 using WinForms = System.Windows.Forms;
 using IconGrid.Views;
+using IconGrid.Views.Launcher;
 
 namespace IconGrid;
 

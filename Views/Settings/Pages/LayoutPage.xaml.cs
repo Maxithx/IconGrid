@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using WpfButton = System.Windows.Controls.Button;
+using IconGrid.Views.Launcher;
 using IconGrid.ViewModels;
 using IconGrid.ViewModels.Launcher;
 

@@ -24,7 +24,7 @@ namespace IconGrid.Helpers
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan FpsStateMaxAge = TimeSpan.FromSeconds(2);
-        private static readonly TimeSpan FpsUiPollInterval = TimeSpan.FromMilliseconds(10);
+        private static readonly TimeSpan FpsUiPollInterval = TimeSpan.FromMilliseconds(1);
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
         private readonly string _fpsStatePath;
@@ -43,6 +43,8 @@ namespace IconGrid.Helpers
         private string _downloadStatus = "--";
         private string _uploadStatus = "--";
         private string _fpsStatus = "--";
+        private double? _targetFpsValue;
+        private int? _displayedFpsInteger;
         private bool _isHighPing;
         private PingSeverity _pingSeverity = PingSeverity.Unknown;
         private long _lastDownloadBytes, _lastUploadBytes;
@@ -118,7 +120,7 @@ namespace IconGrid.Helpers
             _fpsStatePath = Path.Combine(configManager.BaseDirectory, "fps-state.json");
             InitializeNetworkStats();
 
-            _fpsTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+            _fpsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher)
             {
                 Interval = FpsUiPollInterval
             };
@@ -351,11 +353,62 @@ namespace IconGrid.Helpers
 
         private void FpsTimer_Tick(object? sender, EventArgs e)
         {
+            var nativeFpsState = NativeFpsSharedMemory.TryRead();
             var fpsState = ReadFpsState();
-            if (!string.IsNullOrWhiteSpace(fpsState?.FpsStatus))
+            var nativeFpsValue = nativeFpsState?.FpsValue;
+            var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0 &&
+                               DateTime.UtcNow - nativeFpsState!.Value.CapturedAtUtc <= FpsStateMaxAge;
+            if (!hasNativeFps && fpsState == null)
             {
-                FpsStatus = fpsState.FpsStatus;
+                _targetFpsValue = null;
+                _displayedFpsInteger = null;
+                FpsStatus = "--";
+                return;
             }
+
+            if (hasNativeFps)
+            {
+                _targetFpsValue = nativeFpsValue!.Value;
+            }
+            else if (fpsState?.LiveFpsValue.HasValue == true && fpsState.LiveFpsValue.Value > 0)
+            {
+                _targetFpsValue = fpsState.LiveFpsValue.Value;
+            }
+            else if (int.TryParse(fpsState?.LiveFpsStatus, out var parsedLiveStatus) && parsedLiveStatus > 0)
+            {
+                _targetFpsValue = parsedLiveStatus;
+            }
+            else if (int.TryParse(fpsState?.FpsStatus, out var parsedStatus) && parsedStatus > 0)
+            {
+                _targetFpsValue = parsedStatus;
+            }
+            else
+            {
+                _targetFpsValue = null;
+            }
+
+            if (!_targetFpsValue.HasValue)
+            {
+                _displayedFpsInteger = null;
+                FpsStatus = "--";
+                return;
+            }
+
+            var targetDisplayValue = (int)Math.Round(_targetFpsValue.Value);
+            if (!_displayedFpsInteger.HasValue)
+            {
+                _displayedFpsInteger = targetDisplayValue;
+            }
+            else if (_displayedFpsInteger.Value < targetDisplayValue)
+            {
+                _displayedFpsInteger++;
+            }
+            else if (_displayedFpsInteger.Value > targetDisplayValue)
+            {
+                _displayedFpsInteger--;
+            }
+
+            FpsStatus = (_displayedFpsInteger ?? targetDisplayValue).ToString("F0");
         }
 
         private static string ReadSharedTextFile(string path)

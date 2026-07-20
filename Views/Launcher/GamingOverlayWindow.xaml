@@ -29,6 +29,7 @@
         <helpers:PingSeverityToBrushConverter x:Key="PingSeverityBrush" />
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
+        <SolidColorBrush x:Key="OverlayFpsBrush" Color="#7CFF6B" />
         <SolidColorBrush x:Key="OverlayCloseHoverBrush" Color="#333333" />
         <SolidColorBrush x:Key="OverlayClosePressedBrush" Color="#444444" />
         <SolidColorBrush x:Key="OverlayMenuBorderBrush" Color="#33FFFFFF" />
@@ -40,6 +41,12 @@
                     <Setter Property="Foreground" Value="#111" />
                 </DataTrigger>
             </Style.Triggers>
+        </Style>
+        <Style x:Key="MonitorDividerStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
+            <Setter Property="Text" Value="|" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Opacity" Value="0.4" />
         </Style>
         <Style x:Key="NetworkMonitorTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
             <Style.Triggers>
@@ -146,8 +153,9 @@
                             <Run Text=": " />
                             <Run Text="{Binding SystemMonitor.NetworkStatus, Mode=OneWay}" />
                         </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorDividerStyle}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
-                                   Margin="12,0,9,0"
+                                   Margin="0,0,9,0"
                                    Width="75"
                                    TextAlignment="Right"
                                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
@@ -170,6 +178,7 @@
                                        RadiusY="2"
                                        Height="{Binding SystemMonitor.CpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
                         </Border>
+                        <TextBlock Style="{StaticResource MonitorDividerStyle}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
                                    Width="64"
                                    Margin="0,0,9,0"
@@ -195,15 +204,30 @@
                                        RadiusY="2"
                                        Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
                         </Border>
-                        <TextBlock Style="{StaticResource MonitorTextStyle}"
-                                   Width="52"
-                                   Margin="0,0,10,0"
-                                   TextAlignment="Right"
-                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
-                            <Run Text="FPS" />
-                            <Run Text=": " />
-                            <Run FontFamily="Consolas" Text="{Binding SystemMonitor.FpsStatus, Mode=OneWay}" />
-                        </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorDividerStyle}" />
+                        <Grid Width="54"
+                              Margin="0,0,10,0"
+                              VerticalAlignment="Center"
+                              ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="30" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Style="{StaticResource MonitorTextStyle}"
+                                       Text="FPS:"
+                                       VerticalAlignment="Center"
+                                       TextAlignment="Right" />
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource MonitorTextStyle}"
+                                       FontFamily="Consolas"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource OverlayFpsBrush}"
+                                       Text="{Binding SystemMonitor.FpsStatus, Mode=OneWay}"
+                                       VerticalAlignment="Center"
+                                       Margin="-2,0,0,0"
+                                       TextAlignment="Right" />
+                        </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"

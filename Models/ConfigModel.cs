@@ -13,7 +13,7 @@ public class ConfigModel
     public double IconScale { get; set; } = 1.0;           // 100%
     public double UiScale { get; set; } = 1.0;             // 100% UI scaling
     public double GamingOverlayUiScale { get; set; } = 1.0; // 100% gaming overlay scaling
-    public double GamingOverlayFpsResponsiveness { get; set; } = 0.78; // 0.15 = smoother, 0.95 = more realtime
+    public double GamingOverlayFpsResponsiveness { get; set; } = 1.0; // hidden default tuned for maximum realtime feel
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;

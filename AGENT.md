@@ -24,9 +24,19 @@ Before making changes, read these files in this order:
 - If Windows startup creates a duplicate or elevated IconGrid instance, inspect Task Scheduler first for a stale `IconGrid` task before changing application code.
 - Keep changes small and verify them with a build before claiming the issue is fixed.
 - An active GitHub CLI (`gh`) login is not required for `git commit` or `git push`; use the repository's configured Git credentials. Only require `gh` authentication for GitHub CLI operations such as creating pull requests.
+- Do not introduce new UI effects, shadows, borders, chrome, or visual treatments that do not already exist in the current launcher UI.
+- Reuse the existing UI language, spacing, and controls; do not invent new styling for overlays or windows.
+- Any FPS overlay must be passive and low-risk only; no injection, DLL detouring, or graphics API hooking.
+- Gaming overlay windows must remember their last position after shutdown and restore it on next launch.
+- The gaming overlay must not minimize together with the launcher or otherwise depend on launcher window state.
+- The gaming overlay must not reuse the existing settings page flow; if it needs settings, add a dedicated settings page for it.
+- Do not assume the gaming overlay will appear inside a game's fullscreen composition; treat it as a desktop overlay requirement unless proven otherwise.
 
 ## Current focus
 
 - Fix Windows startup so IconGrid no longer launches extra elevated instances.
 - Remove or repair stale Windows startup entries when they are found.
 - Preserve the separation between launcher UI and hardware monitor behavior.
+- Keep any new overlay or window visually consistent with the existing launcher UI only.
+- Keep FPS work opt-in and conservative; do not use hook-based capture paths.
+- Keep the gaming overlay independent from launcher minimize behavior and settings navigation.

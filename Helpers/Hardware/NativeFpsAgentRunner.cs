@@ -44,6 +44,61 @@ internal sealed class NativeFpsAgentRunner : IDisposable
             }
 
             var fpsTarget = LoadFpsTarget();
+            arguments += BuildTargetArguments(fpsTarget);
+
+            _process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = executablePath,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(executablePath) ?? AppContext.BaseDirectory
+                }
+            };
+
+            var started = _process.Start();
+            Trace(
+                $"Native FPS agent start requested. Success={started}, Path={executablePath}, TargetExe={fpsTarget.ExecutableName ?? "null"}, TargetPath={fpsTarget.ResolvedExecutablePath ?? "null"}, RootPid={fpsTarget.RootProcessId?.ToString() ?? "null"}, RootStartFileTime={fpsTarget.RootProcessStartFileTimeUtc?.ToString() ?? "null"}, WorkingDir={fpsTarget.WorkingDirectory ?? "null"}");
+            return started;
+        }
+        catch (Exception ex)
+        {
+            Trace($"Native FPS agent failed to start: {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool Restart(int? parentPid)
+    {
+        DisposeProcess();
+        return Start(parentPid);
+    }
+
+    public static string CreateTargetSignature(FpsTargetConfig? fpsTarget)
+    {
+        if (fpsTarget == null)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(
+            "|",
+            fpsTarget.DisplayName ?? string.Empty,
+            fpsTarget.LauncherPath ?? string.Empty,
+            fpsTarget.ResolvedExecutablePath ?? string.Empty,
+            fpsTarget.ExecutableName ?? string.Empty,
+            fpsTarget.Arguments ?? string.Empty,
+            fpsTarget.WorkingDirectory ?? string.Empty,
+            fpsTarget.RootProcessId?.ToString() ?? string.Empty,
+            fpsTarget.RootProcessStartFileTimeUtc?.ToString() ?? string.Empty,
+            fpsTarget.LaunchCapturedFileTimeUtc?.ToString() ?? string.Empty);
+    }
+
+    private static string BuildTargetArguments(FpsTargetConfig fpsTarget)
+    {
+        var arguments = string.Empty;
             if (!string.IsNullOrWhiteSpace(fpsTarget.ExecutableName))
             {
                 arguments += $" --target-exe \"{fpsTarget.ExecutableName}\"";
@@ -74,65 +129,39 @@ internal sealed class NativeFpsAgentRunner : IDisposable
                 arguments += $" --launch-filetime {fpsTarget.LaunchCapturedFileTimeUtc.Value}";
             }
 
-            _process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = executablePath,
-                    Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(executablePath) ?? AppContext.BaseDirectory
-                }
-            };
-
-            var started = _process.Start();
-            Trace(
-                $"Native FPS agent start requested. Success={started}, Path={executablePath}, TargetExe={fpsTarget.ExecutableName ?? "null"}, TargetPath={fpsTarget.ResolvedExecutablePath ?? "null"}, RootPid={fpsTarget.RootProcessId?.ToString() ?? "null"}, RootStartFileTime={fpsTarget.RootProcessStartFileTimeUtc?.ToString() ?? "null"}, WorkingDir={fpsTarget.WorkingDirectory ?? "null"}");
-            return started;
-        }
-        catch (Exception ex)
-        {
-            Trace($"Native FPS agent failed to start: {ex.Message}");
-            return false;
-        }
+        return arguments;
     }
 
     public NativeFpsAgentState? ReadState()
     {
         try
         {
+            NativeFpsAgentState? fileState = null;
             if (!File.Exists(_statePath))
             {
-                return null;
+                return ReadSharedMemoryState(null);
             }
 
             var info = new FileInfo(_statePath);
             if (DateTime.UtcNow - info.LastWriteTimeUtc > StateMaxAge)
             {
-                return null;
+                return ReadSharedMemoryState(null);
             }
 
             var json = File.ReadAllText(_statePath);
-            var state = JsonSerializer.Deserialize<NativeFpsAgentState>(json, JsonOptions);
-            if (state == null || DateTime.UtcNow - state.CapturedAtUtc > StateMaxAge)
+            fileState = JsonSerializer.Deserialize<NativeFpsAgentState>(json, JsonOptions);
+            if (fileState == null || DateTime.UtcNow - fileState.CapturedAtUtc > StateMaxAge)
             {
-                return null;
+                fileState = null;
             }
 
-            return state;
+            return ReadSharedMemoryState(fileState);
         }
         catch (Exception ex)
         {
             Trace($"Native FPS agent state read failed: {ex.Message}");
             return null;
         }
-    }
-
-    public bool Restart(int? parentPid)
-    {
-        DisposeProcess();
-        return Start(parentPid);
     }
 
     public void Dispose()
@@ -179,6 +208,44 @@ internal sealed class NativeFpsAgentRunner : IDisposable
     private void Trace(string message)
     {
         _log?.Invoke($"[NativeFpsAgentRunner] {message}");
+    }
+
+    private static NativeFpsAgentState? ReadSharedMemoryState(NativeFpsAgentState? fallbackState)
+    {
+        var liveState = NativeFpsSharedMemory.TryRead();
+        if (!liveState.HasValue)
+        {
+            return fallbackState;
+        }
+
+        if (DateTime.UtcNow - liveState.Value.CapturedAtUtc > StateMaxAge)
+        {
+            return fallbackState;
+        }
+
+        if (fallbackState == null)
+        {
+            return new NativeFpsAgentState
+            {
+                CapturedAtUtc = liveState.Value.CapturedAtUtc,
+                FpsValue = liveState.Value.FpsValue,
+                FpsStatus = liveState.Value.FpsValue.HasValue ? Math.Round(liveState.Value.FpsValue.Value).ToString("F0") : "--",
+                FpsSource = "NativeFpsAgent",
+                TargetPid = liveState.Value.TargetPid,
+                EtwRunning = liveState.Value.EtwRunning
+            };
+        }
+
+        if (liveState.Value.CapturedAtUtc >= fallbackState.CapturedAtUtc)
+        {
+            fallbackState.CapturedAtUtc = liveState.Value.CapturedAtUtc;
+            fallbackState.FpsValue = liveState.Value.FpsValue;
+            fallbackState.FpsStatus = liveState.Value.FpsValue.HasValue ? Math.Round(liveState.Value.FpsValue.Value).ToString("F0") : "--";
+            fallbackState.TargetPid = liveState.Value.TargetPid;
+            fallbackState.EtwRunning = liveState.Value.EtwRunning;
+        }
+
+        return fallbackState;
     }
 
     private void DisposeProcess()

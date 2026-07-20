@@ -1,4 +1,4 @@
-﻿<Window x:Class="IconGrid.Views.MainWindow"
+﻿<Window x:Class="IconGrid.Views.Launcher.MainWindow"
         x:Name="RootWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
