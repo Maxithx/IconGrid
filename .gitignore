@@ -15,13 +15,27 @@ obj/
 IconTest/
 scripts/
 backups/
+logs/
+fps-overlay-1.7.0-beta/
 
 # Gemte logs og data
 trace.log
 error.log
+debug.log
+build.log
+build_fail.log
 config.json
 items.json
 kommandoer.txt
+.local-state/
+trader-log/
+
+# Native / local FPS tooling artifacts
+Native/**/bin/
+Native/**/obj/
+Native/**/*.obj
+Tools/FpsAgent/
+Tools/PresentMon/*.exe
 
 # AI Studio konfiguration
 .aistudio
