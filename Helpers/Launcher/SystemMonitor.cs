@@ -23,8 +23,12 @@ namespace IconGrid.Helpers
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan FpsStateMaxAge = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan FpsUiPollInterval = TimeSpan.FromMilliseconds(10);
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
+        private readonly string _fpsStatePath;
+        private readonly DispatcherTimer _fpsTimer;
 
         private string _networkStatus = "--";
         private string _cpuTemp = "--";
@@ -38,6 +42,7 @@ namespace IconGrid.Helpers
         private string _gpuName = "";
         private string _downloadStatus = "--";
         private string _uploadStatus = "--";
+        private string _fpsStatus = "--";
         private bool _isHighPing;
         private PingSeverity _pingSeverity = PingSeverity.Unknown;
         private long _lastDownloadBytes, _lastUploadBytes;
@@ -58,6 +63,7 @@ namespace IconGrid.Helpers
         public string GpuName { get => _gpuName; private set { _gpuName = value; OnPropertyChanged(); } }
         public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
         public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
+        public string FpsStatus { get => _fpsStatus; private set { _fpsStatus = value; OnPropertyChanged(); } }
 
         public bool IsHighPing
         {
@@ -109,7 +115,15 @@ namespace IconGrid.Helpers
             _dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
             var configManager = new ConfigManager();
             _monitorStatePath = Path.Combine(configManager.BaseDirectory, "monitor-state.json");
+            _fpsStatePath = Path.Combine(configManager.BaseDirectory, "fps-state.json");
             InitializeNetworkStats();
+
+            _fpsTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher)
+            {
+                Interval = FpsUiPollInterval
+            };
+            _fpsTimer.Tick += FpsTimer_Tick;
+            _fpsTimer.Start();
         }
 
         public void Update()
@@ -187,7 +201,7 @@ namespace IconGrid.Helpers
                     return null;
                 }
 
-                var json = File.ReadAllText(_monitorStatePath);
+                var json = ReadSharedTextFile(_monitorStatePath);
                 var snapshot = JsonSerializer.Deserialize<HardwareMonitorSnapshot>(json, JsonOptions);
                 if (snapshot == null || DateTime.UtcNow - snapshot.CapturedAtUtc > HardwareSnapshotMaxAge)
                 {
@@ -305,6 +319,56 @@ namespace IconGrid.Helpers
             return string.Format("{0:F0} KB/s", (double)bytesPerSecond / 1024);
         }
 
+        private FpsState? ReadFpsState()
+        {
+            try
+            {
+                if (!File.Exists(_fpsStatePath))
+                {
+                    return null;
+                }
+
+                var info = new FileInfo(_fpsStatePath);
+                if (DateTime.UtcNow - info.LastWriteTimeUtc > FpsStateMaxAge)
+                {
+                    return null;
+                }
+
+                var json = ReadSharedTextFile(_fpsStatePath);
+                var state = JsonSerializer.Deserialize<FpsState>(json, JsonOptions);
+                if (state == null || DateTime.UtcNow - state.CapturedAtUtc > FpsStateMaxAge)
+                {
+                    return null;
+                }
+
+                return state;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void FpsTimer_Tick(object? sender, EventArgs e)
+        {
+            var fpsState = ReadFpsState();
+            if (!string.IsNullOrWhiteSpace(fpsState?.FpsStatus))
+            {
+                FpsStatus = fpsState.FpsStatus;
+            }
+        }
+
+        private static string ReadSharedTextFile(string path)
+        {
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
         private record NetworkSnapshot(
             string NetworkStatus,
             string DownloadStatus,
@@ -332,6 +396,8 @@ namespace IconGrid.Helpers
 
         public void Dispose()
         {
+            _fpsTimer.Stop();
+            _fpsTimer.Tick -= FpsTimer_Tick;
         }
     }
 }

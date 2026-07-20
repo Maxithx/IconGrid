@@ -23,6 +23,7 @@ namespace IconGrid.ViewModels.Settings
                 config.IconScale = state.IconScale;
                 config.UiScale = state.UiScale;
                 config.GamingOverlayUiScale = state.GamingOverlayUiScale;
+                config.GamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
                 config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;
@@ -58,6 +59,7 @@ namespace IconGrid.ViewModels.Settings
                 config.EnableSlideUpAnimation = state.EnableSlideUpAnimation;
                 config.EnableContentScroll = state.EnableContentScroll;
                 config.WindowAnimationDurationMs = state.WindowAnimationDurationMs;
+                config.FpsTarget = state.FpsTarget ?? new FpsTargetConfig();
 
                 _configManager.SaveConfig(config);
             }

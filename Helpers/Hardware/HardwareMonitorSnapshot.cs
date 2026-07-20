@@ -5,6 +5,8 @@ namespace IconGrid.Helpers.Hardware;
 public sealed class HardwareMonitorSnapshot
 {
     public DateTime CapturedAtUtc { get; set; }
+    public string? FpsStatus { get; set; }
+    public string? FpsSource { get; set; }
     public string? CpuTemp { get; set; }
     public string? GpuTemp { get; set; }
     public string? CpuUsage { get; set; }

@@ -10,6 +10,7 @@ namespace IconGrid.ViewModels.Settings
         public double IconScale { get; set; }
         public double UiScale { get; set; }
         public double GamingOverlayUiScale { get; set; }
+        public double GamingOverlayFpsResponsiveness { get; set; }
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }
@@ -45,5 +46,6 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableSlideUpAnimation { get; set; }
         public bool EnableContentScroll { get; set; }
         public int WindowAnimationDurationMs { get; set; }
+        public FpsTargetConfig FpsTarget { get; set; } = new();
     }
 }

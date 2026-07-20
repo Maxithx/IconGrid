@@ -13,6 +13,7 @@ namespace IconGrid.ViewModels.Settings
         public StartupLaunchMode StartupLaunchMode { get; init; }
         public double UiScale { get; init; }
         public double GamingOverlayUiScale { get; init; }
+        public double GamingOverlayFpsResponsiveness { get; init; }
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -21,6 +22,7 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableSlideUpAnimation { get; init; }
         public bool EnableContentScroll { get; init; }
         public int WindowAnimationDurationMs { get; init; }
+        public FpsTargetConfig FpsTarget { get; init; } = new();
         public string Language { get; init; } = "da";
         public double? WindowLeft { get; init; }
         public double? WindowTop { get; init; }
@@ -44,6 +46,7 @@ namespace IconGrid.ViewModels.Settings
                 StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
                 GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, config.GamingOverlayUiScale)),
+                GamingOverlayFpsResponsiveness = config.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, config.GamingOverlayFpsResponsiveness)),
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
@@ -52,6 +55,7 @@ namespace IconGrid.ViewModels.Settings
                 EnableSlideUpAnimation = config.EnableSlideUpAnimation,
                 EnableContentScroll = config.EnableContentScroll,
                 WindowAnimationDurationMs = config.WindowAnimationDurationMs,
+                FpsTarget = config.FpsTarget ?? new FpsTargetConfig(),
                 Language = string.IsNullOrWhiteSpace(config.Language) ? "da" : config.Language,
                 WindowLeft = config.WindowLeft,
                 WindowTop = config.WindowTop,

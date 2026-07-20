@@ -42,6 +42,7 @@ namespace IconGrid.ViewModels
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
         private double _gamingOverlayUiScale = 1.0;
+        private double _gamingOverlayFpsResponsiveness = 0.65;
         private const double GamingOverlayBaseWidth = 720;
         private const double GamingOverlayBaseHeight = 44;
         private bool _isFullWindowVisible = false;
@@ -86,6 +87,7 @@ namespace IconGrid.ViewModels
         private readonly MainViewModelSettingsPersistence _settingsPersistence;
         private ConfigModel _config;
         private bool _isInitializing = true;
+        private FpsTargetConfig _fpsTarget = new();
 
         public SystemMonitor SystemMonitor => _systemMonitor;
         private const double SettingsMinWindowHeight = 620;
@@ -237,6 +239,47 @@ namespace IconGrid.ViewModels
                     OnPropertyChanged(nameof(GamingOverlayWindowWidth));
                     OnPropertyChanged(nameof(GamingOverlayWindowHeight));
                 }
+            }
+        }
+
+        public double GamingOverlayFpsResponsiveness
+        {
+            get => _gamingOverlayFpsResponsiveness;
+            set
+            {
+                var clamped = Math.Max(0.15, Math.Min(0.95, value));
+                if (SetField(ref _gamingOverlayFpsResponsiveness, clamped))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(GamingOverlayFpsResponsiveness));
+                    OnPropertyChanged(nameof(GamingOverlayFpsResponsivenessPercent));
+                    OnPropertyChanged(nameof(GamingOverlayFpsResponsivenessDescription));
+                }
+            }
+        }
+
+        public string GamingOverlayFpsResponsivenessPercent => $"{Math.Round(_gamingOverlayFpsResponsiveness * 100):F0}%";
+
+        public string GamingOverlayFpsResponsivenessDescription
+        {
+            get
+            {
+                if (_gamingOverlayFpsResponsiveness >= 0.88)
+                    return string.Equals(_language, "da", StringComparison.OrdinalIgnoreCase)
+                        ? "Næsten realtime opdatering med meget lidt smoothing."
+                        : "Near-realtime updates with very little smoothing.";
+                if (_gamingOverlayFpsResponsiveness >= 0.65)
+                    return string.Equals(_language, "da", StringComparison.OrdinalIgnoreCase)
+                        ? "Meget hurtig opdatering med mindre smoothing."
+                        : "Very fast updates with less smoothing.";
+                if (_gamingOverlayFpsResponsiveness >= 0.45)
+                    return string.Equals(_language, "da", StringComparison.OrdinalIgnoreCase)
+                        ? "Balanceret mellem realtime og stabil visning."
+                        : "Balanced between realtime feel and stable display.";
+
+                return string.Equals(_language, "da", StringComparison.OrdinalIgnoreCase)
+                    ? "Mere smoothing og roligere FPS-tal."
+                    : "More smoothing and calmer FPS numbers.";
             }
         }
 
@@ -967,6 +1010,7 @@ namespace IconGrid.ViewModels
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
             _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, state.GamingOverlayUiScale));
+            _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, state.GamingOverlayFpsResponsiveness));
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
@@ -984,6 +1028,7 @@ namespace IconGrid.ViewModels
             _gamingOverlayWindowTop = state.GamingOverlayWindowTop;
             _floatingLeft = state.FloatingIconLeft;
             _floatingTop = state.FloatingIconTop;
+            _fpsTarget = state.FpsTarget ?? new FpsTargetConfig();
             _layoutState.ApplyConfig(config);
             NotifyConfigApplied();
         }
@@ -995,6 +1040,8 @@ namespace IconGrid.ViewModels
             _lastRowPaddingAdjust = -50;
             _icon_scale = 1.0;
             _uiScale = 1.0;
+            _gamingOverlayUiScale = 1.0;
+            _gamingOverlayFpsResponsiveness = 0.65;
             _isAlwaysOnTop = false;
             _isFloatingIconTopmost = true;
             _showScrollButtons = true;
@@ -1008,6 +1055,7 @@ namespace IconGrid.ViewModels
             _floatingLeft = null;
             _floatingTop = null;
             _windowAnimationDurationMs = 250;
+            _fpsTarget = new FpsTargetConfig();
         }
 
         private ConfigModel LoadConfiguredState()
@@ -1044,7 +1092,7 @@ namespace IconGrid.ViewModels
             return (
                 new LauncherItemsManager(Items, () => SelectedTab),
                 itemIconManager,
-                new LauncherItemLaunchManager(),
+                new LauncherItemLaunchManager(RememberFpsTarget),
                 new LauncherShortcutManager(Items, itemIconManager),
                 new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json")));
         }
@@ -1311,6 +1359,39 @@ namespace IconGrid.ViewModels
             _itemLaunchManager.LaunchItem(item);
         }
 
+        private void RememberFpsTarget(LauncherItem item, FpsTargetConfig launchSession)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.Path))
+            {
+                return;
+            }
+
+            _fpsTarget = launchSession ?? new FpsTargetConfig
+            {
+                DisplayName = item.DisplayName,
+                LauncherPath = item.Path,
+                ResolvedExecutablePath = NormalizeExecutablePath(item.Path),
+                ExecutableName = Path.GetFileName(item.Path),
+                Arguments = item.Arguments,
+                WorkingDirectory = Path.GetDirectoryName(item.Path),
+                LaunchCapturedFileTimeUtc = DateTime.UtcNow.ToFileTimeUtc()
+            };
+
+            SaveSettingsToConfig();
+        }
+
+        private static string NormalizeExecutablePath(string path)
+        {
+            try
+            {
+                return Path.GetFullPath(path);
+            }
+            catch
+            {
+                return path;
+            }
+        }
+
         /// <summary>
         /// Creates and persists a custom shortcut entry.
         /// </summary>
@@ -1349,6 +1430,7 @@ namespace IconGrid.ViewModels
                 IconScale = _icon_scale,
                 UiScale = _uiScale,
                 GamingOverlayUiScale = _gamingOverlayUiScale,
+                GamingOverlayFpsResponsiveness = _gamingOverlayFpsResponsiveness,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,
@@ -1372,7 +1454,8 @@ namespace IconGrid.ViewModels
                 FloatingIconTop = _floatingTop,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
-                WindowAnimationDurationMs = _windowAnimationDurationMs
+                WindowAnimationDurationMs = _windowAnimationDurationMs,
+                FpsTarget = _fpsTarget
             };
 
             _layoutState.ApplyToSettingsState(state);

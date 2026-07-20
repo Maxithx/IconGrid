@@ -7,6 +7,7 @@ namespace IconGrid.Helpers.Hardware;
 public static class HardwareMonitorTaskManager
 {
     private const string MonitorAgentArgument = "--monitor-agent";
+    private const string ShutdownEventArgument = "--shutdown-event";
 
     public static bool StartAgent(Func<string>? executablePathProvider = null, Action<string>? log = null, bool elevate = true)
     {
@@ -19,10 +20,13 @@ public static class HardwareMonitorTaskManager
 
         try
         {
+            var shutdownEventName = GetShutdownEventName(Environment.ProcessId);
+            using var shutdownEvent = new EventWaitHandle(false, EventResetMode.ManualReset, shutdownEventName);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
-                Arguments = $"{MonitorAgentArgument} --parent-pid {Environment.ProcessId}",
+                Arguments = $"{MonitorAgentArgument} --parent-pid {Environment.ProcessId} {ShutdownEventArgument} \"{shutdownEventName}\"",
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
                 WindowStyle = ProcessWindowStyle.Hidden
@@ -41,4 +45,25 @@ public static class HardwareMonitorTaskManager
             return false;
         }
     }
+
+    public static void SignalCurrentAgentToStop(Action<string>? log = null)
+    {
+        try
+        {
+            var shutdownEventName = GetShutdownEventName(Environment.ProcessId);
+            using var shutdownEvent = EventWaitHandle.OpenExisting(shutdownEventName);
+            shutdownEvent.Set();
+            log?.Invoke($"Signaled hardware monitor agent shutdown via event {shutdownEventName}.");
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+            log?.Invoke("Hardware monitor shutdown event was not present.");
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to signal hardware monitor agent shutdown: {ex.Message}");
+        }
+    }
+
+    private static string GetShutdownEventName(int parentProcessId) => $@"Local\IconGrid.HardwareMonitorAgent.Stop.{parentProcessId}";
 }

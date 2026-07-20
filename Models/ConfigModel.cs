@@ -13,6 +13,7 @@ public class ConfigModel
     public double IconScale { get; set; } = 1.0;           // 100%
     public double UiScale { get; set; } = 1.0;             // 100% UI scaling
     public double GamingOverlayUiScale { get; set; } = 1.0; // 100% gaming overlay scaling
+    public double GamingOverlayFpsResponsiveness { get; set; } = 0.78; // 0.15 = smoother, 0.95 = more realtime
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
@@ -46,6 +47,7 @@ public class ConfigModel
     public List<CustomLayoutSlot> FavoriteLayoutSlots { get; set; } = new();
     public bool EnableSlideUpAnimation { get; set; } = true;
     public int WindowAnimationDurationMs { get; set; } = 250;
+    public FpsTargetConfig FpsTarget { get; set; } = new();
 
     public static readonly string[] DefaultTabs = ["Games", "Software", "Develop"];
 
@@ -79,4 +81,17 @@ public class ConfigModel
             TabNames = new List<string>(DefaultTabs);
         }
     }
+}
+
+public class FpsTargetConfig
+{
+    public string? DisplayName { get; set; }
+    public string? LauncherPath { get; set; }
+    public string? ResolvedExecutablePath { get; set; }
+    public string? ExecutableName { get; set; }
+    public string? Arguments { get; set; }
+    public string? WorkingDirectory { get; set; }
+    public int? RootProcessId { get; set; }
+    public long? RootProcessStartFileTimeUtc { get; set; }
+    public long? LaunchCapturedFileTimeUtc { get; set; }
 }
