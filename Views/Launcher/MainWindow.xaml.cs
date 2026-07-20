@@ -20,6 +20,7 @@ using System.Windows.Media.Imaging;
 using System.Drawing;
 using System.Windows.Threading;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 using IconGrid.ViewModels;
@@ -3338,6 +3339,7 @@ namespace IconGrid.Views
         {
             _monitorTimer?.Stop();
             _autoHideTimer?.Stop();
+            HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
             if (_viewModel != null)
             {
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
@@ -3365,6 +3367,7 @@ namespace IconGrid.Views
         {
             _monitorTimer?.Stop();
             _autoHideTimer?.Stop();
+            HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
             ClosePawnIoWarningWindow();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();

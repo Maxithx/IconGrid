@@ -22,8 +22,6 @@ namespace IconGrid.Views
                 _window.Closed += (_, _) => _window = null;
             }
 
-            _window.Owner = owner;
-
             if (!_window.TryApplySavedPosition())
             {
                 PositionRelativeToOwner(owner, _window);

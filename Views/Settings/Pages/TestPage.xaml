@@ -89,6 +89,97 @@
                         <TextBlock FontSize="16"
                                    FontWeight="SemiBold"
                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Text="UI ETW probe" />
+                        <TextBlock Margin="0,10,0,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   Text="Runs a short ETW start/enable test directly inside the non-elevated UI process. This isolates whether the current desktop token can enable DxgKrnl, DXGI, and D3D9 at all." />
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,12,0,0">
+                            <Button Content="Run UI ETW probe"
+                                    Click="RunEtwProbeButton_Click"
+                                    Padding="14,8"
+                                    MinWidth="150"
+                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Foreground="White"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Cursor="Hand" />
+                            <TextBlock Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding EtwProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,12,0,0">
+                            <Button Content="Run elevated ETW probe"
+                                    Click="RunElevatedEtwProbeButton_Click"
+                                    Padding="14,8"
+                                    MinWidth="150"
+                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Foreground="White"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Cursor="Hand" />
+                            <TextBlock Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding ElevatedEtwProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,12,0,0">
+                            <Button Content="Run native UI FPS probe"
+                                    Click="RunNativeUiProbeButton_Click"
+                                    Padding="14,8"
+                                    MinWidth="150"
+                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Foreground="White"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Cursor="Hand" />
+                            <TextBlock Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding NativeUiProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </StackPanel>
+                        <Border Margin="0,12,0,0"
+                                Padding="10,8"
+                                CornerRadius="8"
+                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <TextBlock FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding EtwProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </Border>
+                        <Border Margin="0,12,0,0"
+                                Padding="10,8"
+                                CornerRadius="8"
+                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <TextBlock FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding ElevatedEtwProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </Border>
+                        <Border Margin="0,12,0,0"
+                                Padding="10,8"
+                                CornerRadius="8"
+                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <TextBlock FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding NativeUiProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource StartsideSectionCardStyle}">
+                    <StackPanel>
+                        <TextBlock FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Text="Notes" />
                         <TextBlock Margin="0,10,0,0"
                                    TextWrapping="Wrap"

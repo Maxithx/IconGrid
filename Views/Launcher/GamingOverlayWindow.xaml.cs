@@ -60,13 +60,6 @@ namespace IconGrid.Views
         private void ApplyWindowSize()
         {
             var scale = GetEffectiveScale();
-            Width = 720 * scale;
-            var extraHeight = SettingsMenuButton?.IsChecked == true
-                ? (PopupRowSpacing + PopupRowHeight) * scale
-                : 0;
-            Height = (BaseOverlayHeight * scale) + extraHeight;
-            MinWidth = Width;
-            MinHeight = BaseOverlayHeight * scale;
 
             if (OverlayRoot != null)
             {
@@ -87,6 +80,23 @@ namespace IconGrid.Views
             if (CloseButton != null)
             {
                 CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+            }
+
+            var extraHeight = SettingsMenuButton?.IsChecked == true
+                ? (PopupRowSpacing + PopupRowHeight) * scale
+                : 0;
+            Height = (BaseOverlayHeight * scale) + extraHeight;
+            MinHeight = BaseOverlayHeight * scale;
+
+            var overlayWidth = MeasureElementWidth(OverlayRoot);
+            var popupWidth = PopupPanelsRow?.Visibility == Visibility.Visible
+                ? MeasureElementWidth(PopupPanelsRow)
+                : 0;
+            var targetWidth = Math.Max(overlayWidth, popupWidth);
+            if (targetWidth > 0)
+            {
+                Width = targetWidth;
+                MinWidth = targetWidth;
             }
         }
 
@@ -113,6 +123,17 @@ namespace IconGrid.Views
             var heightFactor = Math.Min(1.0, screen.Bounds.Height / ReferenceHeight);
             var resolutionFactor = Math.Min(widthFactor, heightFactor);
             return Math.Max(0.5, Math.Min(1.2, baseScale * resolutionFactor));
+        }
+
+        private static double MeasureElementWidth(FrameworkElement? element)
+        {
+            if (element == null)
+            {
+                return 0;
+            }
+
+            element.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+            return Math.Ceiling(element.DesiredSize.Width);
         }
 
         private Forms.Screen? TryGetCurrentScreen()

@@ -14,6 +14,7 @@ namespace IconGrid;
 public partial class App : System.Windows.Application
 {
     private bool _isMonitorAgentMode;
+    private bool _isFpsEtwProbeMode;
     private bool _isWindowsStartupLaunch;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -45,6 +46,7 @@ public partial class App : System.Windows.Application
 
         _isWindowsStartupLaunch = e.Args.Any(arg => string.Equals(arg, "--startup-launch", StringComparison.OrdinalIgnoreCase));
         _isMonitorAgentMode = e.Args.Any(arg => string.Equals(arg, "--monitor-agent", StringComparison.OrdinalIgnoreCase));
+        _isFpsEtwProbeMode = e.Args.Any(arg => string.Equals(arg, "--fps-etw-probe-agent", StringComparison.OrdinalIgnoreCase));
 
         WriteTrace("OnStartup begin");
         RegisterGlobalExceptionHandlers();
@@ -56,6 +58,15 @@ public partial class App : System.Windows.Application
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;
                 WriteTrace($"Starting hardware monitor agent mode. Elevated={IsCurrentProcessElevated()}");
                 var exitCode = HardwareMonitorAgent.Run(e.Args, WriteTrace);
+                Shutdown(exitCode);
+                return;
+            }
+
+            if (_isFpsEtwProbeMode)
+            {
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                WriteTrace($"Starting elevated ETW probe mode. Elevated={IsCurrentProcessElevated()}");
+                var exitCode = FpsEtwProbeAgent.Run(e.Args, WriteTrace);
                 Shutdown(exitCode);
                 return;
             }
@@ -146,7 +157,7 @@ public partial class App : System.Windows.Application
             // ignore logging failures
         }
 
-        if (_isMonitorAgentMode)
+        if (_isMonitorAgentMode || _isFpsEtwProbeMode)
         {
             return;
         }
