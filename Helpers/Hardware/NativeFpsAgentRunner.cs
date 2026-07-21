@@ -24,7 +24,7 @@ internal sealed class NativeFpsAgentRunner : IDisposable
 
     public bool IsAvailable => !string.IsNullOrWhiteSpace(TryResolveExecutablePath());
 
-    public bool Start(int? parentPid)
+    public bool Start(int? parentPid, int? foregroundGamePid = null)
     {
         var executablePath = TryResolveExecutablePath();
         if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
@@ -44,7 +44,26 @@ internal sealed class NativeFpsAgentRunner : IDisposable
             }
 
             var fpsTarget = LoadFpsTarget();
-            arguments += BuildTargetArguments(fpsTarget);
+            var hasConfigTarget = !string.IsNullOrWhiteSpace(fpsTarget.ExecutableName) ||
+                                   !string.IsNullOrWhiteSpace(fpsTarget.ResolvedExecutablePath) ||
+                                   fpsTarget.RootProcessId.HasValue;
+
+            // If a foreground game PID was explicitly provided (externally launched game),
+            // it takes priority over any stale config target.
+            if (foregroundGamePid.HasValue && foregroundGamePid.Value > 0)
+            {
+                arguments += $" --root-pid {foregroundGamePid.Value}";
+            }
+            else if (hasConfigTarget)
+            {
+                // Use the launcher-provided FPS target (game started from IconGrid).
+                arguments += BuildTargetArguments(fpsTarget);
+            }
+            else
+            {
+                // No target at all; native agent will run without following any process.
+                Trace("No FPS target configured and no foreground game detected.");
+            }
 
             _process = new Process
             {
@@ -60,7 +79,11 @@ internal sealed class NativeFpsAgentRunner : IDisposable
 
             var started = _process.Start();
             Trace(
-                $"Native FPS agent start requested. Success={started}, Path={executablePath}, TargetExe={fpsTarget.ExecutableName ?? "null"}, TargetPath={fpsTarget.ResolvedExecutablePath ?? "null"}, RootPid={fpsTarget.RootProcessId?.ToString() ?? "null"}, RootStartFileTime={fpsTarget.RootProcessStartFileTimeUtc?.ToString() ?? "null"}, WorkingDir={fpsTarget.WorkingDirectory ?? "null"}");
+                $"Native FPS agent start requested. Success={started}, Path={executablePath}, " +
+                $"HasConfigTarget={hasConfigTarget}, ForegroundGamePid={foregroundGamePid?.ToString() ?? "null"}, " +
+                $"TargetExe={fpsTarget.ExecutableName ?? "null"}, TargetPath={fpsTarget.ResolvedExecutablePath ?? "null"}, " +
+                $"RootPid={fpsTarget.RootProcessId?.ToString() ?? "null"}, RootStartFileTime={fpsTarget.RootProcessStartFileTimeUtc?.ToString() ?? "null"}, " +
+                $"WorkingDir={fpsTarget.WorkingDirectory ?? "null"}");
             return started;
         }
         catch (Exception ex)
@@ -70,10 +93,10 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         }
     }
 
-    public bool Restart(int? parentPid)
+    public bool Restart(int? parentPid, int? foregroundGamePid = null)
     {
         DisposeProcess();
-        return Start(parentPid);
+        return Start(parentPid, foregroundGamePid);
     }
 
     public static string CreateTargetSignature(FpsTargetConfig? fpsTarget)

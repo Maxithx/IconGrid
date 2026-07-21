@@ -16,6 +16,19 @@ Before making changes, read these files in this order:
 - `README.md` describes the intended application behavior and project structure.
 - `ARCHITECTURE_RULES.md` contains the constraints for keeping the codebase modular and stable.
 
+## Commit and push rules (CRITICAL)
+
+- Do NOT commit or push any changes unless the user explicitly says so.
+- All changes must be tested and verified by the user before any commit is made.
+- Commits are only made after the user gives clear approval (e.g. "commit", "push", "godkend").
+- This applies even for small fixes, typos, or documentation changes.
+
+## File backup rules
+
+- When creating backups of files, always use shell commands (copy, robocopy, xcopy) to copy files directly.
+- Do NOT read the file content and write it back as a backup — that is slow, wasteful, and can alter formatting.
+- Use `copy "source" "destination"` (Windows) for single file backups.
+
 ## Working rules
 
 - Treat `CHAT_STATE.md` as the live note for unresolved issues and recent findings.

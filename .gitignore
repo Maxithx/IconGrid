@@ -15,6 +15,7 @@ obj/
 IconTest/
 scripts/
 backups/
+_backups/
 logs/
 fps-overlay-1.7.0-beta/
 

@@ -1366,6 +1366,42 @@ namespace IconGrid.ViewModels
                 return;
             }
 
+            // Only save the FPS target if the launched process actually started and is still alive.
+            if (launchSession != null)
+            {
+                if (launchSession.RootProcessId.HasValue && launchSession.RootProcessId.Value > 0)
+                {
+                    if (!ProcessIsAlive(launchSession.RootProcessId.Value))
+                    {
+                        Debug.WriteLine("FPS target process already exited; not persisting stale target.");
+                        return;
+                    }
+                }
+                else
+                {
+                    // No RootProcessId; try to find the process by executable name.
+                    var processName = Path.GetFileNameWithoutExtension(launchSession.ExecutableName ?? string.Empty);
+                    if (!string.IsNullOrWhiteSpace(processName))
+                    {
+                        var found = false;
+                        try
+                        {
+                            foreach (var process in Process.GetProcessesByName(processName))
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        catch { }
+                        if (!found)
+                        {
+                            Debug.WriteLine("FPS target process not found; not persisting stale target.");
+                            return;
+                        }
+                    }
+                }
+            }
+
             _fpsTarget = launchSession ?? new FpsTargetConfig
             {
                 DisplayName = item.DisplayName,
@@ -1378,6 +1414,21 @@ namespace IconGrid.ViewModels
             };
 
             SaveSettingsToConfig();
+        }
+
+        private static bool ProcessIsAlive(int pid)
+        {
+            if (pid <= 0)
+                return false;
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                return !process.HasExited;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string NormalizeExecutablePath(string path)

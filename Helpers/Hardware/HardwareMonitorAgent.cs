@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using IconGrid.Helpers;
@@ -15,9 +16,18 @@ public static class HardwareMonitorAgent
     private const int FpsStateIntervalMs = 2;
     private const int AtomicWriteRetryCount = 8;
     private const int AtomicWriteRetryDelayMs = 6;
+    private const int ForegroundPollIntervalMs = 1000;
     private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromSeconds(5);
+    private static readonly string[] IgnoredForegroundProcesses = { "explorer", "IconGrid", "ApplicationFrameHost", "SearchApp", "StartMenuExperienceHost" };
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    // Win32 P/Invoke for foreground window detection
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     public static int Run(string[] args, Action<string>? log = null)
     {
@@ -60,12 +70,34 @@ public static class HardwareMonitorAgent
             using var collector = new HardwareSnapshotCollector();
             using var nativeFpsAgent = new NativeFpsAgentRunner(nativeFpsStatePath, log);
             using var fpsMeter = new FpsMeter(config.GamingOverlayFpsResponsiveness, log);
+            var currentForegroundGamePid = default(int?);
 
-            var nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Start(parentPid);
-            log?.Invoke($"Hardware monitor agent started. NativeFpsStarted={nativeFpsStarted}");
+            // Determine initial start mode: if no config target, pass foreground PID if available.
+            var hasConfigTarget = fpsTarget != null &&
+                (!string.IsNullOrWhiteSpace(fpsTarget.ExecutableName) ||
+                 !string.IsNullOrWhiteSpace(fpsTarget.ResolvedExecutablePath) ||
+                 fpsTarget.RootProcessId.HasValue);
+            int? initialForegroundPid = null;
+            if (!hasConfigTarget)
+            {
+                initialForegroundPid = TryGetForegroundGamePid(log);
+                if (initialForegroundPid.HasValue)
+                {
+                    log?.Invoke($"Initial foreground game PID detected: {initialForegroundPid.Value}");
+                    currentForegroundGamePid = initialForegroundPid;
+                }
+            }
+
+            var nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Start(parentPid, initialForegroundPid);
+            log?.Invoke($"Hardware monitor agent started. NativeFpsStarted={nativeFpsStarted} HasConfigTarget={hasConfigTarget} ForegroundPid={initialForegroundPid?.ToString() ?? "null"}");
 
             var nativeFpsLoggedSummary = string.Empty;
             DateTime? parentMissingSinceUtc = null;
+            var foregroundPollCounter = 0;
+            var foregroundOverridePid = default(int?);
+            var overrideExpiresAtUtc = default(DateTime?);
+            var lastStableFps = 0.0;
+            var lastStableFpsSetAtUtc = DateTime.MinValue;
 
             while (true)
             {
@@ -91,12 +123,29 @@ public static class HardwareMonitorAgent
 
                 var latestConfig = configManager.LoadConfig();
                 var latestFpsTargetSignature = NativeFpsAgentRunner.CreateTargetSignature(latestConfig.FpsTarget);
-                if (!string.Equals(latestFpsTargetSignature, activeFpsTargetSignature, StringComparison.Ordinal))
+                
+                // If we have an active foreground override, suppress config reloads for 30s.
+                if (overrideExpiresAtUtc.HasValue && DateTime.UtcNow < overrideExpiresAtUtc.Value)
+                {
+                    // Keep using the foreground PID; ignore stale config reloads.
+                }
+                else if (!string.Equals(latestFpsTargetSignature, activeFpsTargetSignature, StringComparison.Ordinal))
                 {
                     log?.Invoke($"FPS target changed. Restarting native FPS agent. Old={activeFpsTargetSignature} New={latestFpsTargetSignature}");
                     activeFpsTargetSignature = latestFpsTargetSignature;
+                    currentForegroundGamePid = null; // Config target takes priority; clear foreground PID.
                     nativeFpsLoggedSummary = string.Empty;
                     nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid);
+                    overrideExpiresAtUtc = null;
+                    foregroundOverridePid = null;
+                }
+
+                    // Poll foreground window every ~1s to detect externally launched games.
+                foregroundPollCounter++;
+                if (foregroundPollCounter >= ForegroundPollIntervalMs / SnapshotIntervalMs)
+                {
+                    foregroundPollCounter = 0;
+                    TryUpdateForegroundGameTarget(nativeFpsAgent, latestConfig, ref activeFpsTargetSignature, ref nativeFpsStarted, ref currentForegroundGamePid, ref overrideExpiresAtUtc, ref foregroundOverridePid, parentPid, log);
                 }
 
                 // Full hardware snapshot (every 500ms)
@@ -126,10 +175,75 @@ public static class HardwareMonitorAgent
                     }
                 }
 
+                // Emulator detection: if FPS > 120 but only DxgKrnl events (no DXGI),
+                // the FPS is likely inflated by emulator compositing (e.g. Yuzu).
+                var emulatorOvercount = false;
+                if (hasNativeFps && nativeFpsValue!.Value > 120.0 && nativeState != null &&
+                    nativeState.MatchedDxgiEventCount == 0 && nativeState.MatchedDxgKrnlEventCount > 0)
+                {
+                    emulatorOvercount = true;
+                    log?.Invoke($"Emulator overcount detected: FPS={nativeFpsValue.Value:F0} DXGI=0 DXGKRNL={nativeState.MatchedDxgKrnlEventCount}");
+                }
+
+                // Spike guard: reject improbable FPS and smooth large jumps.
+                var effectiveFps = nativeFpsValue;
                 if (hasNativeFps)
                 {
-                    fpsMeter.SetFps(nativeFpsValue!.Value);
-                    snapshot.FpsStatus = Math.Round(nativeFpsValue.Value).ToString("F0");
+                    var now = DateTime.UtcNow;
+                    var isSpike = false;
+
+                    // Emulator cap: if only DxgKrnl events and FPS > 120, cap at 60.
+                    if (emulatorOvercount)
+                    {
+                        effectiveFps = 60.0;
+                        lastStableFps = 60.0; // Reset stable baseline immediately.
+                        lastStableFpsSetAtUtc = now;
+                        log?.Invoke($"Emulator cap applied: FPS capped to 60");
+                    }
+                    else
+                    {
+                        var rawFps = nativeFpsValue!.Value;
+                    
+                        // Hard cap: anything >1000 is always a spike.
+                        if (rawFps > 1000.0)
+                        {
+                            isSpike = true;
+                            log?.Invoke($"Spike filtered (>1000): rawFps={rawFps:F0} lastStable={lastStableFps:F0}");
+                        }
+                        // Large upward jump from a stable baseline: treat as spike unless it persists.
+                        else if (lastStableFps > 10.0 && rawFps > lastStableFps * 1.5)
+                        {
+                            if ((now - lastStableFpsSetAtUtc).TotalSeconds < 6.0)
+                            {
+                                isSpike = true;
+                                log?.Invoke($"Spike filtered (jump): rawFps={rawFps:F0} lastStable={lastStableFps:F0}");
+                            }
+                        }
+
+                        if (isSpike)
+                        {
+                            effectiveFps = lastStableFps > 0.0 ? lastStableFps : null;
+                        }
+                        else
+                        {
+                            if (lastStableFps > 0.0)
+                            {
+                                const double emaAlpha = 0.3;
+                                lastStableFps = (rawFps * emaAlpha) + (lastStableFps * (1.0 - emaAlpha));
+                            }
+                            else
+                            {
+                                lastStableFps = rawFps;
+                            }
+                            lastStableFpsSetAtUtc = now;
+                        }
+                    }
+                }
+
+                if (effectiveFps.HasValue && effectiveFps.Value > 0)
+                {
+                    fpsMeter.SetFps(effectiveFps.Value);
+                    snapshot.FpsStatus = Math.Round(effectiveFps.Value).ToString("F0");
                     snapshot.FpsSource = nativeState?.FpsSource ?? "NativeFpsAgent";
                 }
                 else if (nativeFpsStarted)
@@ -251,6 +365,150 @@ exit:
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Attempts to detect the foreground window's process ID, excluding known system/IconGrid processes.
+    /// Returns null if the foreground window belongs to an ignored process or cannot be determined.
+    /// </summary>
+    private static int? TryGetForegroundGamePid(Action<string>? log)
+    {
+        try
+        {
+            var foregroundHwnd = GetForegroundWindow();
+            if (foregroundHwnd == IntPtr.Zero)
+                return null;
+
+            GetWindowThreadProcessId(foregroundHwnd, out var pid);
+            if (pid == 0)
+                return null;
+
+            // Check if the process is one we should ignore (IconGrid itself, Explorer, etc.)
+            try
+            {
+                using var process = Process.GetProcessById((int)pid);
+                var processName = process.ProcessName;
+                foreach (var ignored in IgnoredForegroundProcesses)
+                {
+                    if (string.Equals(processName, ignored, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch
+            {
+                return null;
+            }
+
+            return (int?)pid;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Foreground window detection failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Polls the foreground window PID. If it changes to a new game process, 
+    /// restarts the native FPS agent with the new foreground PID.
+    /// Also checks if the config target process is still alive; if not, falls back to foreground detection.
+    /// </summary>
+    private static void TryUpdateForegroundGameTarget(
+        NativeFpsAgentRunner nativeFpsAgent,
+        Models.ConfigModel config,
+        ref string activeFpsTargetSignature,
+        ref bool nativeFpsStarted,
+        ref int? currentForegroundGamePid,
+        ref DateTime? overrideExpiresAtUtc,
+        ref int? foregroundOverridePid,
+        int? parentPid,
+        Action<string>? log)
+    {
+        var configTarget = config.FpsTarget;
+        var hasConfigTarget = configTarget != null &&
+            (!string.IsNullOrWhiteSpace(configTarget.ExecutableName) ||
+             !string.IsNullOrWhiteSpace(configTarget.ResolvedExecutablePath) ||
+             configTarget.RootProcessId.HasValue);
+
+        // If there's a config target, check if it's still alive.
+        if (hasConfigTarget && configTarget != null)
+        {
+            var targetAlive = false;
+            if (configTarget.RootProcessId.HasValue && configTarget.RootProcessId.Value > 0)
+            {
+                targetAlive = ProcessIsAlive(configTarget.RootProcessId.Value);
+            }
+
+            if (!targetAlive && !string.IsNullOrWhiteSpace(configTarget.ExecutableName))
+            {
+                // The config target process is dead. Clear the config signature so we
+                // can fall back to foreground detection for externally launched games.
+                log?.Invoke($"Config target process is no longer alive (RootPid={configTarget.RootProcessId}, Exe={configTarget.ExecutableName}). Clearing config target to enable foreground detection.");
+                activeFpsTargetSignature = string.Empty;
+                hasConfigTarget = false;
+                
+                // Also clear the stale FpsTarget from config.json to prevent reload oscillation.
+                try
+                {
+                    config.FpsTarget = new Models.FpsTargetConfig();
+                    var configManager = new Helpers.Settings.ConfigManager();
+                    configManager.SaveConfig(config);
+                    log?.Invoke("Cleared stale FpsTarget from config.json.");
+                }
+                catch (Exception ex)
+                {
+                    log?.Invoke($"Failed to clear stale FpsTarget from config.json: {ex.Message}");
+                }
+            }
+        }
+
+        if (hasConfigTarget)
+        {
+            return; // Config target is alive; do not override with foreground.
+        }
+
+        var newForegroundPid = TryGetForegroundGamePid(log);
+        if (!newForegroundPid.HasValue && currentForegroundGamePid.HasValue)
+        {
+            // Foreground is no longer a game (e.g., user alt-tabbed or clicked overlay).
+            // Do NOT restart — keep tracking the existing game PID.
+            // Only restart if the game process actually exited.
+            if (!ProcessIsAlive(currentForegroundGamePid.Value))
+            {
+                log?.Invoke($"Current game PID {currentForegroundGamePid.Value} has exited. Clearing.");
+                currentForegroundGamePid = null;
+                foregroundOverridePid = null;
+                nativeFpsStarted = false;
+            }
+            return;
+        }
+
+        if (newForegroundPid.HasValue && newForegroundPid != currentForegroundGamePid)
+        {
+            log?.Invoke($"Foreground game PID changed from {currentForegroundGamePid?.ToString() ?? "null"} to {newForegroundPid.Value}. Restarting native FPS agent.");
+            currentForegroundGamePid = newForegroundPid;
+            foregroundOverridePid = newForegroundPid;
+            overrideExpiresAtUtc = DateTime.UtcNow.AddSeconds(30);
+            log?.Invoke($"Foreground override activated for PID {newForegroundPid.Value} until {overrideExpiresAtUtc.Value:HH:mm:ss}.");
+            nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid, newForegroundPid);
+        }
+    }
+
+    private static bool ProcessIsAlive(int pid)
+    {
+        if (pid <= 0)
+            return false;
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            return !process.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool ParentIsAlive(int? parentPid)
