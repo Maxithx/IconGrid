@@ -22,6 +22,15 @@
 namespace
 {
     constexpr wchar_t kIgnoredProcessName[] = L"IconGrid.exe";
+    constexpr wchar_t kBattleNetProcessName[] = L"Battle.net.exe";
+    constexpr wchar_t kSteamProcessName[] = L"steam.exe";
+    constexpr wchar_t kSteamWebHelperProcessName[] = L"steamwebhelper.exe";
+    constexpr wchar_t kUbisoftConnectProcessName[] = L"upc.exe";
+    constexpr wchar_t kEADesktopProcessName[] = L"EADesktop.exe";
+    constexpr wchar_t kEpicGamesLauncherProcessName[] = L"EpicGamesLauncher.exe";
+    constexpr wchar_t kLauncherProcessName[] = L"launcher.exe";
+    constexpr wchar_t kConsoleHostProcessName[] = L"conhost.exe";
+    constexpr wchar_t kDxDiagProcessName[] = L"dxdiag.exe";
     constexpr wchar_t kSharedMemoryName[] = L"Local\\IconGrid.NativeFps.Live";
     constexpr char kSessionName[] = "IconGridFpsAgent_ETW";
     constexpr unsigned long long kDxgKrnlKeywordPresent = 0x8000000;
@@ -32,8 +41,10 @@ namespace
     constexpr USHORT kDxgKrnlFlipInfoEventId = 0x00A8;
     constexpr USHORT kDxgKrnlBlitInfoEventId = 0x00A6;
     constexpr DWORD kTargetPollIntervalMs = 500;
+    constexpr DWORD kFastTargetPollIntervalMs = 75;
     constexpr DWORD kStateWriteIntervalMs = 2;
-    constexpr double kRollingFpsWindowSeconds = 0.025;
+    constexpr double kRollingFpsWindowSeconds = 0.050;
+    constexpr size_t kMinimumRollingSamples = 2;
     constexpr double kInstantFrameFloorSeconds = 1.0 / 360.0;
     constexpr double kInstantFrameCeilingSeconds = 1.0 / 8.0;
 
@@ -140,6 +151,7 @@ namespace
     unsigned long long g_launchFileTimeUtc = 0;
     bool g_isElevated = false;
     DWORD g_parentPid = 0;
+    long long g_workerStartedTicksUtc = 0;
     std::atomic<bool> g_etwEventsReceived = false;
     std::atomic<int> g_preFilterDxgiEventCount = 0;
     std::atomic<int> g_preFilterD3d9EventCount = 0;
@@ -178,6 +190,49 @@ namespace
         value.HighPart = fileTime.dwHighDateTime;
         constexpr long long ticksBetween1601And0001 = 504911232000000000LL;
         return static_cast<long long>(value.QuadPart) + ticksBetween1601And0001;
+    }
+
+    bool IsWithinFastAcquireWindowUtcTicks(long long nowUtcTicks)
+    {
+        constexpr long long ticksPerSecond = 10000000LL;
+        constexpr long long fastAcquireWindowTicks = 15LL * ticksPerSecond;
+        constexpr long long rootLaunchSlackTicks = 2LL * ticksPerSecond;
+
+        if (g_workerStartedTicksUtc > 0 && nowUtcTicks - g_workerStartedTicksUtc <= fastAcquireWindowTicks)
+        {
+            return true;
+        }
+
+        if (g_launchFileTimeUtc != 0 &&
+            nowUtcTicks >= static_cast<long long>(g_launchFileTimeUtc) - rootLaunchSlackTicks &&
+            nowUtcTicks - static_cast<long long>(g_launchFileTimeUtc) <= fastAcquireWindowTicks)
+        {
+            return true;
+        }
+
+        if (g_rootStartFileTimeUtc != 0 &&
+            nowUtcTicks >= static_cast<long long>(g_rootStartFileTimeUtc) - rootLaunchSlackTicks &&
+            nowUtcTicks - static_cast<long long>(g_rootStartFileTimeUtc) <= fastAcquireWindowTicks)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    DWORD GetTargetPollIntervalMs(bool hasLockedTarget)
+    {
+        if (!hasLockedTarget)
+        {
+            return kFastTargetPollIntervalMs;
+        }
+
+        if (IsWithinFastAcquireWindowUtcTicks(GetUtcTicksNow()))
+        {
+            return 150;
+        }
+
+        return kTargetPollIntervalMs;
     }
 
     std::wstring EscapeJson(const std::wstring& value)
@@ -626,6 +681,51 @@ namespace
         return false;
     }
 
+    bool IsLikelyLauncherProcess(const std::wstring& processName)
+    {
+        if (processName.empty())
+        {
+            return false;
+        }
+
+        return _wcsicmp(processName.c_str(), kBattleNetProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kSteamProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kSteamWebHelperProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kUbisoftConnectProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kEADesktopProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kEpicGamesLauncherProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kLauncherProcessName) == 0;
+    }
+
+    bool IsLikelyHelperProcess(const std::wstring& processName)
+    {
+        if (processName.empty())
+        {
+            return false;
+        }
+
+        return _wcsicmp(processName.c_str(), kConsoleHostProcessName) == 0 ||
+               _wcsicmp(processName.c_str(), kDxDiagProcessName) == 0;
+    }
+
+    const ProcessCandidate* FindProcessByPid(DWORD pid, const std::vector<ProcessCandidate>& processes)
+    {
+        if (pid == 0)
+        {
+            return nullptr;
+        }
+
+        for (const auto& process : processes)
+        {
+            if (process.pid == pid)
+            {
+                return &process;
+            }
+        }
+
+        return nullptr;
+    }
+
     std::optional<ProcessCandidate> FindTargetProcess()
     {
         if (g_targetExeName.empty() && g_targetPath.empty() && g_workingDir.empty() && !g_rootPid.has_value())
@@ -676,25 +776,47 @@ namespace
 
         CloseHandle(snapshot);
 
+        bool rootIsLauncher = false;
+        bool shouldPreferDirectRoot = false;
         if (g_rootPid.has_value())
         {
-            for (const auto& candidate : processes)
+            if (const auto* rootProcess = FindProcessByPid(g_rootPid.value(), processes))
             {
-                if (candidate.pid != g_rootPid.value())
+                rootIsLauncher = IsLikelyLauncherProcess(rootProcess->processName);
+                shouldPreferDirectRoot =
+                    !rootIsLauncher &&
+                    g_targetExeName.empty() &&
+                    g_targetPath.empty() &&
+                    g_workingDir.empty();
+
+                if (shouldPreferDirectRoot)
                 {
-                    continue;
+                    std::wostringstream message;
+                    message << L"Using root PID " << rootProcess->pid
+                            << L" directly. Name=" << rootProcess->processName
+                            << L" Path=" << rootProcess->processPath;
+                    SetDebugMessage(message.str());
+                    return *rootProcess;
                 }
 
                 std::wostringstream message;
-                message << L"Using root PID " << candidate.pid
-                        << L" directly. Name=" << candidate.processName
-                        << L" Path=" << candidate.processPath;
+                message << L"Root PID " << rootProcess->pid;
+                if (rootIsLauncher)
+                {
+                    message << L" is a launcher/bootstrapper (" << rootProcess->processName
+                            << L"). Searching related child processes for the real render target.";
+                }
+                else
+                {
+                    message << L" has target metadata (" << rootProcess->processName
+                            << L"). Searching for the best exact or related render target instead of pinning only the root PID.";
+                }
                 SetDebugMessage(message.str());
-                return candidate;
             }
         }
 
         std::optional<ProcessCandidate> bestMatch;
+        std::optional<ProcessCandidate> bestLooseMatch;
         for (auto& candidate : processes)
         {
             const auto normalizedName = ToLower(candidate.processName);
@@ -713,10 +835,27 @@ namespace
                                             candidate.startFileTimeUtc != 0 &&
                                             candidate.startFileTimeUtc + 10000000ULL >= g_launchFileTimeUtc;
             const auto isExactCandidate = pathMatches || nameMatches || isRootPid;
+            const auto isLooseCandidate =
+                !isExactCandidate &&
+                (
+                    (workingDirectoryMatches && startMatchesLaunch) ||
+                    (targetDirectoryMatches && startMatchesLaunch) ||
+                    (targetDirectoryMatches && relatedToRoot)
+                );
 
-            if ((!targetName.empty() || !targetPath.empty()) && !isExactCandidate)
+            if (rootIsLauncher)
             {
-                continue;
+                if (isRootPid || !relatedToRoot)
+                {
+                    continue;
+                }
+            }
+            else if ((!targetName.empty() || !targetPath.empty()) && !isExactCandidate)
+            {
+                if (!isLooseCandidate)
+                {
+                    continue;
+                }
             }
 
             candidate.score = 0;
@@ -728,9 +867,19 @@ namespace
             if (targetDirectoryMatches) candidate.score += 200;
             if (startMatchesRoot) candidate.score += 150;
             if (startMatchesLaunch) candidate.score += 100;
+            if (rootIsLauncher && relatedToRoot) candidate.score += 500;
+            if (isLooseCandidate) candidate.score += 125;
             if (candidate.startFileTimeUtc != 0 && g_launchFileTimeUtc != 0 && candidate.startFileTimeUtc < g_launchFileTimeUtc - 30000000ULL)
             {
                 candidate.score -= 150;
+            }
+            if (IsLikelyLauncherProcess(candidate.processName))
+            {
+                candidate.score -= 600;
+            }
+            if (IsLikelyHelperProcess(candidate.processName))
+            {
+                candidate.score -= 900;
             }
 
             if (candidate.score <= 0)
@@ -738,12 +887,48 @@ namespace
                 continue;
             }
 
-            if (!bestMatch.has_value() ||
-                candidate.score > bestMatch->score ||
-                (candidate.score == bestMatch->score && candidate.startFileTimeUtc > bestMatch->startFileTimeUtc))
+            std::wostringstream candidateMessage;
+            candidateMessage << L"Candidate PID=" << candidate.pid
+                             << L" Name=" << candidate.processName
+                             << L" Score=" << candidate.score
+                             << L" PathMatch=" << (pathMatches ? L"1" : L"0")
+                             << L" NameMatch=" << (nameMatches ? L"1" : L"0")
+                             << L" Loose=" << (isLooseCandidate ? L"1" : L"0")
+                             << L" Root=" << (isRootPid ? L"1" : L"0")
+                             << L" Related=" << (relatedToRoot ? L"1" : L"0")
+                             << L" WorkingDir=" << (workingDirectoryMatches ? L"1" : L"0")
+                             << L" TargetDir=" << (targetDirectoryMatches ? L"1" : L"0");
+            SetDebugMessage(candidateMessage.str());
+
+            if (isExactCandidate)
             {
-                bestMatch = candidate;
+                if (!bestMatch.has_value() ||
+                    candidate.score > bestMatch->score ||
+                    (candidate.score == bestMatch->score && candidate.startFileTimeUtc > bestMatch->startFileTimeUtc))
+                {
+                    bestMatch = candidate;
+                }
             }
+            else if (isLooseCandidate)
+            {
+                if (!bestLooseMatch.has_value() ||
+                    candidate.score > bestLooseMatch->score ||
+                    (candidate.score == bestLooseMatch->score && candidate.startFileTimeUtc > bestLooseMatch->startFileTimeUtc))
+                {
+                    bestLooseMatch = candidate;
+                }
+            }
+        }
+
+        if (!bestMatch.has_value() && bestLooseMatch.has_value())
+        {
+            std::wostringstream message;
+            message << L"Using loose relock candidate PID=" << bestLooseMatch->pid
+                    << L" Name=" << bestLooseMatch->processName
+                    << L" Path=" << bestLooseMatch->processPath
+                    << L" Score=" << bestLooseMatch->score;
+            SetDebugMessage(message.str());
+            bestMatch = bestLooseMatch;
         }
 
         if (!bestMatch.has_value())
@@ -827,7 +1012,7 @@ namespace
                 UpdateCandidateState(lockedPid, processName);
                 UpdateTargetState(lockedPid, processName);
 
-                Sleep(kTargetPollIntervalMs);
+                Sleep(GetTargetPollIntervalMs(true));
                 continue;
             }
 
@@ -860,7 +1045,7 @@ namespace
                 SetDebugMessage(message.str());
             }
 
-            Sleep(kTargetPollIntervalMs);
+            Sleep(GetTargetPollIntervalMs(false));
         }
     }
 
@@ -925,15 +1110,16 @@ namespace
 
         const auto computeRollingFps = [](const std::deque<double>& timestamps) -> float
         {
-            if (timestamps.size() < 2)
+            if (timestamps.size() < kMinimumRollingSamples)
             {
                 return 0.0f;
             }
 
             const auto span = timestamps.back() - timestamps.front();
-            if (span <= 0.0)
+            const auto minimumSpan = kInstantFrameFloorSeconds * static_cast<double>(timestamps.size() - 1);
+            if (span < minimumSpan)
             {
-                return static_cast<float>(timestamps.size() / kRollingFpsWindowSeconds);
+                return 0.0f;
             }
 
             return static_cast<float>((timestamps.size() - 1) / span);
@@ -977,28 +1163,35 @@ namespace
         g_d3d9EventCount.store(d3d9Count, std::memory_order_relaxed);
         g_dxgKrnlEventCount.store(dxgKrnlCount, std::memory_order_relaxed);
 
+        bool usingPrimaryApiSignal = false;
         float rollingFps = 0.0f;
+        const std::deque<double>* preferredTimestamps = nullptr;
         if (d3d9Count >= 2)
         {
             rollingFps = computeRollingFps(d3d9Timestamps);
+            preferredTimestamps = &d3d9Timestamps;
+            usingPrimaryApiSignal = true;
         }
         else if (dxgiCount >= 2)
         {
             rollingFps = computeRollingFps(dxgiTimestamps);
+            preferredTimestamps = &dxgiTimestamps;
+            usingPrimaryApiSignal = true;
         }
-        else if (dxgKrnlCount >= 2)
+        else if (dxgKrnlCount >= 2 && dxgiCount == 0 && d3d9Count == 0)
         {
             const auto potentialFps = computeRollingFps(dxgKrnlTimestamps);
             if (potentialFps >= 20.0f)
             {
                 rollingFps = potentialFps;
+                preferredTimestamps = &dxgKrnlTimestamps;
             }
         }
 
         float instantFps = 0.0f;
-        if (lastMatchedTimestampSeconds > 0.0)
+        if (preferredTimestamps != nullptr && preferredTimestamps->size() >= 2)
         {
-            const auto frameSeconds = timestampSeconds - lastMatchedTimestampSeconds;
+            const auto frameSeconds = preferredTimestamps->back() - (*(preferredTimestamps->rbegin() + 1));
             if (frameSeconds >= kInstantFrameFloorSeconds && frameSeconds <= kInstantFrameCeilingSeconds)
             {
                 instantFps = static_cast<float>(1.0 / frameSeconds);
@@ -1025,6 +1218,11 @@ namespace
             }
         }
 
+        if (fps > 1000.0f)
+        {
+            fps = 0.0f;
+        }
+
         if (fps > 0.0f)
         {
             wchar_t fpsBuffer[16];
@@ -1036,7 +1234,8 @@ namespace
                     << L" FPS=" << fpsBuffer
                     << L" DXGI=" << dxgiCount
                     << L" D3D9=" << d3d9Count
-                    << L" DXGKRNL=" << dxgKrnlCount;
+                    << L" DXGKRNL=" << dxgKrnlCount
+                    << L" Source=" << (usingPrimaryApiSignal ? L"PrimaryApi" : L"DxgKrnlFallback");
             SetDebugMessage(message.str());
         }
         else
@@ -1285,6 +1484,7 @@ int wmain(int argc, wchar_t* argv[])
         g_state.lockedExecutableName = g_targetExeName;
         g_state.lockedExecutablePath = g_targetPath;
     }
+    g_workerStartedTicksUtc = GetUtcTicksNow();
 
     InitializeSharedMemory();
 
