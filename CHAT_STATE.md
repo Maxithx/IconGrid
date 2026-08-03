@@ -135,3 +135,31 @@
   - `Helpers/Hardware/HardwareMonitorAgent.cs`: 1680 lines (limit 1500) — keep worker focused.
 - `Helpers/Launcher/SystemMonitor.cs`: passes (within limit).
 - AGENT.md now requires running `check_architecture_rules` before large refactors and at session end.
+
+## Security cleanup (Aug 3, 2026)
+
+- GitHub repo is PUBLIC (confirmed via anonymous `git ls-remote`) — treat everything in it as world-readable until made private.
+- Both signing certs (`certificate/icongrid-dev.pfx`, `certificate/vs-icongrid.pfx`) were tracked in git and publicly exposed.
+- Fixed: `git rm --cached` removed both certs from tracking (files kept on disk), `.gitignore` hardened with `*.pfx` / `*.key` / `*.pem` / `.env` / `.env.*`, and a repo security checklist added to ARCHITECTURE_RULES.md.
+- Commits pushed: `4665b9f` (remove signing certs + security checklist), `834424d` (harden .gitignore).
+- Verified: `git ls-files` no longer contains any `.pfx`/`.key`/`.pem`/`.env` files; certs still exist locally (`certificate/`).
+- IMPORTANT: certs remain in git history — if they were ever used for release signing, ROTATE them. Making the repo private closes exposure permanently.
+- Resolved: repo set to PRIVATE by user (2026-08-03) — closes exposure of old certs permanently, including git history.
+- Resolved: old local MCP server copy `C:\Users\THXMAN\Documents\Cline\MCP\notes-server` DELETED (2026-08-03). The active server runs directly from the repo (`tools/mcp-notes-server/`) and is registered in Cline MCP config with args `E:/IconGrid-GitHub/tools/mcp-notes-server/src/index.js`.
+- Documented in AGENT.md: MCP server runs directly from repo, fresh-clone setup (npm install + config snippet), and note that the old copy is deleted. Commit `e99f095` pushed.
+
+## MCP server end-to-end test (Aug 3, 2026)
+
+- Verified the MCP server works from a fresh-clone of the repo (HEAD e99f095): created a git worktree, ran `npm install` (93 packages, no errors), and ran a Node stdio JSON-RPC test.
+- initialize: OK — serverInfo `icongrid-notes-server` v0.1.0, protocolVersion `2024-11-05`.
+- tools/list: OK — all 6 tools returned (list_notes, read_note, search_notes, update_note, check_architecture_rules, check_version_consistency).
+- tools/call list_notes: OK — returned CHAT_STATE.md + 7 .local-state notes using ICONGRID_WORKSPACE env var.
+- Conclusion: the repo copy (`tools/mcp-notes-server/`) is complete and self-sufficient after `npm install`; nothing else is needed for a fresh machine.
+
+## MCP server test tooling (Aug 3, 2026)
+
+- Added reusable e2e test script `tools/mcp-notes-server/test/e2e.mjs` (spawns server over stdio, verifies initialize, tools/list, list_notes, check_version_consistency, check_architecture_rules).
+- Added `tools/mcp-notes-server/TESTING.md` guide (automated test, manual test in Cline, terminal smoke test). Test results are logged in CHAT_STATE.md, not a separate file.
+- Added `npm test` script to `tools/mcp-notes-server/package.json`.
+- Verified: `node test/e2e.mjs` from the repo passes all 13 checks.
+- Commits pushed: `194c716` (test tooling).
