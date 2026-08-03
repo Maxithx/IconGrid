@@ -254,7 +254,9 @@
 
 ## Arbejdsregel
 
-- Lav små sikre refactors
-- Build efter hver større fase
-- Manuel test af UI-flow efter hver større fase
-- Commit/push ved stabile checkpoints
+- Lav små sikre refactors — ÉT isoleret skift pr. trin, aldrig big-bang rewrite (se ARCHITECTURE_RULES.md "Refactor Workflow")
+- Build efter hvert enkelt trin, ikke kun efter større faser
+- Kør `check_architecture_rules` efter hvert trin — bekræft at filerne faktisk skrumpes og ingen nye overtrædelser
+- Manuel test af UI-flow efter hvert funktionelt trin — MEGET VIGTIGT at alt virker løbende
+- Commit/push kun ved stabile checkpoints efter godkendelse
+- Stop og opdel trinnet hvis det vokser ud over sin oprindelige scope

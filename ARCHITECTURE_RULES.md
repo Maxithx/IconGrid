@@ -83,6 +83,17 @@ Also stop and ask the same question if a change starts adding:
 - realtime polling loops to `MainViewModel`
 - feature-specific window ownership logic directly in the launcher shell
 
+## Refactor Workflow
+
+Refactors (especially large files such as `MainWindow.xaml.cs`, `MainViewModel.cs`, or `HardwareMonitorAgent.cs`) MUST be done in small steps with continuous verification:
+
+1. **Small steps only** — one isolated change per step; never a big-bang rewrite.
+2. **Build after every step** — do not move on until the project compiles cleanly.
+3. **Run `check_architecture_rules` after each step** — confirm the refactor actually reduces line/method counts and introduces no new violations.
+4. **Manual UI test after each functional step** — verify the affected flow still works (launcher, gaming overlay, settings).
+5. **Commit at stable checkpoints only** — after tests pass and the user approves.
+6. **Stop and split** if a step grows beyond its original scope.
+
 ## Goal
 
 Better modular structure should make features easier to maintain, safer to change, and less likely to regress unrelated launcher behavior.
