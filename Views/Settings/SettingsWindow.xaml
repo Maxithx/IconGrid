@@ -22,6 +22,9 @@
                 <ResourceDictionary Source="../StartsideStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <helpers:SidebarWidthConverter x:Key="SidebarWidthConverter" CollapsedWidth="52" ExpandedWidth="220" />
+            <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
             <SolidColorBrush x:Key="ButtonHoverDark" Color="#2b2d31" />
             <SolidColorBrush x:Key="ButtonPressDark" Color="#2b2d31" />
             <SolidColorBrush x:Key="TitleBarGlyphBrush" Color="#FFFFFFFF" />
@@ -40,23 +43,32 @@
                     Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="10 8" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
-                        <ControlTemplate TargetType="Button">
+                    <ControlTemplate TargetType="Button">
                         <Border x:Name="Root"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="4"
-                                Padding="8"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Left"
-                                              VerticalAlignment="Center" />
+                            <ContentPresenter x:Name="ContentHost"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="0" />
                         </Border>
                         <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                <Setter TargetName="ContentHost" Property="HorizontalAlignment" Value="Left" />
+                                <Setter TargetName="Root" Property="Padding" Value="10,8" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <Setter TargetName="ContentHost" Property="HorizontalAlignment" Value="Center" />
+                                <Setter TargetName="Root" Property="Padding" Value="4" />
+                            </DataTrigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
@@ -173,6 +185,17 @@
         </Border>
     </ControlTemplate>
 
+    <ControlTemplate x:Key="HamburgerButtonTemplate" TargetType="ToggleButton">
+        <Border x:Name="CaptionBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="0"
+                SnapsToDevicePixels="True">
+            <ContentPresenter HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+        </Border>
+    </ControlTemplate>
 
         <ControlTemplate x:Key="CaptionButtonTemplate" TargetType="Button">
             <Border x:Name="CaptionBorder"
@@ -208,6 +231,55 @@
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
             <Setter Property="FontSize" Value="10" />
             <Setter Property="Template" Value="{StaticResource CaptionButtonTemplate}" />
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                        <Condition Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource CaptionHoverLight}" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                        <Condition Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource CaptionHoverDark}" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True" />
+                        <Condition Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource CaptionPressLight}" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True" />
+                        <Condition Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource CaptionPressDark}" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CaptionToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground">
+                <Setter.Value>
+                    <Binding Path="DataContext.TopBarForeground"
+                             RelativeSource="{RelativeSource AncestorType=Window}"
+                             FallbackValue="{StaticResource TitleBarGlyphBrush}"
+                             TargetNullValue="{StaticResource TitleBarGlyphBrush}" />
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="10" />
             <Style.Triggers>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
@@ -340,7 +412,7 @@
     <Border Style="{StaticResource SettingsShellBorderStyle}"
             Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
             CornerRadius="8"
-            Padding="6"
+            Padding="6,0,6,6"
             SnapsToDevicePixels="True"
             helpers:DevInspector.Metadata="Startside shell → Views/SettingsWindow.xaml">
         <Grid>
@@ -353,17 +425,26 @@
                   shell:WindowChrome.IsHitTestVisibleInChrome="True"
                   MouseLeftButtonDown="TitleBar_MouseDown"
                   VerticalAlignment="Top"
-                  Margin="0,-2,0,8">
+                  Margin="0,0,0,8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0"
-                        Style="{StaticResource BackCaptionButtonStyle}"
-                        Click="CloseButton_Click"
-                        Margin="-6,-4,0,0" />
+        <Button Grid.Column="0"
+                Style="{StaticResource BackCaptionButtonStyle}"
+                Click="CloseButton_Click"
+                Margin="-6,0,0,0" />
+        <ToggleButton x:Name="SidebarToggleButton"
+                      Grid.Column="1"
+                      Style="{StaticResource CaptionToggleButtonStyle}"
+                      IsChecked="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}"
+                      ToolTip="Skjul/vis sidebar navigation"
+                      Margin="0"
+                      Content="&#xE700;"
+                      FontSize="14"
+                      Template="{StaticResource HamburgerButtonTemplate}" />
                 <Border Grid.Column="2"
                         Margin="12,0,0,0"
                         VerticalAlignment="Stretch"
@@ -372,7 +453,7 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Margin="0,-4,-6,0">
+                    Margin="0,0,-6,0">
                     <Button x:Name="MinimizeCaptionButton"
                             Style="{StaticResource CaptionButtonStyle}"
                             ToolTip="Minimer vinduet"
@@ -392,17 +473,28 @@
 
             <Grid Grid.Row="1" Margin="0,16,0,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition x:Name="SidebarColumn"
+                                      Width="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource SidebarWidthConverter}}" />
                     <ColumnDefinition Width="16" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <!-- Sidebar navigation -->
                 <Border Grid.Column="0"
+                        x:Name="SidebarBorder"
                         Background="{Binding TopBarBackground}"
                         CornerRadius="12"
-                        Padding="16"
                         helpers:DevInspector.Metadata="Startside navigation → Views/SettingsWindow.xaml">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Padding" Value="6" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                    <Setter Property="Padding" Value="12" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <!-- Primary navigation buttons -->
                         <Button x:Name="StartsideNavButton"
@@ -410,6 +502,7 @@
                                 Tag="Selected"
                                 Margin="0,6,0,0"
                                 AutomationProperties.Name="{Binding HomeTitle}"
+                                ToolTip="{Binding HomeTitle}"
                                 Click="StartsideNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -426,6 +519,7 @@
                                            Margin="12,0,0,0"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}"/>
                             </StackPanel>
                         </Button>
@@ -433,6 +527,7 @@
                         <Button x:Name="GenvejsNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="{Binding ShortcutsTitle}"
                                 Click="GenvejsNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -448,12 +543,14 @@
                                            Text="{Binding ShortcutsTitle}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="LayoutNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="{Binding LayoutTitleText}"
                                 Click="LayoutNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -469,12 +566,14 @@
                                            Text="{Binding LayoutTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="HardwareNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="{Binding HardwareNavTitleText}"
                                 Click="HardwareNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -492,12 +591,14 @@
                                            Text="{Binding HardwareNavTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="HelpNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="{Binding HelpTitleText}"
                                 Click="HelpNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -514,12 +615,14 @@
                                            Text="{Binding HelpTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="TestNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="Test"
                                 Click="TestNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -537,12 +640,14 @@
                                            Text="Test"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="GamingOverlayNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="Gaming overlay"
                                 Click="GamingOverlayNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -560,12 +665,14 @@
                                            Text="Gaming overlay"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="AboutNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"
+                                ToolTip="{Binding AboutTitleText}"
                                 Click="AboutNavButton_Click">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Border Width="28"
@@ -582,6 +689,7 @@
                                            Text="{Binding AboutTitleText}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>

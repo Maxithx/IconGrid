@@ -1,5 +1,4 @@
 using System;
-using System;
 using System.ComponentModel;
 using System.Text;
 using System.Windows;
@@ -25,6 +24,16 @@ namespace IconGrid.Views
         private readonly MainViewModel _viewModel;
         private WpfButton? _selectedNavButton;
 
+        public static readonly DependencyProperty IsSidebarCollapsedProperty =
+            DependencyProperty.Register(nameof(IsSidebarCollapsed), typeof(bool), typeof(SettingsWindow),
+                new PropertyMetadata(false, OnIsSidebarCollapsedChanged));
+
+        public bool IsSidebarCollapsed
+        {
+            get => (bool)GetValue(IsSidebarCollapsedProperty);
+            set => SetValue(IsSidebarCollapsedProperty, value);
+        }
+
         public SettingsWindow(MainViewModel viewModel)
         {
             _viewModel = viewModel;
@@ -39,6 +48,11 @@ namespace IconGrid.Views
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             Dispatcher.BeginInvoke(new Action(() => ShowPage(new StartsidePage(), StartsideNavButton)),
                                    DispatcherPriority.Loaded);
+        }
+
+        private static void OnIsSidebarCollapsedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            // The binding with SidebarWidthConverter handles the width change automatically
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

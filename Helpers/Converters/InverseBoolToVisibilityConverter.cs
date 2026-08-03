@@ -3,19 +3,27 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace IconGrid.Helpers;
-
-public class InverseBoolToVisibilityConverter : IValueConverter
+namespace IconGrid.Helpers
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    [ValueConversion(typeof(bool), typeof(Visibility))]
+    public class InverseBoolToVisibilityConverter : IValueConverter
     {
-        if (value is bool b && b)
-            return Visibility.Collapsed;
-        return Visibility.Visible;
-    }
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool b)
+            {
+                return b ? Visibility.Collapsed : Visibility.Visible;
+            }
+            return Visibility.Visible;
+        }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        return value is Visibility v && v != Visibility.Visible;
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is Visibility v)
+            {
+                return v != Visibility.Visible;
+            }
+            return false;
+        }
     }
 }
