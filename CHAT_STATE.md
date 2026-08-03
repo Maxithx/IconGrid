@@ -1,7 +1,7 @@
 # Session State - FPS / ETW
 
 ## Current date
-- Monday, July 20, 2026
+- Monday, August 3, 2026
 
 ## Current status
 - ETW FPS works now in IconGrid.
@@ -18,6 +18,27 @@
   - subtle `|` dividers between monitor sections
   - green FPS accent styling
 - `README.md` has been updated to describe the real ETW/FPS architecture instead of the old roadmap wording.
+
+## Night session findings (Aug 2-3, 2026)
+- PoE2 background FPS drop (60 → 30) was confirmed to be the game's own `Background FPS Cap`, not an IconGrid bug.
+- After setting PoE2 `Background FPS Cap = 60`, the overlay shows ~55-63 FPS even when the game window is not active.
+- Confirmed in trace.log:
+  - `Source=PrimaryApi`, `DXGI>0`, FPS 54-61 also with `Foreground=False` after the cap change
+- New confirmed regression in our pipeline: spike filter holds 32-34 FPS while raw FPS is already 54-60.
+  - Pattern: `rawFps=59 lastStable=32 ... Foreground=False` -> `Spike filtered (jump)`
+  - The generic `rawFps > lastStable * 1.5` jump rule treats the 30→60 background recovery as a spike.
+  - The existing "stronger primary signal" bypass does not fire in this case.
+- New confirmed session-lifecycle issue:
+  - `native-fps-state.json` shows `targetPid=0`, `debugMessage="No running process matched the current launch session."`
+  - while ETW still receives raw events (`preFilterDxgiEventCount=7961`, `etwRunning=true`).
+  - This is the stale saved launch-session ownership described in `.local-state/fps-etw.md`.
+- New confirmed file-state collision in hot path:
+  - `[NativeFpsAgentRunner] Native FPS agent state read failed: ... being used by another process` (twice in a row).
+- New confirmed atomic-write failure:
+  - `Hardware monitor agent failed: System.UnauthorizedAccessException: Access to the path is denied.`
+  - `MoveFile(...) HardwareMonitorAgent.cs:1653` from `WriteFpsState:1644` in `Run:383`.
+- Traced timeline (Aug 3, ~01:39-01:41): POE1 on PID 16284 working well (57-61 FPS), then background cap behavior and spike-hold patterns visible in the same session.
+- Traced timeline (Aug 3, ~02:03): no game running, native agent stuck at `targetPid=0` with ETW still delivering raw events.
 
 ## Proven result
 - Before group membership:
@@ -66,6 +87,13 @@
   - launcher / gaming overlay direct read
 - File-based state still exists for fallback, diagnostics, and broader monitor flow integration.
 - The remaining FPS issue is now mostly about the last bit of feel for very tiny drops/spikes, not about ETW access or the main IPC direction.
+
+## Known follow-ups (not yet fixed)
+- Spike filter recovery: allow the overlay to follow raw FPS when the source is strong (`Source=PrimaryApi`, `DXGI>0`) and raw FPS is stable for 2-3 samples, instead of holding `lastStable`.
+- Session lifecycle: when a config target is set but not matchable, actively relock to the same exe name/path among running processes instead of staying in "No running process matched".
+- Session cleanup: when a game exits or switches, clear `lockedExecutableName/Path/RootPid` and config-target runtime metadata together so the next launch starts clean.
+- File-state collision: use `FileShare.ReadWrite` or retry on the reader side, or reduce `native-fps-state.json` dependence in the hot path in favor of shared memory.
+- Atomic write: `MoveWithRetry` should also handle `UnauthorizedAccessException` with a short retry.
 
 ## Relevant files
 - `.local-state/fps-etw.md`
