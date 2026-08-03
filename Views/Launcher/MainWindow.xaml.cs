@@ -35,6 +35,8 @@ namespace IconGrid.Views.Launcher
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
+        private readonly PawnIoWarningController _pawnIoWarningController;
+        private readonly MonitorPollingController _monitorPollingController;
         private readonly LauncherWindowInterop _windowInterop;
         private LauncherWindowModeController? _windowModeController;
         private DevOverlayController? _devOverlayController;
@@ -43,8 +45,6 @@ namespace IconGrid.Views.Launcher
         private LayoutMenuController? _layoutMenuController;
         private bool _isAnimatingHeight = true;
         private readonly DispatcherTimer? _autoHideTimer;
-        private readonly DispatcherTimer _monitorTimer;
-        private int _monitorUpdateRunning;
         private static readonly string PowerShellPath = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe");
         private const uint MONITOR_DEFAULTTONEAREST = 2;
 
@@ -70,27 +70,6 @@ namespace IconGrid.Views.Launcher
         };
         private bool _skipSavingLocation;
 
-        private void SetMonitorPollingEnabled(bool enabled)
-        {
-            if (_monitorTimer == null)
-                return;
-
-            if (enabled)
-            {
-                if (!_monitorTimer.IsEnabled)
-                {
-                    _monitorTimer.Start();
-                    _viewModel.SystemMonitor.Update();
-                }
-            }
-            else
-            {
-                _monitorTimer.Stop();
-            }
-        }
-
-        private PawnIoWarningWindow? _pawnIoWarningWindow;
-        private DispatcherTimer? _pawnIoWarningRetryTimer;
         private double _lastLoggedLeft = double.NaN;
         private double _lastLoggedTop = double.NaN;
         private readonly FloatingIconController _floatingIconController = new();
@@ -103,10 +82,11 @@ namespace IconGrid.Views.Launcher
             var baseTitle = Title ?? string.Empty;
 
             _viewModel = new MainViewModel();
+            _pawnIoWarningController = new PawnIoWarningController(_viewModel);
+            _monitorPollingController = new MonitorPollingController(_viewModel);
             _windowInterop = new LauncherWindowInterop(this, _viewModel, baseTitle, LogTrace);
             DataContext = _viewModel;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-            _viewModel.SystemMonitor.PropertyChanged += SystemMonitor_PropertyChanged;
             ThemeHelper.ThemeChanged += ThemeHelper_ThemeChanged;
             SizeChanged += (_, _) => Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Background);
             _shortcutActions = new LauncherShortcutActions(
@@ -135,17 +115,11 @@ namespace IconGrid.Views.Launcher
                 _floatingIconController,
                 _autoHideTimer,
                 _windowInterop.TrayIcon,
-                SetMonitorPollingEnabled);
+                _monitorPollingController.SetPollingEnabled);
             _devOverlayController = new DevOverlayController(this, _viewModel);
             _dragDropHelper = new LauncherDragDropHelper(_viewModel, IsOverLauncherTile);
-            _monitorTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(2)
-            };
-            _monitorTimer.Tick += MonitorTimer_Tick;
-            _monitorTimer.Start();
-            _viewModel.SystemMonitor.Update();
-            UpdatePawnIoWarningWindow();
+            _monitorPollingController.Start();
+            _pawnIoWarningController.Update();
             LogTrace($"MainWindow created. Elevated={IsCurrentProcessElevated()}");
 
             // Start in floating icon mode; final position is set on load
@@ -212,58 +186,6 @@ namespace IconGrid.Views.Launcher
             _windowModeController?.ClampFloatingIconToWorkArea();
         }
 
-        private void AutoDetectAndEnableDynamicLayout()
-        {
-            try
-            {
-                var myHandle = _windowInterop.Handle;
-                if (myHandle == IntPtr.Zero)
-                    return;
-
-                var myRect = _windowInterop.GetWindowRect(myHandle);
-                var windowsBelow = new List<IntPtr>();
-
-                // Enumerate all windows to find ones on the same monitor below or near IconGrid
-                LauncherWindowInterop.EnumWindows((hWnd, lParam) =>
-                {
-                    if (!LauncherWindowInterop.IsWindowVisible(hWnd) || hWnd == myHandle)
-                        return true;
-
-                    if (WindowLayoutEngine.IsExcludedWindow(hWnd))
-                        return true;
-
-                    var rect = _windowInterop.GetWindowRect(hWnd);
-                    
-                    // Check if window is below IconGrid (Top is close to or below IconGrid's Bottom)
-                    // Also check if they're on the same horizontal area (within 200px)
-                    var isBelow = rect.Top >= myRect.Bottom - 50; // 50px tolerance for detection
-                    var isSameHorizontalArea = !(rect.Right < myRect.Left || rect.Left > myRect.Right);
-                    
-                    // Or check if window is just lower on screen (y-position greater than IconGrid)
-                    var isLowerOnScreen = rect.Top > myRect.Top;
-
-                    if ((isBelow || isSameHorizontalArea) && isLowerOnScreen)
-                    {
-                        windowsBelow.Add(hWnd);
-                        LogTrace($"AutoDetect: Found window at ({rect.Left},{rect.Top})-({rect.Right},{rect.Bottom}), IconGrid at ({myRect.Left},{myRect.Top})-({myRect.Right},{myRect.Bottom})");
-                    }
-
-                    return true;
-                }, IntPtr.Zero);
-
-                // If windows found below/near IconGrid, enable Dynamic Layout
-                if (windowsBelow.Count > 0)
-                {
-                    LogTrace($"AutoDetect: Found {windowsBelow.Count} windows, enabling Dynamic Layout");
-                    _viewModel.LayoutPreset = "Dynamic";
-                }
-            }
-            catch (Exception ex)
-            {
-                LogTrace("AutoDetectAndEnableDynamicLayout failed: " + ex);
-            }
-        }
-
         private void LogTrace(string message)
         {
             try
@@ -293,86 +215,6 @@ namespace IconGrid.Views.Launcher
             {
                 return false;
             }
-        }
-
-        private void SystemMonitor_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e?.PropertyName == nameof(SystemMonitor.IsPawnIoAvailable))
-            {
-                Dispatcher.BeginInvoke(new Action(UpdatePawnIoWarningWindow), DispatcherPriority.Background);
-            }
-        }
-
-        private void PawnIoWarningWindow_Closed(object? sender, EventArgs e)
-        {
-            var window = _pawnIoWarningWindow;
-            if (window != null && sender == window)
-            {
-                window.Closed -= PawnIoWarningWindow_Closed;
-                _pawnIoWarningWindow = null;
-            }
-        }
-
-        private void UpdatePawnIoWarningWindow()
-        {
-            if (_viewModel.SystemMonitor.IsPawnIoAvailable || PawnIoHelper.IsPawnIoInstalled())
-            {
-                StopPawnIoWarningRetryTimer();
-                ClosePawnIoWarningWindow();
-                return;
-            }
-
-            if (_pawnIoWarningWindow != null)
-            {
-                return;
-            }
-
-            _pawnIoWarningWindow = new PawnIoWarningWindow(_viewModel.PawnIoMissingMessage, _viewModel.PawnIoDownloadLink);
-            _pawnIoWarningWindow.Closed += PawnIoWarningWindow_Closed;
-            _pawnIoWarningWindow.Show();
-            StartPawnIoWarningRetryTimer();
-        }
-
-        private void ClosePawnIoWarningWindow()
-        {
-            if (_pawnIoWarningWindow == null)
-            {
-                return;
-            }
-
-            _pawnIoWarningWindow.Closed -= PawnIoWarningWindow_Closed;
-            _pawnIoWarningWindow.Close();
-            _pawnIoWarningWindow = null;
-        }
-
-        private void StartPawnIoWarningRetryTimer()
-        {
-            _pawnIoWarningRetryTimer ??= new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(3)
-            };
-
-            _pawnIoWarningRetryTimer.Tick -= PawnIoWarningRetryTimer_Tick;
-            _pawnIoWarningRetryTimer.Tick += PawnIoWarningRetryTimer_Tick;
-            _pawnIoWarningRetryTimer.Stop();
-            _pawnIoWarningRetryTimer.Start();
-        }
-
-        private void StopPawnIoWarningRetryTimer()
-        {
-            if (_pawnIoWarningRetryTimer == null)
-            {
-                return;
-            }
-
-            _pawnIoWarningRetryTimer.Stop();
-            _pawnIoWarningRetryTimer.Tick -= PawnIoWarningRetryTimer_Tick;
-        }
-
-        private void PawnIoWarningRetryTimer_Tick(object? sender, EventArgs e)
-        {
-            StopPawnIoWarningRetryTimer();
-            UpdatePawnIoWarningWindow();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -618,24 +460,6 @@ namespace IconGrid.Views.Launcher
             _windowModeController?.HandleAutoHideTick();
         }
 
-        private void MonitorTimer_Tick(object? sender, EventArgs e)
-        {
-            if (Interlocked.CompareExchange(ref _monitorUpdateRunning, 1, 0) == 1)
-                return;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    _viewModel.SystemMonitor.Update();
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _monitorUpdateRunning, 0);
-                }
-            });
-        }
-
         private string ShowInputBox(string prompt, string title, string defaultValue)
         {
             // Midlertidig ? kan senere erstattes af en rigtig WPF-dialog
@@ -871,107 +695,7 @@ namespace IconGrid.Views.Launcher
 
         internal void PromptAndSaveLayout()
         {
-            var suggested = string.Equals(_viewModel.LayoutPreset, "Auto", StringComparison.OrdinalIgnoreCase)
-                ? "Mit layout"
-                : _viewModel.LayoutPreset;
-
-            var name = Interaction.InputBox("Navngiv layoutet", "Gem layout som", suggested ?? "Mit layout").Trim();
-            if (string.IsNullOrWhiteSpace(name))
-                return;
-
-            if (string.Equals(name, "Auto", StringComparison.OrdinalIgnoreCase))
-            {
-                System.Windows.MessageBox.Show("Navnet kan ikke være 'Auto'. Vælg et andet navn.", "Ugyldigt navn", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            if (TrySaveLayout(name))
-            {
-                _viewModel.LayoutPreset = name;
-                UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
-                RefreshLayoutCardSelection();
-            }
-        }
-
-        private bool TrySaveLayout(string layoutName)
-        {
-            layoutName = layoutName?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(layoutName))
-                return false;
-
-            try
-            {
-                var targetMonitor = _viewModel.LayoutCurrentMonitorOnly && _windowInterop.Handle != IntPtr.Zero
-                    ? LauncherWindowInterop.MonitorFromWindow(_windowInterop.Handle, MONITOR_DEFAULTTONEAREST)
-                    : IntPtr.Zero;
-
-                var workArea = WindowLayoutEngine.GetWorkArea(targetMonitor);
-                var includeIconGridWindow = _viewModel.LayoutReserveIconGridSlot || _viewModel.IsFullWindowVisible;
-                var windows = WindowLayoutEngine.CollectCandidateWindows(targetMonitor, includeIconGridWindow, _windowInterop.Handle, _viewModel, LogTrace);
-                if (windows.Count == 0)
-                {
-                    LogTrace($"Layout '{layoutName}' not saved: no candidate windows were found.");
-                    return false;
-                }
-
-                var iconHandle = _windowInterop.Handle;
-                var orderedWindows = windows
-                    .OrderBy(w => w.Rect.Top)
-                    .ThenBy(w => w.Rect.Left)
-                    .Take(4)
-                    .ToList();
-
-                var normalized = new List<CustomLayoutSlot>();
-                var iconSlotIndex = -1;
-
-                for (int i = 0; i < orderedWindows.Count; i++)
-                {
-                    var slot = WindowLayoutEngine.NormalizeRectToWorkArea(orderedWindows[i].Rect, workArea);
-                    if (slot.Width <= 0 || slot.Height <= 0)
-                    {
-                        continue;
-                    }
-
-                    if (iconHandle != IntPtr.Zero && orderedWindows[i].Hwnd == iconHandle)
-                    {
-                        iconSlotIndex = normalized.Count;
-                    }
-
-                    normalized.Add(slot);
-                }
-
-                var distinct = new List<CustomLayoutSlot>();
-                foreach (var slot in normalized)
-                {
-                    if (!distinct.Any(existing => WindowLayoutEngine.SlotsClose(existing, slot, 0.02)))
-                    {
-                        distinct.Add(slot);
-                    }
-                }
-
-                normalized = distinct.Take(4).ToList();
-
-                if (normalized.Count == 0)
-                {
-                    LogTrace($"Layout '{layoutName}' not saved: normalization produced no usable slots.");
-                    return false;
-                }
-
-                _viewModel.SaveLayout(layoutName, normalized);
-                LogTrace($"Layout '{layoutName}' distinct slots saved: {string.Join(", ", normalized.Select(s => $"({s.X:F3},{s.Y:F3},{s.Width:F3},{s.Height:F3})"))}");
-                if (iconSlotIndex >= 0)
-                {
-                    _viewModel.LayoutIconGridSlot = iconSlotIndex;
-                }
-
-                LogTrace($"Saved layout '{layoutName}' with {normalized.Count} slots.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LogTrace("SaveLayout failed: " + ex);
-                return false;
-            }
+            _layoutMenuController?.PromptAndSaveLayout();
         }
 
         private void CloseLayoutsButton_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -1002,232 +726,41 @@ namespace IconGrid.Views.Launcher
 
         private void LayoutPresetMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not string preset)
-                return;
-
-            _viewModel.LayoutPreset = preset;
-            ArrangeWindowsFromPreset(_viewModel.LayoutPreset);
-            UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
-            RefreshLayoutCardSelection();
+            _layoutMenuController?.LayoutPresetMenuItem_Click(sender, e);
         }
 
         private void LayoutSlotButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.Button btn || btn.Tag is null)
-                return;
-
-            if (!_viewModel.LayoutReserveIconGridSlot)
-                return;
-
-            if (!int.TryParse(btn.Tag.ToString(), out var slot))
-                return;
-
-            _viewModel.LayoutIconGridSlot = slot;
-            RefreshLayoutCardSelection();
-            UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
+            _layoutMenuController?.LayoutSlotButton_Click(sender, e);
         }
 
         private void LayoutLinkButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.Button btn || btn.Tag is not string tag)
-                return;
-
-            var parts = tag.Split('|');
-            if (parts.Length != 4)
-                return;
-
-            var preset = parts[0];
-            if (!int.TryParse(parts[2], out var a) || !int.TryParse(parts[3], out var b))
-                return;
-
-            if (_viewModel.LayoutLinks.TryGetValue(preset, out var existing) && existing.Length == 2 && existing[0] == a && existing[1] == b)
-            {
-                _viewModel.SetLayoutLink(preset, Array.Empty<int>());
-            }
-            else
-            {
-                _viewModel.SetLayoutLink(preset, new[] { a, b });
-            }
-
-            RefreshLayoutCardSelection();
+            _layoutMenuController?.LayoutLinkButton_Click(sender, e);
         }
 
         private void LayoutContextMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.ContextMenu menu) return;
-            PopulateLayoutMenu(menu.Items);
-            UpdateLayoutMenuChecks(menu.Items);
+            _layoutMenuController?.PopulateLayoutMenu(menu.Items);
+            _layoutMenuController?.UpdateLayoutMenuChecks(menu.Items);
         }
 
         private void LayoutsPageMenu_Opened(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.ContextMenu menu) return;
-            PopulateLayoutMenu(menu.Items);
-            UpdateLayoutMenuChecks(menu.Items);
-        }
-
-        private void PopulateLayoutMenu(ItemCollection menuItems)
-        {
-            menuItems.Clear();
-
-            var gamingOverlayMenu = new System.Windows.Controls.MenuItem
-            {
-                Header = "Gaming overlay"
-            };
-
-            var gamingHorizontal = new System.Windows.Controls.MenuItem
-            {
-                Header = "Open horizontal"
-            };
-            gamingHorizontal.Click += (_, _) => ShowGamingOverlay(GamingOverlayLayout.Horizontal);
-
-            var gamingVertical = new System.Windows.Controls.MenuItem
-            {
-                Header = "Open vertical"
-            };
-            gamingVertical.Click += (_, _) => ShowGamingOverlay(GamingOverlayLayout.Vertical);
-
-            gamingOverlayMenu.Items.Add(gamingHorizontal);
-            gamingOverlayMenu.Items.Add(gamingVertical);
-            menuItems.Add(gamingOverlayMenu);
-            menuItems.Add(new Separator());
-
-            // Add the static "Auto" option
-            var autoItem = new System.Windows.Controls.MenuItem
-            {
-                Header = "Auto",
-                Tag = "Auto",
-                IsCheckable = true
-            };
-            autoItem.Click += LayoutPresetMenuItem_Click;
-            menuItems.Add(autoItem);
-
-
-
-            if (_viewModel.SavedLayoutNames.Any())
-            {
-                 menuItems.Add(new Separator());
-            }
-
-            // Add each saved layout with its own context menu
-            foreach (var name in _viewModel.SavedLayoutNames)
-            {
-                var containerItem = new System.Windows.Controls.MenuItem
-                {
-                    Header = name,
-                    Tag = name, // Tag for UpdateLayoutMenuChecks to find and potentially style the container
-                };
-
-                var selectItem = new System.Windows.Controls.MenuItem
-                {
-                    Header = _viewModel.SelectLabel,
-                    Tag = name, // Tag for the click handler
-                    IsCheckable = true
-                };
-                selectItem.Click += LayoutPresetMenuItem_Click;
-                containerItem.Items.Add(selectItem);
-
-                containerItem.Items.Add(new Separator());
-
-                var renameItem = new System.Windows.Controls.MenuItem { Header = _viewModel.RenameLabel, Tag = name };
-                renameItem.Click += RenameLayoutMenuItem_Click;
-                containerItem.Items.Add(renameItem);
-
-                var deleteItem = new System.Windows.Controls.MenuItem { Header = _viewModel.RemoveLabel, Tag = name };
-                deleteItem.Click += DeleteLayoutMenuItem_Click;
-                containerItem.Items.Add(deleteItem);
-                
-                menuItems.Add(containerItem);
-            }
-
-            if (_viewModel.SavedLayoutNames.Any())
-            {
-                menuItems.Add(new Separator());
-            }
-            
-            var saveItem = new System.Windows.Controls.MenuItem { Header = _viewModel.LayoutSaveAsText };
-            saveItem.Click += SaveLayoutAsMenuItem_Click;
-            menuItems.Add(saveItem);
-        }
-
-        private void UpdateLayoutMenuChecks(ItemCollection menuItems)
-        {
-            if (menuItems == null) return;
-
-            // This function will recursively search for checkable items and update them.
-            void UpdateChecks(ItemCollection items)
-            {
-                foreach (var item in items.OfType<System.Windows.Controls.MenuItem>())
-                {
-                    // Update check state for items that are checkable (e.g. "Auto", "Vælg")
-                    if (item.Tag is string tag && item.IsCheckable)
-                    {
-                        item.IsChecked = string.Equals(tag, _viewModel.LayoutPreset, StringComparison.OrdinalIgnoreCase);
-                    }
-                    
-                    // Additionally, we can make the top-level container bold if it's the selected one.
-                    if (item.Tag is string containerTag && !item.IsCheckable && item.HasItems)
-                    {
-                        item.FontWeight = string.Equals(containerTag, _viewModel.LayoutPreset, StringComparison.OrdinalIgnoreCase)
-                            ? FontWeights.Bold
-                            : FontWeights.Normal;
-                    }
-
-                    // Recurse into sub-items if they exist
-                    if (item.HasItems)
-                    {
-                        UpdateChecks(item.Items);
-                    }
-                }
-            }
-            
-            UpdateChecks(menuItems);
-
-            RefreshLayoutCardSelection();
+            _layoutMenuController?.PopulateLayoutMenu(menu.Items);
+            _layoutMenuController?.UpdateLayoutMenuChecks(menu.Items);
         }
 
         private void RenameLayoutMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not FrameworkElement fe || fe.Tag is not string current)
-                return;
-
-            if (string.IsNullOrWhiteSpace(current) || string.Equals(current, "Auto", StringComparison.OrdinalIgnoreCase))
-                return;
-
-            var newName = Interaction.InputBox("Omdøb layoutet", "Omdøb layout", current).Trim();
-            if (string.IsNullOrWhiteSpace(newName) || string.Equals(newName, "Auto", StringComparison.OrdinalIgnoreCase))
-                return;
-
-            if (!_viewModel.RenameLayout(current, newName))
-            {
-                System.Windows.MessageBox.Show("Kunne ikke omdøbe layoutet. Navnet kan være i brug eller ugyldigt.", "Omdøb layout", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            _viewModel.LayoutPreset = newName;
-            PopulateLayoutMenu(LayoutPresetButton.ContextMenu.Items);
-            UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
-            RefreshLayoutCardSelection();
+            _layoutMenuController?.RenameLayoutMenuItem_Click(sender, e);
         }
 
         private void DeleteLayoutMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not FrameworkElement fe || fe.Tag is not string current)
-                return;
-
-            if (string.IsNullOrWhiteSpace(current) || string.Equals(current, "Auto", StringComparison.OrdinalIgnoreCase))
-                return;
-
-            var confirm = System.Windows.MessageBox.Show($"Slet layoutet '{current}'?", "Slet layout", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes)
-                return;
-
-            if (_viewModel.DeleteLayout(current))
-            {
-                PopulateLayoutMenu(LayoutPresetButton.ContextMenu.Items);
-                UpdateLayoutMenuChecks(LayoutPresetButton.ContextMenu.Items);
-                RefreshLayoutCardSelection();
-            }
+            _layoutMenuController?.DeleteLayoutMenuItem_Click(sender, e);
         }
 
         private void ShowGamingOverlay(GamingOverlayLayout layout)
@@ -1326,26 +859,20 @@ namespace IconGrid.Views.Launcher
 
         internal void ArrangeWindowsFromPreset(string presetName)
         {
-            WindowLayoutEngine.ArrangeWindowsFromPreset(
-                presetName,
-                _viewModel,
-                _windowInterop.Handle,
-                LogTrace,
-                RefreshLayoutCardSelection);
+            _layoutMenuController?.ArrangeWindowsFromPreset(presetName);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _monitorTimer?.Stop();
+            _monitorPollingController.Stop();
             _autoHideTimer?.Stop();
             HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
             if (_viewModel != null)
             {
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
-                _viewModel.SystemMonitor.PropertyChanged -= SystemMonitor_PropertyChanged;
                 _viewModel.SystemMonitor.Dispose();
             }
-            ClosePawnIoWarningWindow();
+            _pawnIoWarningController.Close();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();
             ThemeHelper.ThemeChanged -= ThemeHelper_ThemeChanged;
@@ -1354,10 +881,10 @@ namespace IconGrid.Views.Launcher
 
         private void ExitApplication()
         {
-            _monitorTimer?.Stop();
+            _monitorPollingController.Stop();
             _autoHideTimer?.Stop();
             HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
-            ClosePawnIoWarningWindow();
+            _pawnIoWarningController.Close();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();
             _windowInterop.Cleanup();

@@ -119,10 +119,9 @@
 - `165d7e8` `Improve ETW FPS overlay responsiveness and shared-memory live path`
 
 ## Good next steps
-- NEXT (HIGHEST PRIORITY): Refactor Fase B — reduce MainWindow.xaml.cs (2677 lines, limit 1000, ~145 methods) further. Start by listing the ~145 methods (list_code_definition_names or Select-String) and identify the largest remaining clusters: e.g. shortcut administration, icon-pack handling, layout-menu population, then propose concrete extractions under Helpers/Launcher/ following ARCHITECTURE_RULES.md Refactor Workflow (one change per step, build after each step, check_architecture_rules after each step, manual UI test after each functional step, commit only after user approval). Backups in _backups/refactor-<date>/<Fase>/.
+- NEXT (HIGHEST PRIORITY): MainViewModel reduction toward 1200 (currently 1799, the ONLY remaining check_architecture_rules VIOLATION). Biggest remaining wins: the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block. Follow ARCHITECTURE_RULES.md Refactor Workflow (one change per step, build after each step, check_architecture_rules after each step, manual UI test after each functional step, commit only after user approval).
 - A4 (optional): rebind XAML/code-behind directly to LauncherLayoutMeasurements.* and remove delegate properties for further MainViewModel reduction.
-- Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
-- Update ARCHITECTURE_RULES.md (Recent Good Examples) with LauncherLayoutMeasurements.cs.
+- Update ARCHITECTURE_RULES.md (Recent Good Examples) with LauncherLayoutMeasurements.cs, PawnIoWarningController.cs, MonitorPollingController.cs, and the Fase B helper classes.
 - validate the shared-memory live path across more real games
 - decide whether to add frametime as a companion metric
 - decide whether to keep simplifying the fallback FPS layers around the live path
@@ -263,3 +262,19 @@
   - Continue MainWindow reduction toward 1000: remaining clusters are PawnIo warning window (~6 methods), monitor timer, window closing/exit, tab toggle, remaining event handlers.
   - Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
   - Consider wiring LayoutMenuController's layout-preset/slot/link handlers fully into MainWindow (currently MainWindow still hosts those handler methods directly; the controller owns menu population/checks and TrySaveLayout) — follow-up for a later fase if needed.
+
+## Refactor Fase B (Aug 3, 2026) — B7-B10: MainWindow PASSES the 1000-line limit
+
+- Continued the MainWindow reduction this session (after the `update_note` MCP fix, commit `42ce00b`); each step followed by build (0 warnings / 0 errors), `check_architecture_rules`, and manual UI test (user-confirmed "alt virker"):
+  - **B7** `Helpers/Launcher/PawnIoWarningController.cs` — PawnIo-missing warning window lifecycle, retry timer, SystemMonitor subscription. MainWindow: 1441 → 1359 lines (~89 → ~82 methods).
+  - **B8** `Helpers/Launcher/MonitorPollingController.cs` — 2s hardware-polling DispatcherTimer, re-entrancy guard, enable/disable callback wired into LauncherWindowModeController. MainWindow: 1359 → 1316 lines (~82 → ~80 methods).
+  - **B9** Removed duplicate layout methods from MainWindow — `PromptAndSaveLayout`, `TrySaveLayout`, `PopulateLayoutMenu`, `UpdateLayoutMenuChecks`, `LayoutPresetMenuItem_Click`, `LayoutSlotButton_Click`, `LayoutLinkButton_Click`, `RenameLayoutMenuItem_Click`, `DeleteLayoutMenuItem_Click`, `ArrangeWindowsFromPreset` now delegate to the existing `LayoutMenuController` (which already owned the full implementations from B6). MainWindow: 1316 → 1020 lines (~80 → ~77 methods).
+  - **B10** Removed dead code `AutoDetectAndEnableDynamicLayout` (~50 lines, not referenced anywhere, not bound in XAML). MainWindow: 1020 → **968 lines** — now UNDER the 1000-line limit!
+- `check_architecture_rules` end-state (Aug 3, 2026, after B10):
+  - `Views/Launcher/MainWindow.xaml.cs`: 968 lines (limit 1000) — **PASSES** (first time).
+  - `ViewModels/MainViewModel.cs`: 1799 lines (limit 1200) — still the ONLY remaining VIOLATION.
+  - `Helpers/Hardware/HardwareMonitorAgent.cs`: 1432 lines — PASSES.
+  - `Helpers/Launcher/SystemMonitor.cs`: 501 lines — PASSES.
+- Pre-B7 MainWindow state is preserved in git at commit `42ce00b` (backup/rollback point).
+- Next session: MainViewModel reduction toward 1200 (settings-persistence block ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState + localization-bindings block) is now the only remaining architecture VIOLATION, followed by the optional A4 (rebind XAML directly to LayoutMeasurements).
+- Commit: see git log (B7-B10 committed together with the MCP fix this session — `42ce00b` = MCP fix, and the B7-B10 refactor commit follows).
