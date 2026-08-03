@@ -33,6 +33,23 @@ namespace IconGrid.Controls
         private void ItemsControl_Drop(object sender, System.Windows.DragEventArgs e) => ItemsDrop?.Invoke(sender, e);
         private void ContentArea_ContextMenuOpening(object sender, ContextMenuEventArgs e) => ContentAreaContextMenuOpening?.Invoke(sender, e);
         private void IconScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) => IconScrollChanged?.Invoke(sender, e);
+
+        /// <summary>
+        /// Routes the mouse wheel to horizontal scrolling in carousel mode.
+        /// The carousel ScrollViewer has no vertical overflow, so the wheel is
+        /// translated into a horizontal offset change.
+        /// </summary>
+        private void CarouselScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            if (sender is not ScrollViewer scrollViewer)
+                return;
+
+            if (e.Delta == 0)
+                return;
+
+            e.Handled = true;
+            scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
+        }
         private void LauncherItem_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) => LauncherItemPreviewMouseLeftButtonDown?.Invoke(sender, e);
         private void LauncherItem_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e) => LauncherItemPreviewMouseMove?.Invoke(sender, e);
         private void LauncherItem_DragOver(object sender, System.Windows.DragEventArgs e) => LauncherItemDragOver?.Invoke(sender, e);

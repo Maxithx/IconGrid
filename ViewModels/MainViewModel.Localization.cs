@@ -23,6 +23,7 @@ namespace IconGrid.ViewModels
         public string EnableSlideUpAnimationLabel => _localizationState.Get(Language, "EnableSlideUpAnimation");
         public string WindowAnimationSpeedLabel => _localizationState.Get(Language, "WindowAnimationSpeed");
         public string EnableIconScrollLabel => _localizationState.Get(Language, "EnableIconScroll");
+        public string CarouselViewLabel => _localizationState.Get(Language, "CarouselView");
         public string SettingsPlaceholderLabel => _localizationState.Get(Language, "SettingsPlaceholder");
         public string DevOverlayLabel => _localizationState.Get(Language, "DevOverlayLabel");
         public string ChangeIconLabel => _localizationState.Get(Language, "ChangeIcon");
@@ -139,6 +140,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(ResetDefaultsLabel));
             OnPropertyChanged(nameof(EnableSlideUpAnimationLabel));
             OnPropertyChanged(nameof(EnableIconScrollLabel));
+            OnPropertyChanged(nameof(CarouselViewLabel));
             OnPropertyChanged(nameof(WindowAnimationSpeedLabel));
             OnPropertyChanged(nameof(SettingsPlaceholderLabel));
             OnPropertyChanged(nameof(DevOverlayLabel));

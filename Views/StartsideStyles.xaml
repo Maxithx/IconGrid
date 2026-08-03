@@ -113,6 +113,75 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="SettingsPageScrollBarThumbHorizontalStyle" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="ThumbBorder"
+                            Height="5"
+                            Margin="4,3"
+                            VerticalAlignment="Center"
+                            Background="{StaticResource SettingsPageScrollBarThumbDarkBrush}"
+                            CornerRadius="3"
+                            Opacity="0.78" />
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource SettingsPageScrollBarThumbLightBrush}" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Height" Value="7" />
+                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="0.95" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="ThumbBorder" Property="Height" Value="7" />
+                            <Setter TargetName="ThumbBorder" Property="Opacity" Value="1" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsPageScrollBarHorizontalStyle" TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}">
+        <Setter Property="Width" Value="Auto" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Height" Value="12" />
+        <Setter Property="MinHeight" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="TrackBackground"
+                                Background="{StaticResource SettingsPageScrollBarTrackDarkBrush}"
+                                CornerRadius="6"
+                                Opacity="0.72" />
+                        <Track x:Name="PART_Track"
+                               IsDirectionReversed="False"
+                               IsEnabled="{TemplateBinding IsEnabled}">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.LineLeftCommand"
+                                              Style="{StaticResource SettingsPageScrollBarRepeatButtonStyle}" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource SettingsPageScrollBarThumbHorizontalStyle}" />
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.LineRightCommand"
+                                              Style="{StaticResource SettingsPageScrollBarRepeatButtonStyle}" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="TrackBackground" Property="Background" Value="{StaticResource SettingsPageScrollBarTrackLightBrush}" />
+                        </DataTrigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="TrackBackground" Property="Opacity" Value="0.9" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
         <Setter Property="Width" Value="Auto" />
         <Setter Property="Height" Value="24" />

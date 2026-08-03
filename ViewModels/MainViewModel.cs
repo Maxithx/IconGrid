@@ -362,6 +362,43 @@ namespace IconGrid.ViewModels
             }
         }
 
+        /// <summary>
+        /// Current view mode for the shortcut icons: "Grid" or "Carousel".
+        /// Owned by <see cref="LauncherLayoutMeasurements"/> so layout height follows.
+        /// </summary>
+        public string IconViewMode
+        {
+            get => _layoutMeasurements.IconViewMode;
+            set
+            {
+                if (_layoutMeasurements.SetIconViewMode(value))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(IconViewMode));
+                    OnPropertyChanged(nameof(IsCarouselViewMode));
+                }
+            }
+        }
+
+        /// <summary>
+        /// True when the shortcut icons are shown as a horizontal carousel.
+        /// </summary>
+        public bool IsCarouselViewMode
+        {
+            get => string.Equals(IconViewMode, LauncherLayoutMeasurements.CarouselViewMode, StringComparison.OrdinalIgnoreCase);
+            set
+            {
+                var target = value
+                    ? LauncherLayoutMeasurements.CarouselViewMode
+                    : LauncherLayoutMeasurements.GridViewMode;
+
+                if (IconViewMode == target)
+                    return;
+
+                IconViewMode = target;
+            }
+        }
+
         public int WindowAnimationDurationMs
         {
             get => _windowAnimationDurationMs;
@@ -738,6 +775,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(IconScale));
             OnPropertyChanged(nameof(UiScale));
             OnPropertyChanged(nameof(EnableContentScroll));
+            OnPropertyChanged(nameof(IconViewMode));
+            OnPropertyChanged(nameof(IsCarouselViewMode));
             OnPropertyChanged(nameof(WindowAnimationDurationMs));
             OnPropertyChanged(nameof(PawnIoMissingMessage));
             OnPropertyChanged(nameof(PawnIoDownloadLink));

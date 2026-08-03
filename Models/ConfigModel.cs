@@ -18,6 +18,7 @@ public class ConfigModel
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
     public bool EnableContentScroll { get; set; } = true;
+    public string IconViewMode { get; set; } = "Grid";       // "Grid" or "Carousel"
     public bool IsLightTheme { get; set; } = true;
     public bool StartWithWindows { get; set; } = false;
     public StartupLaunchMode StartupLaunchMode { get; set; } = StartupLaunchMode.TaskScheduler;

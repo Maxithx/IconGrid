@@ -24,12 +24,16 @@ namespace IconGrid.ViewModels.Launcher
         public const double SettingsMinWindowHeight = 620;
         public const double FixedSettingsHeight = 680;
 
+        public const string GridViewMode = "Grid";
+        public const string CarouselViewMode = "Carousel";
+
         // ---------- Measurement state ----------
 
         private double _headerHeight = 140;                   // measured height for top chrome + tabs
         private double _iconRowSpacing = -20;                 // adjustable extra spacing between rows (default tightened)
         private double _lastRowPaddingAdjust = 0;             // fine-tune bottom space under the last visible row
         private bool _isIconPanelExpanded = true;
+        private string _iconViewMode = GridViewMode;
 
         // ---------- Public measurement state ----------
 
@@ -48,6 +52,21 @@ namespace IconGrid.ViewModels.Launcher
         public double IconRowSpacing => _iconRowSpacing;
 
         public double LastRowPaddingAdjust => _lastRowPaddingAdjust;
+
+        /// <summary>
+        /// Current view mode for the shortcut icons: "Grid" or "Carousel".
+        /// </summary>
+        public string IconViewMode
+        {
+            get => _iconViewMode;
+            set
+            {
+                if (SetIconViewMode(value))
+                {
+                    NotifyContentHeightChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// Sets row spacing; returns true when the value changed.
@@ -73,6 +92,25 @@ namespace IconGrid.ViewModels.Launcher
 
             _lastRowPaddingAdjust = value;
             OnPropertyChanged(nameof(LastRowPaddingAdjust));
+            NotifyContentHeightChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the icon view mode ("Grid" or "Carousel"); returns true when the value changed.
+        /// Invalid values are normalized to "Grid".
+        /// </summary>
+        public bool SetIconViewMode(string value)
+        {
+            var normalized = string.Equals(value, CarouselViewMode, StringComparison.OrdinalIgnoreCase)
+                ? CarouselViewMode
+                : GridViewMode;
+
+            if (string.Equals(_iconViewMode, normalized, StringComparison.Ordinal))
+                return false;
+
+            _iconViewMode = normalized;
+            OnPropertyChanged(nameof(IconViewMode));
             NotifyContentHeightChanged();
             return true;
         }
@@ -118,7 +156,11 @@ namespace IconGrid.ViewModels.Launcher
 
             var scaledTileHeight = BaseTileSlotHeight * effectiveIconScale;
             var columns = Math.Max(1, iconsPerRow);
-            var rows = Math.Max(1, Math.Ceiling(itemCount / (double)columns));
+
+            // In carousel mode the window must not grow taller: always measure as a single row.
+            var rows = IsCarouselMode
+                ? 1
+                : Math.Max(1, Math.Ceiling(itemCount / (double)columns));
 
             // For 1-3 rows we respect any negative row spacing to keep height snug.
             // For 4+ rows we clamp spacing to 0 so scrolling range is consistent.
@@ -152,6 +194,8 @@ namespace IconGrid.ViewModels.Launcher
             return Math.Max(minimum, adjustedHeight);
         }
 
+        private bool IsCarouselMode => string.Equals(_iconViewMode, CarouselViewMode, StringComparison.Ordinal);
+
         // ---------- State mutation ----------
 
         /// <summary>
@@ -170,10 +214,13 @@ namespace IconGrid.ViewModels.Launcher
         /// Apply persisted measurement state without raising change notifications
         /// (used when config is loaded or defaults are restored).
         /// </summary>
-        public void ApplyMeasurementState(double iconRowSpacing, double lastRowPaddingAdjust)
+        public void ApplyMeasurementState(double iconRowSpacing, double lastRowPaddingAdjust, string iconViewMode)
         {
             _iconRowSpacing = iconRowSpacing;
             _lastRowPaddingAdjust = lastRowPaddingAdjust;
+            _iconViewMode = string.Equals(iconViewMode, CarouselViewMode, StringComparison.OrdinalIgnoreCase)
+                ? CarouselViewMode
+                : GridViewMode;
         }
 
         public void NotifyWorkAreaChanged()

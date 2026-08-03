@@ -58,6 +58,7 @@ namespace IconGrid.ViewModels.Settings
                 config.FavoriteLayoutSlots = state.FavoriteLayoutSlots;
                 config.EnableSlideUpAnimation = state.EnableSlideUpAnimation;
                 config.EnableContentScroll = state.EnableContentScroll;
+                config.IconViewMode = state.IconViewMode;
                 config.WindowAnimationDurationMs = state.WindowAnimationDurationMs;
                 config.FpsTarget = state.FpsTarget ?? new FpsTargetConfig();
 

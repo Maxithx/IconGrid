@@ -24,7 +24,7 @@ namespace IconGrid.ViewModels
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
-            _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust);
+            _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust, state.IconViewMode);
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
             _enableContentScroll = state.EnableContentScroll;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
@@ -46,7 +46,7 @@ namespace IconGrid.ViewModels
         private void ApplyDefaultSettingsState()
         {
             _iconsPerRow = 4;
-            _layoutMeasurements.ApplyMeasurementState(-20, -50);
+            _layoutMeasurements.ApplyMeasurementState(-20, -50, "Grid");
             _icon_scale = 1.0;
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
@@ -102,6 +102,7 @@ namespace IconGrid.ViewModels
                 Language = _language,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
+                IconViewMode = _layoutMeasurements.IconViewMode,
                 WindowAnimationDurationMs = _windowAnimationDurationMs,
                 FpsTarget = _fpsTarget
             };

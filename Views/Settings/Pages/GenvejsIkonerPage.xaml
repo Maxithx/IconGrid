@@ -63,6 +63,22 @@
                                       VerticalAlignment="Center"
                                       Margin="12,0,0,0" />
                     </Grid>
+
+                    <Grid Margin="0,12,0,0"
+                          helpers:DevInspector.Metadata="Carousel toggle → Views/GenvejsIkonerPage.xaml">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding CarouselViewLabel}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding SettingsSubtextForeground}" />
+                        <ToggleButton Grid.Column="1"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding IsCarouselViewMode, Mode=TwoWay}"
+                                      VerticalAlignment="Center"
+                                      Margin="12,0,0,0" />
+                    </Grid>
                 </StackPanel>
             </StackPanel>
         </views:TemplatePage.HeroContent>

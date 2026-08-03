@@ -45,6 +45,7 @@ namespace IconGrid.ViewModels.Settings
         public List<CustomLayoutSlot> FavoriteLayoutSlots { get; set; } = new();
         public bool EnableSlideUpAnimation { get; set; }
         public bool EnableContentScroll { get; set; }
+        public string IconViewMode { get; set; } = "Grid";
         public int WindowAnimationDurationMs { get; set; }
         public FpsTargetConfig FpsTarget { get; set; } = new();
     }
