@@ -51,15 +51,8 @@ namespace IconGrid.ViewModels
         private int _windowAnimationDurationMs = 250;
         private bool _isIconPanelExpanded = true;
 
-        private double? _windowLeft;
-        private double? _windowTop;
-        private double? _settingsWindowLeft;
-        private double? _settingsWindowTop;
-        private double? _gamingOverlayWindowLeft;
-        private double? _gamingOverlayWindowTop;
-        private double? _floatingLeft;
-        private double? _floatingTop;
         private readonly LauncherLayoutState _layoutState = new();
+        private readonly WindowStateStore _windowStateStore = new();
         private const double TileSlotWidth = 172;             // approximate width per icon tile including margin
         private const double BaseTileSlotHeight = 152;        // base row height (icon + label) before spacing
         private const double ContentVerticalPaddingTop = 36;  // upper padding portion (matches XAML padding)
@@ -408,85 +401,45 @@ namespace IconGrid.ViewModels
 
         public bool TryGetSavedWindowPosition(out double left, out double top)
         {
-            if (_windowLeft.HasValue && _windowTop.HasValue)
-            {
-                left = _windowLeft.Value;
-                top = _windowTop.Value;
-                return true;
-            }
-
-            left = 0;
-            top = 0;
-            return false;
+            return _windowStateStore.TryGetSavedWindowPosition(out left, out top);
         }
 
         public void SaveWindowPosition(double left, double top)
         {
-            _windowLeft = left;
-            _windowTop = top;
+            _windowStateStore.SaveWindowPosition(left, top);
             SaveSettingsToConfig();
         }
 
         public bool TryGetSavedSettingsWindowPosition(out double left, out double top)
         {
-            if (_settingsWindowLeft.HasValue && _settingsWindowTop.HasValue)
-            {
-                left = _settingsWindowLeft.Value;
-                top = _settingsWindowTop.Value;
-                return true;
-            }
-
-            left = 0;
-            top = 0;
-            return false;
+            return _windowStateStore.TryGetSavedSettingsWindowPosition(out left, out top);
         }
 
         public void SaveSettingsWindowPosition(double left, double top)
         {
-            _settingsWindowLeft = left;
-            _settingsWindowTop = top;
+            _windowStateStore.SaveSettingsWindowPosition(left, top);
             SaveSettingsToConfig();
         }
 
         public bool TryGetSavedGamingOverlayWindowPosition(out double left, out double top)
         {
-            if (_gamingOverlayWindowLeft.HasValue && _gamingOverlayWindowTop.HasValue)
-            {
-                left = _gamingOverlayWindowLeft.Value;
-                top = _gamingOverlayWindowTop.Value;
-                return true;
-            }
-
-            left = 0;
-            top = 0;
-            return false;
+            return _windowStateStore.TryGetSavedGamingOverlayWindowPosition(out left, out top);
         }
 
         public void SaveGamingOverlayWindowPosition(double left, double top)
         {
-            _gamingOverlayWindowLeft = left;
-            _gamingOverlayWindowTop = top;
+            _windowStateStore.SaveGamingOverlayWindowPosition(left, top);
             SaveSettingsToConfig();
         }
 
         public bool TryGetSavedFloatingPosition(out double left, out double top)
         {
-            if (_floatingLeft.HasValue && _floatingTop.HasValue)
-            {
-                left = _floatingLeft.Value;
-                top = _floatingTop.Value;
-                return true;
-            }
-
-            left = 0;
-            top = 0;
-            return false;
+            return _windowStateStore.TryGetSavedFloatingPosition(out left, out top);
         }
 
         public void SaveFloatingIconPosition(double left, double top)
         {
-            _floatingLeft = left;
-            _floatingTop = top;
+            _windowStateStore.SaveFloatingIconPosition(left, top);
             SaveSettingsToConfig();
         }
 
@@ -1020,14 +973,15 @@ namespace IconGrid.ViewModels
             _enableContentScroll = state.EnableContentScroll;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
             _language = state.Language;
-            _windowLeft = state.WindowLeft;
-            _windowTop = state.WindowTop;
-            _settingsWindowLeft = state.SettingsWindowLeft;
-            _settingsWindowTop = state.SettingsWindowTop;
-            _gamingOverlayWindowLeft = state.GamingOverlayWindowLeft;
-            _gamingOverlayWindowTop = state.GamingOverlayWindowTop;
-            _floatingLeft = state.FloatingIconLeft;
-            _floatingTop = state.FloatingIconTop;
+            _windowStateStore.ApplyConfig(
+                state.WindowLeft,
+                state.WindowTop,
+                state.SettingsWindowLeft,
+                state.SettingsWindowTop,
+                state.GamingOverlayWindowLeft,
+                state.GamingOverlayWindowTop,
+                state.FloatingIconLeft,
+                state.FloatingIconTop);
             _fpsTarget = state.FpsTarget ?? new FpsTargetConfig();
             _layoutState.ApplyConfig(config);
             NotifyConfigApplied();
@@ -1052,8 +1006,7 @@ namespace IconGrid.ViewModels
             _startDirectlyInLauncher = false;
             _language = "da";
             _themeState.SetIsLightTheme(true);
-            _floatingLeft = null;
-            _floatingTop = null;
+            _windowStateStore.ResetFloatingPosition();
             _windowAnimationDurationMs = 250;
             _fpsTarget = new FpsTargetConfig();
         }
@@ -1495,14 +1448,6 @@ namespace IconGrid.ViewModels
                 LastRowPaddingAdjust = _lastRowPaddingAdjust,
                 TabNames = Tabs.ToList(),
                 Language = _language,
-                WindowLeft = _windowLeft,
-                WindowTop = _windowTop,
-                SettingsWindowLeft = _settingsWindowLeft,
-                SettingsWindowTop = _settingsWindowTop,
-                GamingOverlayWindowLeft = _gamingOverlayWindowLeft,
-                GamingOverlayWindowTop = _gamingOverlayWindowTop,
-                FloatingIconLeft = _floatingLeft,
-                FloatingIconTop = _floatingTop,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
                 WindowAnimationDurationMs = _windowAnimationDurationMs,
@@ -1510,6 +1455,7 @@ namespace IconGrid.ViewModels
             };
 
             _layoutState.ApplyToSettingsState(state);
+            _windowStateStore.ApplyToSettingsState(state);
             _settingsPersistence.Save(_config, state);
         }
 
