@@ -231,7 +231,7 @@
   - `Helpers/Launcher/SystemMonitor.cs`: 501 lines — PASSES.
 - Manual UI tests passed per phase; final full smoke test PASSED (layout menu, layout cards/IG marking, gaming overlay, icon/theme, tray, floating/full, drag & drop, shortcut menus).
 - Backups in `_backups/refactor-2026-08-03/FaseB/B1/` … `B6/`.
-- Pending: commit checkpoint (awaiting user approval).
+- COMMITTED: `6ba1105` "refactor: extract MainWindow helpers into six focused launcher classes (Fase B)" (8 files, +2207/-1339). Pushed: PENDING (not pushed yet).
 - Next steps:
   - Continue MainWindow reduction toward 1000: remaining clusters are PawnIo warning window (~6 methods), monitor timer, window closing/exit, tab toggle, remaining event handlers.
   - Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
