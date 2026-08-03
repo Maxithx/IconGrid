@@ -119,9 +119,9 @@
 - `165d7e8` `Improve ETW FPS overlay responsiveness and shared-memory live path`
 
 ## Good next steps
-- NEXT (HIGHEST PRIORITY): MainViewModel reduction toward 1200 (currently 1799, the ONLY remaining check_architecture_rules VIOLATION). Biggest remaining wins: the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block. Follow ARCHITECTURE_RULES.md Refactor Workflow (one change per step, build after each step, check_architecture_rules after each step, manual UI test after each functional step, commit only after user approval).
-- A4 (optional): rebind XAML/code-behind directly to LauncherLayoutMeasurements.* and remove delegate properties for further MainViewModel reduction.
-- Update ARCHITECTURE_RULES.md (Recent Good Examples) with LauncherLayoutMeasurements.cs, PawnIoWarningController.cs, MonitorPollingController.cs, and the Fase B helper classes.
+- check_architecture_rules is now GREEN (zero violations): MainWindow 968, MainViewModel 998, HardwareMonitorAgent 1432, SystemMonitor 501 all PASS. The architecture refactor goals are complete; future refactors are optional polish, not limit-driven.
+- Optional polish: A4 (rebind XAML/code-behind directly to LauncherLayoutMeasurements.* and remove delegate properties) — further MainViewModel line reduction beyond the 1200 limit is no longer needed.
+- Update ARCHITECTURE_RULES.md (Recent Good Examples) with LauncherLayoutMeasurements.cs, PawnIoWarningController.cs, MonitorPollingController.cs, the Fase B helper classes, and the C1-C4 partial-class files (MainViewModel.Localization/Settings/Layout/Items).
 - validate the shared-memory live path across more real games
 - decide whether to add frametime as a companion metric
 - decide whether to keep simplifying the fallback FPS layers around the live path
@@ -262,6 +262,16 @@
   - Continue MainWindow reduction toward 1000: remaining clusters are PawnIo warning window (~6 methods), monitor timer, window closing/exit, tab toggle, remaining event handlers.
   - Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
   - Consider wiring LayoutMenuController's layout-preset/slot/link handlers fully into MainWindow (currently MainWindow still hosts those handler methods directly; the controller owns menu population/checks and TrySaveLayout) — follow-up for a later fase if needed.
+
+## Refactor Fase C (Aug 3, 2026) — C1-C4: MainViewModel PASSES the 1200-line limit — ALL files green
+
+- Continued the MainViewModel reduction this session; each step followed by build (0 warnings / 0 errors) and `check_architecture_rules`. MainViewModel is a `partial class`; the four biggest self-contained blocks moved to dedicated partial-class files:
+  - **C1** `ViewModels/MainViewModel.Localization.cs` — 110 localization binding properties + `NotifyLocalizationPropertiesChanged` + `ApplyLocalizationState`. MainViewModel: 1798 → 1557 lines.
+  - **C2** `ViewModels/MainViewModel.Settings.cs` — `ApplyConfig`, `ApplyDefaultSettingsState`, `LoadConfiguredState`, `SaveSettingsToConfig`. MainViewModel: 1557 → 1452 lines.
+  - **C3** `ViewModels/MainViewModel.Layout.cs` — all layout properties/state (LayoutPreset, SkipMinimized, CurrentMonitorOnly, ReserveIconGridSlot, IconGridSlot, SaveLayout/RenameLayout/DeleteLayout, notify helpers). MainViewModel: 1452 → 1253 lines.
+  - **C4** `ViewModels/MainViewModel.Items.cs` — tabs/items administration (AddTab/ClearCurrentCategory/RenameTab/RemoveTab/RemoveItem/RenameItem/UpdateItemIcon/MoveItemWithinCategory/HandleFileDrop/LaunchItem/RememberFpsTarget/CreateCustomShortcut/SetIcon/SaveItemsToFile/LoadItemsFromFile/MaybeMigrateItemsFromLegacy). MainViewModel: 1253 → **998 lines**.
+- `check_architecture_rules` end-state (Aug 3, 2026, after C4): **"All checked files are within ARCHITECTURE_RULES.md limits."** — MainWindow 968, MainViewModel 998, HardwareMonitorAgent 1432, SystemMonitor 501 all PASS. First time zero violations.
+- Commit: see git log (C1-C4 committed together this session; the B7-B10 MainWindow refactor commit `acd5b49` and the MCP fix `42ce00b` are already pushed).
 
 ## Refactor Fase B (Aug 3, 2026) — B7-B10: MainWindow PASSES the 1000-line limit
 
