@@ -48,7 +48,19 @@ Before making changes, read these files in this order:
 ## Session memory (MCP notes server)
 
 - A local MCP server named `icongrid-notes` provides note tools: `list_notes`, `read_note`, `search_notes`, `update_note`, `check_architecture_rules`, `check_version_consistency`.
-- Server source lives in the repo at `tools/mcp-notes-server/` (backed up on GitHub). After a fresh clone, run `npm install` in that folder. The Cline MCP config points to `tools/mcp-notes-server/src/index.js`.
+- **The MCP server runs DIRECTLY from the repo** — the repo (`tools/mcp-notes-server/`) is the single source of truth and is backed up on GitHub. There is no separate/older local copy to use; the old `C:\Users\THXMAN\Documents\Cline\MCP\notes-server` copy has been deleted (2026-08-03).
+- Fresh-clone setup: in `tools/mcp-notes-server/` run `npm install` once, then register the server in Cline's MCP config (`cline_mcp_settings.json`) with:
+  ```json
+  "icongrid-notes": {
+    "command": "node",
+    "args": ["E:/IconGrid-GitHub/tools/mcp-notes-server/src/index.js"],
+    "env": { "ICONGRID_WORKSPACE": "E:\\IconGrid-GitHub" },
+    "disabled": false,
+    "autoApprove": []
+  }
+  ```
+  (Replace the `args`/`env` paths if the repo lives at a different location.)
+- Keep the server in sync with the repo: any change to `tools/mcp-notes-server/` is versioned with git like normal code.
 - Notes live in:
   - `CHAT_STATE.md` (tracked, repo root) — always use `read_note`/`update_note` with note name `CHAT_STATE` for this file.
   - `.local-state/*.md` (gitignored) — use plain names like `fps-etw` or `ui-launcher`.
