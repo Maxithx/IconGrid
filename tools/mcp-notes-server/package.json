@@ -1,0 +1,13 @@
+{
+  "name": "icongrid-notes-server",
+  "version": "0.1.0",
+  "description": "Local markdown notes/tools for IconGrid session memory (CHAT_STATE.md and .local-state)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

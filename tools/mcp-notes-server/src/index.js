@@ -1,0 +1,631 @@
+#!/usr/bin/env node
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListToolsRequestSchema,
+  McpError,
+} from '@modelcontextprotocol/sdk/types.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+// Root of the IconGrid workspace where notes live.
+const WORKSPACE_ROOT = process.env.ICONGRID_WORKSPACE ?? 'E:\\IconGrid-GitHub';
+const CHAT_STATE_PATH = path.join(WORKSPACE_ROOT, 'CHAT_STATE.md');
+const LOCAL_STATE_DIR = path.join(WORKSPACE_ROOT, '.local-state');
+
+async function fileExists(filePath) {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+function resolveNotePath(name) {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) {
+    throw new McpError(ErrorCode.InvalidParams, 'note name is required');
+  }
+
+  // Allow plain names like "fps-etw", "fps-etw.md", "CHAT_STATE", "CHAT_STATE.md".
+  let fileName = trimmed;
+  if (!fileName.toLowerCase().endsWith('.md')) {
+    fileName = `${fileName}.md`;
+  }
+
+  const isChatState = fileName.toLowerCase() === 'chat_state.md';
+  const target = isChatState
+    ? CHAT_STATE_PATH
+    : path.join(LOCAL_STATE_DIR, fileName);
+
+  return { target, fileName, isChatState };
+}
+
+async function listNoteFiles() {
+  const notes = [];
+  if (await fileExists(CHAT_STATE_PATH)) {
+    notes.push({
+      name: 'CHAT_STATE.md',
+      path: CHAT_STATE_PATH,
+      kind: 'tracked',
+    });
+  }
+  try {
+    const entries = await fs.readdir(LOCAL_STATE_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+        notes.push({
+          name: entry.name,
+          path: path.join(LOCAL_STATE_DIR, entry.name),
+          kind: 'local-state',
+        });
+      }
+    }
+  } catch {
+    // local-state dir may not exist; skip silently.
+  }
+  return notes;
+}
+
+// Structured update of a markdown note. Supported operations:
+// - "append" section content under a heading (creates heading if missing)
+// - "replace" find/replace of exact text (first occurrence)
+const isValidUpdateArgs = (args) =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof args.note === 'string' &&
+  (args.operation === 'append' || args.operation === 'replace') &&
+  typeof args.content === 'string';
+
+// ---- Architecture rules check ----
+
+// Thresholds derived from ARCHITECTURE_RULES.md intent:
+// - MainWindow should stay small (shell only)
+// - MainViewModel should stay a composition root, not a feature dump
+// - Generic guard: no single file should grow beyond 1500 lines
+const ARCH_CHECKS = [
+  {
+    file: 'Views/Launcher/MainWindow.xaml.cs',
+    maxLines: 1000,
+    label: 'MainWindow code-behind (ARCHITECTURE_RULES.md: MainWindow Rules)',
+  },
+  {
+    file: 'ViewModels/MainViewModel.cs',
+    maxLines: 1200,
+    label: 'MainViewModel (ARCHITECTURE_RULES.md: MainViewModel Rules)',
+  },
+  {
+    file: 'Helpers/Hardware/HardwareMonitorAgent.cs',
+    maxLines: 1500,
+    label: 'HardwareMonitorAgent (background worker, keep focused)',
+  },
+  {
+    file: 'Helpers/Launcher/SystemMonitor.cs',
+    maxLines: 1000,
+    label: 'SystemMonitor (launcher-side monitor)',
+  },
+];
+
+// Count method-like declarations in a C# file (rough heuristic).
+function countMethods(text) {
+  const lines = text.split(/\r?\n/);
+  let count = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip comments, properties, control flow, field declarations.
+    if (
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('/*') ||
+      trimmed.startsWith('*') ||
+      trimmed.startsWith('///') ||
+      trimmed.startsWith('#') ||
+      trimmed.startsWith('public class') ||
+      trimmed.startsWith('internal class') ||
+      trimmed.startsWith('private class') ||
+      trimmed.startsWith('public partial class') ||
+      trimmed.startsWith('internal partial class') ||
+      trimmed.startsWith('private partial class')
+    ) {
+      continue;
+    }
+    // Heuristic: a line ending with ")" on a method-like signature, or
+    // a line starting with access modifier + return type + name + "(".
+    const methodLike = /(?:public|private|protected|internal)\s+(?:static\s+|async\s+|virtual\s+|override\s+|sealed\s+|readonly\s+|partial\s+)*(?:[A-Za-z_][A-Za-z0-9_<>,.?\[\]\s]*)\s+[A-Za-z_][A-Za-z0-9_]*\s*\(/.test(
+      trimmed
+    );
+    // Exclude properties and constructors-ish lines that end with "=>" (expression-bodied property).
+    const isExpressionProperty = /\s*=>\s*/.test(trimmed) && !/\(\)\s*=>/.test(trimmed);
+    if (methodLike && !isExpressionProperty) {
+      count++;
+    }
+  }
+  return count;
+}
+
+async function architectureReport(includeOk = false) {
+  const results = [];
+  for (const check of ARCH_CHECKS) {
+    const fullPath = path.join(WORKSPACE_ROOT, check.file);
+    if (!(await fileExists(fullPath))) {
+      results.push({
+        file: check.file,
+        status: 'missing',
+        lines: null,
+        limit: check.maxLines,
+      });
+      continue;
+    }
+    const text = await fs.readFile(fullPath, 'utf8');
+    const lineCount = text.split(/\r?\n/).length;
+    const methodCount = countMethods(text);
+    const limit = check.maxLines;
+    const status = lineCount > limit ? 'violation' : 'ok';
+    results.push({
+      file: check.file,
+      status,
+      lines: lineCount,
+      limit,
+      methods: methodCount,
+    });
+  }
+
+  const lines = [];
+  const violations = results.filter((r) => r.status === 'violation');
+  for (const r of results) {
+    if (r.status === 'missing') {
+      lines.push(`? ${r.file} (missing)`);
+      continue;
+    }
+    if (r.status === 'ok' && !includeOk) {
+      continue;
+    }
+    const marker = r.status === 'violation' ? 'VIOLATION' : 'ok';
+    lines.push(
+      `${marker} ${r.file}: ${r.lines} lines (limit ${r.limit}) | ~${r.methods} methods`
+    );
+  }
+
+  if (violations.length === 0) {
+    lines.push('All checked files are within ARCHITECTURE_RULES.md limits.');
+  } else {
+    lines.push('');
+    lines.push('Suggested follow-ups:');
+    for (const v of violations) {
+      const suggestions = {
+        'Views/Launcher/MainWindow.xaml.cs':
+          'Move layout-engine methods (BuildSlots, MatchWindowsToSlots, ArrangeWindowsFromPreset) to Helpers/Launcher/WindowLayoutEngine.cs.',
+        'ViewModels/MainViewModel.cs':
+          'Extract UI/layout measurement state into a dedicated LauncherLayoutState-like class.',
+        'Helpers/Hardware/HardwareMonitorAgent.cs':
+          'Keep this worker focused on orchestration; move normalization helpers to a separate class if it grows further.',
+        'Helpers/Launcher/SystemMonitor.cs':
+          'Consider splitting FPS display state from network/hardware polling.',
+      };
+      lines.push(`- ${v.file}: ${suggestions[v.file] ?? 'Review and split into a focused class.'}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ---- Version consistency check ----
+// Reads the app version from AssemblyInfo.cs and README.md and reports mismatches.
+const VERSION_FILES = [
+  {
+    path: 'AssemblyInfo.cs',
+    label: 'AssemblyInfo.cs',
+    pattern: /AssemblyInformationalVersion\("([^"]+)"\)/,
+  },
+  {
+    path: 'README.md',
+    label: 'README.md',
+    pattern: /Current version:\s*`([^`]+)`/,
+  },
+];
+
+async function versionReport(includeOk = false) {
+  const results = [];
+  for (const f of VERSION_FILES) {
+    const fullPath = path.join(WORKSPACE_ROOT, f.path);
+    if (!(await fileExists(fullPath))) {
+      results.push({ label: f.label, status: 'missing', version: null });
+      continue;
+    }
+    const text = await fs.readFile(fullPath, 'utf8');
+    const match = text.match(f.pattern);
+    results.push({
+      label: f.label,
+      status: match ? 'ok' : 'no-version-found',
+      version: match ? match[1] : null,
+    });
+  }
+
+  const versions = results
+    .filter((r) => r.version)
+    .map((r) => ({ label: r.label, version: r.version }));
+  const distinct = [...new Set(versions.map((v) => v.version))];
+
+  const lines = [];
+  for (const r of results) {
+    if (r.status === 'missing') {
+      lines.push(`? ${r.label} (missing)`);
+      continue;
+    }
+    if (r.status === 'no-version-found') {
+      lines.push(`WARN ${r.label}: version string not found`);
+      continue;
+    }
+    lines.push(`ok ${r.label}: ${r.version}`);
+  }
+
+  if (distinct.length <= 1 && results.every((r) => r.status !== 'no-version-found')) {
+    lines.push('Version is consistent across all checked files.');
+  } else {
+    lines.push('');
+    lines.push('Version mismatch or missing version string! Fix before release.');
+  }
+
+  return lines.join('\n');
+}
+
+async function appendToSection(text, heading, content) {
+  let lines = text.split(/\r?\n/);
+  let headingIndex = -1;
+
+  // Find the heading (case-insensitive, supports "##", "###", etc.)
+  for (let i = 0; i < lines.length; i++) {
+    if (
+      lines[i].trim().toLowerCase().replace(/^#+\s*/, '') ===
+      heading.trim().toLowerCase()
+    ) {
+      headingIndex = i;
+      break;
+    }
+  }
+
+  const insertText = content.endsWith('\n') ? content : `${content}\n`;
+
+  if (headingIndex === -1) {
+    // Append a new heading at the end of the file.
+    if (lines.length > 0 && lines[lines.length - 1].trim() !== '') {
+      lines.push('');
+    }
+    lines.push(`## ${heading}`);
+    lines.push('');
+    lines.push(insertText.replace(/\n+$/, ''));
+    return lines.join('\n') + '\n';
+  }
+
+  // Insert content after the heading's block. The block continues until the
+  // next line starting with '#' at the same or lower level, or end of file.
+  let insertAt = headingIndex + 1;
+  while (insertAt < lines.length) {
+    const line = lines[insertAt].trim();
+    if (line === '') {
+      insertAt++;
+      continue;
+    }
+    const headingMatch = line.match(/^#{1,6}\s+/);
+    if (headingMatch) {
+      break;
+    }
+    insertAt++;
+  }
+
+  // Skip blank lines before the next section so we insert cleanly.
+  let contentStart = insertAt - 1;
+  while (contentStart > headingIndex && lines[contentStart].trim() === '') {
+    contentStart--;
+  }
+  lines.splice(contentStart + 1, 0, '', insertText.replace(/\n+$/, ''));
+  return lines.join('\n') + '\n';
+}
+
+class NotesServer {
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'icongrid-notes-server',
+        version: '0.1.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
+      }
+    );
+
+    this.setupToolHandlers();
+
+    this.server.onerror = (error) => console.error('[MCP Error]', error);
+    process.on('SIGINT', async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  setupToolHandlers() {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: [
+        {
+          name: 'list_notes',
+          description:
+            'List all IconGrid notes (CHAT_STATE.md and .local-state/*.md) with their paths.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'read_note',
+          description:
+            'Read the full content of an IconGrid note. Use names like "CHAT_STATE", "fps-etw", or "fps-etw.md".',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              note: {
+                type: 'string',
+                description:
+                  'Note name without or with .md extension, or "CHAT_STATE" for CHAT_STATE.md.',
+              },
+            },
+            required: ['note'],
+          },
+        },
+        {
+          name: 'search_notes',
+          description:
+            'Search all IconGrid notes for a text pattern and return matching lines with file names.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pattern: {
+                type: 'string',
+                description: 'Case-insensitive text or regex to search for.',
+              },
+              note: {
+                type: 'string',
+                description:
+                  'Optional: restrict search to one note (e.g. "fps-etw").',
+              },
+            },
+            required: ['pattern'],
+          },
+        },
+        {
+          name: 'update_note',
+          description:
+            'Append content under a markdown heading, or find/replace exact text, in an IconGrid note.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              note: {
+                type: 'string',
+                description:
+                  'Note name without or with .md extension, or "CHAT_STATE" for CHAT_STATE.md.',
+              },
+              operation: {
+                type: 'string',
+                enum: ['append', 'replace'],
+                description:
+                  'append: add content under a heading (creates it if missing). replace: find/replace exact text.',
+              },
+              heading: {
+                type: 'string',
+                description:
+                  'Required for append. Heading text without leading "#" (e.g. "Night session findings").',
+              },
+              find: {
+                type: 'string',
+                description:
+                  'Required for replace. Exact text to find (first occurrence).',
+              },
+              content: {
+                type: 'string',
+                description:
+                  'Content to append (for append) or replacement text (for replace).',
+              },
+            },
+            required: ['note', 'operation', 'content'],
+          },
+        },
+        {
+          name: 'check_architecture_rules',
+          description:
+            'Check that key source files respect ARCHITECTURE_RULES.md guardrails (file size limits, method counts). Returns a structured report of violations.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              includeOk: {
+                type: 'boolean',
+                description:
+                  'If true, include files that pass the checks too. Default false (only violations).',
+              },
+            },
+          },
+        },
+        {
+          name: 'check_version_consistency',
+          description:
+            'Check that the app version is consistent across AssemblyInfo.cs and README.md (Current version). Returns a structured report.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      ],
+    }));
+
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      switch (name) {
+        case 'list_notes': {
+          const notes = await listNoteFiles();
+          return {
+            content: [
+              {
+                type: 'text',
+                text: notes
+                  .map((n) => `[${n.kind}] ${n.name} -> ${n.path}`)
+                  .join('\n') || 'No notes found.',
+              },
+            ],
+          };
+        }
+
+        case 'read_note': {
+          if (!args || typeof args.note !== 'string') {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'note is required for read_note'
+            );
+          }
+          const { target, fileName } = resolveNotePath(args.note);
+          if (!(await fileExists(target))) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Note not found: ${fileName} (looked at ${target})`
+            );
+          }
+          const text = await fs.readFile(target, 'utf8');
+          return {
+            content: [{ type: 'text', text }],
+          };
+        }
+
+        case 'search_notes': {
+          if (!args || typeof args.pattern !== 'string') {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'pattern is required for search_notes'
+            );
+          }
+          let re;
+          try {
+            re = new RegExp(args.pattern, 'i');
+          } catch {
+            re = new RegExp(args.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          }
+
+          let notes = await listNoteFiles();
+          if (typeof args.note === 'string' && args.note.trim()) {
+            const { fileName } = resolveNotePath(args.note);
+            notes = notes.filter(
+              (n) => n.name.toLowerCase() === fileName.toLowerCase()
+            );
+          }
+
+          const results = [];
+          for (const note of notes) {
+            const text = await fs.readFile(note.path, 'utf8');
+            const lines = text.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+              if (re.test(lines[i])) {
+                results.push(`${note.name}:${i + 1}: ${lines[i].trim()}`);
+              }
+            }
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: results.length
+                  ? results.join('\n')
+                  : 'No matches found.',
+              },
+            ],
+          };
+        }
+
+        case 'check_architecture_rules': {
+          const includeOk = args?.includeOk === true;
+          const report = await architectureReport(includeOk);
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'check_version_consistency': {
+          const report = await versionReport();
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'update_note': {
+          if (!isValidUpdateArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'Invalid update_note arguments'
+            );
+          }
+          const { target, fileName } = resolveNotePath(args.note);
+          if (!(await fileExists(target))) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Note not found: ${fileName} (looked at ${target})`
+            );
+          }
+
+          let text = await fs.readFile(target, 'utf8');
+          let summary = '';
+
+          if (args.operation === 'append') {
+            if (typeof args.heading !== 'string' || !args.heading.trim()) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                'heading is required for append operation'
+              );
+            }
+            text = await appendToSection(text, args.heading, args.content);
+            summary = `Appended content under heading "${args.heading}" in ${fileName}.`;
+          } else if (args.operation === 'replace') {
+            if (typeof args.find !== 'string' || !args.find) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                'find is required for replace operation'
+              );
+            }
+            const index = text.indexOf(args.find);
+            if (index === -1) {
+              throw new McpError(
+                ErrorCode.InvalidParams,
+                `Text to replace was not found in ${fileName}.`
+              );
+            }
+            text =
+              text.slice(0, index) +
+              args.content +
+              text.slice(index + args.find.length);
+            summary = `Replaced text in ${fileName}.`;
+          }
+
+          await fs.writeFile(target, text, 'utf8');
+          return {
+            content: [{ type: 'text', text: summary }],
+          };
+        }
+
+        default:
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Unknown tool: ${name}`
+          );
+      }
+    });
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('IconGrid notes MCP server running on stdio');
+  }
+}
+
+const server = new NotesServer();
+server.run().catch(console.error);
