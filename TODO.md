@@ -20,7 +20,7 @@
 - Dokumentér kun de controls/helpers som stadig er arkitektonisk vigtige
 - Tag kun nye faser hvis de giver reel funktionel værdi
 - Byg modulær preview/drag-UI for reserveret `IconGrid`-slot uden at vokse `MainWindow` eller `MainViewModel`
-- Udfas `PresentMon` helt og byg den endelige FPS-løsning som en dedikeret native C++ worker baseret på den eksisterende ETW-kode i `E:\Maxithx projekter\fps-overlay-1.7.0-beta`
+- FPS-løsningen er nu flyttet til `Native/FpsAgent` (C++ worker) og `PresentMon` er udfaset
 
 ## Næste session: IconGrid slot preview UI
 
@@ -213,14 +213,21 @@
 - [x] Tilføj inline quick settings under overlayet med scale-slider og settings-link
 - [x] Lad gaming overlayet huske sin sidste position efter lukning og restart
 - [x] Få popup-rækken til at følge overlayets højre alignment og UI-scale
-- [ ] Isolér den mindste genbrugelige FPS-kerne fra `fps-overlay-1.7.0-beta` uden ImGui/UI-afhængigheder
-- [ ] Opret `Native/FpsAgent/` som separat C++ worker i repoet
-- [ ] Flyt ETW/PID/FPS-logikken over i den native worker og hold den uafhængig af WPF-processen
-- [ ] Definér en simpel output-kontrakt til C# med `fpsStatus`, `targetPid`, `targetProcessName`, `lastSampleUtc` og `error`
-- [ ] Lad `SystemMonitor`/hardware-monitor-flowet kun forbruge FPS-data fra den native worker
-- [ ] Få stabil FPS-visning i både launcher-topbar og gaming overlay for `Path of Exile`
-- [ ] Fjern `PresentMonFpsProvider`, den bundtede `PresentMon`-binær og al CLI-baseret FPS-logik når native worker-sporet virker
-- [ ] Hold FPS-løsningen passiv og lav-risiko uden injection, DLL-detours eller graphics API hooking
+- [x] Isolér den mindste genbrugelige FPS-kerne fra `fps-overlay-1.7.0-beta` uden ImGui/UI-afhængigheder
+- [x] Opret `Native/FpsAgent/` som separat C++ worker i repoet
+- [x] Flyt ETW/PID/FPS-logikken over i den native worker og hold den uafhængig af WPF-processen
+- [x] Definér en simpel output-kontrakt til C# med `fpsStatus`, `targetPid`, `targetProcessName`, `lastSampleUtc` og `error`
+- [x] Lad `SystemMonitor`/hardware-monitor-flowet kun forbruge FPS-data fra den native worker
+- [x] Få stabil FPS-visning i både launcher-topbar og gaming overlay for `Path of Exile`
+- [x] Fjern `PresentMonFpsProvider`, den bundtede `PresentMon`-binær og al CLI-baseret FPS-logik når native worker-sporet virker
+- [x] Hold FPS-løsningen passiv og lav-risiko uden injection, DLL-detours eller graphics API hooking
+- [ ] FPS: Forbedr spike-filter recovery så overlay følger raw FPS ved stærk `Source=PrimaryApi` (PoE2 background-cap 30→60 fastholdelse)
+- [ ] FPS: Ryd stale launch-session-ownership efter PoE2 exit/spilskift ("No running process matched")
+- [ ] FPS: Undgå file-read collision på `native-fps-state.json` (FileShare.ReadWrite eller retry)
+- [ ] Arkitektur: Nedbring `MainWindow.xaml.cs` (3473 linjer) — flyt layout-engine til `Helpers/Launcher/WindowLayoutEngine.cs`
+- [ ] Arkitektur: Nedbring `MainViewModel.cs` (1940 linjer) — ekstraher UI/layout-målings-state
+- [ ] Arkitektur: Nedbring `HardwareMonitorAgent.cs` (1680 linjer) — hold worker fokuseret
+- [ ] Skalering: Få main launcher UI + gaming overlay til at skalere korrekt med Windows 11 DPI-skala (fx 2560x1440 @ 125%) — undersøg `PerMonitorV2` i `app.manifest` + undgå dobbelt-skalering mellem appens egen `uiScale`/overlay-scale og Windows-skala
 
 ## Dokumentation
 

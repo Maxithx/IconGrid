@@ -45,6 +45,23 @@ Before making changes, read these files in this order:
 - The gaming overlay must not reuse the existing settings page flow; if it needs settings, add a dedicated settings page for it.
 - Do not assume the gaming overlay will appear inside a game's fullscreen composition; treat it as a desktop overlay requirement unless proven otherwise.
 
+## Session memory (MCP notes server)
+
+- A local MCP server named `icongrid-notes` provides note tools: `list_notes`, `read_note`, `search_notes`, `update_note`, `check_architecture_rules`, `check_version_consistency`.
+- Notes live in:
+  - `CHAT_STATE.md` (tracked, repo root) — always use `read_note`/`update_note` with note name `CHAT_STATE` for this file.
+  - `.local-state/*.md` (gitignored) — use plain names like `fps-etw` or `ui-launcher`.
+- Use `update_note` for structured updates (append under a heading, or replace exact text) instead of manually editing note files with `write_to_file`/`replace_in_file`.
+- Run `check_architecture_rules` before starting any large refactor and at the end of each session. Treat VIOLATION findings as required cleanup backlog; do not ignore new violations introduced by an edit.
+- Versioning: the app version lives in `AssemblyInfo.cs` (`AssemblyInformationalVersion` is the canonical SemVer, e.g. `0.7.0-beta.1`). Run `check_version_consistency` after any version bump. When a milestone is completed, propose a version bump and sync `README.md` ("Current version") together with `AssemblyInfo.cs`.
+- End-of-session ritual (MANDATORY when a session concludes, or when the user says "session slut"/"opdater noter"/equivalent):
+  1. `read_note CHAT_STATE`
+  2. Append/update the relevant sections with findings from this session under `## Session findings (YYYY-MM-DD)` or the existing date-specific section.
+  3. Update `Good next steps` to reflect what remains.
+  4. If a `.local-state` technical reference changed materially (e.g. `fps-etw.md`), update it too.
+  5. Commit `CHAT_STATE.md` only if the user explicitly approves a commit.
+- Do not store chat history as the source of truth; treat `CHAT_STATE.md` + `.local-state` as the persistent memory.
+
 ## Current focus
 
 - Fix Windows startup so IconGrid no longer launches extra elevated instances.
@@ -53,3 +70,4 @@ Before making changes, read these files in this order:
 - Keep any new overlay or window visually consistent with the existing launcher UI only.
 - Keep FPS work opt-in and conservative; do not use hook-based capture paths.
 - Keep the gaming overlay independent from launcher minimize behavior and settings navigation.
+- Maintain the session memory backlog via the `icongrid-notes` MCP tools instead of ad-hoc file edits.

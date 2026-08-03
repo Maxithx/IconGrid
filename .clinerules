@@ -3,9 +3,9 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 
 ## 1. TERMINAL & SHELL RULES (CRITICAL)
 - ENVIRONMENT: You are strictly in a Windows environment. NEVER use Linux commands (ls, grep, sed, awk, cat, head, tail).
-- COMMAND WHITELIST: Only use: `dir`, `Get-ChildItem`, `Select-String`, `git`, `dotnet`.
+- COMMAND WHITELIST: Prefer the File API for reading/writing. When a shell command is needed, use only: `Get-ChildItem` (or `dir`), `Select-String`, `git`, `dotnet`, `npm`, `node`, `Remove-Item`, `Test-Path`, `Get-Content`. Never use complex pipelines; a single command piped to `Out-File` for diagnostics is acceptable.
 - ERROR HANDLING: If a shell command fails (exit code != 0 or syntax error), NEVER retry it. Do not attempt to fix the shell syntax. Immediately switch to using VS Code File API (read_file, write_to_file) to perform the task.
-- PATHS: Always use absolute Windows paths (e.g., E:\IconGrid\...). Never use forward slashes (/) for filesystem paths.
+- PATHS: Always use absolute Windows paths (e.g., E:\IconGrid-GitHub\...). Never use forward slashes (/) for filesystem paths. The active repository/worktree is `E:\IconGrid-GitHub` only.
 
 ## 2. FILE & TOOLING STRATEGY
 - FILE API FIRST: Always prefer VS Code's `read_file` and `write_to_file` over shell commands for reading/writing code.
@@ -16,7 +16,14 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - SRP (Single Responsibility Principle): Logic belongs in ViewModels or Services, never in code-behind.
 - BINDING SAFETY: If a UI binding fails, verify the DataContext. Before making UI changes, read the associated ViewModel to confirm properties exist.
 - DEPENDENCY INJECTION: Always look for existing services in `/Helpers` before creating new logic.
+- ARCHITECTURE GUARDRAILS: `ARCHITECTURE_RULES.md` defines the modularity guardrails. Use the `check_architecture_rules` MCP tool before large refactors and at session end.
 
 ## 4. BEHAVIORAL PROTOCOL
 - If you are stuck for more than 2 attempts on a shell command, STOP. Inform the user you are switching to File API.
 - If you need to find a file, use `Get-ChildItem` once. If it returns multiple results or fails, ask the user to confirm the path. Do not guess.
+
+## 5. MCP NOTES AGENT
+- A local MCP server named `icongrid-notes` provides note tools: `list_notes`, `read_note`, `search_notes`, `update_note`, `check_architecture_rules`, `check_version_consistency`.
+- Notes live in `CHAT_STATE.md` (tracked, repo root) and `.local-state/*.md` (gitignored).
+- Use the notes tools for all note/session-memory management instead of manually editing note files.
+- At session end, update `CHAT_STATE.md` with session findings and next steps (see AGENT.md "Session memory" section).

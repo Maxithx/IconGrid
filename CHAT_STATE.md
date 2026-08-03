@@ -123,3 +123,15 @@
 - decide whether to add frametime as a companion metric
 - decide whether to keep simplifying the fallback FPS layers around the live path
 - document installer/setup requirements more formally
+
+- validate the icongrid-notes MCP server in a real session (list/read/search/update)
+
+## Architecture status (2026-08-03)
+
+- `check_architecture_rules` tool added to the icongrid-notes MCP server (file size + method-count guardrails).
+- First report shows 3 VIOLATIONs:
+  - `Views/Launcher/MainWindow.xaml.cs`: 3473 lines (limit 1000) — move layout engine to Helpers/Launcher/WindowLayoutEngine.cs.
+  - `ViewModels/MainViewModel.cs`: 1940 lines (limit 1200) — extract UI/layout measurement state.
+  - `Helpers/Hardware/HardwareMonitorAgent.cs`: 1680 lines (limit 1500) — keep worker focused.
+- `Helpers/Launcher/SystemMonitor.cs`: passes (within limit).
+- AGENT.md now requires running `check_architecture_rules` before large refactors and at session end.
