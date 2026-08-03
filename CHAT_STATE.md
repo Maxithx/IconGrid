@@ -163,3 +163,40 @@
 - Added `npm test` script to `tools/mcp-notes-server/package.json`.
 - Verified: `node test/e2e.mjs` from the repo passes all 13 checks.
 - Commits pushed: `194c716` (test tooling).
+
+## Refactor Fase 1 (Aug 3, 2026) — MainWindow layout engine
+
+- Created `Helpers/Launcher/WindowLayoutEngine.cs` with the full window-arranging engine (BuildSlots, MatchWindows*, ResolvePreset, BuildOrderedAssignments, CollectCandidateWindows, NormalizeRectToWorkArea, SlotsClose, etc. + Win32 externs).
+- `MainWindow.ArrangeWindowsFromPreset` now delegates to the engine; `TrySaveLayout` and `AutoDetectAndEnableDynamicLayout` also use engine helpers.
+- Result: MainWindow.xaml.cs reduced 3473 → 2677 lines; methods ~166 → ~145 (per check_architecture_rules).
+- Build: succeeded, 0 warnings / 0 errors.
+- Backups in `_backups/refactor-2026-08-03/Fase1/` (orig, refactored, engine .bak).
+- Awaiting: manual UI test (arrange presets, save/load layout) + user approval before commit checkpoint.
+
+## Refactor Fase 2 (Aug 3, 2026) — WindowStateStore
+
+- Created `ViewModels/Launcher/WindowStateStore.cs` owning all window-position persistence (main window, settings, gaming overlay, floating icon): 8 fields + 8 methods + ApplyConfig/ResetFloatingPosition/ApplyToSettingsState.
+- MainViewModel now delegates to `_windowStateStore` for all TryGet/Save positions; ApplyConfig/ApplyDefaultSettingsState/SaveSettingsToConfig wired through the store.
+- Honest result: MainViewModel reduced only 1940 → 1886 lines (~54). The position store is a small domain; the gain is SRP/cohesion, not line count.
+- Build: passed, 0 warnings/0 errors. Backups in `_backups/refactor-2026-08-03/Fase2/`.
+- NOTE: To get MainViewModel under 1200 lines, the big remaining win is extracting the layout-measurement block (ContentAreaHeight/CalculateContentAreaHeight/NotifyContentHeightChanged/header height) into a LauncherLayoutMeasurements-like class — that is a larger future step, not done in this fase.
+- Awaiting: manual UI test (window/floating-icon/overlay position persistence survives restart) + user approval before commit.
+
+## Refactor Fase 3 (Aug 3, 2026) — FpsNormalizer
+
+- Created `Helpers/Hardware/FpsNormalizer.cs` with `FpsNormalizerState` (owns last-stable-FPS/COD-anchor/signal state + `Normalize`) and public `FpsNormalizationResult` record.
+- `HardwareMonitorAgent` (static class) now holds `private static readonly FpsNormalizerState FpsNormalizer = new();` and the two call sites use `FpsNormalizer.Normalize(...)` + `FpsNormalizer.ResetBaseline()`; the 6 local state variables and the 216-line `NormalizeNativeFps` method (plus `FpsNormalizationDebugState` record) were removed.
+- Result: **HardwareMonitorAgent.cs reduced 1680 → 1432 lines — now UNDER the 1500 limit** (the only one of the three large files to pass). Methods ~49 → ~46.
+- Build: passed, 0 warnings/0 errors. Backups in `_backups/refactor-2026-08-03/Fase3/`.
+- Awaiting: manual UI/FPS test (gaming overlay FPS still stable, spike filter still works) + user approval before commit.
+
+## Refactor session complete (Aug 3, 2026)
+
+- All three large-file refactors done, tested, committed and pushed:
+  - Fase 1 `a96c46b`: MainWindow.xaml.cs 3472→2677 lines (WindowLayoutEngine.cs)
+  - Fase 2 `0888884`: MainViewModel.cs 1940→1886 lines (WindowStateStore.cs)
+  - Fase 3 `0827321`: HardwareMonitorAgent.cs 1680→1432 lines (FpsNormalizer.cs) — NOW under the 1500 limit, the only one of the three to fully pass.
+- `check_architecture_rules` end-state: HardwareMonitorAgent passes; MainWindow (2677) and MainViewModel (1886) still exceed limits.
+- Remaining future win for MainViewModel: extract the layout-measurement block (ContentAreaHeight/CalculateContentAreaHeight/header-height/Notify*) into a `LauncherLayoutMeasurements`-like class — larger step, not done.
+- ARCHITECTURE_RULES.md updated with the three new focused classes as Recent Good Examples.
+- Backups of all phases in `_backups/refactor-2026-08-03/` (orig/refactored/committed per phase).

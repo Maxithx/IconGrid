@@ -49,6 +49,9 @@ When adding a feature:
 - Native ETW FPS capture stayed in `Native/FpsAgent/src/main.cpp` and `Helpers/Hardware/NativeFpsAgentRunner.cs` instead of bleeding native/worker concerns into launcher UI files.
 - Shared-memory live FPS handoff was added as a focused helper (`Helpers/Hardware/NativeFpsSharedMemory.cs`) instead of spreading IPC details across multiple view or shell files.
 - Hardware and FPS background flow remained in `Helpers/Hardware/HardwareMonitorAgent.cs` rather than pushing worker orchestration into `MainWindow.xaml.cs`.
+- The window-arranging engine lives in `Helpers/Launcher/WindowLayoutEngine.cs` instead of `MainWindow.xaml.cs` (layout presets, slot matching, window enumeration).
+- Window-position persistence lives in `ViewModels/Launcher/WindowStateStore.cs` instead of directly in `MainViewModel` (main/settings/overlay/floating-icon positions).
+- FPS normalization state and logic live in `Helpers/Hardware/FpsNormalizer.cs` (`FpsNormalizerState`) instead of stateful ref-parameters inside `HardwareMonitorAgent`.
 
 ## Coordinator / Helper Rule
 
