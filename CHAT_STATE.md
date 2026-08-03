@@ -200,3 +200,14 @@
 - Remaining future win for MainViewModel: extract the layout-measurement block (ContentAreaHeight/CalculateContentAreaHeight/header-height/Notify*) into a `LauncherLayoutMeasurements`-like class — larger step, not done.
 - ARCHITECTURE_RULES.md updated with the three new focused classes as Recent Good Examples.
 - Backups of all phases in `_backups/refactor-2026-08-03/` (orig/refactored/committed per phase).
+
+## Refactor Fase A (Aug 3, 2026) — LauncherLayoutMeasurements
+
+- Created `ViewModels/Launcher/LauncherLayoutMeasurements.cs` owning all layout-measurement state and calculations: `_headerHeight`, `_iconRowSpacing`, `_lastRowPaddingAdjust`, `_isIconPanelExpanded`, constants (TileSlotWidth/BaseTileSlotHeight/padding/FixedSettingsHeight), `CalculateContentAreaHeight`, `ContentAreaMaxHeight`, `ContentHostHeight`, `ContentMinWidth/ContentWidth/ContentMaxWidth`, `WindowDesiredWidth/Height`, `IconMargin`, `SetHeaderHeight`, `SetIconRowSpacing`, `SetLastRowPaddingAdjust`, `ApplyMeasurementState`, `NotifyWorkAreaChanged`, `RefreshLayoutMeasurements`, `NotifyContentHeightChanged` + own INotifyPropertyChanged wiring. Follows the LauncherLayoutState/WindowStateStore pattern (bool-returning Set methods).
+- MainViewModel now delegates all layout measurement to `_layoutMeasurements` (thin bound properties + PropertyChanged forwarding subscription), and `ApplyConfig`/`ApplyDefaultSettingsState`/`SaveSettingsToConfig` use `ApplyMeasurementState`/`IconRowSpacing`/`LastRowPaddingAdjust`/`CalculateContentAreaHeight`.
+- Honest result: MainViewModel reduced 1886 → 1799 lines (~87), ~70 → ~69 methods. Not yet under the 1200 limit — the biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
+- Build: passed both Debug and Release, 0 warnings/0 errors.
+- `check_architecture_rules` end-state: MainViewModel 1799, MainWindow 2677, HardwareMonitorAgent 1432 OK, SystemMonitor 501 OK.
+- Manual UI test: PASSED (window sizing, row spacing, last-row padding, icon panel expand/collapse, overlay height switch, header measurement, settings persistence after restart).
+- Backups in `_backups/refactor-2026-08-03/FaseA/` (MainViewModel.cs.orig, MainViewModel.cs.refactored, LauncherLayoutMeasurements.cs.bak).
+- Pending: commit checkpoint (awaiting user approval), optional A4 (rebind XAML/code-behind directly to LayoutMeasurements and remove delegate properties), then Fase B (MainWindow reduction).

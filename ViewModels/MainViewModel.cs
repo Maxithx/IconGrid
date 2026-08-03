@@ -34,7 +34,6 @@ namespace IconGrid.ViewModels
         private bool _startWithWindows = false;
         private StartupLaunchMode _startupLaunchMode = StartupLaunchMode.TaskScheduler;
         private bool _isFloatingIconTopmost = true;
-        private double _lastRowPaddingAdjust = 0;
         private double _uiScale = 1.0;
         private bool _showDesktopIcon = true;
         private bool _startDirectlyInLauncher = false;
@@ -49,19 +48,10 @@ namespace IconGrid.ViewModels
         private bool _enableSlideUpAnimation = true;
         private bool _enableContentScroll = true;
         private int _windowAnimationDurationMs = 250;
-        private bool _isIconPanelExpanded = true;
 
+        private readonly LauncherLayoutMeasurements _layoutMeasurements = new();
         private readonly LauncherLayoutState _layoutState = new();
         private readonly WindowStateStore _windowStateStore = new();
-        private const double TileSlotWidth = 172;             // approximate width per icon tile including margin
-        private const double BaseTileSlotHeight = 152;        // base row height (icon + label) before spacing
-        private const double ContentVerticalPaddingTop = 36;  // upper padding portion (matches XAML padding)
-        private const double ContentVerticalPaddingBottom = 0; // remove bottom padding to eliminate extra space
-        private const double ExtraBottomPaddingPerRow = 0;    // no extra bottom padding per row
-        private const double ContentHorizontalPadding = 60;   // content border padding left+right
-        private const double WindowHorizontalPadding = 0;     // remove outer shell padding to keep full-mode window tight to content
-        private double _headerHeight = 140;                   // measured height for top chrome + tabs
-        private double _iconRowSpacing = -20;                 // adjustable extra spacing between rows (default tightened)
         private readonly string _dataFolder;
         private readonly string _legacyDataFolder;
         private readonly string _iconPackFolder;
@@ -83,8 +73,6 @@ namespace IconGrid.ViewModels
         private FpsTargetConfig _fpsTarget = new();
 
         public SystemMonitor SystemMonitor => _systemMonitor;
-        private const double SettingsMinWindowHeight = 620;
-        private const double FixedSettingsHeight = 680;
 
         // ---------- Constructor ----------
 
@@ -99,6 +87,7 @@ namespace IconGrid.ViewModels
             _tabsState = CreateTabsState();
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
             Items = new ObservableCollection<LauncherItem>();
+            _layoutMeasurements.PropertyChanged += LayoutMeasurements_PropertyChanged;
             (_itemsManager, _itemIconManager, _itemLaunchManager, _shortcutManager, _itemsPersistence) = CreateManagers();
             Items.CollectionChanged += (s, e) =>
             {
@@ -151,10 +140,9 @@ namespace IconGrid.ViewModels
             }
         }
 
-        public double ContentAreaHeight => CalculateContentAreaHeight();
-        public double ContentAreaMaxHeight => Math.Max(200, SystemParameters.WorkArea.Height - _headerHeight - 60);
-        private double SettingsContentHeight => Math.Max(200, FixedSettingsHeight - _headerHeight);
-        public double ContentHostHeight => IsOverlayOpen ? SettingsContentHeight : ContentAreaHeight;
+        public double ContentAreaHeight => _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale);
+        public double ContentAreaMaxHeight => _layoutMeasurements.ContentAreaMaxHeight;
+        public double ContentHostHeight => _layoutMeasurements.ContentHostHeight(IsOverlayOpen, CurrentItems.Count, IconsPerRow, EffectiveIconScale);
         public int IconsPerRow
         {
             get => _iconsPerRow;
@@ -389,14 +377,8 @@ namespace IconGrid.ViewModels
 
         public bool IsIconPanelExpanded
         {
-            get => _isIconPanelExpanded;
-            set
-            {
-                if (SetField(ref _isIconPanelExpanded, value))
-                {
-                    NotifyContentHeightChanged();
-                }
-            }
+            get => _layoutMeasurements.IsIconPanelExpanded;
+            set => _layoutMeasurements.IsIconPanelExpanded = value;
         }
 
         public bool TryGetSavedWindowPosition(out double left, out double top)
@@ -573,29 +555,20 @@ namespace IconGrid.ViewModels
         /// <summary>
         /// Keeps the shortcut area width consistent across tabs using the configured column count.
         /// </summary>
-        public double ContentMinWidth
-        {
-            get
-            {
-                var slots = Math.Max(1, IconsPerRow);
-                var baseWidth = (slots * TileSlotWidth) + ContentHorizontalPadding;
-                return baseWidth;
-            }
-        }
+        public double ContentMinWidth => _layoutMeasurements.ContentMinWidth(IconsPerRow);
 
         /// <summary>
         /// Actual content width to bind in the view.
         /// </summary>
         public double ContentWidth => ContentMinWidth;
 
-        public double ContentMaxWidth =>
-            Math.Max(0, SystemParameters.WorkArea.Width - WindowHorizontalPadding - 24);
+        public double ContentMaxWidth => _layoutMeasurements.ContentMaxWidth;
 
         /// <summary>
         /// Desired window dimensions so chrome tracks content size.
         /// </summary>
-        public double WindowDesiredWidth => (ContentWidth + WindowHorizontalPadding) * UiScale;
-        public double WindowDesiredHeight => IsOverlayOpen ? (FixedSettingsHeight * UiScale) : ((ContentHostHeight + _headerHeight) * UiScale);
+        public double WindowDesiredWidth => _layoutMeasurements.WindowDesiredWidth(ContentWidth, UiScale);
+        public double WindowDesiredHeight => _layoutMeasurements.WindowDesiredHeight(IsOverlayOpen, ContentHostHeight, UiScale);
 
         /// <summary>
         /// Height used by the window; when settings are open, give extra space so the form fits without scrolling.
@@ -607,27 +580,18 @@ namespace IconGrid.ViewModels
         /// </summary>
         public void SetHeaderHeight(double value)
         {
-            var clamped = Math.Max(0, value);
-            if (SetField(ref _headerHeight, clamped))
-            {
-                RefreshLayoutMeasurements();
-            }
+            _layoutMeasurements.SetHeaderHeight(value);
         }
 
         public void NotifyWorkAreaChanged()
         {
-            OnPropertyChanged(nameof(ContentMaxWidth));
+            _layoutMeasurements.NotifyWorkAreaChanged();
         }
 
         public void RefreshLayoutMeasurements()
         {
             OnPropertyChanged(nameof(CurrentItems));
-            NotifyContentHeightChanged(includeMaxHeight: true);
-            OnPropertyChanged(nameof(ContentMinWidth));
-            OnPropertyChanged(nameof(ContentWidth));
-            OnPropertyChanged(nameof(ContentMaxWidth));
-            OnPropertyChanged(nameof(WindowDesiredWidth));
-            OnPropertyChanged(nameof(IconMargin));
+            _layoutMeasurements.RefreshLayoutMeasurements();
         }
 
         public void RefreshSelectedTab()
@@ -639,7 +603,7 @@ namespace IconGrid.ViewModels
         /// <summary>
         /// Margin applied to each icon tile (horizontal fixed, vertical derived from row spacing).
         /// </summary>
-        public System.Windows.Thickness IconMargin => new System.Windows.Thickness(14, IconRowSpacing / 2, 14, IconRowSpacing / 2);
+        public System.Windows.Thickness IconMargin => _layoutMeasurements.IconMargin;
 
         public bool IsLightTheme
         {
@@ -876,7 +840,7 @@ namespace IconGrid.ViewModels
         {
             OnPropertyChanged(nameof(SelectedTab));
             OnPropertyChanged(nameof(CurrentItems));
-            NotifyContentHeightChanged();
+            _layoutMeasurements.NotifyContentHeightChanged();
         }
 
         private void NotifyOverlayStateChanged(
@@ -893,61 +857,9 @@ namespace IconGrid.ViewModels
                 OnPropertyChanged(tertiaryPropertyName);
 
             OnPropertyChanged(nameof(IsOverlayOpen));
-            OnPropertyChanged(nameof(ContentHostHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
+            _layoutMeasurements.NotifyContentHeightChanged();
         }
 
-        private void NotifyContentHeightChanged(bool includeMaxHeight = false)
-        {
-            OnPropertyChanged(nameof(ContentAreaHeight));
-            if (includeMaxHeight)
-                OnPropertyChanged(nameof(ContentAreaMaxHeight));
-            OnPropertyChanged(nameof(ContentHostHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeight));
-            OnPropertyChanged(nameof(WindowDesiredHeightEffective));
-        }
-
-        private double CalculateContentAreaHeight()
-        {
-            if (!IsIconPanelExpanded) return 0;
-
-            var scaledTileHeight = BaseTileSlotHeight * EffectiveIconScale;
-            var itemCount = CurrentItems.Count;
-            var columns = Math.Max(1, IconsPerRow);
-            var rows = Math.Max(1, Math.Ceiling(itemCount / (double)columns));
-
-            // For 1-3 rows we respect any negative row spacing to keep height snug.
-            // For 4+ rows we clamp spacing to 0 so scrolling range is consistent.
-            var useRowSpacing = (rows > 3) ? Math.Max(0, _iconRowSpacing) : _iconRowSpacing;
-            var singleRowHeight = scaledTileHeight + ExtraBottomPaddingPerRow + useRowSpacing;
-
-            var totalContentHeight = (rows * singleRowHeight)
-                                     + ContentVerticalPaddingTop
-                                     + ContentVerticalPaddingBottom;
-
-            const int MaxRowsWithoutScroll = 3;
-            if (rows > MaxRowsWithoutScroll)
-            {
-                // Viewport height capped at ~3 rows so a 4th row has full scroll range.
-                var viewportHeight = (MaxRowsWithoutScroll * singleRowHeight)
-                                     + ContentVerticalPaddingTop
-                                     + ContentVerticalPaddingBottom;
-                // Force additional overflow so the 4th row can scroll fully into view and leave a small buffer underneath.
-                const double ScrollBuffer = 24; // extra breathing room below the last row when scrolling
-                var forcedOverflowHeight = viewportHeight - (singleRowHeight * 0.8) - ScrollBuffer;
-
-            var maxContentHeight = Math.Max(200, SystemParameters.WorkArea.Height - _headerHeight - 48);
-                var minHeight = singleRowHeight + ContentVerticalPaddingTop + ContentVerticalPaddingBottom;
-                forcedOverflowHeight += _lastRowPaddingAdjust;
-                return Math.Max(minHeight, Math.Min(forcedOverflowHeight, maxContentHeight));
-            }
-
-            const double NoScrollBottomBuffer = 32; // slightly more buffer under last row when no scrollbar
-            var adjustedHeight = totalContentHeight + NoScrollBottomBuffer + _lastRowPaddingAdjust;
-            var minimum = singleRowHeight + ContentVerticalPaddingTop + Math.Min(0, _lastRowPaddingAdjust);
-            return Math.Max(minimum, adjustedHeight);
-        }
 
         private void ApplyConfig(ConfigModel config)
         {
@@ -967,8 +879,7 @@ namespace IconGrid.ViewModels
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
-            _iconRowSpacing = state.IconRowSpacing;
-            _lastRowPaddingAdjust = state.LastRowPaddingAdjust;
+            _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust);
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
             _enableContentScroll = state.EnableContentScroll;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
@@ -990,8 +901,7 @@ namespace IconGrid.ViewModels
         private void ApplyDefaultSettingsState()
         {
             _iconsPerRow = 4;
-            _iconRowSpacing = -20;
-            _lastRowPaddingAdjust = -50;
+            _layoutMeasurements.ApplyMeasurementState(-20, -50);
             _icon_scale = 1.0;
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
@@ -1429,7 +1339,7 @@ namespace IconGrid.ViewModels
 
             var state = new MainViewModelSettingsState
             {
-                ContentAreaHeight = CalculateContentAreaHeight(),
+                ContentAreaHeight = _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale),
                 IconsPerRow = _iconsPerRow,
                 IconScale = _icon_scale,
                 UiScale = _uiScale,
@@ -1444,8 +1354,8 @@ namespace IconGrid.ViewModels
                 StartWithWindows = _startWithWindows,
                 StartupLaunchMode = _startupLaunchMode,
                 ShowDevOverlay = _showDevOverlay,
-                IconRowSpacing = _iconRowSpacing,
-                LastRowPaddingAdjust = _lastRowPaddingAdjust,
+                IconRowSpacing = _layoutMeasurements.IconRowSpacing,
+                LastRowPaddingAdjust = _layoutMeasurements.LastRowPaddingAdjust,
                 TabNames = Tabs.ToList(),
                 Language = _language,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
@@ -1499,6 +1409,11 @@ namespace IconGrid.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        private void LayoutMeasurements_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            OnPropertyChanged(e.PropertyName);
+        }
+
         private void ThemeCoordinator_ThemeChanged(object? sender, ThemeSnapshot e)
         {
             ApplyTheme(e);
@@ -1537,13 +1452,12 @@ namespace IconGrid.ViewModels
         /// </summary>
         public double IconRowSpacing
         {
-            get => _iconRowSpacing;
+            get => _layoutMeasurements.IconRowSpacing;
             set
             {
-                if (SetField(ref _iconRowSpacing, value))
+                if (_layoutMeasurements.SetIconRowSpacing(value))
                 {
                     SaveSettingsToConfig();
-                    NotifyContentHeightChanged();
                     OnPropertyChanged(nameof(IconMargin));
                 }
             }
@@ -1554,13 +1468,12 @@ namespace IconGrid.ViewModels
         /// </summary>
         public double LastRowPaddingAdjust
         {
-            get => _lastRowPaddingAdjust;
+            get => _layoutMeasurements.LastRowPaddingAdjust;
             set
             {
-                if (SetField(ref _lastRowPaddingAdjust, value))
+                if (_layoutMeasurements.SetLastRowPaddingAdjust(value))
                 {
                     SaveSettingsToConfig();
-                    NotifyContentHeightChanged();
                 }
             }
         }
