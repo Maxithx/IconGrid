@@ -83,6 +83,14 @@ Also stop and ask the same question if a change starts adding:
 - realtime polling loops to `MainViewModel`
 - feature-specific window ownership logic directly in the launcher shell
 
+## Security Checklist (Repo Contents)
+
+- Never commit signing certificates (`.pfx`), private keys (`.key`, `.pem`), or secret files (`.env`) to git.
+- If a secret was ever pushed to a public repo, assume it is compromised and rotate it — removing the file from git is not enough (it remains in history).
+- Secrets that must exist on disk (e.g. `certificate/*.pfx` for packaging) stay gitignored; keep backups outside the repo (e.g. `E:\IconGrid Backup`).
+- Before committing, run `git status` and scan with `git ls-files | findstr /i ".pfx .key .pem .env"` to confirm no secrets are staged.
+- The GitHub repo is currently PUBLIC — treat anything in it as world-readable until it is made private.
+
 ## Refactor Workflow
 
 Refactors (especially large files such as `MainWindow.xaml.cs`, `MainViewModel.cs`, or `HardwareMonitorAgent.cs`) MUST be done in small steps with continuous verification:

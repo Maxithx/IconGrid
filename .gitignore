@@ -40,3 +40,5 @@ Tools/PresentMon/*.exe
 
 # AI Studio konfiguration
 .aistudio
+
+certificate/*.pfx
