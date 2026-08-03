@@ -10,7 +10,10 @@ How to verify the server works. Test results are logged in `CHAT_STATE.md` (sess
 ## 1. Automated end-to-end test (recommended)
 
 Runs the full MCP protocol over stdio — the same transport Cline uses — and verifies:
-`initialize` → `tools/list` → `tools/call` (`list_notes`, `check_version_consistency`, `check_architecture_rules`).
+`initialize` → `tools/list` → `tools/call` (`list_notes`, `update_note` append/replace,
+`append_to_note`, `replace_in_note`, `check_version_consistency`, `check_architecture_rules`).
+The write tools are tested against a throwaway note (`.local-state/__e2e_update_test.md`)
+that is created before the calls and deleted afterwards, so no real notes are modified.
 
 ```powershell
 cd tools\mcp-notes-server
@@ -32,8 +35,13 @@ node test\e2e.mjs --workspace "D:\other\IconGrid-clone"
 1. Reload Cline (or restart the extension) so the MCP server reconnects.
 2. Check the MCP server shows as connected (icon / status for `icongrid-notes`).
 3. Ask Cline to: **"list the notes with the icongrid-notes tools"** — it should return `CHAT_STATE.md` plus the `.local-state` notes.
-4. Ask Cline to: **"append a line under a test heading to CHAT_STATE"** — then confirm the text is visible in `CHAT_STATE.md`.
-5. Ask Cline to: **"run check_version_consistency and check_architecture_rules"** — both should return structured reports without tool errors.
+4. Ask Cline to: **"append a line under a test heading to CHAT_STATE"** — then confirm the text is visible in `CHAT_STATE.md`. Cline should use `append_to_note` (it has `note`/`heading`/`content` all required, so client-side validation cannot drop `heading`).
+5. Ask Cline to: **"replace some text in a note"** — Cline should use `replace_in_note` (required `note`/`find`/`content`).
+6. Ask Cline to: **"run check_version_consistency and check_architecture_rules"** — both should return structured reports without tool errors.
+
+> Note: `update_note` is kept as a LEGACY alias for backwards compatibility.
+> Prefer `append_to_note` / `replace_in_note` going forward — their schemas declare
+> every required field, which makes them robust against strict client-side validation.
 
 ## 3. Quick smoke test from the terminal (optional)
 

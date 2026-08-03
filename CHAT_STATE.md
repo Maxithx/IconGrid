@@ -166,6 +166,33 @@
 - Verified: `node test/e2e.mjs` from the repo passes all 13 checks.
 - Commits pushed: `194c716` (test tooling).
 
+## MCP server update_note fix (Aug 3, 2026)
+
+- Problem: `update_note` failed 4x this session with "Invalid JSON argument" even with minimal JSON
+  (`{"note":"CHAT_STATE","operation":"append","heading":"x","content":"y"}`).
+- Diagnosis: the server itself was healthy — `node tools/mcp-notes-server/test/e2e.mjs` passed all checks
+  over stdio (the same transport Cline uses). The failure is client-side (Cline's strict JSON-schema
+  validation against `inputSchema`): `heading` is described as "Required for append" but is NOT in the
+  `required` array of `update_note`, so Cline can reject the call before it ever reaches the server.
+- Fix (all committed in this repo, server runs directly from repo so commit = active):
+  - Added two dedicated tools with precise `required` fields, robust against strict client validation:
+    - `append_to_note` (required: `note`, `heading`, `content`)
+    - `replace_in_note` (required: `note`, `find`, `content`)
+  - Kept `update_note` as a LEGACY alias (backwards compatibility), now with:
+    - tightened `isValidUpdateArgs` (requires `heading` for append / `find` for replace)
+    - specific error messages via `buildUpdateArgsError` (e.g. "heading is required when operation=append")
+    - `console.error('[update_note] args received:', ...)` logging on stderr so we can see what Cline
+      actually sends.
+- e2e test extended (`tools/mcp-notes-server/test/e2e.mjs`, 31 checks): calls `update_note` (append +
+  replace), `append_to_note`, `replace_in_note` over stdio against a throwaway note
+  (`.local-state/__e2e_update_test.md`, created + deleted by the test so no real notes are modified),
+  verifies the schemas' `required` arrays, and checks error behavior for missing `heading`/`find`.
+  Result: `=== ALL TESTS PASSED ===` (exit 0).
+- `TESTING.md` updated: manual test now recommends `append_to_note` / `replace_in_note`, and documents
+  `update_note` as a legacy alias.
+- Next session: if Cline still rejects `update_note`, use `append_to_note` / `replace_in_note` instead;
+  the server logs every `update_note` call to stderr for diagnostics.
+
 ## Refactor Fase 1 (Aug 3, 2026) — MainWindow layout engine
 
 - Created `Helpers/Launcher/WindowLayoutEngine.cs` with the full window-arranging engine (BuildSlots, MatchWindows*, ResolvePreset, BuildOrderedAssignments, CollectCandidateWindows, NormalizeRectToWorkArea, SlotsClose, etc. + Win32 externs).

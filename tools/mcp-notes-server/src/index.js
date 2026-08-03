@@ -70,15 +70,62 @@ async function listNoteFiles() {
   return notes;
 }
 
-// Structured update of a markdown note. Supported operations:
-// - "append" section content under a heading (creates heading if missing)
-// - "replace" find/replace of exact text (first occurrence)
+// Structured update of a markdown note.
+// - append: append content under a heading (creates heading if missing)
+// - replace: find/replace of exact text (first occurrence)
+const isValidAppendArgs = (args) =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof args.note === 'string' &&
+  args.note.trim().length > 0 &&
+  typeof args.heading === 'string' &&
+  args.heading.trim().length > 0 &&
+  typeof args.content === 'string';
+
+const isValidReplaceArgs = (args) =>
+  typeof args === 'object' &&
+  args !== null &&
+  typeof args.note === 'string' &&
+  args.note.trim().length > 0 &&
+  typeof args.find === 'string' &&
+  args.find.length > 0 &&
+  typeof args.content === 'string';
+
+// Legacy update_note: operation + note + content + (heading for append | find for replace)
 const isValidUpdateArgs = (args) =>
   typeof args === 'object' &&
   args !== null &&
   typeof args.note === 'string' &&
+  args.note.trim().length > 0 &&
   (args.operation === 'append' || args.operation === 'replace') &&
-  typeof args.content === 'string';
+  typeof args.content === 'string' &&
+  (args.operation === 'append'
+    ? typeof args.heading === 'string' && args.heading.trim().length > 0
+    : typeof args.find === 'string' && args.find.length > 0);
+
+// Returns a specific, actionable error message for invalid update_note args.
+function buildUpdateArgsError(args) {
+  if (typeof args !== 'object' || args === null) {
+    return 'update_note requires an arguments object with note, operation, content (and heading for append / find for replace)';
+  }
+  if (typeof args.note !== 'string' || !args.note.trim()) {
+    return 'note (string) is required for update_note';
+  }
+  if (args.operation !== 'append' && args.operation !== 'replace') {
+    return 'operation must be "append" or "replace" for update_note';
+  }
+  if (typeof args.content !== 'string') {
+    return 'content (string) is required for update_note';
+  }
+  if (args.operation === 'append') {
+    if (typeof args.heading !== 'string' || !args.heading.trim()) {
+      return 'heading is required when operation=append';
+    }
+  } else if (typeof args.find !== 'string' || !args.find) {
+    return 'find is required when operation=replace';
+  }
+  return 'Invalid update_note arguments';
+}
 
 // ---- Architecture rules check ----
 
@@ -396,9 +443,61 @@ class NotesServer {
           },
         },
         {
+          name: 'append_to_note',
+          description:
+            'Append content under a markdown heading in an IconGrid note (creates the heading if missing). Preferred over update_note for append operations.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              note: {
+                type: 'string',
+                description:
+                  'Note name without or with .md extension, or "CHAT_STATE" for CHAT_STATE.md.',
+              },
+              heading: {
+                type: 'string',
+                description:
+                  'Heading text without leading "#" (e.g. "Night session findings").',
+              },
+              content: {
+                type: 'string',
+                description:
+                  'Content to append under the heading.',
+              },
+            },
+            required: ['note', 'heading', 'content'],
+          },
+        },
+        {
+          name: 'replace_in_note',
+          description:
+            'Find and replace exact text (first occurrence) in an IconGrid note. Preferred over update_note for replace operations.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              note: {
+                type: 'string',
+                description:
+                  'Note name without or with .md extension, or "CHAT_STATE" for CHAT_STATE.md.',
+              },
+              find: {
+                type: 'string',
+                description:
+                  'Exact text to find (first occurrence).',
+              },
+              content: {
+                type: 'string',
+                description:
+                  'Replacement text.',
+              },
+            },
+            required: ['note', 'find', 'content'],
+          },
+        },
+        {
           name: 'update_note',
           description:
-            'Append content under a markdown heading, or find/replace exact text, in an IconGrid note.',
+            'LEGACY alias — preferred: use append_to_note (to append under a heading) or replace_in_note (to find/replace). Append content under a markdown heading, or find/replace exact text, in an IconGrid note.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -557,11 +656,76 @@ class NotesServer {
           };
         }
 
+        case 'append_to_note': {
+          if (!isValidAppendArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'append_to_note requires valid note, heading and content arguments'
+            );
+          }
+          const { target, fileName } = resolveNotePath(args.note);
+          if (!(await fileExists(target))) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Note not found: ${fileName} (looked at ${target})`
+            );
+          }
+          let text = await fs.readFile(target, 'utf8');
+          text = await appendToSection(text, args.heading, args.content);
+          await fs.writeFile(target, text, 'utf8');
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Appended content under heading "${args.heading}" in ${fileName}.`,
+              },
+            ],
+          };
+        }
+
+        case 'replace_in_note': {
+          if (!isValidReplaceArgs(args)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'replace_in_note requires valid note, find and content arguments'
+            );
+          }
+          const { target, fileName } = resolveNotePath(args.note);
+          if (!(await fileExists(target))) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Note not found: ${fileName} (looked at ${target})`
+            );
+          }
+          let text = await fs.readFile(target, 'utf8');
+          const index = text.indexOf(args.find);
+          if (index === -1) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `Text to replace was not found in ${fileName}.`
+            );
+          }
+          text =
+            text.slice(0, index) +
+            args.content +
+            text.slice(index + args.find.length);
+          await fs.writeFile(target, text, 'utf8');
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Replaced text in ${fileName}.`,
+              },
+            ],
+          };
+        }
+
         case 'update_note': {
+          console.error('[update_note] args received:', JSON.stringify(args));
           if (!isValidUpdateArgs(args)) {
             throw new McpError(
               ErrorCode.InvalidParams,
-              'Invalid update_note arguments'
+              buildUpdateArgsError(args)
             );
           }
           const { target, fileName } = resolveNotePath(args.note);
