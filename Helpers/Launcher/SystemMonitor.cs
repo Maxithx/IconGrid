@@ -24,11 +24,11 @@ namespace IconGrid.Helpers
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan FpsStateMaxAge = TimeSpan.FromSeconds(2);
-        private static readonly TimeSpan FpsUiPollInterval = TimeSpan.FromMilliseconds(1);
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
         private readonly string _fpsStatePath;
         private readonly DispatcherTimer _fpsTimer;
+        private int _fpsUiPollIntervalMs = 1;
 
         private string _networkStatus = "--";
         private string _cpuTemp = "--";
@@ -43,13 +43,16 @@ namespace IconGrid.Helpers
         private string _downloadStatus = "--";
         private string _uploadStatus = "--";
         private string _fpsStatus = "--";
+        private string _frameTimeStatus = "--";
         private double? _targetFpsValue;
+        private double? _displayedFpsValue;
         private int? _displayedFpsInteger;
         private bool _isHighPing;
         private PingSeverity _pingSeverity = PingSeverity.Unknown;
         private long _lastDownloadBytes, _lastUploadBytes;
         private DateTime _lastUpdateTime = DateTime.UtcNow;
         private bool _isPawnIoAvailable;
+        private double _fpsDisplayResponsiveness = 1.0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -66,6 +69,12 @@ namespace IconGrid.Helpers
         public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
         public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
         public string FpsStatus { get => _fpsStatus; private set { _fpsStatus = value; OnPropertyChanged(); } }
+        public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); } }
+        public double FpsDisplayResponsiveness
+        {
+            get => _fpsDisplayResponsiveness;
+            set => _fpsDisplayResponsiveness = Math.Max(0.15, Math.Min(1.0, value));
+        }
 
         public bool IsHighPing
         {
@@ -122,10 +131,26 @@ namespace IconGrid.Helpers
 
             _fpsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher)
             {
-                Interval = FpsUiPollInterval
+                Interval = TimeSpan.FromMilliseconds(_fpsUiPollIntervalMs)
             };
             _fpsTimer.Tick += FpsTimer_Tick;
             _fpsTimer.Start();
+        }
+
+        public int FpsUiPollIntervalMs
+        {
+            get => _fpsUiPollIntervalMs;
+            set
+            {
+                var clamped = Math.Max(1, Math.Min(8, value));
+                if (_fpsUiPollIntervalMs == clamped)
+                {
+                    return;
+                }
+
+                _fpsUiPollIntervalMs = clamped;
+                _fpsTimer.Interval = TimeSpan.FromMilliseconds(_fpsUiPollIntervalMs);
+            }
         }
 
         public void Update()
@@ -358,21 +383,25 @@ namespace IconGrid.Helpers
             var nativeFpsValue = nativeFpsState?.FpsValue;
             var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0 &&
                                DateTime.UtcNow - nativeFpsState!.Value.CapturedAtUtc <= FpsStateMaxAge;
+            var correctedFpsValue = fpsState?.LiveFpsValue;
+            var hasCorrectedFps = correctedFpsValue.HasValue && correctedFpsValue.Value > 0;
             if (!hasNativeFps && fpsState == null)
             {
                 _targetFpsValue = null;
+                _displayedFpsValue = null;
                 _displayedFpsInteger = null;
                 FpsStatus = "--";
+                FrameTimeStatus = "--";
                 return;
             }
 
-            if (hasNativeFps)
+            if (hasCorrectedFps)
+            {
+                _targetFpsValue = correctedFpsValue!.Value;
+            }
+            else if (hasNativeFps)
             {
                 _targetFpsValue = nativeFpsValue!.Value;
-            }
-            else if (fpsState?.LiveFpsValue.HasValue == true && fpsState.LiveFpsValue.Value > 0)
-            {
-                _targetFpsValue = fpsState.LiveFpsValue.Value;
             }
             else if (int.TryParse(fpsState?.LiveFpsStatus, out var parsedLiveStatus) && parsedLiveStatus > 0)
             {
@@ -389,12 +418,24 @@ namespace IconGrid.Helpers
 
             if (!_targetFpsValue.HasValue)
             {
+                _displayedFpsValue = null;
                 _displayedFpsInteger = null;
                 FpsStatus = "--";
+                FrameTimeStatus = "--";
                 return;
             }
 
-            var targetDisplayValue = (int)Math.Round(_targetFpsValue.Value);
+            if (!_displayedFpsValue.HasValue)
+            {
+                _displayedFpsValue = _targetFpsValue.Value;
+            }
+            else
+            {
+                var alpha = _fpsDisplayResponsiveness;
+                _displayedFpsValue = (_targetFpsValue.Value * alpha) + (_displayedFpsValue.Value * (1.0 - alpha));
+            }
+
+            var targetDisplayValue = (int)Math.Round(_displayedFpsValue.Value);
             if (!_displayedFpsInteger.HasValue)
             {
                 _displayedFpsInteger = targetDisplayValue;
@@ -409,6 +450,9 @@ namespace IconGrid.Helpers
             }
 
             FpsStatus = (_displayedFpsInteger ?? targetDisplayValue).ToString("F0");
+            FrameTimeStatus = _targetFpsValue.Value > 0
+                ? $"{Math.Round(1000.0 / _targetFpsValue.Value):F0}"
+                : "--";
         }
 
         private static string ReadSharedTextFile(string path)

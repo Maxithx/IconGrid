@@ -30,8 +30,10 @@
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
         <SolidColorBrush x:Key="OverlayFpsBrush" Color="#7CFF6B" />
-        <SolidColorBrush x:Key="OverlayCloseHoverBrush" Color="#333333" />
-        <SolidColorBrush x:Key="OverlayClosePressedBrush" Color="#444444" />
+        <SolidColorBrush x:Key="OverlayCloseHoverLight" Color="#1A000000" />
+        <SolidColorBrush x:Key="OverlayClosePressedLight" Color="#33000000" />
+        <SolidColorBrush x:Key="OverlayCloseHoverDark" Color="#14FFFFFF" />
+        <SolidColorBrush x:Key="OverlayClosePressedDark" Color="#21FFFFFF" />
         <SolidColorBrush x:Key="OverlayMenuBorderBrush" Color="#33FFFFFF" />
 
         <Style x:Key="MonitorTextStyle" TargetType="TextBlock">
@@ -59,7 +61,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -72,21 +74,45 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverLight}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Root"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="2">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="OverlayToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -99,18 +125,45 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverLight}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedBrush}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Root"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="2">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
@@ -246,8 +299,7 @@
                                        Text="&#xE713;"
                                        FontSize="12"
                                        VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"
-                                       Foreground="White" />
+                                       HorizontalAlignment="Center" />
                         </ToggleButton>
                         <Button x:Name="CloseButton"
                                 Style="{StaticResource OverlayCloseButtonStyle}"
@@ -261,8 +313,7 @@
                                        Text="&#xE8BB;"
                                        FontSize="12"
                                        VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"
-                                       Foreground="White" />
+                                       HorizontalAlignment="Center" />
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -289,8 +340,8 @@
                         CornerRadius="8">
                     <StackPanel>
                         <TextBlock Text="Overlay scale"
-                                   Foreground="White"
-                                   FontWeight="SemiBold" />
+                                   FontWeight="SemiBold"
+                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -328,10 +379,9 @@
                                 Height="34"
                                 HorizontalAlignment="Stretch"
                                 Click="ScaleMenuButton_Click">
-                            <TextBlock Text="Overlay scale"
-                                       Foreground="White"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                        <TextBlock Text="Overlay scale"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
                         </Button>
                         <Button Style="{StaticResource OverlayCloseButtonStyle}"
                                 Height="34"
@@ -339,7 +389,6 @@
                                 HorizontalAlignment="Stretch"
                                 Click="OpenGamingOverlaySettings_Click">
                             <TextBlock Text="Open gaming overlay settings"
-                                       Foreground="White"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
                         </Button>
