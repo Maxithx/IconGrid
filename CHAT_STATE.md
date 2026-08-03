@@ -119,12 +119,14 @@
 - `165d7e8` `Improve ETW FPS overlay responsiveness and shared-memory live path`
 
 ## Good next steps
+- NEXT (HIGHEST PRIORITY): Refactor Fase B — reduce MainWindow.xaml.cs (2677 lines, limit 1000, ~145 methods) further. Start by listing the ~145 methods (list_code_definition_names or Select-String) and identify the largest remaining clusters: e.g. shortcut administration, icon-pack handling, layout-menu population, then propose concrete extractions under Helpers/Launcher/ following ARCHITECTURE_RULES.md Refactor Workflow (one change per step, build after each step, check_architecture_rules after each step, manual UI test after each functional step, commit only after user approval). Backups in _backups/refactor-<date>/<Fase>/.
+- A4 (optional): rebind XAML/code-behind directly to LauncherLayoutMeasurements.* and remove delegate properties for further MainViewModel reduction.
+- Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
+- Update ARCHITECTURE_RULES.md (Recent Good Examples) with LauncherLayoutMeasurements.cs.
 - validate the shared-memory live path across more real games
 - decide whether to add frametime as a companion metric
 - decide whether to keep simplifying the fallback FPS layers around the live path
 - document installer/setup requirements more formally
-
-- validate the icongrid-notes MCP server in a real session (list/read/search/update)
 
 ## Architecture status (2026-08-03)
 
@@ -211,3 +213,26 @@
 - Manual UI test: PASSED (window sizing, row spacing, last-row padding, icon panel expand/collapse, overlay height switch, header measurement, settings persistence after restart).
 - Backups in `_backups/refactor-2026-08-03/FaseA/` (MainViewModel.cs.orig, MainViewModel.cs.refactored, LauncherLayoutMeasurements.cs.bak).
 - Pending: commit checkpoint (awaiting user approval), optional A4 (rebind XAML/code-behind directly to LayoutMeasurements and remove delegate properties), then Fase B (MainWindow reduction).
+
+## Refactor Fase B (Aug 3, 2026) — MainWindow reduction
+
+- Goal: reduce `MainWindow.xaml.cs` (2677 lines, limit 1000, ~145 methods) toward ~1000.
+- All 6 extractions done, each followed by build (0 warnings / 0 errors), `check_architecture_rules`, and manual UI test after functional steps:
+  - **B1** `Helpers/Launcher/LauncherWindowInterop.cs` — Win32 interop (WndProc, DWM, UIPI drop filters, WM_SETICON, EnumWindows, PickIconDlg) + dynamic taskbar/tray icon lifecycle. MainWindow: 2677 → 2182 lines (~145 → ~114 methods).
+  - **B2** `Helpers/Launcher/LauncherWindowModeController.cs` — full/floating mode, window sizing/positioning, work-area clamping, auto-hide sliding. MainWindow: 2182 → 2087 lines (~114 → ~111).
+  - **B3** `Helpers/Launcher/DevOverlayController.cs` — dev-inspector overlay hover metadata. MainWindow: 2087 → 1867 lines (~111 → ~101).
+  - **B4** `Helpers/Launcher/LauncherDragDropHelper.cs` — file/launcher-item drag & drop. MainWindow: 1867 → 1726 lines (~101 → ~99).
+  - **B5** `Helpers/Launcher/LauncherShortcutActions.cs` — shortcut administration, icon helpers, Windows-shortcut loading. MainWindow: 1726 → 1433 lines (~99 → ~89).
+  - **B6** `Helpers/Launcher/LayoutMenuController.cs` — layout-menu population/checks, save/rename/delete layout, layout-card highlighting, slot/link buttons, TrySaveLayout. MainWindow: 1433 → 1441 lines (constructor wiring; methods ~89).
+- `check_architecture_rules` end-state (Aug 3, 2026):
+  - `Views/Launcher/MainWindow.xaml.cs`: 1441 lines (limit 1000) | ~89 methods — still VIOLATION.
+  - `ViewModels/MainViewModel.cs`: 1799 lines (limit 1200) | ~69 methods — still VIOLATION.
+  - `Helpers/Hardware/HardwareMonitorAgent.cs`: 1432 lines — PASSES.
+  - `Helpers/Launcher/SystemMonitor.cs`: 501 lines — PASSES.
+- Manual UI tests passed per phase; final full smoke test PASSED (layout menu, layout cards/IG marking, gaming overlay, icon/theme, tray, floating/full, drag & drop, shortcut menus).
+- Backups in `_backups/refactor-2026-08-03/FaseB/B1/` … `B6/`.
+- Pending: commit checkpoint (awaiting user approval).
+- Next steps:
+  - Continue MainWindow reduction toward 1000: remaining clusters are PawnIo warning window (~6 methods), monitor timer, window closing/exit, tab toggle, remaining event handlers.
+  - Continue MainViewModel reduction toward 1200: biggest remaining wins are the settings-persistence block (ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState) and the localization-bindings block.
+  - Consider wiring LayoutMenuController's layout-preset/slot/link handlers fully into MainWindow (currently MainWindow still hosts those handler methods directly; the controller owns menu population/checks and TrySaveLayout) — follow-up for a later fase if needed.

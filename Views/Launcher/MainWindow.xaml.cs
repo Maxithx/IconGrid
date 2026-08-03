@@ -35,65 +35,19 @@ namespace IconGrid.Views.Launcher
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
-        private string _baseTitle = string.Empty;
-        private bool _titleClearToggle;
+        private readonly LauncherWindowInterop _windowInterop;
+        private LauncherWindowModeController? _windowModeController;
+        private DevOverlayController? _devOverlayController;
+        private LauncherDragDropHelper? _dragDropHelper;
+        private LauncherShortcutActions? _shortcutActions;
+        private LayoutMenuController? _layoutMenuController;
         private bool _isAnimatingHeight = true;
-        private Forms.NotifyIcon? _trayIcon = null; // initialized to suppress CS0649 warning
         private readonly DispatcherTimer? _autoHideTimer;
-        private bool _autoHideEnabled = false;
         private readonly DispatcherTimer _monitorTimer;
-        private bool _isHidden = false;
         private int _monitorUpdateRunning;
-        private HwndSource? _hwndSource;
-        private System.Windows.Point _dragStartPoint;
         private static readonly string PowerShellPath = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe");
         private const uint MONITOR_DEFAULTTONEAREST = 2;
-        private const int GWL_STYLE = -16;
-        private const int WS_POPUP = unchecked((int)0x80000000);
-        private const int WS_VISIBLE = 0x10000000;
-        private const int WS_CAPTION = 0x00C00000;
-        private const int WS_THICKFRAME = 0x00040000;
-        private const int WS_CHILD = 0x40000000;
-        private const uint SWP_NOMOVE = 0x0002;
-        private const uint SWP_NOSIZE = 0x0001;
-        private const uint SWP_FRAMECHANGED = 0x0020;
 
-        private const int DWMWA_NCRENDERING_POLICY = 2;
-        private const int DWMWA_BORDER_COLOR = 34;
-        private const int DWMNCRP_DISABLED = 1;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll")]
-        private static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, uint flags);
-
-        private const uint RDW_INVALIDATE = 0x0001;
-        private const uint RDW_ERASE = 0x0004;
-        private const uint RDW_NOERASE = 0x0020;
-        private const uint RDW_NOINTERNALPAINT = 0x0008;
-        private const uint RDW_NOFRAME = 0x0800;
-
-        [DllImport("dwmapi.dll", PreserveSig = true)]
-        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct WINDOWPOS
-        {
-            public IntPtr hwnd;
-            public IntPtr hwndInsertAfter;
-            public int x;
-            public int y;
-            public int cx;
-            public int cy;
-            public uint flags;
-        }
-
-        private readonly List<(string Label, string Arguments, string? IconName)> _powerShellPresets = new()
-        {
-            ("PowerShell console", "", "WindowsPowerShell.png")
-        };
-        private List<WindowsShortcutTemplate> _windowsShortcuts = new();
         private readonly Dictionary<string, string> _windowsShortcutTranslations = new(StringComparer.OrdinalIgnoreCase)
         {
             { "kontrolpanel", "Control Panel" },
@@ -114,8 +68,6 @@ namespace IconGrid.Views.Launcher
             { "this pc", "This PC" },
             { "linux", "Linux" }
         };
-        private const uint SHCNE_ASSOCCHANGED = 0x08000000;
-        private const uint SHCNF_IDLIST = 0x0000;
         private bool _skipSavingLocation;
 
         private void SetMonitorPollingEnabled(bool enabled)
@@ -145,26 +97,47 @@ namespace IconGrid.Views.Launcher
         private readonly SettingsWindowCoordinator _settingsWindowCoordinator = new();
         private readonly GamingOverlayWindowCoordinator _gamingOverlayWindowCoordinator = new();
 
-        private record WindowsShortcutTemplate(string DisplayName, string FullPath);
-
         public MainWindow()
         {
             InitializeComponent();
-            _baseTitle = Title ?? _baseTitle;
+            var baseTitle = Title ?? string.Empty;
 
             _viewModel = new MainViewModel();
+            _windowInterop = new LauncherWindowInterop(this, _viewModel, baseTitle, LogTrace);
             DataContext = _viewModel;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             _viewModel.SystemMonitor.PropertyChanged += SystemMonitor_PropertyChanged;
             ThemeHelper.ThemeChanged += ThemeHelper_ThemeChanged;
             SizeChanged += (_, _) => Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Background);
-            LoadWindowsShortcuts();
+            _shortcutActions = new LauncherShortcutActions(
+                this,
+                _viewModel,
+                PowerShellPath,
+                ShowInputBox,
+                _windowsShortcutTranslations);
+            _shortcutActions.LoadWindowsShortcuts();
+            _layoutMenuController = new LayoutMenuController(
+                this,
+                _viewModel,
+                () => _windowInterop.Handle,
+                LogTrace,
+                ShowGamingOverlay,
+                RefreshLayoutCardSelection);
 
             _autoHideTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(1)
             };
             _autoHideTimer.Tick += AutoHideTimer_Tick;
+            _windowModeController = new LauncherWindowModeController(
+                this,
+                _viewModel,
+                _floatingIconController,
+                _autoHideTimer,
+                _windowInterop.TrayIcon,
+                SetMonitorPollingEnabled);
+            _devOverlayController = new DevOverlayController(this, _viewModel);
+            _dragDropHelper = new LauncherDragDropHelper(_viewModel, IsOverLauncherTile);
             _monitorTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(2)
@@ -180,9 +153,9 @@ namespace IconGrid.Views.Launcher
             Top = 0;
             ResizeMode = ResizeMode.NoResize;
 
-            InitializeTrayIcon();
-            ApplyDynamicIcon();
-            InitializeDevOverlay();
+            _windowInterop.InitializeTrayIcon(EnterFullMode, ExitApplication);
+            _windowInterop.ApplyDynamicIcon();
+            _devOverlayController.Initialize();
         }
 
         private bool IsOverLauncherTile(DependencyObject? obj)
@@ -203,366 +176,63 @@ namespace IconGrid.Views.Launcher
         private void ThemeHelper_ThemeChanged(object? sender, ThemeSnapshot e)
         {
             // Ensure icon updates when Windows accent/theme changes while the app is running.
-            Dispatcher.BeginInvoke(() => _ = RefreshTaskbarIconAsync(), DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(() => _ = _windowInterop.RefreshTaskbarIconAsync(), DispatcherPriority.Background);
         }
-
-        /// <summary>
-        /// Dynamic theme icon refresh that updates WM_SETICON / tray icon
-        /// while briefly toggling ShowInTaskbar and forcing SHChangeNotify so the
-        /// shell never reuses the frozen blue icon. This flow is fragile and
-        /// must remain synced with the steps in README; do not rework unless the
-        /// README instructions are updated accordingly.
-        /// </summary>
-        private void ApplyDynamicIcon()
-        {
-            bool restoreTaskbarVisibility = !ShowInTaskbar;
-            if (restoreTaskbarVisibility)
-            {
-                ShowInTaskbar = true;
-            }
-
-            bool restoreInFinally = restoreTaskbarVisibility;
-            try
-            {
-                var theme = ThemeHelper.GetTheme();
-                var dynamicIcon = DynamicIconHelper.CreateAccentIconImageSource(System.Windows.Media.Color.FromArgb(theme.AccentColor.A, theme.AccentColor.R, theme.AccentColor.G, theme.AccentColor.B), 256);
-                if (dynamicIcon is BitmapSource bitmapSource)
-                {
-                    var dynamicFrame = CreateCacheBustingIcon(bitmapSource);
-                    Icon = dynamicFrame;
-                    if (_hwndSource != null && _hwndSource.Handle != IntPtr.Zero)
-                    {
-                        TryApplyWin32Icons(dynamicFrame);
-                        NotifyShellIconRefresh();
-                    }
-                    else
-                    {
-                        restoreInFinally = false;
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            TryApplyWin32Icons(dynamicFrame);
-                            NotifyShellIconRefresh();
-                            if (restoreTaskbarVisibility)
-                            {
-                                ShowInTaskbar = false;
-                            }
-                        }), DispatcherPriority.ApplicationIdle);
-                    }
-
-                    UpdateTrayIconFromSource(dynamicFrame);
-                     LogTrace($"Applied dynamic icon using accent #{theme.AccentColor.A:X2}{theme.AccentColor.R:X2}{theme.AccentColor.G:X2}{theme.AccentColor.B:X2}.");
-                }
-                else
-                {
-                    LogTrace("Dynamic icon generation returned null; keeping existing icon.");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogTrace($"ApplyDynamicIcon failed: {ex}");
-            }
-            finally
-            {
-                if (restoreInFinally && restoreTaskbarVisibility)
-                {
-                    ShowInTaskbar = false;
-                }
-            }
-        }
-
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
 
-            _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
-            _hwndSource?.AddHook(WndProc);
-
-            var hwnd = _hwndSource?.Handle ?? IntPtr.Zero;
-            if (hwnd != IntPtr.Zero)
-            {
-                ApplyDwmNoClientRendering(hwnd);
-            }
+            _windowInterop.Initialize();
 
             // Capture measured header height once layout is available.
             Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Loaded);
-
-            RegisterDragDropFilters();
-
-            // Re-apply icon once the window handle exists to ensure the taskbar uses the dynamic variant in Release builds too.
-            ApplyDynamicIcon();
         }
-
-        private void ApplyDwmNoClientRendering(IntPtr hwnd)
-        {
-            try
-            {
-                // Apply safe DWM attributes without touching window style
-                var policy = DWMNCRP_DISABLED;
-                DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, ref policy, Marshal.SizeOf<int>());
-
-                var borderColor = 0;
-                DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref borderColor, Marshal.SizeOf<int>());
-
-                // Disable rounded corners (Win11)
-                const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
-                const int DWMWCP_DONOTROUND = 1;
-                var cornerPref = DWMWCP_DONOTROUND;
-                try { DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, Marshal.SizeOf<int>()); } catch { }
-
-                // Force no transitions
-                const int DWMWA_TRANSITIONS_FORCEDISABLED = 3;
-                var transDisabled = 1;
-                try { DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED, ref transDisabled, Marshal.SizeOf<int>()); } catch { }
-
-                LogTrace("ApplyDwmNoClientRendering: applied DWM attributes for minimal chrome");
-            }
-            catch (Exception ex)
-            {
-                LogTrace($"ApplyDwmNoClientRendering failed: {ex.Message}");
-            }
-        }
-
-        private void TryApplyWin32Icons(BitmapSource? source)
-        {
-            if (source == null || _hwndSource == null || _hwndSource.Handle == IntPtr.Zero)
-                return;
-
-            try
-            {
-                int width = source.PixelWidth;
-                int height = source.PixelHeight;
-                int pixelFormatBits = source.Format.BitsPerPixel;
-                int stride = (width * pixelFormatBits + 7) / 8;
-                var pixelData = new byte[height * stride];
-                source.CopyPixels(pixelData, stride, 0);
-
-                using var bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                var rect = new System.Drawing.Rectangle(0, 0, width, height);
-                var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                try
-                {
-                    Marshal.Copy(pixelData, 0, data.Scan0, pixelData.Length);
-                }
-                finally
-                {
-                    bmp.UnlockBits(data);
-                }
-                IntPtr hIcon = bmp.GetHicon();
-                if (hIcon != IntPtr.Zero)
-                {
-                    const int WM_SETICON = 0x0080;
-                    const int ICON_SMALL = 0;
-                    const int ICON_BIG = 1;
-
-                    SendMessage(_hwndSource.Handle, WM_SETICON, new IntPtr(ICON_SMALL), hIcon);
-                    SendMessage(_hwndSource.Handle, WM_SETICON, new IntPtr(ICON_BIG), hIcon);
-                    LogTrace("WM_SETICON applied (small+big) with dynamic accent icon.");
-                }
-                else
-                {
-                    LogTrace("GetHicon returned 0; unable to set WM_SETICON.");
-                }
-            }
-            catch (Exception ex)
-            {
-                LogTrace("TryApplyWin32Icons failed: " + ex);
-            }
-        }
-
-        private void UpdateTrayIconFromSource(BitmapSource? source)
-        {
-            if (_trayIcon == null || source == null)
-                return;
-
-            var icon = CreateIconFromBitmapSource(source);
-            if (icon != null)
-            {
-                var oldIcon = _trayIcon.Icon;
-                _trayIcon.Icon = icon;
-                oldIcon?.Dispose();
-            }
-        }
-
-        private static BitmapFrame CreateCacheBustingIcon(BitmapSource source)
-        {
-            using var buffer = new MemoryStream();
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(source));
-            encoder.Save(buffer);
-            buffer.Seek(0, SeekOrigin.Begin);
-
-            var decoder = new PngBitmapDecoder(buffer, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-            var frame = decoder.Frames.FirstOrDefault();
-            if (frame == null)
-            {
-                frame = BitmapFrame.Create(source);
-            }
-
-            frame.Freeze();
-            return frame;
-        }
-
-        // Forces Windows shell to re-read the cached icon metadata after WM_SETICON succeeds.
-        // The delayed SHChangeNotify is intentionally required to avoid races.
-        private static void NotifyShellIconRefresh()
-        {
-            Task.Delay(100).ContinueWith(_ => SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero));
-        }
-
-        private static System.Drawing.Icon? CreateIconFromBitmapSource(BitmapSource source)
-        {
-            IntPtr handle = IntPtr.Zero;
-            try
-            {
-                using var ms = new MemoryStream();
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(source));
-                encoder.Save(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                using var bitmap = new Bitmap(ms);
-                handle = bitmap.GetHicon();
-                if (handle == IntPtr.Zero)
-                    return null;
-
-                using var icon = System.Drawing.Icon.FromHandle(handle);
-                return (System.Drawing.Icon)icon.Clone();
-            }
-            catch
-            {
-                return null;
-            }
-            finally
-            {
-                if (handle != IntPtr.Zero)
-                {
-                    DestroyIcon(handle);
-                }
-            }
-        }
-
         private void EnterFullMode()
         {
-            var wasFull = _viewModel.IsFullWindowVisible;
-            _viewModel.IsFullWindowVisible = true;
-            SetMonitorPollingEnabled(true);
-            ApplyFullWindowSizing();
-            if (!wasFull)
-            {
-                PositionFullWindow();
-
-                if (_viewModel.EnableSlideUpAnimation)
-                {
-                    IconAreaGrid.Opacity = 0;
-                    if (FindResource("SlideUpAnimation") is Storyboard slideUpAnimation)
-                    {
-                        var animation = slideUpAnimation.Clone();
-                        animation.Begin(IconAreaGrid);
-                    }
-                }
-                else
-                {
-                    IconAreaGrid.Opacity = 1;
-                    IconAreaGrid.RenderTransform = new TranslateTransform(0, 0);
-                }
-            }
-            WindowState = WindowState.Normal;
-            ShowInTaskbar = true;
-
-            Activate();
+            _windowModeController?.EnterFullMode();
         }
 
-        private void EnterFloatingMode(bool showTray)
+        private void EnterFloatingMode()
         {
-            _autoHideEnabled = false;
-            _floatingIconController.EnterFloatingMode(this, _viewModel, _autoHideTimer, _trayIcon, SetMonitorPollingEnabled);
-        }
-
-        private void ApplyFullWindowSizing()
-        {
-            SetBinding(WidthProperty, new System.Windows.Data.Binding(nameof(MainViewModel.WindowDesiredWidth)));
-            SetBinding(HeightProperty, new System.Windows.Data.Binding(nameof(MainViewModel.WindowDesiredHeightEffective)));
-        }
-
-
-
-        private void PositionFullWindow()
-        {
-            if (_viewModel.TryGetSavedWindowPosition(out var left, out var top))
-            {
-                Left = left;
-                Top = top;
-                return;
-            }
-
-            var area = SystemParameters.WorkArea;
-            var width = _viewModel.WindowDesiredWidth;
-            var height = _viewModel.WindowDesiredHeight;
-            const double defaultTopOffset = 20;
-            Left = area.Left + Math.Max(0, (area.Width - width) / 2);
-            Top = area.Top + defaultTopOffset;
+            _windowModeController?.EnterFloatingMode();
         }
 
         private void PositionFloatingIcon(bool preferSaved = true)
         {
-            _floatingIconController.PositionFloatingIcon(this, _viewModel, preferSaved);
+            _windowModeController?.PositionFloatingIcon(preferSaved);
         }
 
         private void ClampWindowToWorkArea()
         {
-            var width = double.IsNaN(ActualWidth) || ActualWidth <= 0 ? Width : ActualWidth;
-            var height = double.IsNaN(ActualHeight) || ActualHeight <= 0 ? Height : ActualHeight;
-            var (left, top) = ClampToWorkArea(Left, Top, width, height);
-            Left = left;
-            Top = top;
+            _windowModeController?.ClampWindowToWorkArea();
         }
 
         private void ClampFloatingIconToWorkArea()
         {
-            _floatingIconController.ClampFloatingIconToWorkArea(this);
-        }
-
-        private (double left, double top) ClampToWorkArea(double left, double top, double width, double height)
-        {
-            var area = SystemParameters.WorkArea;
-
-            var newLeft = left;
-            var newTop = top;
-
-            // Clamp to work area boundaries
-            if (newLeft + width > area.Right)
-                newLeft = area.Right - width;
-            if (newTop + height > area.Bottom)
-                newTop = area.Bottom - height;
-            if (newLeft < area.Left)
-                newLeft = area.Left;
-            if (newTop < area.Top)
-                newTop = area.Top;
-
-            return (newLeft, newTop);
+            _windowModeController?.ClampFloatingIconToWorkArea();
         }
 
         private void AutoDetectAndEnableDynamicLayout()
         {
             try
             {
-                var myHandle = _hwndSource?.Handle ?? IntPtr.Zero;
+                var myHandle = _windowInterop.Handle;
                 if (myHandle == IntPtr.Zero)
                     return;
 
-                var myRect = GetWindowRect(myHandle);
+                var myRect = _windowInterop.GetWindowRect(myHandle);
                 var windowsBelow = new List<IntPtr>();
 
                 // Enumerate all windows to find ones on the same monitor below or near IconGrid
-                EnumWindows((hWnd, lParam) =>
+                LauncherWindowInterop.EnumWindows((hWnd, lParam) =>
                 {
-                    if (!IsWindowVisible(hWnd) || hWnd == myHandle)
+                    if (!LauncherWindowInterop.IsWindowVisible(hWnd) || hWnd == myHandle)
                         return true;
 
                     if (WindowLayoutEngine.IsExcludedWindow(hWnd))
                         return true;
 
-                    var rect = GetWindowRect(hWnd);
+                    var rect = _windowInterop.GetWindowRect(hWnd);
                     
                     // Check if window is below IconGrid (Top is close to or below IconGrid's Bottom)
                     // Also check if they're on the same horizontal area (within 200px)
@@ -592,164 +262,6 @@ namespace IconGrid.Views.Launcher
             {
                 LogTrace("AutoDetectAndEnableDynamicLayout failed: " + ex);
             }
-        }
-
-        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            const int WM_MOVING = 0x0216;
-            const int WM_EXITSIZEMOVE = 0x0232;
-            const int WM_DPICHANGED = 0x02E0;
-            const int WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
-            const int WM_NCPAINT = 0x0085;
-            const int WM_ERASEBKGND = 0x0014;
-
-            if (msg == WM_MOVING)
-            {
-                var rect = Marshal.PtrToStructure<RECT>(lParam);
-                LogTrace($"WM_MOVING: {rect.Left},{rect.Top}-{rect.Right},{rect.Bottom}");
-            }
-            else if (msg == WM_EXITSIZEMOVE)
-            {
-                var rect = GetWindowRect(hwnd);
-                LogTrace($"WM_EXITSIZEMOVE: window {Left},{Top} size {Width}x{Height}");
-            }
-            else if (msg == WM_DPICHANGED)
-            {
-                var dpiX = wParam.ToInt32() & 0xFFFF;
-                var dpiY = (wParam.ToInt32() >> 16) & 0xFFFF;
-                LogTrace($"WM_DPICHANGED: {dpiX}x{dpiY}");
-            }
-            else if (msg == WM_DWMCOLORIZATIONCOLORCHANGED)
-            {
-                LogTrace("WM_DWMCOLORIZATIONCOLORCHANGED received; forcing theme refresh.");
-                ThemeHelper.ForceRefresh();
-            }
-            else if (msg == WM_NCPAINT)
-            {
-                // Suppress non-client paint to prevent ghost box redraw
-                handled = true;
-                return IntPtr.Zero;
-            }
-            else if (msg == WM_ERASEBKGND)
-            {
-                // Suppress background erase
-                handled = true;
-                return new IntPtr(1);
-            }
-
-            return IntPtr.Zero;
-        }
-
-        private const uint WM_DROPFILES = 0x0233;
-        private const uint WM_COPYDATA = 0x004A;
-        private const uint WM_COPYGLOBALDATA = 0x0049;
-        private const uint MSGFLT_ALLOW = 1;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct CHANGEFILTERSTRUCT
-        {
-            public uint cbSize;
-            public uint ExtStatus;
-        }
-
-        [DllImport("user32.dll")]
-        private static extern bool ChangeWindowMessageFilterEx(IntPtr hWnd, uint msg, uint action, ref CHANGEFILTERSTRUCT pChangeFilterStruct);
-
-        private void RegisterDragDropFilters()
-        {
-            try
-            {
-                var hwnd = _hwndSource?.Handle ?? IntPtr.Zero;
-                if (hwnd == IntPtr.Zero)
-                    return;
-
-                var cfs = new CHANGEFILTERSTRUCT { cbSize = (uint)Marshal.SizeOf<CHANGEFILTERSTRUCT>() };
-                var dropOk = ChangeWindowMessageFilterEx(hwnd, WM_DROPFILES, MSGFLT_ALLOW, ref cfs);
-                var copyOk = ChangeWindowMessageFilterEx(hwnd, WM_COPYDATA, MSGFLT_ALLOW, ref cfs);
-                var copyGlobalOk = ChangeWindowMessageFilterEx(hwnd, WM_COPYGLOBALDATA, MSGFLT_ALLOW, ref cfs);
-
-                LogTrace($"Registered UIPI drop filters (Drop={dropOk}, Copy={copyOk}, CopyGlobal={copyGlobalOk}).");
-            }
-            catch (Exception ex)
-            {
-                LogTrace($"RegisterDragDropFilters failed: {ex}");
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-        private static extern bool PickIconDlg(IntPtr hwndOwner, StringBuilder pszFilename, int cchFilename, ref int piIconIndex);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
-
-        [DllImport("Shell32.dll", CharSet = CharSet.Auto)]
-        private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
-
-        private const int GCLP_HICON = -14;
-        private const int GCLP_HICONSM = -34;
-
-        [DllImport("user32.dll", EntryPoint = "SetClassLongPtrW", SetLastError = true)]
-        private static extern IntPtr SetClassLongPtrW(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
-        [DllImport("user32.dll", EntryPoint = "SetClassLongW", SetLastError = true)]
-        private static extern IntPtr SetClassLongW(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
-
-        private static IntPtr SetClassIcon(IntPtr hWnd, int index, IntPtr hIcon)
-        {
-            return IntPtr.Size == 8
-                ? SetClassLongPtrW(hWnd, index, hIcon)
-                : SetClassLongW(hWnd, index, hIcon);
-        }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool DestroyIcon(IntPtr hIcon);
-
-        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
-
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        private RECT GetWindowRect(IntPtr hWnd)
-        {
-            GetWindowRect(hWnd, out var rect);
-            return rect;
-        }
-
-        private void ForceTitleRefresh()
-        {
-            if (string.IsNullOrEmpty(_baseTitle))
-                return;
-
-            _titleClearToggle = !_titleClearToggle;
-            Title = _titleClearToggle ? $"{_baseTitle}\u200B" : _baseTitle;
-        }
-
-        private async Task RefreshTaskbarIconAsync()
-        {
-            await Task.Delay(120);
-            ApplyDynamicIcon();
-            ForceTitleRefresh();
         }
 
         private void LogTrace(string message)
@@ -871,7 +383,7 @@ namespace IconGrid.Views.Launcher
             }
             else
             {
-                EnterFloatingMode(showTray: false);
+                EnterFloatingMode();
                 PositionFloatingIcon();
             }
             Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Background);
@@ -893,57 +405,6 @@ namespace IconGrid.Views.Launcher
             // no-op; we no longer need to reset positions after WinKey
         }
 
-        private void InitializeTrayIcon()
-        {
-            try
-            {
-                if (_trayIcon != null)
-                    return;
-
-                _trayIcon = new Forms.NotifyIcon
-                {
-                    Visible = true,
-                    Text = "IconGrid"
-                };
-
-                var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "dlb-icon.ico");
-                if (File.Exists(iconPath))
-                {
-                    _trayIcon.Icon = new System.Drawing.Icon(iconPath, 32, 32);
-                }
-                else
-                {
-                    var exe = Process.GetCurrentProcess().MainModule?.FileName;
-                    if (!string.IsNullOrWhiteSpace(exe))
-                    {
-                        _trayIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(exe);
-                    }
-                }
-
-                var menu = new Forms.ContextMenuStrip();
-                menu.Items.Add(_viewModel.OpenLabel, null, (_, __) => Dispatcher.Invoke(EnterFullMode));
-                menu.Items.Add(_viewModel.ExitLabel, null, (_, __) => Dispatcher.Invoke(ExitApplication));
-                _trayIcon.ContextMenuStrip = menu;
-                _trayIcon.DoubleClick += (_, __) => Dispatcher.Invoke(EnterFullMode);
-            }
-            catch
-            {
-                _trayIcon = null;
-            }
-        }
-
-        private void RefreshTrayIconMenuLabels()
-        {
-            var menu = _trayIcon?.ContextMenuStrip;
-            if (menu == null || menu.Items.Count < 2)
-            {
-                return;
-            }
-
-            menu.Items[0].Text = _viewModel.OpenLabel;
-            menu.Items[1].Text = _viewModel.ExitLabel;
-        }
-
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (string.Equals(e.PropertyName, nameof(MainViewModel.IsOverlayOpen), StringComparison.OrdinalIgnoreCase))
@@ -957,8 +418,8 @@ namespace IconGrid.Views.Launcher
 
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), StringComparison.OrdinalIgnoreCase))
             {
-                LoadWindowsShortcuts();
-                RefreshTrayIconMenuLabels();
+                _shortcutActions?.LoadWindowsShortcuts();
+                _windowInterop.RefreshTrayIconMenuLabels();
             }
 
             // Handle Dynamic Layout when icon panel expands/collapses
@@ -1001,25 +462,14 @@ namespace IconGrid.Views.Launcher
 
         if (string.Equals(e.PropertyName, nameof(MainViewModel.ShowDevOverlay), StringComparison.OrdinalIgnoreCase))
         {
-            UpdateDevOverlayVisibility();
+            _devOverlayController?.UpdateVisibility();
         }
 
         if (string.Equals(e.PropertyName, nameof(MainViewModel.AccentBrush), StringComparison.OrdinalIgnoreCase) ||
             string.Equals(e.PropertyName, nameof(MainViewModel.IsLightTheme), StringComparison.OrdinalIgnoreCase))
         {
-            Dispatcher.BeginInvoke(() => _ = RefreshTaskbarIconAsync(), DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(() => _ = _windowInterop.RefreshTaskbarIconAsync(), DispatcherPriority.Background);
         }
-    }
-
-    private void InitializeDevOverlay()
-    {
-        if (RootLayoutGrid != null)
-        {
-            RootLayoutGrid.PreviewMouseMove += DevOverlay_MouseMove;
-            RootLayoutGrid.MouseLeave += DevOverlay_MouseLeave;
-        }
-
-        UpdateDevOverlayVisibility();
     }
 
     private void UpdateHeaderHeightFromVisuals()
@@ -1036,217 +486,6 @@ namespace IconGrid.Views.Launcher
             LogTrace($"UpdateHeaderHeightFromVisuals failed: {ex}");
         }
     }
-
-    private void DevOverlay_MouseMove(object? sender, System.Windows.Input.MouseEventArgs e)
-    {
-        if (!_viewModel.ShowDevOverlay || DevOverlayPanel == null)
-        {
-            if (DevOverlayPanel != null)
-                DevOverlayPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var source = e.OriginalSource as DependencyObject ?? e.Source as DependencyObject;
-        if (source == null || IsDescendantOfDevOverlay(source))
-        {
-            DevOverlayPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var element = FindFrameworkElement(source);
-        if (element == null)
-        {
-            DevOverlayPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        UpdateDevOverlayText(element, e);
-    }
-
-    private void DevOverlay_MouseLeave(object? sender, System.Windows.Input.MouseEventArgs e)
-    {
-        if (DevOverlayPanel != null)
-            DevOverlayPanel.Visibility = Visibility.Collapsed;
-    }
-
-    private void UpdateDevOverlayVisibility()
-    {
-        if (DevOverlayPanel == null)
-            return;
-
-        if (_viewModel.ShowDevOverlay)
-        {
-            DevOverlayPanel.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            DevOverlayPanel.Visibility = Visibility.Collapsed;
-            DevOverlayHeader.Text = string.Empty;
-            DevOverlayDetails.Text = string.Empty;
-        }
-    }
-
-    private void UpdateDevOverlayText(FrameworkElement element, System.Windows.Input.MouseEventArgs e)
-    {
-        if (DevOverlayPanel == null || DevOverlayHeader == null || DevOverlayDetails == null)
-            return;
-
-        var metadataElement = FindMetadataElement(element);
-        var header = metadataElement != null ? DevInspector.GetMetadata(metadataElement) : null;
-        if (string.IsNullOrWhiteSpace(header))
-        {
-            var namePart = string.IsNullOrWhiteSpace(element.Name) ? string.Empty : $" ({element.Name})";
-            header = $"{element.GetType().Name}{namePart}";
-        }
-
-        DevOverlayHeader.Text = header;
-
-        var builder = new StringBuilder();
-        if (metadataElement != null && metadataElement != element)
-        {
-            var metadataNamePart = string.IsNullOrWhiteSpace(metadataElement.Name) ? string.Empty : $" ({metadataElement.Name})";
-            builder.AppendLine($"Metadata source: {metadataElement.GetType().Name}{metadataNamePart}");
-        }
-        if (element.DataContext != null)
-        {
-            builder.AppendLine($"DataContext: {element.DataContext.GetType().Name}");
-        }
-
-        if (element is ContentControl cc && cc.Content != null)
-        {
-            builder.AppendLine($"Content: {cc.Content}");
-        }
-
-        if (element is System.Windows.Controls.Button btn && btn.Command != null)
-        {
-            builder.AppendLine($"Command: {btn.Command.GetType().Name}");
-        }
-
-        if (element is System.Windows.Controls.MenuItem menu && menu.Command != null)
-        {
-            builder.AppendLine($"Command: {menu.Command.GetType().Name}");
-        }
-
-        builder.AppendLine($"Size: {element.ActualWidth:F1} × {element.ActualHeight:F1}");
-        builder.AppendLine($"Margin: {FormatThickness(element.Margin)}");
-
-        string? padding = element switch
-        {
-            System.Windows.Controls.Control control => FormatThickness(control.Padding),
-            Border border => FormatThickness(border.Padding),
-            _ => null
-        };
-        if (!string.IsNullOrWhiteSpace(padding))
-        {
-            builder.AppendLine($"Padding: {padding}");
-        }
-
-        if (element.Tag != null)
-        {
-            builder.AppendLine($"Tag: {element.Tag}");
-        }
-
-        DevOverlayDetails.Text = builder.ToString().TrimEnd();
-        DevOverlayPanel.Visibility = Visibility.Visible;
-        UpdateDevOverlayPosition(e);
-    }
-
-    private static FrameworkElement? FindFrameworkElement(DependencyObject? source)
-    {
-        while (source != null)
-        {
-            if (source is FrameworkElement fe)
-                return fe;
-            source = GetParentSafe(source);
-        }
-
-        return null;
-    }
-
-    private static FrameworkElement? FindMetadataElement(FrameworkElement element)
-    {
-        var current = element;
-        while (current != null)
-        {
-            if (!string.IsNullOrWhiteSpace(DevInspector.GetMetadata(current)))
-            {
-                return current;
-            }
-
-            var parent = GetParentSafe(current);
-            current = parent as FrameworkElement;
-        }
-
-        return null;
-    }
-
-    private bool IsDescendantOfDevOverlay(DependencyObject? obj)
-    {
-        while (obj != null)
-        {
-            if (obj == DevOverlayPanel)
-                return true;
-            obj = GetParentSafe(obj);
-        }
-
-        return false;
-    }
-
-    private static DependencyObject? GetParentSafe(DependencyObject obj)
-    {
-        if (obj is Visual or Visual3D)
-        {
-            return VisualTreeHelper.GetParent(obj);
-        }
-
-        return LogicalTreeHelper.GetParent(obj);
-    }
-
-    private void UpdateDevOverlayPosition(System.Windows.Input.MouseEventArgs e)
-    {
-        if (DevOverlayCanvas == null || DevOverlayPanel == null)
-            return;
-
-        const double offset = 12;
-        var canvasWidth = DevOverlayCanvas.ActualWidth;
-        var canvasHeight = DevOverlayCanvas.ActualHeight;
-        if (canvasWidth <= 0)
-        {
-            canvasWidth = ActualWidth;
-        }
-        if (canvasHeight <= 0)
-        {
-            canvasHeight = ActualHeight;
-        }
-
-        var mousePos = e.GetPosition(DevOverlayCanvas);
-        var panelWidth = DevOverlayPanel.ActualWidth;
-        var panelHeight = DevOverlayPanel.ActualHeight;
-
-        var left = mousePos.X + offset;
-        var top = mousePos.Y + offset;
-
-        var maxLeft = Math.Max(0, canvasWidth - panelWidth - offset);
-        var maxTop = Math.Max(0, canvasHeight - panelHeight - offset);
-
-        if (left > maxLeft)
-        {
-            left = Math.Max(offset, maxLeft);
-        }
-        if (top > maxTop)
-        {
-            top = Math.Max(offset, maxTop);
-        }
-
-        left = Math.Max(offset, left);
-        top = Math.Max(offset, top);
-
-        Canvas.SetLeft(DevOverlayPanel, left);
-        Canvas.SetTop(DevOverlayPanel, top);
-    }
-
-    private static string FormatThickness(Thickness thickness) =>
-        $"{thickness.Left:F1}, {thickness.Top:F1}, {thickness.Right:F1}, {thickness.Bottom:F1}";
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1265,7 +504,7 @@ namespace IconGrid.Views.Launcher
             }
             else
             {
-                EnterFloatingMode(showTray: true);
+                EnterFloatingMode();
             }
         }
 
@@ -1315,187 +554,45 @@ namespace IconGrid.Views.Launcher
             }
         }
 
-        private bool TryGetSupportedDropFiles(System.Windows.DragEventArgs e, out string[] files)
-        {
-            files = Array.Empty<string>();
-
-            if (!TryGetRawDropPaths(e, out var raw) || raw.Length == 0)
-                return false;
-
-            files = raw.Where(ShortcutHelper.IsSupportedLauncherFile).ToArray();
-            return files.Length > 0;
-        }
-
-        private static bool TryGetRawDropPaths(System.Windows.DragEventArgs e, out string[] files)
-        {
-            files = Array.Empty<string>();
-
-            if (e.Data.GetData(System.Windows.DataFormats.FileDrop) is string[] fileDrop && fileDrop.Length > 0)
-            {
-                files = fileDrop;
-                return true;
-            }
-
-            if (e.Data.GetDataPresent("Shell IDList Array"))
-            {
-                // Explorer sometimes exposes shell objects without a FileDrop array.
-                // We still accept the drag so Windows doesn't show a blocked-drop cursor.
-                return true;
-            }
-
-            if (e.Data.GetDataPresent("FileNameW") && e.Data.GetData("FileNameW") is string[] fileNamesW && fileNamesW.Length > 0)
-            {
-                files = fileNamesW;
-                return true;
-            }
-
-            if (e.Data.GetDataPresent("FileName") && e.Data.GetData("FileName") is string[] fileNames && fileNames.Length > 0)
-            {
-                files = fileNames;
-                return true;
-            }
-
-            return false;
-        }
-
         private void Window_DragOver(object sender, System.Windows.DragEventArgs e)
         {
-            if (e.Data.GetDataPresent("LauncherItem"))
-                return;
-
-            e.Handled = true;
-            if (TryGetRawDropPaths(e, out _))
-            {
-                e.Effects = System.Windows.DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = System.Windows.DragDropEffects.None;
-            }
+            _dragDropHelper?.HandleWindowDragOver(sender, e);
         }
 
         private void Window_Drop(object sender, System.Windows.DragEventArgs e)
         {
-            if (e.Data.GetDataPresent("LauncherItem"))
-                return;
-
-            if (!TryGetSupportedDropFiles(e, out var files))
-                return;
-
-            e.Handled = true;
-            _viewModel.HandleFileDrop(files);
+            _dragDropHelper?.HandleWindowDrop(sender, e);
         }
 
         // WPF DragEventArgs (fully-qualified to avoid ambiguity with WinForms)
         private void ItemsControl_DragOver(object sender, System.Windows.DragEventArgs e)
         {
-            e.Handled = true;
-
-            if (e.Data.GetDataPresent(typeof(LauncherItem)) || e.Data.GetDataPresent("LauncherItem"))
-            {
-                if (IsOverLauncherTile(e.OriginalSource as DependencyObject))
-                {
-                    return; // tile-level handler will show move effect
-                }
-                e.Effects = System.Windows.DragDropEffects.Move;
-                e.Handled = true;
-                return;
-            }
-
-            if (TryGetRawDropPaths(e, out _))
-            {
-                e.Effects = System.Windows.DragDropEffects.Copy;
-            }
-            else
-            {
-                e.Effects = System.Windows.DragDropEffects.None;
-            }
+            _dragDropHelper?.HandleItemsControlDragOver(sender, e);
         }
 
         private void ItemsControl_Drop(object sender, System.Windows.DragEventArgs e)
         {
-            e.Handled = true;
-
-            if (e.Data.GetDataPresent("LauncherItem"))
-            {
-                // Let tile-level drop handle reordering; ignore drops on empty area for launcher items.
-                return;
-            }
-
-            if (!TryGetSupportedDropFiles(e, out var files))
-                return;
-
-            _viewModel.HandleFileDrop(files);
+            _dragDropHelper?.HandleItemsControlDrop(sender, e);
         }
 
         private void LauncherItem_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            _dragStartPoint = e.GetPosition(null);
+            _dragDropHelper?.HandleLauncherItemPreviewMouseLeftButtonDown(sender, e);
         }
 
         private void LauncherItem_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (e.LeftButton != MouseButtonState.Pressed)
-                return;
-
-            var position = e.GetPosition(null);
-            var diff = position - _dragStartPoint;
-
-            if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
-                Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
-            {
-                return;
-            }
-
-            if (sender is not System.Windows.Controls.Button button || button.DataContext is not LauncherItem item)
-                return;
-
-            var data = new System.Windows.DataObject();
-            data.SetData("LauncherItem", item);
-            data.SetData(typeof(LauncherItem), item);
-            System.Windows.DragDrop.DoDragDrop(button, data, System.Windows.DragDropEffects.Move);
+            _dragDropHelper?.HandleLauncherItemPreviewMouseMove(sender, e);
         }
 
         private void LauncherItem_DragOver(object sender, System.Windows.DragEventArgs e)
         {
-            if (e.Data.GetDataPresent("LauncherItem"))
-            {
-                e.Effects = System.Windows.DragDropEffects.Move;
-                e.Handled = true;
-            }
+            _dragDropHelper?.HandleLauncherItemDragOver(sender, e);
         }
 
         private void LauncherItem_Drop(object sender, System.Windows.DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(typeof(LauncherItem)) && !e.Data.GetDataPresent("LauncherItem"))
-            {
-                if (TryGetSupportedDropFiles(e, out var files))
-                {
-                    e.Handled = true;
-                    _viewModel.HandleFileDrop(files);
-                }
-
-                return;
-            }
-
-            var source = e.Data.GetData(typeof(LauncherItem)) as LauncherItem ?? e.Data.GetData("LauncherItem") as LauncherItem;
-            if (source == null)
-                return;
-
-            var target = (sender as FrameworkElement)?.DataContext as LauncherItem;
-            if (target == null || ReferenceEquals(source, target))
-                return;
-
-            var fe = sender as FrameworkElement;
-            var insertAfter = false;
-            if (fe != null)
-            {
-                var pos = e.GetPosition(fe);
-                insertAfter = pos.Y > fe.ActualHeight / 2;
-            }
-
-            _viewModel.MoveItemWithinCategory(source, target, insertAfter);
-            e.Handled = true;
+            _dragDropHelper?.HandleLauncherItemDrop(sender, e);
         }
 
         private void RenameMenuItem_Click(object sender, System.Windows.RoutedEventArgs e)
@@ -1503,38 +600,22 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            var newName = ShowInputBox("Enter a new display name:", "Rename Launcher", item.DisplayName);
-            if (!string.IsNullOrWhiteSpace(newName))
-            {
-                _viewModel.RenameItem(item, newName);
-            }
+            _shortcutActions?.RenameItem(item);
         }
 
         private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (!_autoHideEnabled)
-                return;
-
-            _autoHideTimer?.Stop();
-            _autoHideTimer?.Start();
+            _windowModeController?.HandleMouseLeave();
         }
 
         private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (!_autoHideEnabled)
-                return;
-
-            _autoHideTimer?.Stop();
-            if (_isHidden)
-            {
-                SlideTo(0);
-            }
+            _windowModeController?.HandleMouseEnter();
         }
 
         private void AutoHideTimer_Tick(object? sender, EventArgs e)
         {
-            _autoHideTimer?.Stop();
-            SlideTo(-Height + 8);
+            _windowModeController?.HandleAutoHideTick();
         }
 
         private void MonitorTimer_Tick(object? sender, EventArgs e)
@@ -1555,19 +636,6 @@ namespace IconGrid.Views.Launcher
             });
         }
 
-        private void SlideTo(double targetTop)
-        {
-            var animation = new DoubleAnimation
-            {
-                To = targetTop,
-                Duration = TimeSpan.FromMilliseconds(200),
-                EasingFunction = new QuadraticEase()
-            };
-
-            BeginAnimation(TopProperty, animation);
-            _isHidden = targetTop < 0;
-        }
-
         private string ShowInputBox(string prompt, string title, string defaultValue)
         {
             // Midlertidig ? kan senere erstattes af en rigtig WPF-dialog
@@ -1579,7 +647,7 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            _viewModel.RemoveItem(item);
+            _shortcutActions?.RemoveItem(item);
         }
 
         private void LauncherItemButton_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -1588,7 +656,7 @@ namespace IconGrid.Views.Launcher
                 return;
 
             e.Handled = true;
-            _viewModel.LaunchItem(item);
+            _shortcutActions?.LaunchItem(item);
         }
 
         private void OpenItemMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1596,80 +664,31 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            _viewModel.LaunchItem(item);
+            _shortcutActions?.OpenItem(item);
         }
 
         private void RunAsAdminMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item || string.IsNullOrWhiteSpace(item.Path))
+            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            try
-            {
-                var psi = new ProcessStartInfo(item.Path)
-                {
-                    UseShellExecute = true,
-                    Verb = "runas"
-                };
-
-                var workingDirectory = Path.GetDirectoryName(item.Path);
-                if (!string.IsNullOrWhiteSpace(workingDirectory))
-                {
-                    psi.WorkingDirectory = workingDirectory;
-                }
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Could not run as administrator:\n{ex.Message}", "Run as admin", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _shortcutActions?.RunAsAdmin(item);
         }
 
         private void OpenLocationMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item || string.IsNullOrWhiteSpace(item.Path))
+            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            try
-            {
-                if (File.Exists(item.Path))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "explorer.exe",
-                        Arguments = $"/select,\"{item.Path}\"",
-                        UseShellExecute = true
-                    });
-                }
-                else if (Directory.Exists(item.Path))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "explorer.exe",
-                        Arguments = $"\"{item.Path}\"",
-                        UseShellExecute = true
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Could not open file location:\n{ex.Message}", "Open location", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _shortcutActions?.OpenLocation(item);
         }
 
         private void CopyPathMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item || string.IsNullOrWhiteSpace(item.Path))
+            if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            try
-            {
-                System.Windows.Clipboard.SetText(item.Path);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Could not copy path:\n{ex.Message}", "Copy path", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            _shortcutActions?.CopyPath(item);
         }
 
         private void ChangeIconMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1677,63 +696,7 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            var initialPath = ResolveIconPickerPath(menuItem, item);
-            var sb = new StringBuilder(512);
-            sb.Append(initialPath);
-            var iconIndex = item.IconIndex;
-            var hwnd = new WindowInteropHelper(this).Handle;
-
-            if (PickIconDlg(hwnd, sb, sb.Capacity, ref iconIndex))
-            {
-                var raw = sb.ToString();
-                var cleanPath = raw.Split('\0')[0].Trim();
-                if (string.IsNullOrWhiteSpace(cleanPath))
-                {
-                    return;
-                }
-
-                var selectedPath = NormalizeToSystemRootToken(cleanPath);
-                var sanitizedIndex = Math.Max(0, iconIndex);
-                _viewModel.UpdateItemIcon(item, selectedPath, sanitizedIndex);
-            }
-        }
-
-        private static string ResolveIconPickerPath(System.Windows.Controls.MenuItem menuItem, LauncherItem item)
-        {
-            var taggedPath = menuItem.Tag as string;
-            var candidate = !string.IsNullOrWhiteSpace(taggedPath)
-                ? taggedPath
-                : item.IconPath;
-
-            if (string.IsNullOrWhiteSpace(candidate))
-            {
-                candidate = @"%SystemRoot%\System32\shell32.dll";
-            }
-
-            return Environment.ExpandEnvironmentVariables(candidate);
-        }
-
-        private static string NormalizeToSystemRootToken(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return path;
-            }
-
-            var systemRoot = Environment.GetEnvironmentVariable("SystemRoot");
-            if (!string.IsNullOrWhiteSpace(systemRoot) &&
-                path.StartsWith(systemRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                var remainder = path.Length > systemRoot.Length
-                    ? path[systemRoot.Length..].TrimStart('\\')
-                    : string.Empty;
-
-                return string.IsNullOrEmpty(remainder)
-                    ? "%SystemRoot%"
-                    : $"%SystemRoot%\\{remainder}";
-            }
-
-            return path;
+            _shortcutActions?.ChangeIcon(item, menuItem.Tag as string);
         }
 
         private void ResetIconMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1741,73 +704,25 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.MenuItem menuItem || menuItem.DataContext is not LauncherItem item)
                 return;
 
-            if (string.IsNullOrWhiteSpace(item.Path))
-            {
-                System.Windows.MessageBox.Show("Cannot reset icon because the target path is empty.", "Reset icon", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            _viewModel.UpdateItemIcon(item, item.Path, 0);
-        }
-
-        private void RefreshNewShortcutIcon(LauncherItem item)
-        {
-            if (item == null || string.IsNullOrWhiteSpace(item.Path))
-            {
-                return;
-            }
-
-            _viewModel.UpdateItemIcon(item, item.Path, 0);
+            _shortcutActions?.ResetIcon(item);
         }
 
         private void AddShortcutMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = "Choose file or shortcut",
-                Filter = "Applications and shortcuts (*.exe;*.lnk)|*.exe;*.lnk|All files (*.*)|*.*",
-                Multiselect = false,
-                CheckFileExists = true
-            };
-
-            if (dialog.ShowDialog(this) == true)
-            {
-                var name = ShowInputBox("Enter display name", "New shortcut", System.IO.Path.GetFileNameWithoutExtension(dialog.FileName));
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    return;
-                }
-
-                var item = _viewModel.CreateCustomShortcut(name, dialog.FileName, _viewModel.SelectedTab);
-                RefreshNewShortcutIcon(item);
-            }
+            _shortcutActions?.AddShortcut();
         }
 
         private void AddPowerShellCustomMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var command = ShowInputBox("Enter PowerShell command (e.g. Start-Process ms-settings:windowsupdate)", "New PowerShell shortcut", "Start-Process ms-settings:windowsupdate");
-            if (string.IsNullOrWhiteSpace(command))
-            {
-                return;
-            }
-
-            var name = ShowInputBox("Enter display name", "New PowerShell shortcut", "PowerShell");
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return;
-            }
-
-            var item = _viewModel.CreateCustomShortcut(name, PowerShellPath, _viewModel.SelectedTab, $"-NoExit -Command \"{command}\"");
-            ApplyDefaultIconFromPack(item, "WindowsPowerShell.png", PowerShellPath, 0);
+            _shortcutActions?.AddPowerShellCustom();
         }
 
         private void AddWindowsShortcutMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not WindowsShortcutTemplate template)
+            if (sender is not System.Windows.Controls.MenuItem mi || mi.Tag is not LauncherShortcutActions.WindowsShortcutTemplate template)
                 return;
 
-            var targetCategory = _viewModel.Tabs.Contains("Windows") ? "Windows" : _viewModel.SelectedTab;
-            AddWindowsShortcut(template, targetCategory);
+            _shortcutActions?.AddWindowsShortcut(template);
         }
 
         private void AddPowerShellPresetMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1816,148 +731,12 @@ namespace IconGrid.Views.Launcher
                 return;
 
             var label = mi.Header?.ToString() ?? "PowerShell";
-            var item = _viewModel.CreateCustomShortcut(label, PowerShellPath, _viewModel.SelectedTab, args);
-
-            // Prefer executable icon (index 0); fall back to icon pack if available.
-            _viewModel.SetIcon(item, PowerShellPath, 0);
-            ApplyDefaultIconFromPack(item, "WindowsPowerShell.png", PowerShellPath, 0);
+            _shortcutActions?.AddPowerShellPreset(args, label);
         }
 
         private void AddAllWindowsShortcutsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var targetCategory = _viewModel.Tabs.Contains("Windows") ? "Windows" : _viewModel.SelectedTab;
-            foreach (var shortcut in _windowsShortcuts)
-            {
-                AddWindowsShortcut(shortcut, targetCategory);
-            }
-        }
-
-        private string GetIconBase64ForItem(LauncherItem item)
-        {
-            if (!string.IsNullOrWhiteSpace(item.IconBase64))
-            {
-                return item.IconBase64;
-            }
-
-            if (!string.IsNullOrWhiteSpace(item.IconPath))
-            {
-                var loc = IconHelper.NormalizeIconLocation(item.IconPath, item.IconIndex);
-                if (!string.IsNullOrWhiteSpace(loc.Path))
-                {
-                    var extracted = IconHelper.ExtractIconBase64(loc.Path);
-                    if (!string.IsNullOrWhiteSpace(extracted))
-                    {
-                        return extracted;
-                    }
-                }
-            }
-
-            if (item.IconImage is BitmapSource bmp)
-            {
-                return IconHelper.BitmapSourceToBase64(bmp);
-            }
-
-            return string.Empty;
-        }
-
-        private void ApplyEmbeddedIcon(LauncherItem item, string base64)
-        {
-            if (string.IsNullOrWhiteSpace(base64))
-            {
-                return;
-            }
-
-            var img = IconHelper.Base64ToBitmapImage(base64);
-            if (img != null)
-            {
-                var trimmed = IconHelper.TrimTransparentBorder(img) ?? img;
-                item.IconBase64 = IconHelper.BitmapSourceToBase64(trimmed);
-                item.Icon = trimmed;
-            }
-        }
-
-        private void ApplyDefaultIconFromPack(LauncherItem item, string fileName, string fallbackIconPath, int fallbackIndex = 0)
-        {
-            var candidate = System.IO.Path.Combine(_viewModel.IconPackFolder, fileName);
-            if (File.Exists(candidate))
-            {
-                _viewModel.SetIcon(item, candidate, 0);
-                return;
-            }
-
-            _viewModel.SetIcon(item, fallbackIconPath, fallbackIndex);
-        }
-
-        private string TranslateShortcutName(string name)
-        {
-            var key = name.ToLowerInvariant();
-            var lang = _viewModel.Language?.ToLowerInvariant() ?? "en";
-
-            // Default filenames are Danish; when UI is English, map them to English equivalents.
-            if (!string.Equals(lang, "da", StringComparison.OrdinalIgnoreCase))
-            {
-                return _windowsShortcutTranslations.TryGetValue(key, out var translated) ? translated : name;
-            }
-
-            // Danish UI: keep original or map known English names back to Danish.
-            if (string.Equals(key, "this pc", StringComparison.OrdinalIgnoreCase))
-                return "Denne computer";
-
-            // If the file name is already Danish, leave it.
-            return name;
-        }
-
-        private void AddWindowsShortcut(WindowsShortcutTemplate template, string targetCategory)
-        {
-            var exists = _viewModel.Items.Any(i =>
-                string.Equals(i.Path, template.FullPath, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(i.Category, targetCategory, StringComparison.OrdinalIgnoreCase));
-            if (exists)
-            {
-                return;
-            }
-
-            var item = _viewModel.CreateCustomShortcut(template.DisplayName, template.FullPath, targetCategory, arguments: null, iconPath: template.FullPath, iconIndex: 0);
-            _viewModel.UpdateItemIcon(item, template.FullPath, 0);
-        }
-
-        private void LoadWindowsShortcuts()
-        {
-            try
-            {
-                var list = new List<WindowsShortcutTemplate>();
-
-                var potentialRoots = new[]
-                {
-                    Path.Combine(AppContext.BaseDirectory, "Assets", "WindowsShortcuts"),
-                    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Assets", "WindowsShortcuts"), // dev path
-                    Path.Combine(Environment.CurrentDirectory, "Assets", "WindowsShortcuts"),
-                    Path.Combine(_viewModel.IconPackFolder, "..", "WindowsShortcuts")
-                };
-
-                foreach (var dir in potentialRoots.Distinct())
-                {
-                    var full = Path.GetFullPath(dir);
-                    if (!Directory.Exists(full))
-                        continue;
-
-                    foreach (var file in Directory.GetFiles(full, "*.lnk", SearchOption.TopDirectoryOnly))
-                    {
-                        var rawName = Path.GetFileNameWithoutExtension(file);
-                        var displayName = TranslateShortcutName(rawName);
-                        if (list.All(l => !string.Equals(l.DisplayName, displayName, StringComparison.OrdinalIgnoreCase)))
-                        {
-                            list.Add(new WindowsShortcutTemplate(displayName, file));
-                        }
-                    }
-                }
-
-                _windowsShortcuts = list.OrderBy(s => s.DisplayName).ToList();
-            }
-            catch
-            {
-                _windowsShortcuts = new List<WindowsShortcutTemplate>();
-            }
+            _shortcutActions?.AddAllWindowsShortcuts();
         }
 
         private void ContentArea_ContextMenuOpening(object sender, ContextMenuEventArgs e)
@@ -1993,7 +772,7 @@ namespace IconGrid.Views.Launcher
             menu.Items.Add(psMenu);
             menu.Items.Add(new Separator());
 
-            if (_windowsShortcuts.Any())
+            if (_shortcutActions?.WindowsShortcuts.Any() == true)
             {
                 var winMenu = new System.Windows.Controls.MenuItem { Header = AddWindowsText() };
                 DevInspector.SetMetadata(winMenu, "Add Windows shortcuts submenu → Views/MainWindow.xaml (AddWindowsShortcutMenuItem_Click)");
@@ -2003,7 +782,7 @@ namespace IconGrid.Views.Launcher
                 winMenu.Items.Add(addAll);
                 winMenu.Items.Add(new Separator());
 
-                foreach (var shortcut in _windowsShortcuts)
+                foreach (var shortcut in _shortcutActions!.WindowsShortcuts)
                 {
                     var item = new System.Windows.Controls.MenuItem
                     {
@@ -2122,20 +901,20 @@ namespace IconGrid.Views.Launcher
 
             try
             {
-                var targetMonitor = _viewModel.LayoutCurrentMonitorOnly && _hwndSource?.Handle != null
-                    ? MonitorFromWindow(_hwndSource.Handle, MONITOR_DEFAULTTONEAREST)
+                var targetMonitor = _viewModel.LayoutCurrentMonitorOnly && _windowInterop.Handle != IntPtr.Zero
+                    ? LauncherWindowInterop.MonitorFromWindow(_windowInterop.Handle, MONITOR_DEFAULTTONEAREST)
                     : IntPtr.Zero;
 
                 var workArea = WindowLayoutEngine.GetWorkArea(targetMonitor);
                 var includeIconGridWindow = _viewModel.LayoutReserveIconGridSlot || _viewModel.IsFullWindowVisible;
-                var windows = WindowLayoutEngine.CollectCandidateWindows(targetMonitor, includeIconGridWindow, _hwndSource?.Handle ?? IntPtr.Zero, _viewModel, LogTrace);
+                var windows = WindowLayoutEngine.CollectCandidateWindows(targetMonitor, includeIconGridWindow, _windowInterop.Handle, _viewModel, LogTrace);
                 if (windows.Count == 0)
                 {
                     LogTrace($"Layout '{layoutName}' not saved: no candidate windows were found.");
                     return false;
                 }
 
-                var iconHandle = _hwndSource?.Handle ?? IntPtr.Zero;
+                var iconHandle = _windowInterop.Handle;
                 var orderedWindows = windows
                     .OrderBy(w => w.Rect.Top)
                     .ThenBy(w => w.Rect.Left)
@@ -2550,7 +1329,7 @@ namespace IconGrid.Views.Launcher
             WindowLayoutEngine.ArrangeWindowsFromPreset(
                 presetName,
                 _viewModel,
-                _hwndSource?.Handle ?? IntPtr.Zero,
+                _windowInterop.Handle,
                 LogTrace,
                 RefreshLayoutCardSelection);
         }
@@ -2569,18 +1348,8 @@ namespace IconGrid.Views.Launcher
             ClosePawnIoWarningWindow();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();
-            if (_trayIcon != null)
-            {
-                _trayIcon.Visible = false;
-                _trayIcon.Dispose();
-                _trayIcon = null;
-            }
             ThemeHelper.ThemeChanged -= ThemeHelper_ThemeChanged;
-            if (_hwndSource != null)
-            {
-                _hwndSource.RemoveHook(WndProc);
-                _hwndSource = null;
-            }
+            _windowInterop.Cleanup();
         }
 
         private void ExitApplication()
@@ -2591,12 +1360,7 @@ namespace IconGrid.Views.Launcher
             ClosePawnIoWarningWindow();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();
-            if (_trayIcon != null)
-            {
-                _trayIcon.Visible = false;
-                _trayIcon.Dispose();
-                _trayIcon = null;
-            }
+            _windowInterop.Cleanup();
             var application = System.Windows.Application.Current;
             var windows = application?.Windows;
             if (windows != null)
