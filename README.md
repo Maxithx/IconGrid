@@ -204,3 +204,5 @@ This keeps the UI non-elevated while preserving hardware telemetry access and av
 ## Versioning
 
 IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
+
+Current version: `0.7.0-beta.1`

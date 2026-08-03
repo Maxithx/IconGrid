@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:helpersCommon="clr-namespace:IconGrid.Helpers.Common"
              xmlns:views="clr-namespace:IconGrid.Views"
              mc:Ignorable="d"
              Background="Transparent">
@@ -19,6 +20,10 @@
                            TextWrapping="Wrap"
                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                            Text="{Binding AboutIntroText}" />
+                <TextBlock Margin="0,16,0,0"
+                           FontSize="13"
+                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                           Text="{x:Static helpersCommon:AppVersion.InformationalVersion}" />
             </StackPanel>
         </views:TemplatePage.HeroContent>
         <views:TemplatePage.CardsContent>
