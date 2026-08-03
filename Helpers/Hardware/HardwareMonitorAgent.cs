@@ -47,6 +47,7 @@ public static class HardwareMonitorAgent
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly FpsNormalizerState FpsNormalizer = new();
 
     // Win32 P/Invoke for foreground window detection
     [DllImport("user32.dll")]
@@ -94,19 +95,7 @@ public static class HardwareMonitorAgent
     private const long WsExLayered = 0x00080000L;
     private const long WsExNoActivate = 0x08000000L;
 
-    private sealed record FpsNormalizationResult(double? EffectiveFps, bool EmulatorOvercount);
     private sealed record VisibleWindowCandidate(int Pid, string ProcessName, long Area, DateTime? StartedAtUtc, int Score);
-    private sealed record FpsNormalizationDebugState(
-        int TargetPid,
-        string TargetName,
-        bool IsForegroundWindow,
-        double RawFps,
-        double LastStableFps,
-        double LastForegroundTrustedCodFps,
-        int DxgiCount,
-        int D3D9Count,
-        int DxgKrnlCount,
-        bool HasForegroundTrustedCodAnchor);
 
     public static int Run(string[] args, Action<string>? log = null)
     {
@@ -175,14 +164,8 @@ public static class HardwareMonitorAgent
             var currentForegroundPidObservedAtUtc = default(DateTime?);
             var rejectedForegroundPid = default(int?);
             var rejectedForegroundPidCooldownUntilUtc = default(DateTime?);
-            var lastStableFps = 0.0;
-            var lastStableFpsSetAtUtc = DateTime.MinValue;
-            var lastForegroundTrustedCodFps = 0.0;
-            var lastForegroundTrustedCodFpsSetAtUtc = DateTime.MinValue;
             var lastTargetWasForegroundWindow = default(bool?);
             var lastTargetBecameForegroundAtUtc = DateTime.MinValue;
-            var lastPrimarySignalStrength = 0;
-            var lastSignalTargetPid = 0;
 
             while (true)
             {
@@ -266,22 +249,15 @@ public static class HardwareMonitorAgent
                 if (targetIsForegroundWindow && lastTargetWasForegroundWindow != true)
                 {
                     lastTargetBecameForegroundAtUtc = DateTime.UtcNow;
-                    lastStableFps = 0.0;
-                    lastStableFpsSetAtUtc = DateTime.MinValue;
+                    FpsNormalizer.ResetBaseline();
                     log?.Invoke("Target regained foreground; resetting FPS spike baseline.");
                 }
                 lastTargetWasForegroundWindow = targetIsForegroundWindow;
 
-                var normalization = NormalizeNativeFps(
+                var normalization = FpsNormalizer.Normalize(
                     nativeFpsValue,
                     nativeState,
                     targetIsForegroundWindow,
-                    ref lastStableFps,
-                    ref lastStableFpsSetAtUtc,
-                    ref lastForegroundTrustedCodFps,
-                    ref lastForegroundTrustedCodFpsSetAtUtc,
-                    ref lastPrimarySignalStrength,
-                    ref lastSignalTargetPid,
                     log);
                 var effectiveFps = normalization.EffectiveFps;
 
@@ -337,21 +313,14 @@ public static class HardwareMonitorAgent
                     if (liveTargetIsForegroundWindow && lastTargetWasForegroundWindow != true)
                     {
                         lastTargetBecameForegroundAtUtc = DateTime.UtcNow;
-                        lastStableFps = 0.0;
-                        lastStableFpsSetAtUtc = DateTime.MinValue;
+                        FpsNormalizer.ResetBaseline();
                     }
                     lastTargetWasForegroundWindow = liveTargetIsForegroundWindow;
 
-                    var liveNormalization = NormalizeNativeFps(
+                    var liveNormalization = FpsNormalizer.Normalize(
                         liveNativeFpsValue,
                         liveNativeState,
                         liveTargetIsForegroundWindow,
-                        ref lastStableFps,
-                        ref lastStableFpsSetAtUtc,
-                        ref lastForegroundTrustedCodFps,
-                        ref lastForegroundTrustedCodFpsSetAtUtc,
-                        ref lastPrimarySignalStrength,
-                        ref lastSignalTargetPid,
                         log: null);
                     var effectiveLiveNativeFps = liveNormalization.EffectiveFps;
                     var hasEffectiveLiveNativeFps = effectiveLiveNativeFps.HasValue && effectiveLiveNativeFps.Value > 0;
@@ -741,223 +710,6 @@ exit:
         return true;
     }
 
-    private static FpsNormalizationResult NormalizeNativeFps(
-        double? nativeFpsValue,
-        NativeFpsAgentState? nativeState,
-        bool targetIsForegroundWindow,
-        ref double lastStableFps,
-        ref DateTime lastStableFpsSetAtUtc,
-        ref double lastForegroundTrustedCodFps,
-        ref DateTime lastForegroundTrustedCodFpsSetAtUtc,
-        ref int lastPrimarySignalStrength,
-        ref int lastSignalTargetPid,
-        Action<string>? log)
-    {
-        var now = DateTime.UtcNow;
-        var isCodTarget = nativeState?.TargetProcessName?.IndexOf("cod", StringComparison.OrdinalIgnoreCase) >= 0;
-        var targetPid = nativeState?.TargetPid ?? 0;
-        if (targetPid > 0 && targetPid != lastSignalTargetPid)
-        {
-            log?.Invoke($"FPS target PID changed from {lastSignalTargetPid} to {targetPid}; resetting normalization state.");
-            lastStableFps = 0.0;
-            lastStableFpsSetAtUtc = DateTime.MinValue;
-            lastForegroundTrustedCodFps = 0.0;
-            lastForegroundTrustedCodFpsSetAtUtc = DateTime.MinValue;
-            lastPrimarySignalStrength = 0;
-            lastSignalTargetPid = targetPid;
-        }
-
-        var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0;
-        if (!hasNativeFps)
-        {
-            var hasResidualCodEtwSignal = nativeState != null &&
-                                          nativeState.TargetPid > 0 &&
-                                          nativeState.EtwRunning &&
-                                          nativeState.EtwEventsReceived &&
-                                          (nativeState.MatchedDxgiEventCount > 0 ||
-                                           nativeState.MatchedD3D9EventCount > 0 ||
-                                           nativeState.MatchedDxgKrnlEventCount > 0);
-            if (isCodTarget &&
-                !targetIsForegroundWindow &&
-                hasResidualCodEtwSignal &&
-                lastStableFps > 35.0 &&
-                (now - lastStableFpsSetAtUtc).TotalSeconds < 20.0)
-            {
-                log?.Invoke(
-                    $"Holding COD background FPS during ambiguous ETW sample: holdFps={lastStableFps:F0} DXGI={nativeState!.MatchedDxgiEventCount} D3D9={nativeState.MatchedD3D9EventCount} DXGKRNL={nativeState.MatchedDxgKrnlEventCount}");
-                return new FpsNormalizationResult(lastStableFps, false);
-            }
-
-            return new FpsNormalizationResult(null, false);
-        }
-
-        var emulatorOvercount = nativeFpsValue!.Value > 120.0 &&
-                                nativeState != null &&
-                                nativeState.MatchedDxgiEventCount == 0 &&
-                                nativeState.MatchedDxgKrnlEventCount > 0;
-        if (emulatorOvercount)
-        {
-            log?.Invoke($"Emulator overcount detected: FPS={nativeFpsValue.Value:F0} DXGI=0 DXGKRNL={nativeState!.MatchedDxgKrnlEventCount}");
-            lastStableFps = 60.0;
-            lastStableFpsSetAtUtc = DateTime.UtcNow;
-            log?.Invoke("Emulator cap applied: FPS capped to 60");
-            return new FpsNormalizationResult(60.0, true);
-        }
-
-        var rawFps = nativeFpsValue.Value;
-        var isSpike = false;
-        var primarySignalStrength = Math.Max(nativeState?.MatchedDxgiEventCount ?? 0, nativeState?.MatchedD3D9EventCount ?? 0);
-        var sameSignalTarget = targetPid > 0 && targetPid == lastSignalTargetPid;
-        var signalUpgraded = sameSignalTarget && primarySignalStrength > lastPrimarySignalStrength;
-        var debugState = new FpsNormalizationDebugState(
-            targetPid,
-            nativeState?.TargetProcessName ?? string.Empty,
-            targetIsForegroundWindow,
-            rawFps,
-            lastStableFps,
-            lastForegroundTrustedCodFps,
-            nativeState?.MatchedDxgiEventCount ?? 0,
-            nativeState?.MatchedD3D9EventCount ?? 0,
-            nativeState?.MatchedDxgKrnlEventCount ?? 0,
-            lastForegroundTrustedCodFps > 35.0 &&
-            (now - lastForegroundTrustedCodFpsSetAtUtc).TotalSeconds < 120.0);
-        var hasCodStyleDxgiOnlySignal = nativeState != null &&
-                                        nativeState.MatchedD3D9EventCount == 0 &&
-                                        nativeState.MatchedDxgiEventCount >= 4 &&
-                                        nativeState.MatchedDxgKrnlEventCount >= 2;
-        if (isCodTarget &&
-            targetIsForegroundWindow &&
-            rawFps >= 35.0 &&
-            rawFps <= 90.0)
-        {
-            lastForegroundTrustedCodFps = rawFps;
-            lastForegroundTrustedCodFpsSetAtUtc = now;
-        }
-
-        if (nativeState != null &&
-            rawFps >= 80.0 &&
-            hasCodStyleDxgiOnlySignal)
-        {
-            var providerRatio = nativeState.MatchedDxgKrnlEventCount > 0
-                ? (double)nativeState.MatchedDxgiEventCount / nativeState.MatchedDxgKrnlEventCount
-                : 0.0;
-            var minimumCorrectionRatio = targetIsForegroundWindow ? 1.35 : 1.15;
-            if (providerRatio >= minimumCorrectionRatio && providerRatio <= 2.4)
-            {
-                var correctedFps = rawFps / providerRatio;
-                log?.Invoke(
-                    $"Duplicate present correction applied: rawFps={rawFps:F0} correctedFps={correctedFps:F0} Ratio={providerRatio:F2} Foreground={targetIsForegroundWindow} DXGI={nativeState.MatchedDxgiEventCount} DXGKRNL={nativeState.MatchedDxgKrnlEventCount}");
-
-                rawFps = correctedFps;
-                if (!isCodTarget || targetIsForegroundWindow)
-                {
-                    lastStableFps = correctedFps;
-                    lastStableFpsSetAtUtc = now;
-                    return new FpsNormalizationResult(correctedFps, false);
-                }
-
-                log?.Invoke("Keeping COD background guard active after duplicate present correction.");
-            }
-        }
-
-        if (!isSpike &&
-            !targetIsForegroundWindow &&
-            isCodTarget &&
-            lastStableFps > 45.0 &&
-            (now - lastStableFpsSetAtUtc).TotalSeconds < 30.0 &&
-            rawFps > Math.Max(lastStableFps + 8.0, lastStableFps * 1.12))
-        {
-            var backgroundLimitedFps = Math.Min(rawFps, lastStableFps + 4.0);
-            log?.Invoke($"COD background growth limited: rawFps={rawFps:F0} limitedFps={backgroundLimitedFps:F0} lastStable={lastStableFps:F0} TargetPid={debugState.TargetPid} Foreground={debugState.IsForegroundWindow} CodAnchor={debugState.HasForegroundTrustedCodAnchor}");
-            rawFps = backgroundLimitedFps;
-        }
-
-        if (!isSpike &&
-            !targetIsForegroundWindow &&
-            isCodTarget &&
-            lastStableFps > 35.0 &&
-            (now - lastStableFpsSetAtUtc).TotalSeconds < 30.0)
-        {
-            var conservativeBackgroundCeiling = lastStableFps + 2.0;
-            if (rawFps > conservativeBackgroundCeiling)
-            {
-                log?.Invoke(
-                    $"COD background sticky hold applied: rawFps={rawFps:F0} heldFps={conservativeBackgroundCeiling:F0} lastStable={lastStableFps:F0} TargetPid={debugState.TargetPid} Foreground={debugState.IsForegroundWindow} CodAnchor={debugState.HasForegroundTrustedCodAnchor}");
-                rawFps = conservativeBackgroundCeiling;
-            }
-        }
-
-        if (!isSpike &&
-            !targetIsForegroundWindow &&
-            isCodTarget &&
-            lastForegroundTrustedCodFps > 35.0 &&
-            (now - lastForegroundTrustedCodFpsSetAtUtc).TotalSeconds < 120.0)
-        {
-            var codBackgroundCeiling = lastForegroundTrustedCodFps + 2.0;
-
-            if (rawFps > codBackgroundCeiling)
-            {
-                log?.Invoke(
-                    $"COD background foreground-anchor ceiling applied: rawFps={rawFps:F0} ceilingFps={codBackgroundCeiling:F0} trustedForeground={lastForegroundTrustedCodFps:F0} TargetPid={debugState.TargetPid} Foreground={debugState.IsForegroundWindow}");
-                rawFps = codBackgroundCeiling;
-            }
-        }
-
-        if (rawFps > 1000.0)
-        {
-            isSpike = true;
-            log?.Invoke($"Spike filtered (>1000): rawFps={rawFps:F0} lastStable={lastStableFps:F0}");
-        }
-        else if (lastStableFps > 10.0 && rawFps > lastStableFps * 1.5)
-        {
-            if ((now - lastStableFpsSetAtUtc).TotalSeconds < 6.0)
-            {
-                if (signalUpgraded)
-                {
-                    log?.Invoke(
-                        $"Spike bypassed due to stronger primary signal: rawFps={rawFps:F0} lastStable={lastStableFps:F0} PrevSignal={lastPrimarySignalStrength} NewSignal={primarySignalStrength} TargetPid={debugState.TargetPid} Foreground={debugState.IsForegroundWindow}");
-                }
-                else
-                {
-                    isSpike = true;
-                    log?.Invoke($"Spike filtered (jump): rawFps={rawFps:F0} lastStable={lastStableFps:F0} TargetPid={debugState.TargetPid} Target={debugState.TargetName} Foreground={debugState.IsForegroundWindow} DXGI={debugState.DxgiCount} D3D9={debugState.D3D9Count} DXGKRNL={debugState.DxgKrnlCount} CodAnchor={debugState.HasForegroundTrustedCodAnchor}");
-                }
-            }
-        }
-
-        if (targetPid > 0)
-        {
-            lastSignalTargetPid = targetPid;
-            lastPrimarySignalStrength = primarySignalStrength;
-        }
-
-        if (isSpike)
-        {
-            return new FpsNormalizationResult(lastStableFps > 0.0 ? lastStableFps : null, false);
-        }
-
-        if (lastStableFps > 0.0)
-        {
-            const double emaAlpha = 0.3;
-            if (isCodTarget && !targetIsForegroundWindow && rawFps > lastStableFps)
-            {
-                // COD can keep producing background presents; do not let background samples
-                // ratchet the stable reference upward while the game is unfocused.
-                lastStableFps = (lastStableFps * (1.0 - emaAlpha)) + (lastStableFps * emaAlpha);
-            }
-            else
-            {
-                lastStableFps = (rawFps * emaAlpha) + (lastStableFps * (1.0 - emaAlpha));
-            }
-        }
-        else
-        {
-            lastStableFps = rawFps;
-        }
-
-        lastStableFpsSetAtUtc = now;
-        return new FpsNormalizationResult(rawFps, false);
-    }
 
     /// <summary>
     /// Polls the foreground window PID. If it changes to a new game process, 
