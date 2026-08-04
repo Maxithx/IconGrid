@@ -254,21 +254,43 @@ public static class HardwareMonitorAgent
                 }
                 lastTargetWasForegroundWindow = targetIsForegroundWindow;
 
-                var normalization = FpsNormalizer.Normalize(
-                    nativeFpsValue,
-                    nativeState,
-                    targetIsForegroundWindow,
-                    log);
-                var effectiveFps = normalization.EffectiveFps;
+                // When sticky-target is confirmed and the target process is still alive,
+                // bypass the spike filter entirely — the signal is trustworthy regardless
+                // of foreground status (applies generically to all games).
+                var useRawFps = confirmedForegroundGamePid.HasValue &&
+                                ProcessIsAlive(confirmedForegroundGamePid.Value);
+                double? effectiveFps;
+                if (useRawFps && nativeFpsValue.HasValue && nativeFpsValue.Value > 0)
+                {
+                    effectiveFps = nativeFpsValue.Value;
+                }
+                else
+                {
+                    var normalization = FpsNormalizer.Normalize(
+                        nativeFpsValue,
+                        nativeState,
+                        targetIsForegroundWindow,
+                        log);
+                    effectiveFps = normalization.EffectiveFps;
+                }
 
                 if (effectiveFps.HasValue && effectiveFps.Value > 0)
                 {
+                    fpsMeter.SetStickyHold(false);
                     fpsMeter.SetFps(effectiveFps.Value);
                     snapshot.FpsStatus = Math.Round(effectiveFps.Value).ToString("F0");
                     snapshot.FpsSource = nativeState?.FpsSource ?? "NativeFpsAgent";
                 }
                 else if (nativeFpsStarted)
                 {
+                    // Native FPS agent is running but reports no usable FPS.
+                    // If we have a confirmed game PID that is still alive, hold the last known FPS
+                    // instead of decaying to "--". This handles games that render very slowly in background.
+                    // When nativeState is null (file locked), preserve current sticky-hold state — don't toggle.
+                    var holdLastFps = confirmedForegroundGamePid.HasValue &&
+                                      ProcessIsAlive(confirmedForegroundGamePid.Value) &&
+                                      (nativeState == null || (nativeState.EtwRunning && nativeState.TargetPid > 0));
+                    fpsMeter.SetStickyHold(holdLastFps);
                     snapshot.FpsStatus = fpsMeter.GetSnapshot().LiveFpsFormatted;
                     snapshot.FpsSource = "NativeFpsAgent";
                 }
@@ -859,9 +881,10 @@ exit:
 
         if (!newForegroundPid.HasValue && currentForegroundGamePid.HasValue)
         {
-            // Foreground is no longer a game (e.g., user alt-tabbed or clicked overlay).
+            // Sticky-target: Foreground is no longer a game (e.g., user alt-tabbed or clicked overlay).
             // Do NOT restart — keep tracking the existing game PID.
             // Only restart if the game process actually exited.
+            log?.Invoke($"Sticky-target: no game foreground detected. Holding current game PID {currentForegroundGamePid.Value}. NativeTargetPid={nativeState?.TargetPid.ToString() ?? "null"} EtwRunning={nativeState?.EtwRunning.ToString() ?? "null"}");
             if (!ProcessIsAlive(currentForegroundGamePid.Value))
             {
                 log?.Invoke($"Current game PID {currentForegroundGamePid.Value} has exited. Clearing.");
@@ -1415,7 +1438,11 @@ exit:
             }
         }
 
-        File.Move(tempPath, statePath, overwrite: true);
+        // Best-effort final attempt — native agent may be writing simultaneously.
+        // Never throw — failing to write state files must not crash the monitor loop.
+        try { File.Move(tempPath, statePath, overwrite: true); }
+        catch (UnauthorizedAccessException) { }
+        catch (IOException) { }
     }
 }
 

@@ -40,6 +40,7 @@ namespace
     constexpr USHORT kDxgKrnlPresentInfoEventId = 0x00B8;
     constexpr USHORT kDxgKrnlFlipInfoEventId = 0x00A8;
     constexpr USHORT kDxgKrnlBlitInfoEventId = 0x00A6;
+    constexpr DWORD kStickyGracePeriodMs = 3000;
     constexpr DWORD kTargetPollIntervalMs = 500;
     constexpr DWORD kFastTargetPollIntervalMs = 75;
     constexpr DWORD kStateWriteIntervalMs = 2;
@@ -136,6 +137,7 @@ namespace
     std::atomic<DWORD> g_targetPid = 0;
     std::atomic<bool> g_running = true;
     std::atomic<bool> g_etwRunning = false;
+    std::atomic<long long> g_lastMatchedEventTicksUtc = 0;
     TRACEHANDLE g_etwSession = 0;
     TRACEHANDLE g_etwTrace = 0;
     std::thread g_etwThread;
@@ -1002,12 +1004,56 @@ namespace
     void PollLockedTarget()
     {
         DWORD lockedPid = 0;
+        long long eventsStoppedAtTicksUtc = 0;
+        bool wasInGracePeriod = false;
 
         while (g_running.load(std::memory_order_relaxed))
         {
             if (lockedPid != 0 && IsProcessAlive(lockedPid))
             {
                 const auto processName = GetProcessName(lockedPid);
+                const auto nowTicks = GetUtcTicksNow();
+                const auto lastEventTicks = g_lastMatchedEventTicksUtc.load(std::memory_order_relaxed);
+                const auto msSinceLastEvent = lastEventTicks > 0
+                    ? static_cast<long long>((nowTicks - lastEventTicks) / 10000LL)
+                    : 999999LL;
+
+                // Diagnostic: log when matched events stop arriving while process is alive.
+                if (lastEventTicks > 0 && msSinceLastEvent > 2000)
+                {
+                    if (!wasInGracePeriod)
+                    {
+                        std::wostringstream msg;
+                        msg << L"Sticky-target grace period: no matched events for "
+                            << msSinceLastEvent << L"ms. Process PID=" << lockedPid
+                            << L" Name=" << processName << L" is still alive. Holding target.";
+                        SetDebugMessage(msg.str());
+                        wasInGracePeriod = true;
+                    }
+
+                    // If within grace period: keep target, don't clear.
+                    if (msSinceLastEvent < static_cast<long long>(kStickyGracePeriodMs))
+                    {
+                        g_targetPid.store(lockedPid, std::memory_order_relaxed);
+                        UpdateCandidateState(lockedPid, processName);
+                        UpdateTargetState(lockedPid, processName);
+                        Sleep(GetTargetPollIntervalMs(true));
+                        continue;
+                    }
+
+                    // Grace period expired but process alive: log and fall through to re-scan.
+                    std::wostringstream msg;
+                    msg << L"Sticky-target grace period EXPIRED after "
+                        << msSinceLastEvent << L"ms. Process PID=" << lockedPid
+                        << L" Name=" << processName << L" is still alive. Re-scanning for target.";
+                    SetDebugMessage(msg.str());
+                }
+                else if (lastEventTicks > 0 && msSinceLastEvent <= 2000)
+                {
+                    wasInGracePeriod = false;
+                }
+
+                // Normal path: events still arriving or just briefly paused.
                 g_targetPid.store(lockedPid, std::memory_order_relaxed);
                 UpdateCandidateState(lockedPid, processName);
                 UpdateTargetState(lockedPid, processName);
@@ -1019,10 +1065,13 @@ namespace
             if (lockedPid != 0)
             {
                 std::wostringstream message;
-                message << L"Locked PID " << lockedPid << L" exited. Looking for a new matching process.";
+                message << L"Locked PID " << lockedPid
+                        << L" (" << GetProcessName(lockedPid) << L")"
+                        << L" exited. Reason: IsProcessAlive=false. Looking for a new matching process.";
                 SetDebugMessage(message.str());
             }
 
+            wasInGracePeriod = false;
             lockedPid = 0;
             g_targetPid.store(0, std::memory_order_relaxed);
             UpdateTargetState(0, L"");
@@ -1092,6 +1141,8 @@ namespace
         {
             return;
         }
+
+        g_lastMatchedEventTicksUtc.store(GetUtcTicksNow(), std::memory_order_relaxed);
 
         const double timestampSeconds = static_cast<double>(eventRecord->EventHeader.TimeStamp.QuadPart) / g_qpcFrequency;
         static DWORD lastPid = 0;

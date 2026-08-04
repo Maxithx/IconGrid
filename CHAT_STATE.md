@@ -317,3 +317,161 @@
 - Fix: carousel cells now use the same width as grid UniformGrid columns. Added `CarouselCellWidth(iconsPerRow)` to `LauncherLayoutMeasurements.cs` = (ContentWidth - 40) / iconsPerRow; new `CarouselHorizontalPadding = 40` constant so carousel inner width (20+20 padding) matches grid (20+20). Changed carousel Border padding from `23,20,23,20` to `20,20,20,20` in `LauncherGrid.xaml`, and bound the carousel ContentPresenter Width to `CarouselCellWidth` (via new `MainViewModel.CarouselCellWidth` property + IconsPerRow notification).
 - Result: ContentWidth 748 − 40 = 708 → cell = 708/4 = 177px = exactly a grid column. Now exactly 4 icons visible in carousel, same spacing as grid.
 - Build: 0 warnings/0 errors. `check_architecture_rules` GREEN. Manual UI test PASSED (user-confirmed).
+
+## Session 2026-08-04 (eftermiddag): Friske FPS-tests — POE1, POE2, COD, Division 2
+
+
+- **Formål:** Test FPS pipeline med friske logs — ren test, ingen kodeændringer.
+- **Metode:** IconGrid + gaming overlay kørende. Hvert spil testet for korrekt FPS-visning og target-stabilitet når andre vinduer aktiveres.
+
+### Test-resultater (bruger-rapporteret, ~16:45-16:58 CEST)
+
+| Spil | FPS ved fokus | Ved andet vindue aktivt | Recovery |
+|------|--------------|------------------------|----------|
+| **POE 1** | ✅ Hurtig & korrekt | ✅ Korrekt — intet target-tab | N/A |
+| **POE 2** | ✅ Hurtig & korrekt | ⚠️ Target tabes ~1 sek, så OK | ~1 sek |
+| **COD** | ✅ Hurtig & korrekt | ⚠️ Target tabes ~1 sek, så OK | ~1 sek |
+| **Division 2** | ✅ Hurtig & korrekt | ❌ FPS slukker helt | Ved gen-fokus |
+
+### Nøgle-observationer
+- **Alle fire spil** viser korrekt FPS når spillet er i fokus — ETW pipeline + target-lock fungerer.
+- **POE 1** er guld-standarden: sticky-target holder perfekt, intet tab ved vindues-skift.
+- **POE 2 / COD** har identisk adfærd: ~1 sek target-tab når man klikker på Stifinder/Start-menu, derefter recovery.
+- **Division 2** er det værste: FPS slukker helt når spillet mister fokus, og kommer først tilbage når spilvinduet aktiveres igen.
+
+### Mulig root cause
+- Når brugeren klikker på et andet vindue, skifter foreground PID. Sticky-target logikken bør holde fast i spil-processen, men gør det ikke konsekvent.
+- POE 1's proces overlever foreground-skift bedre — muligvis fordi spillet ikke ændrer render-adfærd ved de-fokus.
+- Division 2's proces opfører sig markant anderledes ved de-fokus (suspend? minimer? skjuler render-vindue?), hvilket får native FPS agent til at give helt op.
+
+### Trace-log status
+- `native-fps-state.json` (16:58 CEST): viser post-shutdown state — target låst til `SystemSettings.exe` (PID 19440), `etwRunning=false`, `fpsValue=0`. Dette er forventet da hardware monitor allerede var lukket ned.
+- `fps-state.json` (16:59 CEST): `fpsStatus="--"`, ingen live FPS — også forventet post-shutdown.
+- `trace.log` (16:55-16:59 CEST): viser at hardware monitor forsøgte at låse til `SystemSettings.exe` via visible-game fallback, men den blev rejected som non-game. Ingen spil-relaterede events i trace fordi test-sessionen allerede var afsluttet da loggen blev læst.
+- **Vigtigt:** Brugerens verbale test-rapport er den primære datakilde for denne session — trace-loggen blev læst for sent (efter shutdown).
+
+### Dokumentation
+- `.local-state/fps-etw.md` opdateret med detaljeret test-sektion under `Fresh FPS tests — 2026-08-04`.
+- `.local-state/current-focus.md` opdateres med denne sessions resultater.
+- `.local-state/next-session-fps-test.md` markeres som FULDFØRT.
+
+### Næste skridt (fremtidig session)
+- Undersøg sticky-target / foreground-skift logik for POE2/COD ~1 sek glitch.
+- Undersøg Division 2's proces-adfærd ved de-fokus — hvorfor slukker FPS helt?
+- Overvej "grace period" i native FPS agent: hold target i X sekunder efter foreground-skift før opgivelse.
+- Kør nye tests med trace-log læst **mens spillene stadig kører** (ikke post-shutdown).
+
+## Session 2026-08-04 (eftermiddag, del 2): Sticky-target grace period implementeret
+
+
+- **Ændring:** Sticky-target grace period tilføjet i native FPS agent + diagnostisk logging i både C# og C++ lag.
+- **Begrundelse:** Test-resultater fra tidligere i dag viste at POE2/COD taber target i ~1 sek ved foreground-skift, og Division 2 taber permanent. Root cause: native agent (`PollLockedTarget`) ryddede `g_targetPid` når matched events stoppede, selvom processen stadig var alive.
+
+### Filændringer
+- **`Native/FpsAgent/src/main.cpp`:**
+  - Ny konstant `kStickyGracePeriodMs = 3000`
+  - Ny atomic `g_lastMatchedEventTicksUtc` — opdateres i `EtwCallback` ved hvert matched event
+  - `PollLockedTarget()` omskrevet: når events stopper men process lever, behold target i op til 3000ms. Log "Sticky-target grace period" ved aktivering og "EXPIRED" ved udløb.
+  - Forbedret log når process rent faktisk dør: inkluderer process-navn og "Reason: IsProcessAlive=false"
+- **`Helpers/Hardware/HardwareMonitorAgent.cs`:**
+  - Tilføjet trace-log i sticky-path: `"Sticky-target: no game foreground detected. Holding current game PID..."` med NativeTargetPid og EtwRunning status
+
+### Byg-status
+- C# `IconGrid.csproj`: ✅ Byg succes (0 fejl, 0 advarsler)
+- Native `FpsAgent.vcxproj`: ⚠️ **Skal bygges manuelt** — MSVC toolchain ikke tilgængelig fra PATH. Byg med Visual Studio: Release x64.
+- `check_architecture_rules`: ✅ GRØN
+
+### Dokumentation
+- `.local-state/fps-etw.md`: Ny sektion "Sticky-target grace period fix — 2026-08-04" med detaljer om alle ændringer og forventet effekt.
+- `.local-state/current-focus.md`: Indeholder allerede test-resultater og next-steps fra tidligere.
+
+### Næste skridt (næste session)
+1. Byg native FPS agent (Release x64) i Visual Studio.
+2. Start IconGrid med nye builds → gaming overlay.
+3. Test POE 1, POE 2, COD, Division 2 — verificér at:
+   - POE 1 stadig er perfekt (regression-test)
+   - POE 2 / COD ~1 sek glitch er elimineret
+   - Division 2 ikke længere slukker permanent (grace period buffer)
+4. Læs trace.log mens spillene kører for at se "Sticky-target grace period" beskeder.
+5. Dokumentér resultater i CHAT_STATE.md + fps-etw.md.
+6. Hvis fixet virker: commit.
+
+## Session 2026-08-04 (aften): Division 2 / POE 2 de-fokus analyse + 'hold sidste FPS' plan
+
+
+- **Fund:** Division 2 og POE 2 nedsætter render-rate når unfocused — IKKE en FPS pipeline fejl. Nvidia overlay bekræfter: viser ~10 FPS for Division 2 i baggrunden.
+- **Sammenfatning:**
+
+### Test-resultater med de-fokus
+| Spil | Ved fokus (ETW) | Ved de-fokus (ETW) | Nvidia overlay |
+|------|----------------|--------------------|---------------|
+| POE 1 | 60-120 FPS, PrimaryApi | 60-120 FPS, PrimaryApi | — |
+| POE 2 | 60-100 FPS, PrimaryApi | Events falder, `--` | ~halv FPS |
+| COD | Normal | `DXGI=1` per poll, `--` | — |
+| Division 2 | 30 FPS, PrimaryApi | `DXGI=1` per poll, `--` | ~10 FPS |
+
+### Hvorfor vores viser `--` men Nvidia viser tal
+- Vores: `kMinimumRollingSamples=2` i `main.cpp` — kræver ≥2 frames i 50ms vindue
+- Division 2 baggrund: ~1 frame per 500ms → 1 sample → `fpsStatus="--"`
+- Nvidia: sandsynligvis længere sampling-periode eller lavere minimum
+
+### Hvorfor spil gør dette (standard Windows/DirectX adfærd)
+- Windows prioriterer foreground-vinduet til GPU-scheduling
+- Mange spil engine kalder `Present()` med lavere frekvens når unfocused (strømbesparelse)
+- Division 2 er et ekstremt tilfælde — dropper til ~1-2 FPS
+- POE 2 er moderat — reducerer til ~halvdelen
+- POE 1 er perfekt — render med fuld rate selv ved de-fokus
+
+### Anbefalet fix: Hold sidste FPS
+- **Ikke** ændre `kMinimumRollingSamples` (det beskytter mod støj)
+- I `FpsMeter.cs`: når native agent rapporterer `fpsStatus="--"` men sticky-target er bekræftet og processen lever → hold sidste kendte FPS
+- I overlay: vis FPS med lavere opacity når stale
+
+### Dokumentation
+- `.local-state/fps-etw.md`: Ny sektion "Division 2 / POE 2 de-fokus render-rate — 2026-08-04 (aften session)" med log-bevis og analyse
+
+### Tidligere session (eftermiddag) opsummering
+- Sticky-target grace period implementeret og bygget i native agent (3000ms)
+- C# sticky-path trace tilføjet i HardwareMonitorAgent.cs
+- Begge builds klar til test
+
+## Session 2026-08-04 (aften, afslutning): FPS pipeline stabil — alle fixes testet
+
+
+- **Session afsluttet med positive resultater.** Alle fire hovedfix er implementeret og testet med 8 spil.
+
+### FPS pipeline fixes (implementeret i denne session)
+1. **Sticky-target grace period** (3000ms) i `Native/FpsAgent/src/main.cpp` — forhindrer target-tab ved foreground-skift
+2. **Hold sidste FPS** (`FpsMeter.cs` + `HardwareMonitorAgent.cs`) — viser sidste kendte FPS når spil stopper rendering i baggrunden
+3. **Spike filter bypass** (`HardwareMonitorAgent.cs`) — når confirmed target holder, bruges raw ETW FPS
+4. **MoveWithRetry crash fix** (`HardwareMonitorAgent.cs`) — fil-lock konflikter crasher ikke længere monitor loopet
+
+### Testede spil (8 titles)
+| Spil | Status |
+|------|--------|
+| POE 1 | ✅ Perfekt sticky-target |
+| POE 2 | ✅ Virker, reel FPS svinger i baggrunden |
+| COD | ✅ Virker, presenteret vs displayed adfærd |
+| Division 2 | ✅ Virker, sidste FPS vises ved de-fokus |
+| Stumble Guys | ✅ Virker |
+| RHYTHM SPROUT Demo | ✅ Virker |
+| Yuzu | ⚠️ Emulator overcount, normaliseret til ~60 FPS |
+| Fireworks Mania | ✅ Virker |
+
+### Dokumentation opdateret
+- `README.md`: Ny "Currently tested games" sektion med tabel
+- `.local-state/fps-etw.md`: Omfattende opdatering med alle test-resultater og fix-detaljer
+- `.local-state/current-focus.md`: Opdateret med session resultater
+- `.local-state/next-session-fps-test.md`: Markeret som FULDFØRT
+
+### Kendte begrænsninger (ingen blokkere)
+- Division 2: Kræver gen-start af IconGrid for at finde `TheDivision2.exe` (EACLaunch stjæler initial target)
+- COD: Langsom opstart — intro/startup-kæde tager tid før `Present()` kaldes regelmæssigt
+- POE 2: Reel FPS svinger naturligt i baggrunden (33-58), ikke et target problem
+- Yuzu: Emulator, bruger DxgKrnl fallback med overcount
+
+### Næste session muligheder (valgfrit)
+- Tilføj `EACLaunch` til `IgnoredForegroundProcesses` for hurtigere Division 2 target-acquisition
+- Forbedr COD startup-detection timing
+- Tilføj `mscopilot` til ignored foreground processes (blev fanget som false target)
+- Commit alle ændringer (bruger-godkendelse krævet)

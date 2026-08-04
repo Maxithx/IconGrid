@@ -96,7 +96,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - Drag-and-drop shortcut management in the launcher grid, available in both grid and carousel view.
 - Carousel view mode for shortcuts: a single horizontal row of icons (4 visible at a time) that scrolls with the mouse wheel or a thin theme-aware horizontal scrollbar; grid view shows 4 icons per row across multiple vertical rows.
 - Live CPU, GPU, ping, and network telemetry in the launcher top bar.
-- A dedicated gaming overlay monitor (without `Download` / `Upload` bandwidth stats) with saved window position, inline quick settings, dedicated overlay settings page, dividers for readability, and live FPS via ETW.
+- A dedicated gaming overlay monitor with saved window position, inline quick settings, dedicated overlay settings page, dividers for readability, and live FPS via ETW.
 - Layout presets and saved desktop layout restoration.
 - Theme synchronization with Windows accent and dark/light mode.
 - Built-in developer overlay via `DevInspector`.
@@ -153,6 +153,26 @@ IconGrid uses `LibreHardwareMonitorLib` for telemetry collection. Hardware acces
 - launcher / gaming overlay prefers the shared-memory live FPS path
 - `fps-state.json` remains as a compatibility / fallback handoff for broader monitor state
 - overlay shows a single live FPS number tuned for faster response
+
+### Currently tested games (2026-08-04)
+
+FPS capture has been validated with these titles:
+
+| Game | FPS source | Status | Notes |
+|------|-----------|--------|-------|
+| **Path of Exile 1** | PrimaryApi (DXGI) | ✅ Perfect | Guld-standard: holder target stabilt ved alle vindues-skift |
+| **Path of Exile 2** | PrimaryApi (DXGI) | ✅ Works | Reel FPS svinger når unfocused — ETW viser korrekt render-rate |
+| **Call of Duty (cod22-cod.exe)** | PrimaryApi (DXGI) | ✅ Works | Intro >200 FPS, menu ~100 FPS. Bag unrelated presenteret vs displayed FPS adfærd når unfocused |
+| **Tom Clancy's The Division 2** | PrimaryApi (DXGI) | ✅ Works | Render stopper helt ved de-fokus (Nvidia bekræfter 0 FPS). Sidste kendte FPS vises via sticky-hold |
+| **Stumble Guys** | PrimaryApi (DXGI) | ✅ Works | Testet 2026-08-04 |
+| **RHYTHM SPROUT Demo** | PrimaryApi (DXGI) | ✅ Works | Testet 2026-08-04 |
+| **Yuzu (emulator)** | DxgKrnlFallback | ⚠️ Overcount | Emulator-normalisering klampet til ~60 FPS. Hurtig target-acquisition |
+| **Fireworks Mania** | PrimaryApi (DXGI) | ✅ Works | Direkte .exe launch, hurtig lock |
+
+FPS pipeline-status per 2026-08-04:
+- **Sticky-target retention:** Grace period (3000ms) i native agent forhindrer target-tab ved foreground-skift
+- **Hold sidste FPS:** Når spil stopper rendering i baggrunden, vises sidste kendte FPS i stedet for `--`
+- **Spike filter bypass:** Når confirmed target holder, bruges raw ETW FPS uden spike-filter indblanding
 
 ### Current limitation
 

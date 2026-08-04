@@ -34,6 +34,9 @@ internal sealed class FpsMeter : IDisposable
     private double _smoothedFps;
     private double _liveFps;
     private DateTime _lastFpsUpdate = DateTime.MinValue;
+    private bool _stickyHold; // when true, don't decay FPS — keep last known value
+    private double _lastKnownFps; // cached FPS for sticky-hold fallback
+    private DateTime _stickyHoldSince = DateTime.MinValue;
 
     // FPS value fed by external providers (PresentMon, ETW, etc.)
     private double _externalFps = -1;
@@ -73,6 +76,28 @@ internal sealed class FpsMeter : IDisposable
             _liveFps = fps;
             _smoothedFps = (_smoothedFps * (1.0 - _emaAlpha)) + (fps * _emaAlpha);
             _lastFpsUpdate = _lastExternalFeed;
+            _lastKnownFps = _smoothedFps; // cache for sticky-hold fallback
+        }
+    }
+
+    /// <summary>
+    /// Called by HardwareMonitorAgent when sticky-target holds a game PID but native FPS data is stale.
+    /// Prevents the FPS display from decaying to "--" when the game is alive but rendering slowly (background).
+    /// </summary>
+    public void SetStickyHold(bool active)
+    {
+        lock (_sync)
+        {
+            _stickyHold = active;
+            if (active && _lastKnownFps > FpsThreshold)
+            {
+                // Restore last known FPS — PollTimerCallback may have already decayed it to 0
+                // while waiting for the next HardwareMonitorAgent snapshot cycle.
+                _liveFps = _lastKnownFps;
+                _smoothedFps = _lastKnownFps;
+                _lastExternalFeed = DateTime.UtcNow; // prevent immediate re-decay
+                _stickyHoldSince = DateTime.UtcNow;
+            }
         }
     }
 
@@ -304,8 +329,17 @@ internal sealed class FpsMeter : IDisposable
                     return;
                 }
 
-                // TIER 2: If external feed is stale, decay current FPS to "--"
-                // This handles the case where the game closes
+                // TIER 2: Sticky-hold — game is alive but rendering slowly (background).
+                // Keep last known FPS instead of decaying to "--".
+                // The caller (HardwareMonitorAgent) manages the hold lifecycle via SetStickyHold(true/false).
+                if (_stickyHold)
+                {
+                    // Hold current FPS values — do NOT decay.
+                    return;
+                }
+
+                // TIER 3: If external feed is stale and no sticky-hold, decay current FPS to "--".
+                // This handles the case where the game closes.
                 if (_liveFps > FpsThreshold)
                 {
                     _liveFps *= LiveFpsDecayFactor;
