@@ -140,9 +140,9 @@ namespace IconGrid.ViewModels
             }
         }
 
-        public double ContentAreaHeight => _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale);
-        public double ContentAreaMaxHeight => _layoutMeasurements.ContentAreaMaxHeight;
-        public double ContentHostHeight => _layoutMeasurements.ContentHostHeight(IsOverlayOpen, CurrentItems.Count, IconsPerRow, EffectiveIconScale);
+    public double ContentAreaHeight => _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale, _enableContentScroll);
+    public double ContentAreaMaxHeight => _layoutMeasurements.ContentAreaMaxHeight;
+    public double ContentHostHeight => _layoutMeasurements.ContentHostHeight(IsOverlayOpen, CurrentItems.Count, IconsPerRow, EffectiveIconScale, _enableContentScroll);
         public int IconsPerRow
         {
             get => _iconsPerRow;
@@ -358,6 +358,10 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _enableContentScroll, value))
                 {
                     SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(ContentAreaHeight));
+                    OnPropertyChanged(nameof(ContentHostHeight));
+                    OnPropertyChanged(nameof(WindowDesiredHeight));
+                    OnPropertyChanged(nameof(WindowDesiredHeightEffective));
                 }
             }
         }

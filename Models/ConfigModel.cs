@@ -23,8 +23,8 @@ public class ConfigModel
     public bool StartWithWindows { get; set; } = false;
     public StartupLaunchMode StartupLaunchMode { get; set; } = StartupLaunchMode.TaskScheduler;
     public bool ShowDevOverlay { get; set; } = false;
-    public double IconRowSpacing { get; set; } = -20;       // px
-    public double LastRowPaddingAdjust { get; set; } = -50; // px
+    public double IconRowSpacing { get; set; } = 0;         // px (0 = no gap between rows)
+    public double LastRowPaddingAdjust { get; set; } = 0;    // px (-20..+20); 0 = 17px breathing room under last row
     public string Language { get; set; } = "da";
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }

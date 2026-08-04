@@ -52,7 +52,7 @@ namespace IconGrid.ViewModels.Settings
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
                 IconRowSpacing = config.IconRowSpacing,
-                LastRowPaddingAdjust = config.LastRowPaddingAdjust,
+                LastRowPaddingAdjust = Math.Max(-20, Math.Min(20, config.LastRowPaddingAdjust)),
                 EnableSlideUpAnimation = config.EnableSlideUpAnimation,
                 EnableContentScroll = config.EnableContentScroll,
                 IconViewMode = string.Equals(config.IconViewMode, "Carousel", StringComparison.OrdinalIgnoreCase) ? "Carousel" : "Grid",

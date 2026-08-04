@@ -288,3 +288,19 @@
 - Pre-B7 MainWindow state is preserved in git at commit `42ce00b` (backup/rollback point).
 - Next session: MainViewModel reduction toward 1200 (settings-persistence block ApplyConfig/SaveSettingsToConfig/ApplyDefaultSettingsState + localization-bindings block) is now the only remaining architecture VIOLATION, followed by the optional A4 (rebind XAML directly to LayoutMeasurements).
 - Commit: see git log (B7-B10 committed together with the MCP fix this session — `42ce00b` = MCP fix, and the B7-B10 refactor commit follows).
+
+## Carousel view mode (Aug 3-4, 2026)
+
+- Added a new "Carousel" view mode for launcher shortcut icons, controlled by a toggle on the GenvejsIkoner settings page (localized "Karruselvisning"/"Carousel view").
+- Grid mode unchanged: UniformGrid Columns=IconsPerRow with vertical scroll. Carousel mode: single row, max 4 icons visible, horizontal scrolling in the same viewport (window neither taller nor wider).
+- `LauncherLayoutMeasurements` now owns persisted `IconViewMode` ("Grid"/"Carousel"); `CalculateContentAreaHeight` forces rows=1 in carousel so the window does not grow taller. ContentWidth/ContentMinWidth unchanged.
+- Persistence chain updated: ConfigModel.IconViewMode, MainViewModelConfigState, MainViewModelSettingsState, MainViewModelSettingsPersistence, ApplyConfig/ApplyDefaultSettingsState. MainViewModel exposes IconViewMode + IsCarouselViewMode (two-way binding for the toggle).
+- `LauncherGrid.xaml` now has two ScrollViewers: GridScrollViewer (vertical, PanningMode=VerticalOnly) and CarouselScrollViewer (horizontal, PanningMode=HorizontalOnly). Shared IconTileTemplate preserves drag-and-drop and context menu exactly. Hardcoded 4px scrollbar style removed; both scrollbars now use the shared SettingsPageScrollBarStyle / new SettingsPageScrollBarHorizontalStyle (thin, theme-aware).
+- `StartsideStyles.xaml` gained SettingsPageScrollBarThumbHorizontalStyle + SettingsPageScrollBarHorizontalStyle (horizontal sibling of the existing vertical style).
+- Mouse wheel scrolls horizontally in carousel via CarouselScrollViewer_PreviewMouseWheel routing Delta to ScrollToHorizontalOffset.
+- EnableContentScroll toggle controls both vertical (grid) and horizontal (carousel) scrollbars.
+- Build: 0 warnings / 0 errors. `check_architecture_rules` GREEN: MainWindow 968, MainViewModel 1037, HardwareMonitorAgent 1432, SystemMonitor 501 all pass.
+- Manual UI test PASSED (user-confirmed): toggle grid<->carousel, max 4 visible, horizontal wheel/drag scroll, window size unchanged, thin scrollbars, scrollbar on/off both modes, sliders, drag&drop and context menus, persistence after restart, reset-to-defaults returns to grid.
+- Commit: `767e75e` "feat: add carousel view mode for launcher shortcut icons with thin theme-aware scrollbars" (13 files, +288/-84).
+- Pushed to origin: `5eaf211..767e75e main -> main` (2026-08-04).
+- Next steps: update ARCHITECTURE_RULES.md Recent Good Examples is still optional.

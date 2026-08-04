@@ -46,7 +46,7 @@ namespace IconGrid.ViewModels
         private void ApplyDefaultSettingsState()
         {
             _iconsPerRow = 4;
-            _layoutMeasurements.ApplyMeasurementState(-20, -50, "Grid");
+            _layoutMeasurements.ApplyMeasurementState(0, 0, "Grid");
             _icon_scale = 1.0;
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
@@ -81,7 +81,7 @@ namespace IconGrid.ViewModels
 
             var state = new MainViewModelSettingsState
             {
-                ContentAreaHeight = _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale),
+                ContentAreaHeight = _layoutMeasurements.CalculateContentAreaHeight(CurrentItems.Count, IconsPerRow, EffectiveIconScale, _enableContentScroll),
                 IconsPerRow = _iconsPerRow,
                 IconScale = _icon_scale,
                 UiScale = _uiScale,

@@ -34,8 +34,8 @@
                                         helpers:DevInspector.Metadata="Mellemrumm slider → Views/GenvejsIkonerPage.xaml" />
 
                     <controls:SliderRow Label="{Binding LastRowPaddingLabel}"
-                                        Minimum="-100"
-                                        Maximum="100"
+                                        Minimum="-20"
+                                        Maximum="20"
                                         Value="{Binding LastRowPaddingAdjust, Mode=TwoWay}"
                                         ValueFormat="{}{0:F0} px"
                                         LabelForeground="{Binding SettingsSubtextForeground}"

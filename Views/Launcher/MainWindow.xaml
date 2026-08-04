@@ -357,7 +357,7 @@
         </Style>
 
         <Style x:Key="LauncherIconTileStyle" TargetType="Button">
-            <Setter Property="Padding" Value="8" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="{Binding DataContext.IconMargin, RelativeSource={RelativeSource AncestorType=Window}}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -383,7 +383,7 @@
                                         CornerRadius="10"
                                         Background="Transparent"
                                         Padding="4"
-                                        Margin="0,0,0,6"
+                                        Margin="0"
                                         RenderTransformOrigin="0.5,0.5">
                                     <Border.LayoutTransform>
                                         <!-- Scale only the icon, not the text, when IconSize slider changes -->
@@ -402,7 +402,7 @@
                                            UseLayoutRounding="True" />
                                 </Border>
                                   <Grid Width="130"
-                                      Height="68"
+                                      Height="40"
                                       HorizontalAlignment="Center"
                                       ToolTip="{Binding DisplayName}">
                                     <!-- Four crisp offset shadows to outline all sides -->
@@ -691,8 +691,8 @@
                                            helpers:DevInspector.Metadata="Icon row spacing label → Views/MainWindow.xaml (Settings controls)" />
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                             helpers:DevInspector.Metadata="Icon row spacing slider row → Views/MainWindow.xaml (Settings controls)">
-                                    <Slider Minimum="-40"
-                                            Maximum="32"
+                                    <Slider Minimum="-50"
+                                            Maximum="50"
                                             SmallChange="1"
                                             LargeChange="2"
                                             TickFrequency="1"
@@ -710,8 +710,8 @@
                                            helpers:DevInspector.Metadata="Last row padding label → Views/MainWindow.xaml (Settings controls)" />
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                             helpers:DevInspector.Metadata="Last row padding slider row → Views/MainWindow.xaml (Settings controls)">
-                                    <Slider Minimum="-80"
-                                            Maximum="80"
+                                    <Slider Minimum="-20"
+                                            Maximum="20"
                                             SmallChange="1"
                                             LargeChange="5"
                                             TickFrequency="5"

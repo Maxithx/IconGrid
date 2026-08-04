@@ -15,9 +15,10 @@ namespace IconGrid.ViewModels.Launcher
         // ---------- Constants ----------
 
         public const double TileSlotWidth = 172;             // approximate width per icon tile including margin
-        public const double BaseTileSlotHeight = 152;        // base row height (icon + label) before spacing
-        public const double ContentVerticalPaddingTop = 36;  // upper padding portion (matches XAML padding)
-        public const double ContentVerticalPaddingBottom = 0; // remove bottom padding to eliminate extra space
+        public const double BaseTileSlotHeight = 152;        // nominal row slot (icon + label) before spacing
+        public const double MinimumTileSlotHeight = 96;      // hard floor = actual compact tile (56 icon + 40 label, no padding/margin)
+        public const double ContentVerticalPaddingTop = 17;  // matches XAML top padding
+        public const double ContentVerticalPaddingBottom = 17; // matches XAML bottom padding (symmetric with top)
         public const double ExtraBottomPaddingPerRow = 0;    // no extra bottom padding per row
         public const double ContentHorizontalPadding = 60;   // content border padding left+right
         public const double WindowHorizontalPadding = 0;     // remove outer shell padding to keep full-mode window tight to content
@@ -30,7 +31,7 @@ namespace IconGrid.ViewModels.Launcher
         // ---------- Measurement state ----------
 
         private double _headerHeight = 140;                   // measured height for top chrome + tabs
-        private double _iconRowSpacing = -20;                 // adjustable extra spacing between rows (default tightened)
+        private double _iconRowSpacing = 0;                   // adjustable extra spacing between rows (0 = no gap)
         private double _lastRowPaddingAdjust = 0;             // fine-tune bottom space under the last visible row
         private bool _isIconPanelExpanded = true;
         private string _iconViewMode = GridViewMode;
@@ -117,8 +118,11 @@ namespace IconGrid.ViewModels.Launcher
 
         /// <summary>
         /// Margin applied to each icon tile (horizontal fixed, vertical derived from row spacing).
+        /// The vertical margin is clamped to 0 so a negative icon-row spacing can NEVER
+        /// lift tiles up or clip them — it only makes rows sit tighter together.
         /// </summary>
-        public Thickness IconMargin => new Thickness(14, IconRowSpacing / 2, 14, IconRowSpacing / 2);
+        public Thickness IconMargin =>
+            new Thickness(14, Math.Max(0, IconRowSpacing / 2), 14, Math.Max(0, IconRowSpacing / 2));
 
         // ---------- Measurement calculations ----------
 
@@ -126,8 +130,8 @@ namespace IconGrid.ViewModels.Launcher
 
         private double SettingsContentHeight => Math.Max(200, FixedSettingsHeight - _headerHeight);
 
-        public double ContentHostHeight(bool isOverlayOpen, int itemCount, int iconsPerRow, double effectiveIconScale)
-            => isOverlayOpen ? SettingsContentHeight : CalculateContentAreaHeight(itemCount, iconsPerRow, effectiveIconScale);
+public double ContentHostHeight(bool isOverlayOpen, int itemCount, int iconsPerRow, double effectiveIconScale, bool enableContentScroll)
+            => isOverlayOpen ? SettingsContentHeight : CalculateContentAreaHeight(itemCount, iconsPerRow, effectiveIconScale, enableContentScroll);
 
         public double ContentMinWidth(int iconsPerRow)
         {
@@ -150,22 +154,40 @@ namespace IconGrid.ViewModels.Launcher
         public double WindowDesiredHeight(bool isOverlayOpen, double contentHostHeight, double uiScale)
             => isOverlayOpen ? (FixedSettingsHeight * uiScale) : ((contentHostHeight + _headerHeight) * uiScale);
 
-        public double CalculateContentAreaHeight(int itemCount, int iconsPerRow, double effectiveIconScale)
+public double CalculateContentAreaHeight(int itemCount, int iconsPerRow, double effectiveIconScale, bool enableContentScroll)
         {
             if (!IsIconPanelExpanded) return 0;
 
-            var scaledTileHeight = BaseTileSlotHeight * effectiveIconScale;
+            if (IsCarouselMode)
+            {
+                // Carousel: single row, so inter-row spacing must NOT inflate the
+                // height. Carousel uses its own slightly more generous padding:
+                // Padding="23,20,23,20" gives 20 px above and below the row. The
+                // "Bottom padding (last row)" slider then adjusts only extra space;
+                // the floor at 0 means the icons are never overlapped by the
+                // horizontal scrollbar (which only appears inside an overflowing
+                // viewport).
+                const double CarouselBaseTileSlotHeight = 96; // tight single-row slot = compact icon tile
+                const double CarouselPaddingTop = 20;         // matches carousel Border padding top
+                const double CarouselPaddingBottom = 20;      // matches carousel Border padding bottom
+                const double CarouselScrollBarReserve = 12;   // horizontal scrollbar height when enabled
+                var carouselRow = CarouselBaseTileSlotHeight * effectiveIconScale;
+                var underIcons = Math.Max(0, _lastRowPaddingAdjust);
+                var scrollBarReserve = enableContentScroll ? CarouselScrollBarReserve : 0;
+                return CarouselPaddingTop + carouselRow + CarouselPaddingBottom + underIcons + scrollBarReserve;
+            }
+
             var columns = Math.Max(1, iconsPerRow);
 
-            // In carousel mode the window must not grow taller: always measure as a single row.
-            var rows = IsCarouselMode
-                ? 1
-                : Math.Max(1, Math.Ceiling(itemCount / (double)columns));
+            var rows = Math.Max(1, Math.Ceiling(itemCount / (double)columns));
 
-            // For 1-3 rows we respect any negative row spacing to keep height snug.
-            // For 4+ rows we clamp spacing to 0 so scrolling range is consistent.
-            var useRowSpacing = (rows > 3) ? Math.Max(0, _iconRowSpacing) : _iconRowSpacing;
-            var singleRowHeight = scaledTileHeight + ExtraBottomPaddingPerRow + useRowSpacing;
+            // Rows sit flush against each other: the row slot equals the actual icon
+            // tile height plus any POSITIVE row spacing. Negative or zero spacing
+            // yields zero gap between rows, so there is no padding below the top row
+            // and no top padding on the next row — and icons are never lifted/clipped.
+            var singleRowHeight = (MinimumTileSlotHeight * effectiveIconScale)
+                                  + ExtraBottomPaddingPerRow
+                                  + Math.Max(0, _iconRowSpacing);
 
             var totalContentHeight = (rows * singleRowHeight)
                                      + ContentVerticalPaddingTop
@@ -188,10 +210,12 @@ namespace IconGrid.ViewModels.Launcher
                 return Math.Max(minHeight, Math.Min(forcedOverflowHeight, maxContentHeight));
             }
 
-            const double NoScrollBottomBuffer = 32; // slightly more buffer under last row when no scrollbar
-            var adjustedHeight = totalContentHeight + NoScrollBottomBuffer + _lastRowPaddingAdjust;
-            var minimum = singleRowHeight + ContentVerticalPaddingTop + Math.Min(0, _lastRowPaddingAdjust);
-            return Math.Max(minimum, adjustedHeight);
+            // The Border in LauncherGrid already provides symmetric padding above
+            // and below the icon area (17 px). The "Bottom padding (last row)"
+            // slider (-20..+20 px) only adds or removes EXTRA space below the
+            // last row; the floor at 0 means the icons are never lifted/clipped.
+            var underIconsSpace = Math.Max(0, _lastRowPaddingAdjust);
+            return totalContentHeight + underIconsSpace;
         }
 
         private bool IsCarouselMode => string.Equals(_iconViewMode, CarouselViewMode, StringComparison.Ordinal);

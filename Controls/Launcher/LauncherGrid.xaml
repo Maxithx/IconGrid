@@ -35,7 +35,6 @@
         </DataTemplate>
     </UserControl.Resources>
     <Border Margin="0"
-            Padding="20,26,20,0"
             Background="#33FFFFFF"
             BorderBrush="Transparent"
             BorderThickness="0"
@@ -49,6 +48,17 @@
             DragOver="ItemsControl_DragOver"
             Drop="ItemsControl_Drop"
             ContextMenuOpening="ContentArea_ContextMenuOpening">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Padding" Value="20,17,20,17" />
+                <Style.Triggers>
+                    <!-- Carousel mode gets a slightly more generous symmetric padding -->
+                    <DataTrigger Binding="{Binding IconViewMode}" Value="Carousel">
+                        <Setter Property="Padding" Value="23,20,23,20" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
         <Grid>
             <TextBlock Text="Træk og slip en genvej her"
                        Foreground="#66FFFFFF"
