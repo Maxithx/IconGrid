@@ -21,6 +21,9 @@ namespace IconGrid.ViewModels
             _uiScale = state.UiScale;
             _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, state.GamingOverlayUiScale));
             _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 1.0 : Math.Max(0.15, Math.Min(1.0, state.GamingOverlayFpsResponsiveness));
+            _gamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
+            _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
+            _gamingOverlayTextColor = string.IsNullOrWhiteSpace(state.GamingOverlayTextColor) ? "#FFFFFF" : state.GamingOverlayTextColor;
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
@@ -51,6 +54,9 @@ namespace IconGrid.ViewModels
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
             _gamingOverlayFpsResponsiveness = 1.0;
+            _gamingOverlayTransparentBackground = false;
+            _gamingOverlayAutoTransparentBackground = false;
+            _gamingOverlayTextColor = "#FFFFFF";
             _isAlwaysOnTop = false;
             _isFloatingIconTopmost = true;
             _showScrollButtons = true;
@@ -87,6 +93,9 @@ namespace IconGrid.ViewModels
                 UiScale = _uiScale,
                 GamingOverlayUiScale = _gamingOverlayUiScale,
                 GamingOverlayFpsResponsiveness = _gamingOverlayFpsResponsiveness,
+                GamingOverlayTransparentBackground = _gamingOverlayTransparentBackground,
+                GamingOverlayAutoTransparentBackground = _gamingOverlayAutoTransparentBackground,
+                GamingOverlayTextColor = _gamingOverlayTextColor,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,

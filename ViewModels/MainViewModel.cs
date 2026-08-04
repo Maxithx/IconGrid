@@ -42,6 +42,9 @@ namespace IconGrid.ViewModels
         private double _fixedContentWidth = 720;
         private double _gamingOverlayUiScale = 1.0;
         private double _gamingOverlayFpsResponsiveness = 1.0;
+        private bool _gamingOverlayTransparentBackground = false;
+        private bool _gamingOverlayAutoTransparentBackground = false;
+        private string _gamingOverlayTextColor = "#FFFFFF";
         private const double GamingOverlayBaseWidth = 720;
         private const double GamingOverlayBaseHeight = 44;
         private bool _isFullWindowVisible = false;
@@ -84,6 +87,7 @@ namespace IconGrid.ViewModels
             (_dataFolder, _legacyDataFolder, _iconPackFolder) = CreateStoragePaths();
             EnsureIconPackFolder();
             InitializeAppearance();
+            _systemMonitor.PropertyChanged += SystemMonitor_PropertyChanged;
             _tabsState = CreateTabsState();
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
             Items = new ObservableCollection<LauncherItem>();
@@ -236,6 +240,97 @@ namespace IconGrid.ViewModels
                     OnPropertyChanged(nameof(GamingOverlayFpsResponsiveness));
                     OnPropertyChanged(nameof(GamingOverlayFpsResponsivenessPercent));
                     OnPropertyChanged(nameof(GamingOverlayFpsResponsivenessDescription));
+                }
+            }
+        }
+
+        public bool GamingOverlayTransparentBackground
+        {
+            get => _gamingOverlayTransparentBackground;
+            set
+            {
+                if (SetField(ref _gamingOverlayTransparentBackground, value))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(IsGamingOverlayTextColorCustom));
+                    OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
+                    OnPropertyChanged(nameof(GamingOverlayAnyTransparentEnabled));
+                }
+            }
+        }
+
+        /// <summary>
+        /// When enabled, transparent background is only active while a game is running.
+        /// Independent from GamingOverlayTransparentBackground.
+        /// </summary>
+        public bool GamingOverlayAutoTransparentBackground
+        {
+            get => _gamingOverlayAutoTransparentBackground;
+            set
+            {
+                if (SetField(ref _gamingOverlayAutoTransparentBackground, value))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
+                    OnPropertyChanged(nameof(GamingOverlayAnyTransparentEnabled));
+                }
+            }
+        }
+
+        /// <summary>
+        /// True when either transparent option is enabled (used to show text color options).
+        /// </summary>
+        public bool GamingOverlayAnyTransparentEnabled =>
+            _gamingOverlayTransparentBackground || _gamingOverlayAutoTransparentBackground;
+
+        /// <summary>
+        /// Effective transparent state. The two toggles are independent:
+        /// - TransparentBackground: always transparent when enabled.
+        /// - AutoTransparentBackground: transparent only while a game is tracked (IsInGame).
+        /// If either applies, the overlay is transparent.
+        /// </summary>
+        public bool GamingOverlayTransparentBackgroundEffective =>
+            _gamingOverlayTransparentBackground ||
+            (_gamingOverlayAutoTransparentBackground && _systemMonitor.IsInGame);
+
+        public string GamingOverlayTextColor
+        {
+            get => _gamingOverlayTextColor;
+            set
+            {
+                var clamped = string.IsNullOrWhiteSpace(value) ? "#FFFFFF" : value;
+                if (SetField(ref _gamingOverlayTextColor, clamped))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(GamingOverlayTextBrush));
+                    OnPropertyChanged(nameof(GamingOverlayTextColorHex));
+                }
+            }
+        }
+
+        public bool IsGamingOverlayTextColorCustom => GamingOverlayTransparentBackgroundEffective;
+
+        public string GamingOverlayTextColorHex
+        {
+            get
+            {
+                if (GamingOverlayTransparentBackgroundEffective)
+                    return _gamingOverlayTextColor;
+                return IsLightTheme ? "#111111" : "#FFFFFF";
+            }
+        }
+
+        public WMedia.Brush GamingOverlayTextBrush
+        {
+            get
+            {
+                try
+                {
+                    return new WMedia.SolidColorBrush((WMedia.Color)WMedia.ColorConverter.ConvertFromString(GamingOverlayTextColorHex));
+                }
+                catch
+                {
+                    return new WMedia.SolidColorBrush(WMedia.Colors.White);
                 }
             }
         }
@@ -903,6 +998,16 @@ namespace IconGrid.ViewModels
         private void LayoutMeasurements_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             OnPropertyChanged(e.PropertyName);
+        }
+
+        private void SystemMonitor_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (string.Equals(e.PropertyName, nameof(SystemMonitor.IsInGame), System.StringComparison.Ordinal))
+            {
+                OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
+                OnPropertyChanged(nameof(GamingOverlayTextBrush));
+                OnPropertyChanged(nameof(GamingOverlayTextColorHex));
+            }
         }
 
         private void ThemeCoordinator_ThemeChanged(object? sender, ThemeSnapshot e)

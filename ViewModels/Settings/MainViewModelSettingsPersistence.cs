@@ -24,6 +24,9 @@ namespace IconGrid.ViewModels.Settings
                 config.UiScale = state.UiScale;
                 config.GamingOverlayUiScale = state.GamingOverlayUiScale;
                 config.GamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness;
+                config.GamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
+                config.GamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
+                config.GamingOverlayTextColor = state.GamingOverlayTextColor;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
                 config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;

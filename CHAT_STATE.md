@@ -486,3 +486,17 @@
 - **VS Code fejl-artefakt:** "CS0103: nameof does not exist" ved linje 223-224 i `MainViewModel.Localization.cs` er en forældet DocumentCompiler-cache, ikke en ægte fejl (faktisk build 0 fejl). Løsning: Developer: Reload Window.
 - **MCP notes-server:** `append_to_note` kald afvist af klientens JSON-schema-validering trods korrekt server-schema — samme klient-side begrænsning som dokumenteret tidligere. CHAT_STATE.md opdateret direkte via File API.
 - **Næste trin:** commit + push af hardware-siden ændringer (afventer bruger-godkendelse — godkendt i denne session).
+
+## Session 2026-08-05: Gaming overlay theme + transparent background
+
+- **FPS lys/mørk tema-fix:** FPS-tælleren viste lys grøn (`#7CFF6B`) på hvid baggrund ved lyst Windows-tema. Fix: ny `OverlayFpsLightBrush` (`#16A34A` mørk grøn) + `OverlayFpsTextStyle` med `IsLightTheme`-DataTrigger. `GamingOverlayWindow.xaml`.
+- **Transparent baggrund toggle:** Ny `GamingOverlayTransparentBackground` indstilling på Gaming overlay-siden med `ToggleSwitchStyle` (samme som startsiden). Baggrunden (`OverlayRoot` + popup-paneler) bliver gennemsigtig når ON.
+- **Tekstfarve + farvepalet + custom farvevælger:** Ny `GamingOverlayTextColor` (hex, default `#FFFFFF`). Hybrid-løsning: hvid standard + 7 swatches (Hvid/Sort/Gul/Blå/Grøn/Pink/Cyan) + Windows `ColorDialog` via "Brugerdefineret farve...". Alle overlay-tekst-elementer (labels, FPS, divider, knapper) bruger `GamingOverlayTextBrush` når transparent er aktiv.
+- **Dynamisk transparent toggle:** Ny `GamingOverlayAutoTransparentBackground` — "Kun gennemsigtig under spil". `SystemMonitor.IsInGame` (baseret på `FpsStatus != "--"`).
+- **FIX uafhængige toggles:** De to toggles påvirker ikke længere hinanden (OR-logik): `Effective = TransparentBackground || (AutoTransparentBackground && IsInGame)`. Auto-toggle er altid synlig; tekstfarve-sektion vises når enten er ON via `GamingOverlayAnyTransparentEnabled`.
+- **Selected swatch markering:** Valgt farve markeres med accentfarvet 3px ring via DataTrigger på hver swatch. Custom farver normaliseres til `#RRGGBB` (ToHex) så markeringen også matcher.
+- **Filer ændret:** `Views/Launcher/GamingOverlayWindow.xaml`, `Views/Settings/Pages/GamingOverlayPage.xaml` + `.cs`, `Models/ConfigModel.cs`, `ViewModels/MainViewModel.cs`, `ViewModels/MainViewModel.Settings.cs`, `ViewModels/Settings/*` (ConfigState/SettingsState/Persistence), `Helpers/Launcher/SystemMonitor.cs`.
+- **Build-status:** 0 fejl, 0 advarsler ✅.
+- **Arkitektur:** `check_architecture_rules` GRØN ✅.
+- **Detaljer:** Se `.local-state/color-system.md` (afsnit: Gaming overlay FPS light theme, Gaming overlay transparent background, Gaming overlay text color picker, Dynamic transparent overlay when in game, Auto-transparent toggle, FIX Independent transparent toggles, Color swatch selected marker).
+- **Næste skridt:** Ingen planlagte — brugeren bekræftede "det spiller rigtig godt. så er vi færdig".

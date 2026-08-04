@@ -17,6 +17,12 @@ namespace IconGrid.Views
         private MainViewModel? _mainViewModel;
         private string _pageTitleText = "Gaming overlay";
         private string _pageIntroText = string.Empty;
+        private string _overlayTransparentBackgroundTitleText = "Transparent background";
+        private string _overlayTransparentBackgroundDescriptionText = string.Empty;
+        private string _overlayAutoTransparentTitleText = "Transparent while in game";
+        private string _overlayAutoTransparentDescriptionText = string.Empty;
+        private string _overlayTextColorTitleText = "Text color";
+        private string _overlayCustomColorButtonText = "Custom color...";
         private string _overlayScaleTitleText = string.Empty;
         private string _fpsResponsivenessTitleText = string.Empty;
         private string _fpsResponsivenessIntroText = string.Empty;
@@ -71,6 +77,42 @@ namespace IconGrid.Views
         {
             get => _pageIntroText;
             private set => SetField(ref _pageIntroText, value);
+        }
+
+        public string OverlayTransparentBackgroundTitleText
+        {
+            get => _overlayTransparentBackgroundTitleText;
+            private set => SetField(ref _overlayTransparentBackgroundTitleText, value);
+        }
+
+        public string OverlayTransparentBackgroundDescriptionText
+        {
+            get => _overlayTransparentBackgroundDescriptionText;
+            private set => SetField(ref _overlayTransparentBackgroundDescriptionText, value);
+        }
+
+        public string OverlayAutoTransparentTitleText
+        {
+            get => _overlayAutoTransparentTitleText;
+            private set => SetField(ref _overlayAutoTransparentTitleText, value);
+        }
+
+        public string OverlayAutoTransparentDescriptionText
+        {
+            get => _overlayAutoTransparentDescriptionText;
+            private set => SetField(ref _overlayAutoTransparentDescriptionText, value);
+        }
+
+        public string OverlayTextColorTitleText
+        {
+            get => _overlayTextColorTitleText;
+            private set => SetField(ref _overlayTextColorTitleText, value);
+        }
+
+        public string OverlayCustomColorButtonText
+        {
+            get => _overlayCustomColorButtonText;
+            private set => SetField(ref _overlayCustomColorButtonText, value);
         }
 
         public string OverlayScaleTitleText
@@ -172,6 +214,42 @@ namespace IconGrid.Views
             RefreshFpsSetupStatus();
         }
 
+        private void OverlayColorSwatch_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.FrameworkElement element &&
+                element.Tag is string hex &&
+                _mainViewModel != null)
+            {
+                _mainViewModel.GamingOverlayTextColor = hex;
+            }
+        }
+
+        private void OverlayCustomColorButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_mainViewModel == null)
+                return;
+
+            using var dialog = new System.Windows.Forms.ColorDialog();
+            try
+            {
+                dialog.Color = System.Drawing.ColorTranslator.FromHtml(_mainViewModel.GamingOverlayTextColor);
+            }
+            catch
+            {
+                dialog.Color = System.Drawing.Color.White;
+            }
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                _mainViewModel.GamingOverlayTextColor = ToHex(dialog.Color);
+            }
+        }
+
+        private static string ToHex(System.Drawing.Color color)
+        {
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        }
+
         private void RunFpsSetupFixButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             if (!CanRunFpsSetupFix || string.IsNullOrWhiteSpace(_currentUserDisplayName))
@@ -255,6 +333,12 @@ namespace IconGrid.Views
             {
                 PageTitleText = "Gaming overlay";
                 PageIntroText = "Dedikeret indstillingsside til gaming overlayet. Hold den adskilt fra de normale launcher-indstillinger.";
+                OverlayTransparentBackgroundTitleText = "Transparent baggrund";
+                OverlayTransparentBackgroundDescriptionText = "Goer gaming overlayets baggrund gennemsigtig, saa kun tekst og indikatorer vises oven paa spillet.";
+                OverlayAutoTransparentTitleText = "Kun gennemsigtig under spil";
+                OverlayAutoTransparentDescriptionText = "Goer baggrunden gennemsigtig kun mens et spil kører. Naar spillet lukkes, kommer baggrunden automatisk tilbage.";
+                OverlayTextColorTitleText = "Tekstfarve";
+                OverlayCustomColorButtonText = "Brugerdefineret farve...";
                 OverlayScaleTitleText = "Overlay storrelse";
                 FpsResponsivenessTitleText = "FPS opdateringshastighed";
                 FpsResponsivenessIntroText = "IconGrid viser nu et live FPS-tal i overlayet og et mere stabilt trend-tal ved siden af. Denne slider styrer, hvor hurtigt trend-tallet foelger de nye ETW-data.";
@@ -273,6 +357,12 @@ namespace IconGrid.Views
             {
                 PageTitleText = "Gaming overlay";
                 PageIntroText = "Dedicated settings page for the gaming overlay. Keep this separate from the standard launcher settings.";
+                OverlayTransparentBackgroundTitleText = "Transparent background";
+                OverlayTransparentBackgroundDescriptionText = "Make the gaming overlay background transparent so only text and indicators show on top of the game.";
+                OverlayAutoTransparentTitleText = "Transparent while in game";
+                OverlayAutoTransparentDescriptionText = "Only make the background transparent while a game is running. When the game closes, the background automatically returns.";
+                OverlayTextColorTitleText = "Text color";
+                OverlayCustomColorButtonText = "Custom color...";
                 OverlayScaleTitleText = "Overlay scale";
                 FpsResponsivenessTitleText = "FPS update responsiveness";
                 FpsResponsivenessIntroText = "IconGrid now shows a live FPS number in the overlay and a steadier trend number beside it. This slider controls how quickly the trend number follows new ETW data.";

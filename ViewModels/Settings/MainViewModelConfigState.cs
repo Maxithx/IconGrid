@@ -14,6 +14,9 @@ namespace IconGrid.ViewModels.Settings
         public double UiScale { get; init; }
         public double GamingOverlayUiScale { get; init; }
         public double GamingOverlayFpsResponsiveness { get; init; }
+        public bool GamingOverlayTransparentBackground { get; init; }
+        public bool GamingOverlayAutoTransparentBackground { get; init; }
+        public string GamingOverlayTextColor { get; init; } = "#FFFFFF";
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -48,6 +51,9 @@ namespace IconGrid.ViewModels.Settings
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
                 GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, config.GamingOverlayUiScale)),
                 GamingOverlayFpsResponsiveness = config.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, config.GamingOverlayFpsResponsiveness)),
+                GamingOverlayTransparentBackground = config.GamingOverlayTransparentBackground,
+                GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,
+                GamingOverlayTextColor = string.IsNullOrWhiteSpace(config.GamingOverlayTextColor) ? "#FFFFFF" : config.GamingOverlayTextColor,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,

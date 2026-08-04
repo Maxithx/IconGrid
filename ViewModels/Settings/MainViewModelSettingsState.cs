@@ -11,6 +11,9 @@ namespace IconGrid.ViewModels.Settings
         public double UiScale { get; set; }
         public double GamingOverlayUiScale { get; set; }
         public double GamingOverlayFpsResponsiveness { get; set; }
+        public bool GamingOverlayTransparentBackground { get; set; }
+        public bool GamingOverlayAutoTransparentBackground { get; set; }
+        public string GamingOverlayTextColor { get; set; } = "#FFFFFF";
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }

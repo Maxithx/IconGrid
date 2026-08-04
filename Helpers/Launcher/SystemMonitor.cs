@@ -68,7 +68,17 @@ namespace IconGrid.Helpers
         public string GpuName { get => _gpuName; private set { _gpuName = value; OnPropertyChanged(); } }
         public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
         public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
-        public string FpsStatus { get => _fpsStatus; private set { _fpsStatus = value; OnPropertyChanged(); } }
+        public string FpsStatus
+        {
+            get => _fpsStatus;
+            private set
+            {
+                _fpsStatus = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsInGame));
+            }
+        }
+        public bool IsInGame => _fpsStatus != "--";
         public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); } }
         public double FpsDisplayResponsiveness
         {

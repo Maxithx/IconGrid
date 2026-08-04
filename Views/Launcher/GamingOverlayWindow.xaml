@@ -30,6 +30,7 @@
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
         <SolidColorBrush x:Key="OverlayFpsBrush" Color="#7CFF6B" />
+        <SolidColorBrush x:Key="OverlayFpsLightBrush" Color="#16A34A" />
         <SolidColorBrush x:Key="OverlayCloseHoverLight" Color="#1A000000" />
         <SolidColorBrush x:Key="OverlayClosePressedLight" Color="#33000000" />
         <SolidColorBrush x:Key="OverlayCloseHoverDark" Color="#14FFFFFF" />
@@ -41,6 +42,9 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Foreground" Value="#111" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -54,6 +58,19 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding SystemMonitor.IsHighPing}" Value="True">
                     <Setter Property="Foreground" Value="{StaticResource MonitorHighPingColor}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="OverlayFpsTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource OverlayFpsBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource OverlayFpsLightBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -105,6 +122,9 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -163,6 +183,9 @@
                         </Setter.Value>
                     </Setter>
                 </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </DataTrigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
@@ -177,11 +200,20 @@
 
             <Border x:Name="OverlayRoot"
                     Grid.Row="0"
-                    Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
                     BorderThickness="0"
                     CornerRadius="8"
                     Padding="0"
                     MouseLeftButtonDown="OverlayRoot_MouseLeftButtonDown">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <Setter Property="Background" Value="Transparent" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid Height="44">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -272,10 +304,7 @@
                                        VerticalAlignment="Center"
                                        TextAlignment="Right" />
                             <TextBlock Grid.Column="1"
-                                       Style="{StaticResource MonitorTextStyle}"
-                                       FontFamily="Consolas"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource OverlayFpsBrush}"
+                                       Style="{StaticResource OverlayFpsTextStyle}"
                                        Text="{Binding SystemMonitor.FpsStatus, Mode=OneWay}"
                                        VerticalAlignment="Center"
                                        Margin="-2,0,0,0"
@@ -334,10 +363,19 @@
                         Grid.Column="0"
                         Visibility="Collapsed"
                         Padding="12"
-                        Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
                         BorderBrush="{StaticResource OverlayMenuBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <TextBlock Text="Overlay scale"
                                    FontWeight="SemiBold"
@@ -369,10 +407,19 @@
 
                 <Border Grid.Column="2"
                         Padding="12"
-                        Background="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}"
                         BorderBrush="{StaticResource OverlayMenuBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <Button Style="{StaticResource OverlayCloseButtonStyle}"
                                 x:Name="ScaleMenuButton"
