@@ -16,6 +16,9 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 
 - `Views/Launcher/MainWindow.xaml` is the main launcher shell.
 - The launcher contains the logo area, live monitor strip, tab bar, shortcut grid, and the `Indstillinger` entry point.
+- Shortcut icons can be shown in two view modes, controlled by a toggle on the `GenvejsIkoner` (shortcut icons) settings page:
+  1. **Carousel view** — the shortcuts are laid out on a single long horizontal row. The window shows exactly 4 icons at a time (same spacing as the grid), and you scroll through the rest with the mouse wheel or the thin horizontal scrollbar.
+  2. **Grid view** — the shortcuts are laid out on multiple vertical rows with 4 icons per row, scrolled with the thin vertical scrollbar.
 - Closing the launcher hides it back to floating-icon mode instead of terminating the process.
 
 ![IconGrid Screenshot](Assets/git-img/IconGrid.png)
@@ -38,7 +41,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 - `Views/Launcher/GamingOverlayWindow.xaml` is the compact always-on-top gaming overlay monitor.
 - The overlay reuses the live telemetry stack for network, CPU, GPU, and FPS status presentation in a dedicated single-row shell.
-- The gaming overlay is intentionally more game-focused than the main launcher monitor row, so `Download` / `Upload` are currently excluded from the in-game strip.
+- The gaming overlay is intentionally more game-focused than the main launcher monitor row: `Download` / `Upload` bandwidth stats have been removed from the overlay and remain available only on the main launcher monitor row.
 - `Views/GamingOverlayWindowCoordinator.cs` owns opening, reuse, placement, and shutdown of the overlay window.
 - The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
 - The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
@@ -46,7 +49,7 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 ## Settings pages
 
 - `StartsidePage.xaml`: startup, topmost behavior, UI scale, general launcher options, and the built-in `Dansk` / `English` language switcher.
-- `GenvejsIkonerPage.xaml`: launcher shortcut and icon settings.
+- `GenvejsIkonerPage.xaml`: launcher shortcut and icon settings, including the carousel/grid view toggle and scrollbar on/off.
 - `LayoutPage.xaml`: layout preset and saved-layout configuration.
 - `HardwarePage.xaml`: hardware diagnostics and related status.
 - `HjaelpPage.xaml`: help and troubleshooting content.
@@ -90,9 +93,10 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 ## Key features
 
-- Drag-and-drop shortcut management in the launcher grid.
+- Drag-and-drop shortcut management in the launcher grid, available in both grid and carousel view.
+- Carousel view mode for shortcuts: a single horizontal row of icons (4 visible at a time) that scrolls with the mouse wheel or a thin theme-aware horizontal scrollbar; grid view shows 4 icons per row across multiple vertical rows.
 - Live CPU, GPU, ping, and network telemetry in the launcher top bar.
-- A dedicated gaming overlay monitor with saved window position, inline quick settings, dedicated overlay settings page, dividers for readability, and live FPS via ETW.
+- A dedicated gaming overlay monitor (without `Download` / `Upload` bandwidth stats) with saved window position, inline quick settings, dedicated overlay settings page, dividers for readability, and live FPS via ETW.
 - Layout presets and saved desktop layout restoration.
 - Theme synchronization with Windows accent and dark/light mode.
 - Built-in developer overlay via `DevInspector`.
