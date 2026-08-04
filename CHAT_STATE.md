@@ -310,3 +310,10 @@
 - Commit `eb7fe34` "feat: polish shortcut grid/carousel layout — tight zero-gap rows, symmetric padding, compact tiles, carousel scrollbar reserve" adds polish on top of the carousel feature (`767e75e`): tighter zero-gap rows, symmetric padding, compact tiles, and carousel scrollbar reserve in the grid/carousel layout.
 - Pushed to origin: `767e75e..eb7fe34 main -> main` (2026-08-04).
 - Working tree clean; no other unpushed commits.
+
+## Carousel fix: exactly 4 icons visible (Aug 4, 2026)
+
+- User reported the carousel showed ~4.5 icons per row. Root cause: the horizontal StackPanel let each icon use its natural width (label 130 + margin 28 = 158px) while the viewport was ~708px inner width → ~4.44 icons.
+- Fix: carousel cells now use the same width as grid UniformGrid columns. Added `CarouselCellWidth(iconsPerRow)` to `LauncherLayoutMeasurements.cs` = (ContentWidth - 40) / iconsPerRow; new `CarouselHorizontalPadding = 40` constant so carousel inner width (20+20 padding) matches grid (20+20). Changed carousel Border padding from `23,20,23,20` to `20,20,20,20` in `LauncherGrid.xaml`, and bound the carousel ContentPresenter Width to `CarouselCellWidth` (via new `MainViewModel.CarouselCellWidth` property + IconsPerRow notification).
+- Result: ContentWidth 748 − 40 = 708 → cell = 708/4 = 177px = exactly a grid column. Now exactly 4 icons visible in carousel, same spacing as grid.
+- Build: 0 warnings/0 errors. `check_architecture_rules` GREEN. Manual UI test PASSED (user-confirmed).

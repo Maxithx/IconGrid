@@ -52,9 +52,10 @@
             <Style TargetType="Border">
                 <Setter Property="Padding" Value="20,17,20,17" />
                 <Style.Triggers>
-                    <!-- Carousel mode gets a slightly more generous symmetric padding -->
+                    <!-- Carousel mode uses the same inner width as grid (20+20 padding),
+                         so 4 carousel cells occupy exactly the same space as 4 grid columns -->
                     <DataTrigger Binding="{Binding IconViewMode}" Value="Carousel">
-                        <Setter Property="Padding" Value="23,20,23,20" />
+                        <Setter Property="Padding" Value="20,20,20,20" />
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -160,6 +161,9 @@
                         <Style TargetType="ContentPresenter">
                             <Setter Property="HorizontalAlignment" Value="Center" />
                             <Setter Property="VerticalAlignment" Value="Top" />
+                            <!-- Each carousel cell gets the same width as a grid column,
+                                 so exactly IconsPerRow icons are visible -->
+                            <Setter Property="Width" Value="{Binding DataContext.CarouselCellWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>

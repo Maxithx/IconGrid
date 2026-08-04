@@ -153,6 +153,7 @@ namespace IconGrid.ViewModels
                 {
                     SaveSettingsToConfig();
                     OnPropertyChanged(nameof(ContentMinWidth));
+                    OnPropertyChanged(nameof(CarouselCellWidth));
                     OnPropertyChanged(nameof(ContentAreaHeight));
                     OnPropertyChanged(nameof(ContentWidth));
                     OnPropertyChanged(nameof(WindowDesiredWidth));
@@ -597,6 +598,12 @@ namespace IconGrid.ViewModels
         /// Keeps the shortcut area width consistent across tabs using the configured column count.
         /// </summary>
         public double ContentMinWidth => _layoutMeasurements.ContentMinWidth(IconsPerRow);
+
+        /// <summary>
+        /// Width of each carousel cell (viewport width / icons per row),
+        /// identical to the grid's UniformGrid column width.
+        /// </summary>
+        public double CarouselCellWidth => _layoutMeasurements.CarouselCellWidth(IconsPerRow);
 
         /// <summary>
         /// Actual content width to bind in the view.

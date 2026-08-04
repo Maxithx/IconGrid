@@ -21,6 +21,7 @@ namespace IconGrid.ViewModels.Launcher
         public const double ContentVerticalPaddingBottom = 17; // matches XAML bottom padding (symmetric with top)
         public const double ExtraBottomPaddingPerRow = 0;    // no extra bottom padding per row
         public const double ContentHorizontalPadding = 60;   // content border padding left+right
+        public const double CarouselHorizontalPadding = 40;  // carousel border padding left+right (20+20, matching grid)
         public const double WindowHorizontalPadding = 0;     // remove outer shell padding to keep full-mode window tight to content
         public const double SettingsMinWindowHeight = 620;
         public const double FixedSettingsHeight = 680;
@@ -142,6 +143,18 @@ public double ContentHostHeight(bool isOverlayOpen, int itemCount, int iconsPerR
 
         public double ContentWidth(int iconsPerRow) => ContentMinWidth(iconsPerRow);
 
+        /// <summary>
+        /// Width of each carousel cell so the visible viewport shows exactly
+        /// <paramref name="iconsPerRow"/> icons — the same column width the grid's
+        /// UniformGrid produces, so icon spacing is identical in both modes.
+        /// </summary>
+        public double CarouselCellWidth(int iconsPerRow)
+        {
+            var slots = Math.Max(1, iconsPerRow);
+            var innerWidth = ContentWidth(iconsPerRow) - CarouselHorizontalPadding;
+            return Math.Max(1, innerWidth / slots);
+        }
+
         public double ContentMaxWidth =>
             Math.Max(0, SystemParameters.WorkArea.Width - WindowHorizontalPadding - 24);
 
@@ -257,6 +270,7 @@ public double CalculateContentAreaHeight(int itemCount, int iconsPerRow, double 
             NotifyContentHeightChanged(includeMaxHeight: true);
             OnPropertyChanged(nameof(ContentMinWidth));
             OnPropertyChanged(nameof(ContentWidth));
+            OnPropertyChanged(nameof(CarouselCellWidth));
             OnPropertyChanged(nameof(ContentMaxWidth));
             OnPropertyChanged(nameof(WindowDesiredWidth));
             OnPropertyChanged(nameof(IconMargin));
