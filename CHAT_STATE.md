@@ -304,3 +304,9 @@
 - Commit: `767e75e` "feat: add carousel view mode for launcher shortcut icons with thin theme-aware scrollbars" (13 files, +288/-84).
 - Pushed to origin: `5eaf211..767e75e main -> main` (2026-08-04).
 - Next steps: update ARCHITECTURE_RULES.md Recent Good Examples is still optional.
+
+## Shortcut grid/carousel layout polish (Aug 4, 2026)
+
+- Commit `eb7fe34` "feat: polish shortcut grid/carousel layout — tight zero-gap rows, symmetric padding, compact tiles, carousel scrollbar reserve" adds polish on top of the carousel feature (`767e75e`): tighter zero-gap rows, symmetric padding, compact tiles, and carousel scrollbar reserve in the grid/carousel layout.
+- Pushed to origin: `767e75e..eb7fe34 main -> main` (2026-08-04).
+- Working tree clean; no other unpushed commits.
