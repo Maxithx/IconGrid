@@ -118,6 +118,7 @@ public static class LocalizationHelper
             ["HardwareMemoryTitle"] = "Memory",
             ["HardwareMemoryIntro"] = "Overview of RAM layout, type, speed, and timings.",
             ["HardwareModelLabel"] = "Model",
+            ["HardwareSearchBoardLabel"] = "Search model",
             ["HardwareBiosLabel"] = "BIOS",
             ["HardwareCoresLabel"] = "Cores",
             ["HardwareThreadsLabel"] = "Threads",
@@ -132,6 +133,7 @@ public static class LocalizationHelper
             ["HardwareSpeedLabel"] = "Speed",
             ["HardwareTimingLabel"] = "Timing",
             ["HardwareModulesLabel"] = "Modules",
+            ["HardwareSlotsLabel"] = "Slots",
             ["HardwareVoltageLabel"] = "Voltage"
         },
         ["da"] = new()
@@ -246,6 +248,7 @@ public static class LocalizationHelper
             ["HardwareMemoryTitle"] = "Hukommelse",
             ["HardwareMemoryIntro"] = "Oversigt over RAM-layout, type, hastighed og timing.",
             ["HardwareModelLabel"] = "Model",
+            ["HardwareSearchBoardLabel"] = "Søg model",
             ["HardwareBiosLabel"] = "BIOS",
             ["HardwareCoresLabel"] = "Kerner",
             ["HardwareThreadsLabel"] = "Tråde",
@@ -260,6 +263,7 @@ public static class LocalizationHelper
             ["HardwareSpeedLabel"] = "Hastighed",
             ["HardwareTimingLabel"] = "Timing",
             ["HardwareModulesLabel"] = "Moduler",
+            ["HardwareSlotsLabel"] = "Slots",
             ["HardwareVoltageLabel"] = "Spænding"
         }
     };

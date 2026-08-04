@@ -115,6 +115,33 @@
             <Setter Property="Padding" Value="8,12,12,12" />
             <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
+
+        <Style x:Key="HardwareSearchButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter ContentSource="Content"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.7" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -170,18 +197,34 @@
                                    Foreground="{Binding SettingsSubtextForeground}" />
                         <Grid Margin="0,18,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="180" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Margin="0,0,18,0">
-                                <TextBlock Text="{Binding HardwareModelLabelText}"
-                                           FontSize="12"
-                                           Foreground="{Binding SettingsSubtextForeground}" />
-                                <TextBlock Margin="0,4,0,0"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="{Binding TopBarForeground}"
-                                           Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="{Binding HardwareModelLabelText}"
+                                               FontSize="12"
+                                               Foreground="{Binding SettingsSubtextForeground}" />
+                                    <Button Grid.Column="1"
+                                            Style="{StaticResource HardwareSearchButtonStyle}"
+                                            Content="{Binding HardwareSearchBoardLabelText}"
+                                            Click="SearchBoardButton_Click" />
+                                    <TextBlock Grid.Row="1"
+                                               Margin="0,4,0,0"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding TopBarForeground}"
+                                               Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                               TextWrapping="Wrap" />
+                                </Grid>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding HardwareBiosLabelText}"
@@ -191,7 +234,8 @@
                                            FontSize="16"
                                            FontWeight="SemiBold"
                                            Foreground="{Binding TopBarForeground}"
-                                           Text="{Binding Overview.Board.BiosVersion, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                           Text="{Binding Overview.Board.BiosVersion, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                           TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -643,6 +687,18 @@
                                                     FontWeight="SemiBold"
                                                     Foreground="{Binding TopBarForeground}"
                                                     Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding HardwareSlotsLabelText}"
+                                                    FontSize="12"
+                                                    Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Margin="0,4,0,0"
+                                                    FontSize="16"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{Binding TopBarForeground}"
+                                                    Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">

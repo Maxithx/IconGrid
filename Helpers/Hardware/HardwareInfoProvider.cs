@@ -329,7 +329,14 @@ public static class HardwareInfoProvider
         var configuredVoltageMv = 0u;
         var timing = "--";
         var capacities = new List<ulong>();
+        var slotsUsed = "--";
         var smBiosMemory = LoadMemoryFromLibreHardwareMonitor();
+        var smBiosSlots = SmBiosMemoryParser.ReadMemorySlots();
+        if (smBiosSlots.Count > 0)
+        {
+            var occupied = smBiosSlots.Count(slot => slot.IsOccupied);
+            slotsUsed = $"{occupied}/{smBiosSlots.Count}";
+        }
 
         try
         {
@@ -432,6 +439,7 @@ public static class HardwareInfoProvider
         {
             Total = totalBytes > 0 ? FormatBytes(totalBytes) : "--",
             ModuleCount = modules > 0 ? modules.ToString(CultureInfo.InvariantCulture) : "--",
+            SlotsUsed = slotsUsed,
             Layout = FormatMemoryLayout(capacities),
             Type = type,
             Speed = effectiveSpeed > 0 ? $"{effectiveSpeed} MT/s" : "--",
@@ -706,6 +714,7 @@ public sealed class HardwareMemoryInfo
 {
     public string Total { get; init; } = "--";
     public string ModuleCount { get; init; } = "--";
+    public string SlotsUsed { get; init; } = "--";
     public string Layout { get; init; } = "--";
     public string Type { get; init; } = "--";
     public string Speed { get; init; } = "--";

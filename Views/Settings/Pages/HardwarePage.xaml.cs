@@ -1,4 +1,6 @@
+using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using IconGrid.Helpers;
 using IconGrid.Helpers.Hardware;
@@ -70,6 +72,33 @@ public bool IsNvidiaGtx =>
     {
         Loaded -= HardwarePage_Loaded;
         Overview = await Task.Run(HardwareInfoProvider.LoadOverview);
+    }
+
+    private void SearchBoardButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var manufacturer = Overview.Board.Manufacturer;
+        var model = Overview.Board.Model;
+
+        if (string.IsNullOrWhiteSpace(manufacturer) || manufacturer == "--")
+        {
+            manufacturer = string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(model) || model == "--")
+        {
+            model = "motherboard";
+        }
+
+        var searchQuery = Uri.EscapeDataString($"{manufacturer} {model}");
+        var url = $"https://www.google.com/search?q={searchQuery}";
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HardwarePage failed to open search URL: {ex}");
+        }
     }
 
     private static System.Windows.Media.Brush CreateVendorBrush(string? vendor)

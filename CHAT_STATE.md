@@ -475,3 +475,14 @@
 - Forbedr COD startup-detection timing
 - Tilføj `mscopilot` til ignored foreground processes (blev fanget som false target)
 - Commit alle ændringer (bruger-godkendelse krævet)
+
+## Session 2026-08-04 (sen aften): Hardware-siden polish — commit b2e05e2 pushet
+
+- **FPS-pipeline commit `b2e05e2` pushet** — sticky-target grace period + hold last FPS + spike filter bypass + crash fix (5 filer, 302 insertions). Commit fra sidste session, der aldrig blev eksekveret, er nu gennemført og pushet til origin/main.
+- **Motherboard model-tekst afskåret fix** — `Views/Settings/Pages/HardwarePage.xaml`: fast `Width="180"` ændret til `Width="*"` (model tager al plads), BIOS-kolonne `Width="Auto"`, + `TextWrapping="Wrap"` på både model og BIOS. Identisk mønster som CPU/GPU/Memory sektionerne.
+- **RAM-slot detektion via SMBIOS Type 17** — ny `Helpers/Hardware/SmBiosMemoryParser.cs`: parser rå SMBIOS via `GetSystemFirmwareTable("RSMB")`, læser DeviceLocator (fx DIMM_A1), BankLocator og Size (0 = tom slot). `HardwareInfoProvider.LoadMemory()` eksponerer `SlotsUsed` (fx "2/4"). Ny "Slots"-tile i Memory-sektionen (mellem Modules og Voltage). Lokalisering: `HardwareSlotsLabel`.
+- **Søg-model link i Motherboard-sektionen** — ny `HardwareSearchButtonStyle` (link-stil: accent-farve, transparent, hover-opacity 0.7). "Søg model"/"Search model"-link (`HardwareSearchBoardLabel`) ved siden af Model-label. `SearchBoardButton_Click` i `HardwarePage.xaml.cs` åbner `https://www.google.com/search?q=<producent>+<model>` via `Process.Start(UseShellExecute = true)`.
+- **Verificeret:** `dotnet build` grønt (0 fejl / 0 advarsler) både csproj og sln. `check_architecture_rules` GRØN.
+- **VS Code fejl-artefakt:** "CS0103: nameof does not exist" ved linje 223-224 i `MainViewModel.Localization.cs` er en forældet DocumentCompiler-cache, ikke en ægte fejl (faktisk build 0 fejl). Løsning: Developer: Reload Window.
+- **MCP notes-server:** `append_to_note` kald afvist af klientens JSON-schema-validering trods korrekt server-schema — samme klient-side begrænsning som dokumenteret tidligere. CHAT_STATE.md opdateret direkte via File API.
+- **Næste trin:** commit + push af hardware-siden ændringer (afventer bruger-godkendelse — godkendt i denne session).

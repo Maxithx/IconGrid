@@ -191,6 +191,23 @@ FPS pipeline-status per 2026-08-04:
 - See `ARCHITECTURE_RULES.md` for the guardrails we use to keep `MainWindow` and `MainViewModel` from growing into feature dumps again.
 - Local workflow/planning notes such as Git workflow reminders are intentionally kept under `.local-state/` and are not part of the GitHub-facing repo documentation.
 
+### MCP notes server (runs from this GitHub repo)
+
+- The `icongrid-notes` MCP server lives **in this repository** at `tools/mcp-notes-server/` and is the single source of truth — it is versioned with git like normal code and therefore backed up on GitHub. There is no separate/older local copy.
+- It provides note tools (`list_notes`, `read_note`, `search_notes`, `append_to_note`, `replace_in_note`, `update_note` legacy alias) plus `check_architecture_rules` and `check_version_consistency` for the IconGrid workspace.
+- Fresh-clone setup: in `tools/mcp-notes-server/` run `npm install` once, then register the server in Cline's MCP config (`cline_mcp_settings.json`) with:
+  ```json
+  {
+    "command": "node",
+    "args": ["E:/IconGrid-GitHub/tools/mcp-notes-server/src/index.js"],
+    "env": { "ICONGRID_WORKSPACE": "E:\\IconGrid-GitHub" },
+    "disabled": false
+  }
+  ```
+  (Replace the `args`/`env` paths if the repo lives at a different location.)
+- Because the server runs from the repo, any change to `tools/mcp-notes-server/` is shipped to GitHub together with the regular code commit — keeping the MCP tooling in sync with the repo automatically.
+- See `AGENT.md` ("Session memory") for full usage details.
+
 ## Local data folder
 
 IconGrid stores user data in `%APPDATA%\IconGrid`, which on a standard Windows profile resolves to `C:\Users\<user>\AppData\Roaming\IconGrid`.

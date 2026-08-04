@@ -101,6 +101,7 @@ namespace IconGrid.ViewModels
         public string HardwareMemoryTitleText => _localizationState.Get(Language, "HardwareMemoryTitle");
         public string HardwareMemoryIntroText => _localizationState.Get(Language, "HardwareMemoryIntro");
         public string HardwareModelLabelText => _localizationState.Get(Language, "HardwareModelLabel");
+        public string HardwareSearchBoardLabelText => _localizationState.Get(Language, "HardwareSearchBoardLabel");
         public string HardwareBiosLabelText => _localizationState.Get(Language, "HardwareBiosLabel");
         public string HardwareCoresLabelText => _localizationState.Get(Language, "HardwareCoresLabel");
         public string HardwareThreadsLabelText => _localizationState.Get(Language, "HardwareThreadsLabel");
@@ -115,6 +116,7 @@ namespace IconGrid.ViewModels
         public string HardwareSpeedLabelText => _localizationState.Get(Language, "HardwareSpeedLabel");
         public string HardwareTimingLabelText => _localizationState.Get(Language, "HardwareTimingLabel");
         public string HardwareModulesLabelText => _localizationState.Get(Language, "HardwareModulesLabel");
+        public string HardwareSlotsLabelText => _localizationState.Get(Language, "HardwareSlotsLabel");
         public string HardwareVoltageLabelText => _localizationState.Get(Language, "HardwareVoltageLabel");
 
         public string PawnIoMissingMessage => _localizationState.PawnIoMissingMessage;
@@ -219,6 +221,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HardwareMemoryTitleText));
             OnPropertyChanged(nameof(HardwareMemoryIntroText));
             OnPropertyChanged(nameof(HardwareModelLabelText));
+            OnPropertyChanged(nameof(HardwareSearchBoardLabelText));
             OnPropertyChanged(nameof(HardwareBiosLabelText));
             OnPropertyChanged(nameof(HardwareCoresLabelText));
             OnPropertyChanged(nameof(HardwareThreadsLabelText));
@@ -233,6 +236,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HardwareSpeedLabelText));
             OnPropertyChanged(nameof(HardwareTimingLabelText));
             OnPropertyChanged(nameof(HardwareModulesLabelText));
+            OnPropertyChanged(nameof(HardwareSlotsLabelText));
             OnPropertyChanged(nameof(HardwareVoltageLabelText));
         }
 
