@@ -17,6 +17,7 @@ public class ConfigModel
     public bool GamingOverlayTransparentBackground { get; set; } = false; // transparent gaming overlay background
     public bool GamingOverlayAutoTransparentBackground { get; set; } = false; // transparent only while a game is running
     public string GamingOverlayTextColor { get; set; } = "#FFFFFF"; // overlay text color as hex (used when transparent)
+    public string GamingOverlayPositionPreset { get; set; } = "TopRight"; // corner/edge default placement ("TopLeft".."BottomRight", or "Custom")
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;

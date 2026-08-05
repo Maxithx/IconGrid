@@ -76,6 +76,9 @@ namespace IconGrid.Views
         private string _readyBadgeText = "Ready";
         private string _resolutionDefaultsTitleText = string.Empty;
         private string _resolutionDefaultsIntroText = string.Empty;
+        private string _overlayPositionTitleText = string.Empty;
+        private string _overlayPositionIntroText = string.Empty;
+        private List<KeyValuePair<string, string>> _overlayPositionPresetItems = new();
         private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
 
         public GamingOverlayPage()
@@ -246,6 +249,44 @@ namespace IconGrid.Views
         {
             get => _resolutionDefaultsIntroText;
             private set => SetField(ref _resolutionDefaultsIntroText, value);
+        }
+
+        public string OverlayPositionTitleText
+        {
+            get => _overlayPositionTitleText;
+            private set => SetField(ref _overlayPositionTitleText, value);
+        }
+
+        public string OverlayPositionIntroText
+        {
+            get => _overlayPositionIntroText;
+            private set => SetField(ref _overlayPositionIntroText, value);
+        }
+
+        /// <summary>
+        /// Localized options for the overlay's standard placement preset.
+        /// Key = GamingOverlayPositionPreset enum name, Value = display text.
+        /// </summary>
+        public List<KeyValuePair<string, string>> OverlayPositionPresetItems
+        {
+            get => _overlayPositionPresetItems;
+            private set => SetField(ref _overlayPositionPresetItems, value);
+        }
+
+        /// <summary>
+        /// Currently selected standard placement preset (forwards to MainViewModel).
+        /// </summary>
+        public string SelectedOverlayPositionPreset
+        {
+            get => _mainViewModel?.GamingOverlayPositionPreset ?? "TopRight";
+            set
+            {
+                if (_mainViewModel != null)
+                {
+                    _mainViewModel.GamingOverlayPositionPreset = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedOverlayPositionPreset)));
+                }
+            }
         }
 
         private void GamingOverlayPage_Loaded(object sender, System.Windows.RoutedEventArgs e)
@@ -436,6 +477,18 @@ namespace IconGrid.Views
                 ReadyBadgeText = "Klar";
                 ResolutionDefaultsTitleText = "Standard scale per opløsning";
                 ResolutionDefaultsIntroText = "Vælg den standard overlay-scale IconGrid bruger, naar skaermen skifter til hver opløsning. Juster sliders her, eller track i overlayets egen slider — begge steder gemmer som standard.";
+                OverlayPositionTitleText = "Standard placering";
+                OverlayPositionIntroText = "Vælg hvor gaming overlayet skal placeres paa skaermen. Ved oploesningsskift (spil start/luk) springer overlayet tilbage til denne placering. 'Brugerdefineret' beholder den position du selv traekker overlayet til.";
+                OverlayPositionPresetItems = new List<KeyValuePair<string, string>>
+                {
+                    new("TopLeft", "Top venstre"),
+                    new("TopCenter", "Top midt"),
+                    new("TopRight", "Top højre"),
+                    new("BottomLeft", "Bund venstre"),
+                    new("BottomCenter", "Bund midt"),
+                    new("BottomRight", "Bund højre"),
+                    new("Custom", "Brugerdefineret")
+                };
             }
             else
             {
@@ -462,6 +515,18 @@ namespace IconGrid.Views
                 ReadyBadgeText = "Ready";
                 ResolutionDefaultsTitleText = "Default scale per resolution";
                 ResolutionDefaultsIntroText = "Choose the default overlay scale IconGrid uses when the display switches to each resolution. Adjust any slider here, or drag the overlay's own slider — both save as the default.";
+                OverlayPositionTitleText = "Default position";
+                OverlayPositionIntroText = "Choose where the gaming overlay sits on screen. When the display resolution changes (game start/exit), the overlay snaps back to this placement. 'Custom' keeps the position you drag the overlay to.";
+                OverlayPositionPresetItems = new List<KeyValuePair<string, string>>
+                {
+                    new("TopLeft", "Top left"),
+                    new("TopCenter", "Top center"),
+                    new("TopRight", "Top right"),
+                    new("BottomLeft", "Bottom left"),
+                    new("BottomCenter", "Bottom center"),
+                    new("BottomRight", "Bottom right"),
+                    new("Custom", "Custom")
+                };
             }
         }
 
@@ -479,6 +544,17 @@ namespace IconGrid.Views
         private void SetField(ref bool field, bool value, [CallerMemberName] string? propertyName = null)
         {
             if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        {
+            if (Equals(field, value))
             {
                 return;
             }

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Models;
 
@@ -34,6 +35,27 @@ namespace IconGrid.ViewModels.Launcher
         {
             // The game exited (or the crash-fallback watchdog fired). Put the
             // windows back where they were before the resolution switch.
+            //
+            // Delay the restore slightly: ResolutionRestored fires immediately
+            // after ChangeDisplaySettingsEx returns, but the display mode
+            // transition (and the WM_DISPLAYCHANGE delivered to windows) is not
+            // complete yet. Restoring window rects against the old surface can
+            // leave the gaming overlay (and other windows) positioned against a
+            // stale coordinate space. This delay lets the mode change settle.
+            _ = RestoreAfterResolutionSettlesAsync();
+        }
+
+        private async Task RestoreAfterResolutionSettlesAsync()
+        {
+            try
+            {
+                await Task.Delay(400).ConfigureAwait(false);
+            }
+            catch
+            {
+                // cancelled/disposed — nothing to restore against a torn surface
+            }
+
             _windowSnapshot?.Restore();
         }
 

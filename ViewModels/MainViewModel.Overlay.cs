@@ -7,9 +7,30 @@ namespace IconGrid.ViewModels
     public partial class MainViewModel
     {
         /// <summary>
+        /// Standard corner/edge placement for the gaming overlay, chosen by the user
+        /// ("TopLeft".."BottomRight", or "Custom"). The overlay window snaps to this
+        /// preset whenever it opens or the display resolution changes — but the user
+        /// can still drag the overlay anywhere afterwards (Custom stores that position).
+        /// </summary>
+        public string GamingOverlayPositionPreset
+        {
+            get => _gamingOverlayPositionPreset;
+            set
+            {
+                var clamped = string.IsNullOrWhiteSpace(value) ? "TopRight" : value;
+                if (SetField(ref _gamingOverlayPositionPreset, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns the default overlay scale for a resolution like "3840x2160".
-        /// Falls back to the built-in defaults (4K=100%, 1440p=135%, everything else 100%)
-        /// when the user has not overridden it.
+        /// Falls back to the built-in default (100% for every resolution — the scale is
+        /// the real physical size; the 1440p=135% legacy default only applied when the
+        /// overlay window still compensated for resolution) when the user has not
+        /// overridden it.
         /// </summary>
         public double GetGamingOverlayScaleForResolution(string? resolution)
         {
@@ -65,15 +86,13 @@ namespace IconGrid.ViewModels
 
         private static double GetBuiltInOverlayScaleDefault(string? key)
         {
-            switch (key)
-            {
-                case "3840x2160":
-                    return 1.0;
-                case "2560x1440":
-                    return 1.35;
-                default:
-                    return 1.0;
-            }
+            // The overlay scale is the REAL physical size: 100% is the design size
+            // (720x44) on every resolution. There is no resolution compensation in
+            // the overlay window anymore, so every resolution gets the same default
+            // (100%). Users can override per resolution via the settings page or the
+            // overlay scale slider.
+            _ = key;
+            return 1.0;
         }
     }
 }

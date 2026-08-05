@@ -242,6 +242,24 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+
+                            <TextBlock Margin="0,16,0,0"
+                                       Text="{Binding OverlayPositionTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding OverlayPositionIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ComboBox Margin="0,10,0,0"
+                                      MaxWidth="280"
+                                      HorizontalAlignment="Left"
+                                      ItemsSource="{Binding OverlayPositionPresetItems, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                      SelectedValuePath="Key"
+                                      DisplayMemberPath="Value"
+                                      SelectedValue="{Binding SelectedOverlayPositionPreset, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}, Mode=TwoWay}" />
                         </StackPanel>
                     </Border>
 

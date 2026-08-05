@@ -17,6 +17,7 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayTransparentBackground { get; init; }
         public bool GamingOverlayAutoTransparentBackground { get; init; }
         public string GamingOverlayTextColor { get; init; } = "#FFFFFF";
+        public string GamingOverlayPositionPreset { get; init; } = "TopRight";
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -56,6 +57,7 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayTransparentBackground = config.GamingOverlayTransparentBackground,
                 GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,
                 GamingOverlayTextColor = string.IsNullOrWhiteSpace(config.GamingOverlayTextColor) ? "#FFFFFF" : config.GamingOverlayTextColor,
+                GamingOverlayPositionPreset = string.IsNullOrWhiteSpace(config.GamingOverlayPositionPreset) ? "TopRight" : config.GamingOverlayPositionPreset,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,

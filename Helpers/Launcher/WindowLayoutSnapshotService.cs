@@ -35,36 +35,26 @@ namespace IconGrid.Helpers.Launcher
         private readonly HashSet<IntPtr> _iconGridWindows = new();
         private List<WindowSnapshot>? _snapshot;
 
-        public void RegisterIconGridWindow(IntPtr hwnd)
-        {
-            if (hwnd == IntPtr.Zero)
-                return;
-            lock (_lock)
-            {
-                _iconGridWindows.Add(hwnd);
-            }
-        }
-
-        public void UnregisterIconGridWindow(IntPtr hwnd)
-        {
-            if (hwnd == IntPtr.Zero)
-                return;
-            lock (_lock)
-            {
-                _iconGridWindows.Remove(hwnd);
-            }
-        }
-
         private sealed record WindowSnapshot(IntPtr Hwnd, bool WasIconic, RECT Rect);
 
         public bool HasSnapshot { get { lock (_lock) { return _snapshot != null; } } }
 
         public void Capture()
         {
-            // Register all of IconGrid's own windows first so they are captured even
-            // though the gaming overlay is a tool window (ShowInTaskbar=false).
+            // Re-register IconGrid's own windows that participate in the snapshot:
+            // the launcher and settings windows. The gaming overlay is deliberately
+            // excluded — it manages its own position persistence (TryApplySavedPosition /
+            // SaveGamingOverlayWindowPosition), so snapshot/restore would overwrite
+            // its saved position and move it to a stale rectangle when the game
+            // exits and the resolution is restored.
+            //
+            // NOTE: we filter by window type name, not by WS_EX_TOOLWINDOW / ShowInTaskbar:
+            // every IconGrid window (launcher, settings, overlay) is a tool window, so an
+            // extended-style check would exclude everything and make the snapshot useless.
             lock (_lock)
             {
+                _iconGridWindows.Clear();
+
                 if (System.Windows.Application.Current != null)
                 {
                     foreach (var window in System.Windows.Application.Current.Windows)
@@ -73,8 +63,14 @@ namespace IconGrid.Helpers.Launcher
                             continue;
 
                         var handle = new WindowInteropHelper(w).Handle;
-                        if (handle != IntPtr.Zero)
-                            _iconGridWindows.Add(handle);
+                        if (handle == IntPtr.Zero)
+                            continue;
+
+                        // The gaming overlay persists its own position — never capture it.
+                        if (string.Equals(w.GetType().Name, "GamingOverlayWindow", StringComparison.Ordinal))
+                            continue;
+
+                        _iconGridWindows.Add(handle);
                     }
                 }
             }
@@ -126,8 +122,11 @@ namespace IconGrid.Helpers.Launcher
         {
             try
             {
-                // Always capture IconGrid's own windows (launcher, gaming overlay)
-                // even though the overlay is a tool window.
+                // Capture IconGrid's own registered windows (launcher, settings).
+                // The gaming overlay is never registered (it persists its own
+                // position). For other applications, skip invisible windows and
+                // tool windows (e.g. flyouts, popups) — only real desktop windows
+                // participate in the snapshot.
                 lock (_lock)
                 {
                     if (_iconGridWindows.Contains(hwnd))

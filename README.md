@@ -51,17 +51,27 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - Use **Fullscreen Windowed** (borderless) in your games for the best overlay experience. The game fills the screen but Windows keeps the desktop at the monitor's native resolution, so IconGrid can display the overlay correctly on top of the game.
 - **Exclusive fullscreen** can change the display mode itself, which may briefly blank the screen or hide/mis-scale the overlay. If the overlay does not appear, switch the game to Fullscreen Windowed.
 
-#### Overlay scale and resolution compensation
+#### Overlay scale
 
-The overlay scale slider ranges from **100% to 150%** and is applied on top of an automatic resolution compensation relative to a 4K (3840x2160) reference. On 4K the slider applies directly; on smaller screens the effective scale is reduced so the overlay matches the launcher monitor row proportions:
+The overlay scale slider ranges from **100% to 150%** and is the **real physical scale**: 100% is the design size (720x44), 150% is 1.5x larger. The same percentage produces the same on-screen size on every resolution — there is no resolution compensation.
 
-| Screen resolution | Compensation | Slider 100% effective | Slider 150% effective |
-|---|---|---|---|
-| 3840x2160 (4K) | 1.00 | 100% | 150% |
-| 2560x1440 (1440p) | 0.67 | 67% | 100% |
-| 1920x1080 (1080p) | 0.50 | 50% | 75% |
+| Screen resolution | Slider 100% | Slider 150% |
+|---|---|---|
+| 3840x2160 (4K) | 100% | 150% |
+| 2560x1440 (1440p) | 100% | 150% |
+| 1920x1080 (1080p) | 100% | 150% |
 
-On 4K the slider applies directly (150% = 150%). On smaller screens the resolution factor keeps the overlay proportionate to the launcher. Your Windows display scale (DPI) also affects the physical on-screen size, but both the launcher and the overlay scale together, so their proportions stay in sync.
+IconGrid can remember a different default scale **per resolution** (set via the Gaming Overlay settings page or by moving the overlay scale slider while a game is running): when a game switches the display to its configured resolution, the overlay automatically adopts that resolution's saved scale, and when the game exits and the original resolution is restored, it scales back to that resolution's saved value. Your Windows display scale (DPI) still affects the physical on-screen size, but the launcher and the overlay scale together, so their proportions stay in sync.
+
+#### Default position
+
+Like classic overlay tools (e.g. FPS Overlay), the gaming overlay can snap to a **user-chosen standard placement**. Pick one on the Gaming Overlay settings page — **Top/Bottom × Left/Center/Right**, or **Custom**:
+
+- **TopLeft / TopCenter / TopRight** — edge/corner along the top of the work area
+- **BottomLeft / BottomCenter / BottomRight** — edge/corner along the bottom of the work area
+- **Custom** — keep whatever position you drag the overlay to
+
+Whenever the overlay opens or the display resolution changes (game start/exit), it snaps back to the chosen placement so it never ends up mid-screen or off-screen after a mode switch. The overlay is never locked — you can still drag it anywhere afterwards, and that position is preserved (returning to `Custom` keeps it).
 
 ## Settings pages
 

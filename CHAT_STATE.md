@@ -559,3 +559,235 @@ Funktioner implementeret (afvent commit):
 Architektur: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549. Build: 0 fejl / 0 advarsler.
 
 Næste skridt: commit dette arbejde, fortsæt i ny frisk chat-session med fix af overlay-position-bug.
+
+## Session 2026-08-05 (tidlig morgen): Fix — gaming overlay flytter sig til højre når spil lukkes
+
+Buggen fra sidste session er nu fixet. Symptom: gaming overlay flyttede sig til højresiden når spillet lukkede og holdt ikke sin gemte position.
+
+Root cause (bekræftet ved kodegennemgang):
+- `WindowLayoutSnapshotService.Capture()` registrerede ALLE IconGrid-vinduer (inkl. gaming overlayet) via `Application.Current.Windows`.
+- Når spillet lukkede → `RestoreResolution()` fyrede `ResolutionRestored` → `LauncherItemLaunchManager.OnResolutionRestored` kaldte `Restore()` med `SetWindowPos` på overlayet med den midlertidige snapshot-rect.
+- Overlayet har SIN EGEN position-persistence (`TryApplySavedPosition` / `SaveGamingOverlayWindowPosition` via `LocationChanged`), så `SetWindowPos` trigger `LocationChanged` → gemte snapshot-recten som den 'rigtige' position → overlayet hoppede til en gammel/stale rect (til højre) og holdt ikke sin gemte position.
+- Yderligere: `ResolutionRestored` blev fyret umiddelbart efter `ChangeDisplaySettingsEx` returnerede — restore kørte mod en endnu ikke færdig mode-transition.
+
+Fix implementeret (2 filer):
+1. `Helpers/Launcher/WindowLayoutSnapshotService.cs` — `Capture()` ekskluderer nu `GamingOverlayWindow` fra snapshot (via `w.GetType().Name == "GamingOverlayWindow"`). Vigtig detalje: ALLE IconGrid-vinduer er tool-windows (`ShowInTaskbar="False"`), så et `WS_EX_TOOLWINDOW`-tjek ville fjerne alle og gøre snapshot ubrugelig — derfor filter efter type-navn. Launcher + Settings bevares i snapshot. De ubrugte `RegisterIconGridWindow`/`UnregisterIconGridWindow`-metoder er fjernet (ingen referencer).
+2. `ViewModels/Launcher/LauncherItemLaunchManager.cs` — `OnResolutionRestored` kalder nu `Restore()` via `RestoreAfterResolutionSettlesAsync()` med ~400ms delay, så restore kører efter mode-transitionen er færdig.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+
+Næste skridt (manuel test):
+1. Start IconGrid, placer gaming overlayet et bestemt sted
+2. Start spil med GameResolution sat (fx 4K → 1440p)
+3. Bekræft overlayet + vinduer flytter korrekt under spillet
+4. Luk spillet → bekræft overlayet bliver hvor det var + launcher/settings-vinduer vender tilbage
+5. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 2): Fix — automatisk overlay scale-skift ved opløsningsskift virkede ikke
+
+Brugerrapport: Med Windows 3840x2160 og overlay scale 100%, spillet sat til 2560x1440 med scale 150% — gaming overlayet skiftede IKKE automatisk til 150% ved spilstart. Men når brugeren rørte scale-slideren i overlay-UI'et, hoppede den til 150%.
+
+Root cause:
+- `DisplayResolutionService.TrySetResolution()` kalder `ChangeDisplaySettingsEx(CDS_UPDATEREGISTRY)`, hvorefter `SystemEvents.DisplaySettingsChanged` fyres.
+- `GamingOverlayWindow.SystemEvents_DisplaySettingsChanged` kaldte `ApplyResolutionDefaultScale()` MED DET SAMME, men `EnumDisplaySettings(ENUM_CURRENT_SETTINGS)` returnerede STADIG den gamle opløsning (3840x2160) fordi mode-transitionen ikke var færdig.
+- `GetGamingOverlayScaleForResolution("3840x2160")` returnerede 100% (1.0) → `_gamingOverlayUiScale` forblev 1.0 → ingen visuel ændring.
+- Når brugeren rørte slideren, satte de manuelt `GamingOverlayUiScale=1.5` → `ApplyWindowSize()` kørte → `GetEffectiveScale()` = 1.5 * (2560/3840) = 1.0 → overlayet sprang til korrekt størrelse ('hoppede til 150%').
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- `SystemEvents_DisplaySettingsChanged` er nu debounced med en `DispatcherTimer` på 400ms (`DisplayChangeSettleDelayMs`), så `ApplyResolutionDefaultScale()` først kører når mode-transitionen er færdig og `EnumDisplaySettings` returnerer den NYE opløsning.
+- Ny `HandleDisplayChangeSettled` callback: stopper timeren, læser aktuel opløsning og anvender dens default scale.
+- Timeren stoppes/ryddes i `GamingOverlayWindow_Closed`.
+- Samme 400ms settling-vindue som snapshot-restore-fixet (konsistent timing).
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+
+Kombineret med det tidligere fix i denne session (gaming overlay position + 400ms snapshot-restore delay): 3 filer ændret → `Helpers/Launcher/WindowLayoutSnapshotService.cs`, `ViewModels/Launcher/LauncherItemLaunchManager.cs`, `Views/Launcher/GamingOverlayWindow.xaml.cs`.
+
+Næste skridt (manuel test):
+1. Windows 4K, overlay scale 100%, spil-genvej med GameResolution 2560x1440 + scale 150%
+2. Start spillet → overlay skal automatisk springe til 150% når opløsningen skifter
+3. Luk spillet → overlay + vinduer skal vende tilbage, overlay skal beholde position
+4. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 3): Fix — overlay scale er nu reel fysisk skala (kompensation fjernet)
+
+Brugerrapport (del 2): Ved 1440p med 150% valgt var overlayet IKKE skaleret op i størrelse, selvom 150% stod valgt. Kun når brugeren rykkede slideren til fx 140% begyndte den at skalere korrekt. Brugeren forventer også at overlayet skalerer tilbage til 4K's valgte scale når spillet lukker.
+
+Root cause:
+- `GamingOverlayWindow.GetEffectiveScale()` kompenserede for opløsning: `scale = GamingOverlayUiScale * resolutionFactor`, hvor resolutionFactor = min(1, screen/3840). Ved 1440p → 0.667, så 150% (1.5) × 0.667 = 1.0 → OVERLAYET ÆNDREDE SIG IKKE FYSISK. Når brugeren rykkede slideren til 140% gav 1.4 × 0.667 = 0.93 — en synlig (dog forkert) ændring.
+- Den indbyggede default 1440p=135% eksisterede KUN fordi kompensationen gjorde 135% × 0.667 ≈ 90% fysisk — designet til at matche 4K 100%.
+
+Fix implementeret (2 filer + README):
+1. `Views/Launcher/GamingOverlayWindow.xaml.cs` — `GetEffectiveScale()` returnerer nu `GamingOverlayUiScale` DIREKTE (slideren = reel fysisk skala; 100% = designstørrelse 720x44, 150% = 1.5x). `ReferenceWidth`/`ReferenceHeight`/`TryGetCurrentScreen`/`Forms`-alias fjernet (ubrugt).
+2. `ViewModels/MainViewModel.Overlay.cs` — `GetBuiltInOverlayScaleDefault` returnerer nu 100% for ALLE opløsninger (1440p=135% legacy-default fjernet; den gav kun mening med kompensationen). XML-doc opdateret.
+3. `README.md` — 'Overlay scale and resolution compensation'-sektion erstattet med 'Overlay scale': slider = reel fysisk skala, samme % = samme størrelse på alle opløsninger; per-opløsnings-defaults skifter automatisk ved spil-start/exit.
+
+Slutresultat for brugerens scenarie:
+- Windows 4K, overlay 100% → spillet starter 2560x1440 → overlay læser 1440p's gemte scale (fx 150%) efter 400ms debounce → overlayet bliver FYSISK 1.5x stort.
+- Spillet lukker → vinduerne/snapshot gendannet efter 400ms → opløsning tilbage til 4K → `DisplaySettingsChanged`-debounce → overlay læser 4K's gemte scale (fx 100%) → skalerer tilbage.
+- Overlay-positionen røres aldrig (snapshot ekskluderer overlayet).
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Diff (hele sessionen): 5 filer ændret → Helpers/Launcher/WindowLayoutSnapshotService.cs, ViewModels/Launcher/LauncherItemLaunchManager.cs, Views/Launcher/GamingOverlayWindow.xaml.cs, ViewModels/MainViewModel.Overlay.cs, README.md + CHAT_STATE.md
+
+Næste skridt (manuel test):
+1. Windows 4K + overlay 100% → spil-genvej GameResolution 2560x1440 + scale 150% → start spil → overlay skal blive FYSISK 1.5x større (ikke bare '150% vises')
+2. I spillet: flyt overlay-slideren til et nyt tal → størrelsen skal ændres umiddelbart og proportionelt
+3. Luk spillet → overlay skalerer tilbage til 4K's valgte scale (fx 100%) + beholder position
+4. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 4): Fix — overlay rykkes ud af view porten ved opløsningsskift
+
+Brugerrapport: Når spillet starter i 2560x1440 og overlayet skalerer til 150%, rykkes overlayet ud af view porten til højre. Brugeren placerer selv overlayet top-højre og ønsker at det tvinges tilbage til top-højre ved opløsningsskift — MEN uden at låse det (brugeren skal kunne flytte overlayet frit).
+
+Årsag: Overlay-positionen gemmes globalt (én position for alle opløsninger). Gamt som 4K top-højre (fx Left ≈ 3100 DIPs) står uden for 1440p-skrivefladen (2560), så når scale stiger til 150% og vinduet bliver større, ender det ude af view.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- Ny `EnsureOnScreen()`-metode (WPF DIPs via `SystemParameters.WorkArea`, samme konvention som `PositionRelativeToOwner`):
+  - Helt ude af view porten → flyttes til top-højre hjørne (16px gap) — kun når den er ude.
+  - Delvist ude (kun lidt over højre kant) → clamps tilbage i view uden at ændre vertikal position unødigt.
+  - Aldrig låst: brugeren kan stadig trække overlayet frit (Win32 caption-drag uændret), og `LocationChanged` gemmer altid den nye position.
+- Kaldes fra `GamingOverlayWindow_Loaded` (åbning) og `HandleDisplayChangeSettled` (efter 400ms opløsningsskift-debounce, lige efter scale er anvendt).
+
+Bruger-scenarie nu:
+- Overlay placeret top-højre på 4K → spillet starter 1440p + scale 150% → overlay skalerer op og tvinges til top-højre i 1440p-view hvis det står ude.
+- Brugeren kan flytte overlayet under spillet — positionen gemmes.
+- Spillet lukker → 4K igen → overlay bevarer top-højre (inden for view) → ingen unødig flytning.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Kode: `GamingOverlayWindow.xaml.cs` (EnsureOnScreen + Loaded/HandleDisplayChangeSettled). Samlet session: 6 filer (4 kode + README + CHAT_STATE).
+
+Næste skridt (manuel test):
+1. Windows 4K, overlay top-højre. Start spil med GameResolution 2560x1440 + scale 150%
+2. Overlay skal skaleres til 150% OG forblive top-højre (ikke ryge ud af view)
+3. Flyt overlayet under spillet → det skal kunne flyttes og positionen gemmes
+4. Luk spillet → overlay tilbage til 4K's scale + position, launcher/vinduer gendannet
+5. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 5): Fix — overlay ligger top-midt i spillet, skal være top-højre
+
+Brugerrapport: Alt virker næsten, men gaming overlayet ligger i top-midten af skærmen i spillet. Placeringen skal være top-højre hjørne.
+
+Årsag: Den tidligere `EnsureOnScreen()` tvingede kun overlayet til top-højre hvis det var HELT uden for view porten. Når brugerens gemte position lå et sted der stadig er delvist inden for 1440p-view'et (fx top-midt), blev den ikke rørt.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- `EnsureOnScreen()` erstattet med `SnapToTopRight()` — placerer ALTID overlayet i top-højre hjørne (16px gap fra `SystemParameters.WorkArea`, WPF DIPs, samme konvention som `PositionRelativeToOwner`).
+- Kaldes fra `GamingOverlayWindow_Loaded` (åbning) og `HandleDisplayChangeSettled` (efter 400ms opløsningsskift-debounce) — så hver gang et spil skifter opløsning (start eller exit), nulstilles positionen deterministisk til top-højre.
+- ALDRIG låst: brugeren kan flytte overlayet frit (Win32 caption-drag uændret), og `LocationChanged` gemmer altid den nye position.
+
+Bruger-scenarie nu:
+- Overlay åbner → top-højre.
+- Spillet starter 1440p + scale 150% → overlay skalerer op OG ligger top-højre (aldrig top-midt eller ude af view).
+- Brugeren kan flytte overlayet under spillet → position gemmes.
+- Spillet lukker → 4K igen → overlay tilbage til top-højre + 4K's scale, launcher/vinduer gendannet.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Samlet session: 6 filer (4 kode + README + CHAT_STATE).
+
+Næste skridt (manuel test):
+1. Start spil med GameResolution 2560x1440 + overlay scale 150% → overlay skal ligge top-HØJRE og være 1.5x skaleret
+2. Flyt overlayet under spillet → skal kunne flyttes, positionen gemmes
+3. Luk spillet → overlay tilbage til top-højre + 4K's scale
+4. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 6): Fix — overlay hopper til venstre ved scale-slider + settings-menu
+
+Brugerrapport: Når man slider overlay scale fra 100% til et andet tal og derefter trykker på 'overlay settings'-ikonet, hopper hele gaming overlayet UI til venstre. Burde ikke ske.
+
+Årsag: `ApplyWindowSize()` genberegner `Width`/`MinWidth` fra `MeasureElementWidth(...)` hver gang settings-menuen åbnes/lukkes eller scale ændres. Når den målte bredde er mindre end den aktuelle vinduesbredde, skrumper vinduet — og WPF holder Venstre kant fast, så højre kant (og det højre-justerede indhold, `HorizontalAlignment="Right"`) rykker mod venstre.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- `ApplyWindowSize()` husker nu den nuværende HØJRE kant (`previousRight = Left + Width`) før resize.
+- Efter `Width`/`MinWidth` opdateres, re-forankres vinduet: `Left = previousRight - Width` — vinduet vokser/skrumper mod VENSTRE, så højre side (hvor brugeren holder overlayet top-højre) aldrig bevæger sig.
+- Overlayet holder dermed placeringen når settings-panelet åbnes/lukkes eller scale-slideren ændres.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+
+Næste skridt (manuel test):
+1. Overlay top-højre → åbn overlay settings-slideren, slider scale 100%→fx 130%
+2. Åbn/luk settings-panelet flere gange → overlay må IKKE hoppe til venstre, højre kant forbliver fast
+3. Flyt overlayet frit → position gemmes
+4. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (tidlig morgen, del 7): Feat — brugervalgt standard placering for gaming overlay (corner presets)
+
+Brugerrapport: Gaming overlayet ligger top-midt i spillet i stedet for top-højre. Brugeren pegede på fps-overlay-1.7.0-beta (E:\ExternalTools) som inspiration: der kan brugeren VÆLGE en standard-placering fra top-hjørnerne ('Corners or drag-to-place').
+
+Implementeret (inspireret af fps-overlay's POS_TOP_LEFT..POS_BOTTOM_RIGHT + custom):
+- Ny `Models/GamingOverlayPositionPreset.cs` enum: TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight, Custom.
+- Config-felt `GamingOverlayPositionPreset` (string, default "TopRight") + fuld persistence-kæde (ConfigModel, MainViewModelSettingsState, MainViewModelConfigState, MainViewModelSettingsPersistence, MainViewModel.Settings ApplyConfig/ApplyDefault/Save, MainViewModel backing field + prop).
+- `MainViewModel.GamingOverlayPositionPreset`-prop flyttet til `ViewModels/MainViewModel.Overlay.cs` (naturligt sted; MainViewModel.cs nede på 1182 linjer).
+- `GamingOverlayWindow.ApplyPositionPreset()` erstatter `SnapToTopRight()`: placerer overlayet deterministisk efter det valgte preset via `SystemParameters.WorkArea` (WPF DIPs, samme konvention som PositionRelativeToOwner), 16px gap. 'Custom' rører ikke brugerens træk-position. Kaldes fra Loaded + HandleDisplayChangeSettled (efter 400ms opløsningsskift-debounce). Overlayet er aldrig låst — brugeren kan stadig trække det frit.
+- Settings-UI: dropdown (ComboBox) på GamingOverlayPage under 'Standard scale per opløsning' med lokaliserede muligheder (da + en) via OverlayPositionTitleText/OverlayPositionIntroText/OverlayPositionPresetItems/SelectedOverlayPositionPreset (forwarder til MainViewModel).
+
+Nu-scenarie: Windows 4K + preset 'Top højre' → spil starter 1440p + scale 150% → overlay springer deterministisk til top-højre i 1440p-view (aldrig top-midt/ude af view) → spil lukker → tilbage til 4K → overlay igen top-højre + 4K's scale.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1182, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- README: ny 'Default position'-sektion under Gaming overlay monitor.
+- Filændringer: Models/GamingOverlayPositionPreset.cs (ny), Models/ConfigModel.cs, ViewModels/Settings/MainViewModelSettingsState.cs, MainViewModelConfigState.cs, MainViewModelSettingsPersistence.cs, ViewModels/MainViewModel.Settings.cs, ViewModels/MainViewModel.Overlay.cs, ViewModels/MainViewModel.cs, Views/Launcher/GamingOverlayWindow.xaml.cs, Views/Settings/Pages/GamingOverlayPage.xaml (+ .cs), README.md, CHAT_STATE.md.
+
+Næste skridt (manuel test):
+1. Gaming overlay settings → vælg 'Top højre' som standard placering (eller bekræft default)
+2. Windows 4K → start spil med GameResolution 2560x1440 + scale 150% → overlay skal ligge TOP-HØJRE og være 1.5x skaleret (aldrig top-midt)
+3. Flyt overlayet under spillet → skal kunne flyttes; positionen gemmes
+4. Luk spillet → overlay tilbage til top-højre + 4K's scale, launcher/vinduer gendannet
+5. Skift preset til fx 'Bund venstre' → overlay skal flytte til bund-venstre ved næste opløsningsskift/åbning
+6. Commit + push når testen er godkendt
+
+## Session 2026-08-05 (aften, del 8): Fix — 'Default position'-ændring flytter overlayet øjeblikkeligt
+
+Brugerrapport: Når man vælger en ny 'Default position' (fx Top Right → Top Left) i Gaming Overlay settings, flyttede overlayet sig FØRST når man lukkede og genåbnede overlayet. Det skal flytte med det samme.
+
+Årsag: `ApplyPositionPreset()` blev kun kaldt fra `GamingOverlayWindow_Loaded` (åbning) og `HandleDisplayChangeSettled` (opløsningsskift) — aldrig når brugeren ændrede `GamingOverlayPositionPreset` i settings. `ViewModel_PropertyChanged` lyttede kun på skala-relaterede properties.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- `ViewModel_PropertyChanged` håndterer nu `GamingOverlayPositionPreset` FØRST og kalder `ApplyPositionPreset()` øjeblikkeligt (med `return` så skala-lytteren ikke overtager).
+- Når brugeren vælger en ny standard-placering i dropdown'en → `MainViewModel.GamingOverlayPositionPreset` setter → `PropertyChanged` → overlayet flytter straks til den nye preset. Ingen luk/genåbn nødvendig.
+- 'Custom' fungerer stadig som før: `ApplyPositionPreset()` returnerer tidligt og rører ikke den træk-te position.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1182, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Ændret: kun `Views/Launcher/GamingOverlayWindow.xaml.cs`.
+
+Næste skridt (manuel test):
+1. Åbn gaming overlay + settings-side med 'Default position' dropdown
+2. Vælg 'Top venstre' med overlayet synligt → overlay skal flytte til top-venstre MED DET SAMME
+3. Vælg 'Bund højre', 'Top midt' osv. → hver ændring flytter overlayet øjeblikkeligt
+4. Vælg 'Brugerdefineret' + træk overlayet → position bevares
+5. Confirm + commit/push når godkendt
+
+## Session 2026-08-05 (aften, del 9): Fix — overlay sidder nu helt ude i skærmkanten/hjørnet (margin fjernet)
+
+Brugerrapport: Gaming overlayet blev ikke placeret helt oppe i toppen af skærmen og heller ikke ude i siden/kanten. Spurgte om der var margin på.
+
+Årsag: `ApplyPositionPreset()` brugte `const double gap = 16.0` — overlayet blev placeret 16px inde fra kanten.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+- `gap` ændret fra 16.0 til 0.0 — overlayet sidder nu FLUSH mod skærmkanten/hjørnet for alle presets (TopLeft/TopCenter/TopRight/BottomLeft/BottomCenter/BottomRight).
+- Kommentar tilføjet der forklarer at marginen er bevidst fjernet.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1182, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Ændret: kun `Views/Launcher/GamingOverlayWindow.xaml.cs` (1 konstant).
+
+Næste skridt (manuel test):
+1. Vælg 'Top højre' som Default position → overlay skal sidde HELT oppe i toppen + helt ude i højre kant (ingen margin)
+2. Vælg 'Top venstre', 'Bund højre' osv → hver preset sidder flush mod kanten
+3. Bekræft at 'Brugerdefineret' stadig bevarer brugerens træk-position
+4. Commit + push når testen er godkendt

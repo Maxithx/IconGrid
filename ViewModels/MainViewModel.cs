@@ -46,6 +46,7 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayTransparentBackground = false;
         private bool _gamingOverlayAutoTransparentBackground = false;
         private string _gamingOverlayTextColor = "#FFFFFF";
+        private string _gamingOverlayPositionPreset = "TopRight";
         private bool _restoreGameResolutionAfterExit = true;
         private Dictionary<string, double> _gamingOverlayResolutionScales = new();
         private const double GamingOverlayBaseWidth = 720;
