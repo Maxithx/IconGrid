@@ -86,6 +86,24 @@ Also stop and ask the same question if a change starts adding:
 - realtime polling loops to `MainViewModel`
 - feature-specific window ownership logic directly in the launcher shell
 
+## File Size Limit Policy (documented tolerance)
+
+The line/method limits enforced by `check_architecture_rules` are a **proxy for cognitive complexity**, not a goal in themselves. A cohesive 1200-line file beats three artificially split 400-line files.
+
+A **deliberate, traceable, time-boxed** over-limit is acceptable during feature work. Every over-limit must satisfy all three conditions:
+
+1. **Document it immediately** — note in `CHAT_STATE.md` (and optionally `TODO.md`) exactly what exceeds the limit and what should be extracted.
+2. **Keep it time-boxed** — plan the cleanup within a bounded number of sessions. A violation that lasts forever is not "later cleanup", it is permanent decay.
+3. **Re-evaluate at commit time** — if the feature pushed a file over the limit and there is a quick cohesive extraction (minutes), do it now. If not, document and commit anyway — but say so explicitly.
+
+This keeps the limits as a **conversation trigger** at commit time (visible and debatable whenever they are threatened) instead of letting code grow into an unnoticed monster.
+
+## Code Comments Language
+
+- All code comments, doc comments, and commit messages must be written in **English**.
+- Danish (or any other language) is only acceptable inside user-facing localized UI strings (e.g. `RefreshLocalizedText` / `MainViewModel.Localization`), never in code comments or commit messages.
+- Rationale: the codebase is public on GitHub, and non-English comments create noise for contributors and future maintainers. English keeps the repo consistent, searchable, and reviewable by anyone.
+
 ## Security Checklist (Repo Contents)
 
 - Never commit signing certificates (`.pfx`), private keys (`.key`, `.pem`), or secret files (`.env`) to git.

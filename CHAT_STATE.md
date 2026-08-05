@@ -791,3 +791,56 @@ Næste skridt (manuel test):
 2. Vælg 'Top venstre', 'Bund højre' osv → hver preset sidder flush mod kanten
 3. Bekræft at 'Brugerdefineret' stadig bevarer brugerens træk-position
 4. Commit + push når testen er godkendt
+
+## Commit gennemført + pushet — klar til ny frisk chat-session
+
+Commit: `1d8ecda` — `feat: user-chosen default position for gaming overlay with corner presets and immediate repositioning` (15 filer, +592/-82).
+
+Hvad der blev commitet (denne session kulminerer her):
+1. **Brugervalgt standard-placering** — ny `Models/GamingOverlayPositionPreset.cs` enum (TopLeft/TopCenter/TopRight/BottomLeft/BottomCenter/BottomRight/Custom) + config-felt + fuld persistence-kæde (ConfigModel → SettingsState → ConfigState → Persistence → MainViewModel.Settings/Overlay).
+2. **`GamingOverlayWindow.ApplyPositionPreset()`** — placerer overlayet deterministisk efter valgte preset (WorkArea, WPF DIPs, gap=0 = flush mod kanten), kaldt ved Loaded, opløsningsskift-debounce OG øjeblikkeligt når brugeren ændrer preset i settings (ViewModel_PropertyChanged-lytter). Overlayet er aldrig låst — brugeren kan trække det frit (Custom bevarer position).
+3. **Settings-UI** — dropdown på GamingOverlayPage under 'Standard scale per opløsning' med da/en lokalisering (OverlayPositionTitleText/IntroText/PresetItems/SelectedOverlayPositionPreset).
+4. **Ryddet op** — GamingOverlayPositionPreset-prop bor i MainViewModel.Overlay.cs (MainViewModel.cs nede på 1182 linjer, under grænsen igen).
+
+Verifikation efter commit+push:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1182, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- `git status`: working tree clean, `main` up to date med `origin/main` ✅
+- Push: `bfe3d6f..1d8ecda main -> main` — inkl. de 2 tidligere commits der ventede (de var en del af de 3 pushede commits).
+
+Brugerfeedback: "det spiler max så er det på plads" — hele flowet er godkendt:
+- Default position dropdown flytter overlayet med det samme
+- Presets sidder flush mod skærmkanten/hjørnet (gap=0)
+- Overlay skalerer korrekt per opløsning (150% = fysisk 1.5x)
+- Overlay vender deterministisk tilbage til valgt preset ved opløsningsskift (spil start/exit)
+
+Næste skridt (ny session):
+- Arbejdet er gemt, commitet og pushet — klar til nye opgaver.
+- Evt. valgfrit: opdater ARCHITECTURE_RULES.md 'Recent Good Examples' med GamingOverlayPositionPreset-kæden (valgfrit).
+
+## Session 2026-08-05 (aften, del 11): File Size Limit Policy dokumenteret i ARCHITECTURE_RULES.md
+
+Brugeren spurgte om det er okay at bryde filstørrelsesgrænserne (check_architecture_rules) lejlighedsvis og samle op senere. Vi blev enige om: ja — men kun 'deliberate, traceable, time-boxed' (bevidst, sporbar, tidsbegrænset).
+
+Politikken er nu dokumenteret i `ARCHITECTURE_RULES.md` som ny sektion 'File Size Limit Policy (documented tolerance)':
+- Grænserne er en proxy for kognitiv kompleksitet, ikke et mål i sig selv. En sammenhængende 1200-linje fil kan være bedre end tre kunstigt splittede 400-linje filer.
+- Tre betingelser for acceptabel overskridelse:
+  1. Dokumentér det øjeblikkeligt i CHAT_STATE.md (+ evt. TODO.md) — hvad overskrider grænsen og hvad skal udtrækkes
+  2. Tidsbegræns det — oprydning skal planlægges inden for et afgrænset antal sessioner. En evig overskridelse er ikke 'senere oprydning', det er permanent forfald
+  3. Vurdér ved commit-tid — er der en hurtig kohesiv udtrækning (minutter)? Gør den nu. Ellers: dokumentér og commit alligevel, men sig det eksplicit
+- Grænsen fungerer som en 'samtale-trigger' ved commit-tid, ikke som et ubemærket forbud.
+
+Dette afslutter sessionen efter commit `1d8ecda` (pushet). Næste skridt: commit `ARCHITECTURE_RULES.md` + `CHAT_STATE.md` og push.
+
+## Session 2026-08-05 (aften, del 12): Code Comments Language-regel tilføjet
+
+Brugeren ønskede også reglen nedskrevet: kommentarer i koden skal være på engelsk (og på GitHub).
+
+Tilføjet i `ARCHITECTURE_RULES.md` som ny sektion 'Code Comments Language':
+- Alle kode-kommentarer, doc-kommentarer og commit-beskeder skal være på engelsk.
+- Dansk (eller andre sprog) er kun acceptabelt i user-facing lokaliserede UI-strings (fx `RefreshLocalizedText` / `MainViewModel.Localization`), aldrig i kode-kommentarer eller commit-beskeder.
+- Begrundelse: kodebasen er public på GitHub; ikke-engelske kommentarer skaber støj for bidragydere og fremtidige vedligeholdere.
+
+Bemærk: der findes stadig danske kommentarer i eksisterende kode (fx 'Tema' sektionen i MainViewModel.cs og nogle kommentarer i GamingOverlayPage). Reglen gælder from nu — en bagudrettet oprydning kan laves som separat opgave hvis ønsket.
+
+Næste skridt: commit `ARCHITECTURE_RULES.md` (File Size Limit Policy + Code Comments Language) + `CHAT_STATE.md` og push.
