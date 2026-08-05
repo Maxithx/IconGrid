@@ -129,7 +129,7 @@ namespace IconGrid.Views
             var widthFactor = Math.Min(1.0, screen.Bounds.Width / ReferenceWidth);
             var heightFactor = Math.Min(1.0, screen.Bounds.Height / ReferenceHeight);
             var resolutionFactor = Math.Min(widthFactor, heightFactor);
-            return Math.Max(0.5, Math.Min(1.2, baseScale * resolutionFactor));
+            return Math.Max(0.5, Math.Min(1.0, baseScale * resolutionFactor));
         }
 
         private static double MeasureElementWidth(FrameworkElement? element)

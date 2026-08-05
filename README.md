@@ -46,6 +46,23 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
 - The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
 
+#### Recommended game display mode
+
+- Use **Fullscreen Windowed** (borderless) in your games for the best overlay experience. The game fills the screen but Windows keeps the desktop at the monitor's native resolution, so IconGrid can display the overlay correctly on top of the game.
+- **Exclusive fullscreen** can change the display mode itself, which may briefly blank the screen or hide/mis-scale the overlay. If the overlay does not appear, switch the game to Fullscreen Windowed.
+
+#### Overlay scale and resolution compensation
+
+The overlay scale slider ranges from **100% to 150%** and is applied on top of an automatic resolution compensation relative to a 4K (3840x2160) reference. The effective scale is capped at **100%**, so the overlay is never rendered larger than the main launcher monitor row design:
+
+| Screen resolution | Compensation | Slider 100% effective | Slider 150% effective |
+|---|---|---|---|
+| 3840x2160 (4K) | 1.00 | 100% | 100% (capped) |
+| 2560x1440 (1440p) | 0.67 | 67% | 100% |
+| 1920x1080 (1080p) | 0.50 | 50% | 75% |
+
+This makes switching between monitors predictable: on a 1440p game session at 150%, moving the overlay to a 4K monitor automatically falls back to 100% instead of rendering an oversized overlay. Your Windows display scale (DPI) also affects the physical on-screen size, but both the launcher and the overlay scale together, so their proportions stay in sync.
+
 ## Settings pages
 
 - `StartsidePage.xaml`: startup, topmost behavior, UI scale, general launcher options, and the built-in `Dansk` / `English` language switcher.

@@ -217,7 +217,7 @@ namespace IconGrid.ViewModels
             get => _gamingOverlayUiScale;
             set
             {
-                var clamped = Math.Max(0.7, Math.Min(1.2, value));
+                var clamped = Math.Max(1.0, Math.Min(1.5, value));
                 if (SetField(ref _gamingOverlayUiScale, clamped))
                 {
                     SaveSettingsToConfig();

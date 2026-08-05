@@ -19,7 +19,7 @@ namespace IconGrid.ViewModels
             _startWithWindows = state.StartWithWindows;
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
-            _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, state.GamingOverlayUiScale));
+            _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(1.0, Math.Min(1.5, state.GamingOverlayUiScale));
             _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 1.0 : Math.Max(0.15, Math.Min(1.0, state.GamingOverlayFpsResponsiveness));
             _gamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
             _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;

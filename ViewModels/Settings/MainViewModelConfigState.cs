@@ -49,7 +49,7 @@ namespace IconGrid.ViewModels.Settings
                 StartWithWindows = config.StartWithWindows,
                 StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
-                GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(0.7, Math.Min(1.2, config.GamingOverlayUiScale)),
+                GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(1.0, Math.Min(1.5, config.GamingOverlayUiScale)),
                 GamingOverlayFpsResponsiveness = config.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, config.GamingOverlayFpsResponsiveness)),
                 GamingOverlayTransparentBackground = config.GamingOverlayTransparentBackground,
                 GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,

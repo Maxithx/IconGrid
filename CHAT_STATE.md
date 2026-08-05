@@ -515,3 +515,31 @@
 - **Opfølgende fixes (samme session):**
   - **Flyt overlay in-game:** `DragMove()` fejler på vinduer med `AllowsTransparency="True"`. `GamingOverlayWindow.xaml.cs` bruger nu Win32 `SendMessage(WM_NCLBUTTONDOWN, HTCAPTION)` i stedet, så overlayet kan flyttes også når den er gennemsigtig in-game.
   - **Tekstfarve opdateres ikke når AutoTransparent tændes under spil:** `GamingOverlayTransparentBackground`- og `GamingOverlayAutoTransparentBackground`-setterne manglede `OnPropertyChanged` for `GamingOverlayTextBrush`/`GamingOverlayTextColorHex`. Tilføjet i `ViewModels/MainViewModel.cs`, så valgt hvid farve vises med det samme.
+
+## 2026-08-05 Session: Overlay scale 100-150% + README
+
+Ændret Gaming Overlay scale-grænser fra 0.7-1.2 til 1.0-1.5 (7 filer):
+- Views/Settings/Pages/GamingOverlayPage.xaml: Slider Minimum=1.0, Maximum=1.5
+- Views/Launcher/GamingOverlayWindow.xaml: Popup-slider Minimum=1.0, Maximum=1.5
+- ViewModels/MainViewModel.cs: Setter clamp Math.Max(1.0, Math.Min(1.5, value))
+- ViewModels/MainViewModel.Settings.cs: Config-clamp 1.0-1.5 (løfter gamle gemte værdier <100% op til 100%)
+- ViewModels/Settings/MainViewModelConfigState.cs: Clamp 1.0-1.5
+- Views/Launcher/GamingOverlayWindow.xaml.cs: GetEffectiveScale cap Math.Min(1.5, ...) så 150% virker på 4K
+- README.md: Ny dokumentation under 'Gaming overlay monitor' - anbefalet Fullscreen Windowed, Exclusive fullscreen advarsel, opløsningskompensationstabel (4K/1440p/1080p) og DPI-sammenhæng
+
+Build: 0 fejl, 0 advarsler. check_architecture_rules: grønt.
+Næste skridt: Manuel UI-test - bekræft at 150% slider på 1440p giver overlay på størrelse med launcher, og at eksisterende gemt lav skala auto-løftes til 100%.
+
+## Overlay scale cap fix (100% effektiv max)
+
+Efter brugerfeedback: GamingOverlayWindow.xaml.cs GetEffectiveScale() cap ændret fra Math.Min(1.5, ...) til Math.Min(1.0, ...).
+
+Ny adfærd:
+- 4K @ slider 150% → 100% effektiv (capped, aldrig større end launcher-design)
+- 1440p @ slider 150% → 100% effektiv (matcher launcher)
+- 1080p @ slider 150% → 75% effektiv
+
+Dette gør monitor-skift forudsigeligt: overlay på 1440p @ 150% falder automatisk tilbage til 100% når vinduet flyttes til 4K i stedet for at blive 150% stort.
+
+README.md kompensationstabel opdateret med '100% (capped)' for 4K-kolonnen.
+Build: 0 fejl, 0 advarsler.
