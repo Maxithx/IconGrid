@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -11,6 +12,12 @@ namespace IconGrid.Views
 {
     public partial class GamingOverlayWindow : Window
     {
+        private const int WmNcLButtonDown = 0x00A1;
+        private const int HtCaption = 0x0002;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
         private const double ReferenceWidth = 3840.0;
         private const double ReferenceHeight = 2160.0;
         private const double BaseOverlayHeight = 44.0;
@@ -179,16 +186,25 @@ namespace IconGrid.Views
 
         private void OverlayRoot_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+            if (e.ButtonState != System.Windows.Input.MouseButtonState.Pressed)
             {
-                try
+                return;
+            }
+
+            // DragMove() throws on windows with AllowsTransparency="True" (which this
+            // window always has). Use the Win32 caption drag instead so the overlay can
+            // be moved even while the transparent background is active in-game.
+            try
+            {
+                var hwnd = new WindowInteropHelper(this).Handle;
+                if (hwnd != IntPtr.Zero)
                 {
-                    DragMove();
+                    SendMessage(hwnd, WmNcLButtonDown, new IntPtr(HtCaption), IntPtr.Zero);
                 }
-                catch
-                {
-                    // ignore drag failures when clicked on controls
-                }
+            }
+            catch
+            {
+                // ignore drag failures when clicked on controls
             }
         }
 

@@ -53,6 +53,7 @@ namespace IconGrid.Helpers
         private DateTime _lastUpdateTime = DateTime.UtcNow;
         private bool _isPawnIoAvailable;
         private double _fpsDisplayResponsiveness = 1.0;
+        private bool _inGame;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -75,10 +76,16 @@ namespace IconGrid.Helpers
             {
                 _fpsStatus = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(IsInGame));
             }
         }
-        public bool IsInGame => _fpsStatus != "--";
+
+        /// <summary>
+        /// True when a game process is actively tracked. Derived from the native FPS agent's
+        /// TargetPid (primary) or live FPS data (fallback), NOT from whether the FPS display
+        /// happens to show a number. This keeps "Transparent while in game" decoupled from
+        /// the FPS counter so the background returns as soon as the game exits.
+        /// </summary>
+        public bool IsInGame => _inGame;
         public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); } }
         public double FpsDisplayResponsiveness
         {
@@ -395,6 +402,26 @@ namespace IconGrid.Helpers
                                DateTime.UtcNow - nativeFpsState!.Value.CapturedAtUtc <= FpsStateMaxAge;
             var correctedFpsValue = fpsState?.LiveFpsValue;
             var hasCorrectedFps = correctedFpsValue.HasValue && correctedFpsValue.Value > 0;
+
+            // In-game is driven primarily by the native agent's tracked PID. When the game
+            // exits, TargetPid drops to 0 immediately, so the overlay background returns
+            // right away instead of waiting for the FPS feed to decay.
+            var trackedGamePid = nativeFpsState?.TargetPid ?? 0;
+            if (trackedGamePid > 0)
+            {
+                SetInGame(true);
+            }
+            else if (nativeFpsState == null)
+            {
+                // Native agent is not running / shared memory unavailable;
+                // fall back to live FPS signals so the overlay still turns transparent.
+                SetInGame(hasNativeFps || hasCorrectedFps);
+            }
+            else
+            {
+                // Native agent is running and explicitly reports no tracked game process.
+                SetInGame(false);
+            }
             if (!hasNativeFps && fpsState == null)
             {
                 _targetFpsValue = null;
@@ -487,6 +514,17 @@ namespace IconGrid.Helpers
             DateTime NewUpdateTime);
 
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        private void SetInGame(bool value)
+        {
+            if (_inGame == value)
+            {
+                return;
+            }
+
+            _inGame = value;
+            OnPropertyChanged(nameof(IsInGame));
+        }
 
         private void InitializeNetworkStats()
         {

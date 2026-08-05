@@ -255,6 +255,8 @@ namespace IconGrid.ViewModels
                     OnPropertyChanged(nameof(IsGamingOverlayTextColorCustom));
                     OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
                     OnPropertyChanged(nameof(GamingOverlayAnyTransparentEnabled));
+                    OnPropertyChanged(nameof(GamingOverlayTextBrush));
+                    OnPropertyChanged(nameof(GamingOverlayTextColorHex));
                 }
             }
         }
@@ -271,8 +273,11 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _gamingOverlayAutoTransparentBackground, value))
                 {
                     SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(IsGamingOverlayTextColorCustom));
                     OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
                     OnPropertyChanged(nameof(GamingOverlayAnyTransparentEnabled));
+                    OnPropertyChanged(nameof(GamingOverlayTextBrush));
+                    OnPropertyChanged(nameof(GamingOverlayTextColorHex));
                 }
             }
         }

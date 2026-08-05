@@ -500,3 +500,18 @@
 - **Arkitektur:** `check_architecture_rules` GRØN ✅.
 - **Detaljer:** Se `.local-state/color-system.md` (afsnit: Gaming overlay FPS light theme, Gaming overlay transparent background, Gaming overlay text color picker, Dynamic transparent overlay when in game, Auto-transparent toggle, FIX Independent transparent toggles, Color swatch selected marker).
 - **Næste skridt:** Ingen planlagte — brugeren bekræftede "det spiller rigtig godt. så er vi færdig".
+
+## Session 2026-08-05: Fix — gaming overlay hænger gennemsigtig efter spil lukkes
+
+- **Bug:** Med "Transparent while in game" (AutoTransparentBackground) ON forblev gaming overlayets baggrund gennemsigtig i Windows efter spillet blev lukket.
+- **Root cause:** `SystemMonitor.IsInGame` var koblet direkte til `FpsStatus != "--"` (FPS-tælleren). Når spillet lukkede, kunne FPS-data blive hængende i et par sekunder, så `GamingOverlayTransparentBackgroundEffective` forblev true og baggrunden kom ikke tilbage.
+- **Fix:** Afkoblede `IsInGame` fra FpsStatus i `Helpers/Launcher/SystemMonitor.cs`:
+  - `IsInGame` er nu et separat felt (`_inGame`) sat via `SetInGame(...)`.
+  - Primær kilde: native FPS agents `TargetPid` fra shared memory — når spillet lukker sætter agenten `TargetPid=0` øjeblikkeligt.
+  - Fallback: hvis shared memory ikke er tilgængelig (agent ikke kørende), bruges live FPS-signaler.
+  - Når agenten kører og eksplicit rapporterer `TargetPid=0`, sættes `IsInGame=false` — FPS-feedets decay får ikke lov at holde transparency kørende.
+- **Build:** 0 fejl / 0 advarsler. `check_architecture_rules` GRØN.
+- **Filer ændret:** `Helpers/Launcher/SystemMonitor.cs`.
+- **Opfølgende fixes (samme session):**
+  - **Flyt overlay in-game:** `DragMove()` fejler på vinduer med `AllowsTransparency="True"`. `GamingOverlayWindow.xaml.cs` bruger nu Win32 `SendMessage(WM_NCLBUTTONDOWN, HTCAPTION)` i stedet, så overlayet kan flyttes også når den er gennemsigtig in-game.
+  - **Tekstfarve opdateres ikke når AutoTransparent tændes under spil:** `GamingOverlayTransparentBackground`- og `GamingOverlayAutoTransparentBackground`-setterne manglede `OnPropertyChanged` for `GamingOverlayTextBrush`/`GamingOverlayTextColorHex`. Tilføjet i `ViewModels/MainViewModel.cs`, så valgt hvid farve vises med det samme.
