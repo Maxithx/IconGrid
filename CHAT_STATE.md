@@ -543,3 +543,19 @@ Dette gør monitor-skift forudsigeligt: overlay på 1440p @ 150% falder automati
 
 README.md kompensationstabel opdateret med '100% (capped)' for 4K-kolonnen.
 Build: 0 fejl, 0 advarsler.
+
+## Session 2026-08-05 (nat): Game resolution + per-resolution overlay scale + midlertidig layout-snapshot
+
+Funktioner implementeret (afvent commit):
+
+1. **Automatisk opløsningsskift for spil** — `LauncherItem.GameResolution` (per-genvej, feks. "2560x1440"), `DisplayResolutionService` (Win32 ChangeDisplaySettingsEx mod primaer skaerm), `LauncherItemLaunchManager` skifter før launch + `WatchProcess` genopretter ved exit. Crash-fallback watchdog (30s). RestoreAfterExit-toggle (global) i config-kæden.
+2. **Game Resolution-siden** (ny) — per-genvej opløsnings-dropdown + kategori-filter (default Games, brugeren kan vælge kategori). Læsbare dropdowns (sort på hvid). Sidebar-knap i SettingsWindow.
+3. **Standard overlay scale per opløsning** — `GamingOverlayResolutionScales` dictionary i config + `MainViewModel.Overlay.cs` (Get/Set/Remove + indbyggede defaults: 4K=100%, 1440p=135%). GamingOverlayWindow lytter på `SystemEvents.DisplaySettingsChanged` og anvender default ved opløsningsskift + åbning. Overlay-slider auto-gemmer ved drag-slip. Settings-UI på GamingOverlayPage viser 1920x1080 – 4096x2160 med slider pr. opløsning.
+4. **Midlertidig layout-snapshot** — `WindowLayoutSnapshotService` (ny): `Capture()` samler vinduer via EnumWindows/GetWindowRect (inkl. IconGrid egne vinduer fra Application.Current.Windows), `Restore()` via SetWindowPos. LauncherItemLaunchManager tager snapshot før opløsningsskift og kalder Restore naar `DisplayResolutionService.ResolutionRestored` fyres. Rører IKKE SavedLayouts.
+5. **Gaming overlay fixes** — 4K overlay scale virker (fjernet 1.0-cap i GetEffectiveScale), scale %-tekst + "Overlay scale" bruger MonitorTextStyle (sort i lyst tema, hvid/valgt farve ved transparent). README kompensationstabel opdateret.
+
+**AABEN BUG (naeste session):** Gaming overlay flytter sig til hoejresiden naar spillet lukkes og holder ikke sin gemte position. Foreslaaet aarsag: snapshot/restore sætter overlay-vinduet via SetWindowPos med gemt rect, men overlayet bruger også WindowInteropHelper/SendMessage-drag og kan have rettet sig til monitorskift; evt. skal overlayet undtages fra snapshot-restore (det gemmer selv sin position via SaveGamingOverlayWindowPosition) eller restore skal vente til efter resolution er helt tilbage.
+
+Architektur: GRØN — MainWindow 968, MainViewModel 1181, HardwareMonitorAgent 1459, SystemMonitor 549. Build: 0 fejl / 0 advarsler.
+
+Næste skridt: commit dette arbejde, fortsæt i ny frisk chat-session med fix af overlay-position-bug.

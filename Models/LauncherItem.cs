@@ -75,6 +75,23 @@ namespace IconGrid.Models
         /// </summary>
         public string? IconBase64 { get; set; }
 
+        private string? _gameResolution;
+
+        /// <summary>
+        /// Display resolution to switch to before launching this shortcut
+        /// (e.g. "2560x1440"). Empty/null means no resolution change.
+        /// </summary>
+        public string? GameResolution
+        {
+            get => _gameResolution;
+            set
+            {
+                if (value == _gameResolution) return;
+                _gameResolution = value;
+                OnPropertyChanged();
+            }
+        }
+
         private ImageSource? _iconImage;
         /// <summary>
         /// ImageSource bound in XAML (LauncherIconTileStyle uses IconImage).

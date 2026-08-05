@@ -53,15 +53,15 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 
 #### Overlay scale and resolution compensation
 
-The overlay scale slider ranges from **100% to 150%** and is applied on top of an automatic resolution compensation relative to a 4K (3840x2160) reference. The effective scale is capped at **100%**, so the overlay is never rendered larger than the main launcher monitor row design:
+The overlay scale slider ranges from **100% to 150%** and is applied on top of an automatic resolution compensation relative to a 4K (3840x2160) reference. On 4K the slider applies directly; on smaller screens the effective scale is reduced so the overlay matches the launcher monitor row proportions:
 
 | Screen resolution | Compensation | Slider 100% effective | Slider 150% effective |
 |---|---|---|---|
-| 3840x2160 (4K) | 1.00 | 100% | 100% (capped) |
+| 3840x2160 (4K) | 1.00 | 100% | 150% |
 | 2560x1440 (1440p) | 0.67 | 67% | 100% |
 | 1920x1080 (1080p) | 0.50 | 50% | 75% |
 
-This makes switching between monitors predictable: on a 1440p game session at 150%, moving the overlay to a 4K monitor automatically falls back to 100% instead of rendering an oversized overlay. Your Windows display scale (DPI) also affects the physical on-screen size, but both the launcher and the overlay scale together, so their proportions stay in sync.
+On 4K the slider applies directly (150% = 150%). On smaller screens the resolution factor keeps the overlay proportionate to the launcher. Your Windows display scale (DPI) also affects the physical on-screen size, but both the launcher and the overlay scale together, so their proportions stay in sync.
 
 ## Settings pages
 

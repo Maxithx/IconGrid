@@ -1,12 +1,50 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Settings;
 using IconGrid.ViewModels;
 
 namespace IconGrid.Views
 {
+    /// <summary>
+    /// One row in the "default overlay scale per resolution" list.
+    /// </summary>
+    public sealed class ResolutionScaleEntry : INotifyPropertyChanged
+    {
+        private readonly Action<string, double>? _onScaleChanged;
+        private double _scale;
+
+        public string Resolution { get; }
+
+        public double Scale
+        {
+            get => _scale;
+            set
+            {
+                if (System.Math.Abs(_scale - value) < 0.005)
+                    return;
+
+                _scale = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Scale)));
+                _onScaleChanged?.Invoke(Resolution, value);
+            }
+        }
+
+        public ResolutionScaleEntry(string resolution, double scale, Action<string, double>? onScaleChanged)
+        {
+            Resolution = resolution;
+            _scale = scale;
+            _onScaleChanged = onScaleChanged;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
     public partial class GamingOverlayPage : System.Windows.Controls.UserControl, INotifyPropertyChanged
     {
         private const string DefaultLanguage = "da";
@@ -36,6 +74,9 @@ namespace IconGrid.Views
         private string _plannedOverlaySettingsTitleText = string.Empty;
         private string _plannedOverlaySettingsIntroText = string.Empty;
         private string _readyBadgeText = "Ready";
+        private string _resolutionDefaultsTitleText = string.Empty;
+        private string _resolutionDefaultsIntroText = string.Empty;
+        private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
 
         public GamingOverlayPage()
         {
@@ -193,11 +234,52 @@ namespace IconGrid.Views
             private set => SetField(ref _readyBadgeText, value);
         }
 
+        public ObservableCollection<ResolutionScaleEntry> ResolutionScaleEntries => _resolutionScaleEntries;
+
+        public string ResolutionDefaultsTitleText
+        {
+            get => _resolutionDefaultsTitleText;
+            private set => SetField(ref _resolutionDefaultsTitleText, value);
+        }
+
+        public string ResolutionDefaultsIntroText
+        {
+            get => _resolutionDefaultsIntroText;
+            private set => SetField(ref _resolutionDefaultsIntroText, value);
+        }
+
         private void GamingOverlayPage_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
             AttachMainViewModel();
             RefreshLocalizedText();
+            RefreshResolutionScales();
             RefreshFpsSetupStatus();
+        }
+
+        private void RefreshResolutionScales()
+        {
+            if (_mainViewModel == null)
+                return;
+
+            _resolutionScaleEntries.Clear();
+            foreach (var resolution in DisplayResolutionService.GetSupportedResolutions())
+            {
+                var parsed = DisplayResolutionService.ParseResolution(resolution);
+                if (!parsed.HasValue)
+                    continue;
+
+                // Only show common gaming resolutions: 1920x1080 up to 4096x2160.
+                var width = parsed.Value.Width;
+                var height = parsed.Value.Height;
+                if (width < 1920 || height < 1080 || width > 4096 || height > 2160)
+                    continue;
+
+                var entry = new ResolutionScaleEntry(
+                    resolution,
+                    _mainViewModel.GetGamingOverlayScaleForResolution(resolution),
+                    (res, scale) => _mainViewModel?.SetGamingOverlayScaleForResolution(res, scale));
+                _resolutionScaleEntries.Add(entry);
+            }
         }
 
         private void GamingOverlayPage_Unloaded(object sender, RoutedEventArgs e)
@@ -352,6 +434,8 @@ namespace IconGrid.Views
                 PlannedOverlaySettingsTitleText = "Live vs trend";
                 PlannedOverlaySettingsIntroText = "Overlayet viser nu et hurtigt live-tal for korte spikes og et mere smooth trend-tal for laesbarhed.";
                 ReadyBadgeText = "Klar";
+                ResolutionDefaultsTitleText = "Standard scale per opløsning";
+                ResolutionDefaultsIntroText = "Vælg den standard overlay-scale IconGrid bruger, naar skaermen skifter til hver opløsning. Juster sliders her, eller track i overlayets egen slider — begge steder gemmer som standard.";
             }
             else
             {
@@ -376,6 +460,8 @@ namespace IconGrid.Views
                 PlannedOverlaySettingsTitleText = "Live vs trend";
                 PlannedOverlaySettingsIntroText = "The overlay now shows a fast live number for short spikes and a smoother trend number for readability.";
                 ReadyBadgeText = "Ready";
+                ResolutionDefaultsTitleText = "Default scale per resolution";
+                ResolutionDefaultsIntroText = "Choose the default overlay scale IconGrid uses when the display switches to each resolution. Adjust any slider here, or drag the overlay's own slider — both save as the default.";
             }
         }
 

@@ -25,6 +25,8 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableSlideUpAnimation { get; init; }
         public bool EnableContentScroll { get; init; }
         public string IconViewMode { get; init; } = "Grid";
+        public bool RestoreGameResolutionAfterExit { get; init; } = true;
+        public Dictionary<string, double> GamingOverlayResolutionScales { get; init; } = new();
         public int WindowAnimationDurationMs { get; init; }
         public FpsTargetConfig FpsTarget { get; init; } = new();
         public string Language { get; init; } = "da";
@@ -62,6 +64,8 @@ namespace IconGrid.ViewModels.Settings
                 EnableSlideUpAnimation = config.EnableSlideUpAnimation,
                 EnableContentScroll = config.EnableContentScroll,
                 IconViewMode = string.Equals(config.IconViewMode, "Carousel", StringComparison.OrdinalIgnoreCase) ? "Carousel" : "Grid",
+                RestoreGameResolutionAfterExit = config.RestoreGameResolutionAfterExit,
+                GamingOverlayResolutionScales = config.GamingOverlayResolutionScales ?? new Dictionary<string, double>(),
                 WindowAnimationDurationMs = config.WindowAnimationDurationMs,
                 FpsTarget = config.FpsTarget ?? new FpsTargetConfig(),
                 Language = string.IsNullOrWhiteSpace(config.Language) ? "da" : config.Language,

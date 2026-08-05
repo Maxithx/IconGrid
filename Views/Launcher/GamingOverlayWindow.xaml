@@ -379,7 +379,7 @@
                     <StackPanel>
                         <TextBlock Text="Overlay scale"
                                    FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                   Style="{StaticResource MonitorTextStyle}" />
                         <Grid Margin="0,12,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -399,7 +399,7 @@
                             <TextBlock Grid.Column="1"
                                        Margin="12,0,0,0"
                                        VerticalAlignment="Center"
-                                       Foreground="#D1D5DB"
+                                       Style="{StaticResource MonitorTextStyle}"
                                        Text="{Binding GamingOverlayUiScale, StringFormat={}{0:P0}}" />
                         </Grid>
                     </StackPanel>

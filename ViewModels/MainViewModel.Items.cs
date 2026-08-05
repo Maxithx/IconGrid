@@ -238,7 +238,7 @@ namespace IconGrid.ViewModels
 
         // ---------- Persistence (simple JSON) ----------
 
-        private void SaveItemsToFile()
+        public void SaveItemsToFile()
         {
             _itemsPersistence.Save(Items);
         }

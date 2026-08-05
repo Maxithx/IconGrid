@@ -5,7 +5,9 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using IconGrid.Helpers.Launcher;
 using IconGrid.ViewModels;
+using Microsoft.Win32;
 using Forms = System.Windows.Forms;
 
 namespace IconGrid.Views
@@ -33,6 +35,7 @@ namespace IconGrid.Views
             InitializeComponent();
             _viewModel = viewModel;
             DataContext = viewModel;
+            SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
             UpdateOverlayMetrics();
             Loaded += GamingOverlayWindow_Loaded;
             Closed += GamingOverlayWindow_Closed;
@@ -42,16 +45,34 @@ namespace IconGrid.Views
 
         private void GamingOverlayWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            ApplyResolutionDefaultScale();
             UpdateOverlayMetrics();
             ApplyLayout();
         }
 
         private void GamingOverlayWindow_Closed(object? sender, EventArgs e)
         {
+            SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
             Loaded -= GamingOverlayWindow_Loaded;
             Closed -= GamingOverlayWindow_Closed;
             LocationChanged -= GamingOverlayWindow_LocationChanged;
             _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        }
+
+        private void SystemEvents_DisplaySettingsChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                ApplyResolutionDefaultScale();
+                UpdateOverlayMetrics();
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void ApplyResolutionDefaultScale()
+        {
+            var resolution = DisplayResolutionService.GetCurrentResolution();
+            var scale = _viewModel.GetGamingOverlayScaleForResolution(resolution);
+            _viewModel.GamingOverlayUiScale = scale;
         }
 
         private void GamingOverlayWindow_LocationChanged(object? sender, EventArgs e)
@@ -129,7 +150,7 @@ namespace IconGrid.Views
             var widthFactor = Math.Min(1.0, screen.Bounds.Width / ReferenceWidth);
             var heightFactor = Math.Min(1.0, screen.Bounds.Height / ReferenceHeight);
             var resolutionFactor = Math.Min(widthFactor, heightFactor);
-            return Math.Max(0.5, Math.Min(1.0, baseScale * resolutionFactor));
+            return Math.Max(0.5, baseScale * resolutionFactor);
         }
 
         private static double MeasureElementWidth(FrameworkElement? element)
@@ -349,6 +370,10 @@ namespace IconGrid.Views
             {
                 UpdateOverlayMetrics();
             }
+
+            // Save the user's chosen scale as that resolution's default going forward.
+            var resolution = DisplayResolutionService.GetCurrentResolution();
+            _viewModel.SetGamingOverlayScaleForResolution(resolution, _viewModel.GamingOverlayUiScale);
         }
     }
 

@@ -62,6 +62,8 @@ namespace IconGrid.ViewModels.Settings
                 config.EnableSlideUpAnimation = state.EnableSlideUpAnimation;
                 config.EnableContentScroll = state.EnableContentScroll;
                 config.IconViewMode = state.IconViewMode;
+                config.RestoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
+                config.GamingOverlayResolutionScales = state.GamingOverlayResolutionScales;
                 config.WindowAnimationDurationMs = state.WindowAnimationDurationMs;
                 config.FpsTarget = state.FpsTarget ?? new FpsTargetConfig();
 

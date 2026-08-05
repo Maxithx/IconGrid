@@ -24,6 +24,8 @@ namespace IconGrid.ViewModels
             _gamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
             _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
             _gamingOverlayTextColor = string.IsNullOrWhiteSpace(state.GamingOverlayTextColor) ? "#FFFFFF" : state.GamingOverlayTextColor;
+            _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
+            _gamingOverlayResolutionScales = state.GamingOverlayResolutionScales ?? new Dictionary<string, double>();
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
@@ -57,6 +59,8 @@ namespace IconGrid.ViewModels
             _gamingOverlayTransparentBackground = false;
             _gamingOverlayAutoTransparentBackground = false;
             _gamingOverlayTextColor = "#FFFFFF";
+            _restoreGameResolutionAfterExit = true;
+            _gamingOverlayResolutionScales = new Dictionary<string, double>();
             _isAlwaysOnTop = false;
             _isFloatingIconTopmost = true;
             _showScrollButtons = true;
@@ -112,6 +116,8 @@ namespace IconGrid.ViewModels
                 EnableSlideUpAnimation = _enableSlideUpAnimation,
                 EnableContentScroll = _enableContentScroll,
                 IconViewMode = _layoutMeasurements.IconViewMode,
+                RestoreGameResolutionAfterExit = _restoreGameResolutionAfterExit,
+                GamingOverlayResolutionScales = _gamingOverlayResolutionScales,
                 WindowAnimationDurationMs = _windowAnimationDurationMs,
                 FpsTarget = _fpsTarget
             };

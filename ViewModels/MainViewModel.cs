@@ -13,6 +13,7 @@ using System.Windows;
 using Microsoft.Win32;
 using WMedia = System.Windows.Media;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 using IconGrid.ViewModels.Launcher;
@@ -45,6 +46,8 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayTransparentBackground = false;
         private bool _gamingOverlayAutoTransparentBackground = false;
         private string _gamingOverlayTextColor = "#FFFFFF";
+        private bool _restoreGameResolutionAfterExit = true;
+        private Dictionary<string, double> _gamingOverlayResolutionScales = new();
         private const double GamingOverlayBaseWidth = 720;
         private const double GamingOverlayBaseHeight = 44;
         private bool _isFullWindowVisible = false;
@@ -64,6 +67,8 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
         private readonly LauncherItemLaunchManager _itemLaunchManager;
+        private readonly DisplayResolutionService _displayResolutionService = new();
+        private readonly WindowLayoutSnapshotService _windowLayoutSnapshotService = new();
         private readonly LauncherThemeState _themeState = new();
         private readonly LauncherThemeCoordinator _themeCoordinator = new();
         private readonly LauncherLocalizationState _localizationState = new();
@@ -314,6 +319,22 @@ namespace IconGrid.ViewModels
         }
 
         public bool IsGamingOverlayTextColorCustom => GamingOverlayTransparentBackgroundEffective;
+
+        /// <summary>
+        /// When enabled, the original display resolution is restored after a game exits
+        /// (or when the crash-fallback watchdog fires).
+        /// </summary>
+        public bool RestoreGameResolutionAfterExit
+        {
+            get => _restoreGameResolutionAfterExit;
+            set
+            {
+                if (SetField(ref _restoreGameResolutionAfterExit, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
 
         public string GamingOverlayTextColorHex
         {
@@ -833,10 +854,12 @@ namespace IconGrid.ViewModels
         private (LauncherItemsManager ItemsManager, LauncherItemIconManager ItemIconManager, LauncherItemLaunchManager ItemLaunchManager, LauncherShortcutManager ShortcutManager, LauncherItemsPersistence ItemsPersistence) CreateManagers()
         {
             var itemIconManager = new LauncherItemIconManager();
+            var itemLaunchManager = new LauncherItemLaunchManager(RememberFpsTarget, _displayResolutionService, () => RestoreGameResolutionAfterExit);
+            itemLaunchManager.SetWindowLayoutSnapshotService(_windowLayoutSnapshotService);
             return (
                 new LauncherItemsManager(Items, () => SelectedTab),
                 itemIconManager,
-                new LauncherItemLaunchManager(RememberFpsTarget),
+                itemLaunchManager,
                 new LauncherShortcutManager(Items, itemIconManager),
                 new LauncherItemsPersistence(_dataFolder, Path.Combine(_legacyDataFolder, "items.json")));
         }

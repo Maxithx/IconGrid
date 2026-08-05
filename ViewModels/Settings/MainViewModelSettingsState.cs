@@ -49,6 +49,8 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableSlideUpAnimation { get; set; }
         public bool EnableContentScroll { get; set; }
         public string IconViewMode { get; set; } = "Grid";
+        public bool RestoreGameResolutionAfterExit { get; set; } = true;
+        public Dictionary<string, double> GamingOverlayResolutionScales { get; set; } = new();
         public int WindowAnimationDurationMs { get; set; }
         public FpsTargetConfig FpsTarget { get; set; } = new();
     }
