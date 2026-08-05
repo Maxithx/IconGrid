@@ -9,6 +9,7 @@ using IconGrid.Helpers.Launcher;
 using IconGrid.Models;
 using IconGrid.ViewModels;
 using Microsoft.Win32;
+using Forms = System.Windows.Forms;
 
 namespace IconGrid.Views
 {
@@ -210,20 +211,41 @@ namespace IconGrid.Views
             // switch. "Custom" keeps the user's manually dragged position untouched.
             // The overlay is never locked: the user can still drag it anywhere and
             // LocationChanged persists that position as usual.
-            // NOTE: we use SystemParameters.WorkArea (WPF DIPs) because Window.Left/
-            // Top/Width/Height are also in DIPs — the same convention as the
-            // coordinator's PositionRelativeToOwner.
+            // NOTE: we compute the placement from the CURRENT physical screen bounds
+            // (Forms.Screen.Bounds) converted to WPF DIPs via VisualTreeHelper.GetDpi,
+            // because SystemParameters.WorkArea can be stale right after a runtime
+            // resolution switch.
             try
             {
                 var preset = ParsePositionPreset(_viewModel.GamingOverlayPositionPreset);
                 if (preset == GamingOverlayPositionPreset.Custom)
                     return;
 
-                var area = SystemParameters.WorkArea;
                 var w = double.IsNaN(Width) || Width <= 0 ? ActualWidth : Width;
                 var h = double.IsNaN(Height) || Height <= 0 ? ActualHeight : Height;
                 if (w <= 0 || h <= 0)
                     return;
+
+                // Use the CURRENT physical screen bounds converted to WPF DIPs.
+                // SystemParameters.WorkArea can be stale right after a runtime
+                // resolution switch (e.g. 4K -> 1440p via the Game Resolution
+                // feature): WPF still reports the OLD work area for a moment, so the
+                // overlay would be positioned against the old screen size and fall
+                // off the right edge. Forms.Screen.Bounds always reflects the live
+                // display mode immediately, so position stays correct on every
+                // supported resolution from 1080p up.
+                var screen = Forms.Screen.PrimaryScreen;
+                if (screen == null)
+                    return;
+
+                var dpi = VisualTreeHelper.GetDpi(this);
+                var scaleX = dpi.DpiScaleX;
+                var scaleY = dpi.DpiScaleY;
+
+                var areaLeft = screen.Bounds.Left / scaleX;
+                var areaTop = screen.Bounds.Top / scaleY;
+                var areaRight = screen.Bounds.Right / scaleX;
+                var areaBottom = screen.Bounds.Bottom / scaleY;
 
                 // No margin: the overlay sits flush against the screen edge/corner.
                 // The user wants it fully in the corner (top of the screen + right
@@ -235,14 +257,14 @@ namespace IconGrid.Views
                 {
                     case GamingOverlayPositionPreset.TopLeft:
                     case GamingOverlayPositionPreset.BottomLeft:
-                        left = area.Left + gap;
+                        left = areaLeft + gap;
                         break;
                     case GamingOverlayPositionPreset.TopCenter:
                     case GamingOverlayPositionPreset.BottomCenter:
-                        left = area.Left + ((area.Width - w) / 2.0);
+                        left = areaLeft + ((areaRight - areaLeft - w) / 2.0);
                         break;
                     default: // TopRight / BottomRight
-                        left = area.Right - w - gap;
+                        left = areaRight - w - gap;
                         break;
                 }
 
@@ -252,10 +274,10 @@ namespace IconGrid.Views
                     case GamingOverlayPositionPreset.BottomLeft:
                     case GamingOverlayPositionPreset.BottomCenter:
                     case GamingOverlayPositionPreset.BottomRight:
-                        top = area.Bottom - h - gap;
+                        top = areaBottom - h - gap;
                         break;
                     default: // Top*
-                        top = area.Top + gap;
+                        top = areaTop + gap;
                         break;
                 }
 

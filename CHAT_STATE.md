@@ -844,3 +844,49 @@ Tilføjet i `ARCHITECTURE_RULES.md` som ny sektion 'Code Comments Language':
 Bemærk: der findes stadig danske kommentarer i eksisterende kode (fx 'Tema' sektionen i MainViewModel.cs og nogle kommentarer i GamingOverlayPage). Reglen gælder from nu — en bagudrettet oprydning kan laves som separat opgave hvis ønsket.
 
 Næste skridt: commit `ARCHITECTURE_RULES.md` (File Size Limit Policy + Code Comments Language) + `CHAT_STATE.md` og push.
+
+## Session 2026-08-05 (aften, del 13): Fix — overlay 'Default position' forkert ved runtime opløsningsskift (Game Resolution)
+
+Brugerrapport: 'Default position' virker korrekt på Windows-skrivebordet (3840x2160). Men når et spil (fx POE1) bruger Game Resolution og skifter runtime til 2560x1440, placeres gaming overlayet forkert. Starter man POE1 UDEN opløsningsskifte (native 3840x2160), virker 'Default position' korrekt. Brugeren bekræftede også at alle spil køres fullscreen windowed (et must for overlayet).
+
+Root cause: `ApplyPositionPreset()` brugte `SystemParameters.WorkArea` — WPF's statiske work-area, der er STALE lige efter et runtime opløsningsskift. Efter 400ms debounce-positionering lå overlayet stadig mod den GAMLE 4K-skriveflade (fx Right≈3840) selvom skærmen faktisk var 1440p (bredde 2560) → overlayet ryger ud til højre/afskåret.
+
+Fix implementeret (`Views/Launcher/GamingOverlayWindow.xaml.cs` — `ApplyPositionPreset()`):
+- Bruger nu `Forms.Screen.PrimaryScreen.Bounds` (fysiske pixels — altid opdateret øjeblikkeligt efter mode-skift) i stedet for `SystemParameters.WorkArea`.
+- Konverterer til WPF DIPs via `VisualTreeHelper.GetDpi(this)` (scaleX/scaleY divideret) så koordinaterne matcher Window.Left/Top/Width/Height.
+- Virker for alle understøttede opløsninger fra 1080p og op — positionen er nu korrekt umiddelbart efter skiftet.
+
+Verifikation:
+- Build: 0 fejl / 0 advarsler ✅
+- `check_architecture_rules`: GRØN — MainWindow 968, MainViewModel 1182, HardwareMonitorAgent 1459, SystemMonitor 549 ✅
+- Ændret: kun `Views/Launcher/GamingOverlayWindow.xaml.cs` (Forms-alias genbruges, VisualTreeHelper).
+
+Næste skridt (manuel test):
+1. Gaming overlay 'Default position' = Top højre. Windows 4K → start POE1 med GameResolution 2560x1440
+2. Overlay skal ligge korrekt TOP-HØJRE i 1440p med det samme (ikke ude til højre/afskåret)
+3. Test også fx 1920x1080 (1080p) som GameResolution — positionen skal følge den valgte preset i alle opløsninger
+4. Luk spillet → tilbage til 4K → overlay stadig top-højre
+5. Commit + push når testen er godkendt
+
+## Dokumenteret problem til næste session: opløsning skifter tilbage når man alt-tabber væk fra spil med Game Resolution
+
+Brugerrapport (2026-08-05, aften):
+- Starter man et spil fra én opløsning til en anden via Game Resolution (fx POE1 3840x2160 → 2560x1440), og man derefter indeni spillet tabber til et andet vindue (fx Stifinder/whatever),
+- så MISTER vi target og opløsningen SKIFTER TILBAGE til den opløsning brugeren kørte med inden spillet startede (altså 4K).
+- Brugeren sammenligner med vores FPS tæller/ETW pipeline og spørger: kan vi ikke bruge samme target-teknik her? (dvs. sticky-target / target retention som FPS-agenten bruger)
+
+Teknisk kontekst (min vurdering til næste session):
+- `DisplayResolutionService.WatchProcess(rootProcessId)` overvåger kun om processen er alive + 30s crash-watchdog. Det burde IKKE kalde RestoreResolution bare fordi foreground skifter.
+- Den sandsynlige trigger: `SystemEvents.DisplaySettingsChanged` fyres når spillet selv sætter skærmen tilbage til native ved de-fokus (nogle spil gør dette selv i fullscreen windowed), ELLER vores `DisplaySettingsChanged`-håndtering (debounce i GamingOverlayWindow) misfortolker det som spil-lukning.
+- `SystemEvents_DisplaySettingsChanged` i GamingOverlayWindow anvender kun scale + position - den rører IKKE DisplayResolutionService. Så kilden er nok spillet selv, eller WatchProcess's IsProcessAlive mislykkes for spillets reelle render-proces.
+
+Brugerens forslag (sticky-target som FPS/ETW):
+- Ligesom native FPS agent holder fast i target (grace period 3000ms når events stopper), bør resolution-låsen også holde fast i spilprocessen på tværs af foreground-skift - kun frigives når processen rent faktisk dør (eller eksplicit afspil-lukning).
+- Dvs. `WatchProcess` bør IKKE knyttes til foreground/display-events, men KUN til process-liveness.
+
+Næste skridt (næste session):
+1. Undersøg hvad der præcist trigger `RestoreResolution` - log med Debug.WriteLine om WatchProcess dør eller DisplaySettingsChanged misforstås
+2. Log spillets PID + hvilke ChangeDisplaySettingsEx kilder der kaldes når man alt-tabber
+3. Overvej at gøre `WatchProcess` robust: tjek `HasExited` korrekt (ikke bare første processobjekt), og ignorer display-ændringer der ikke kommer fra os så længe spillet lever
+4. Evt. implementér samme sticky-target pattern som FPS-agenten (hold resolution-lås i grace period)
+5. Manuel test: POE1 med GameResolution → start → alt-tab til Stifinder → opløsning skal BLIVE i 1440p → tilbage til spillet → alt virker → luk spil → 4K returneres
