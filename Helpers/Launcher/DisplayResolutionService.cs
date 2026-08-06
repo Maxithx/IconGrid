@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -169,10 +170,12 @@ namespace IconGrid.Helpers.Launcher
                 {
                     _pendingOriginalMode = current;
                     Debug.WriteLine($"[DisplayResolutionService] Switched primary display to {width}x{height}");
+                    WriteTrace($"[DisplayResolutionService] Switched primary display to {width}x{height}");
                 }
                 else
                 {
                     Debug.WriteLine($"[DisplayResolutionService] Change to {width}x{height} failed: {result}");
+                    WriteTrace($"[DisplayResolutionService] Change to {width}x{height} failed: {result}");
                 }
                 return result == DISP_CHANGE_SUCCESSFUL;
             }
@@ -193,13 +196,22 @@ namespace IconGrid.Helpers.Launcher
             Debug.WriteLine(result == DISP_CHANGE_SUCCESSFUL
                 ? $"[DisplayResolutionService] Restored original resolution for process {rootProcessId}"
                 : $"[DisplayResolutionService] Restore failed for process {rootProcessId}: {result}");
+            WriteTrace(result == DISP_CHANGE_SUCCESSFUL
+                ? $"[DisplayResolutionService] Restored original resolution for process {rootProcessId}"
+                : $"[DisplayResolutionService] Restore failed for process {rootProcessId}: {result}");
 
             ResolutionRestored?.Invoke();
         }
 
-        public void WatchProcess(int rootProcessId, TimeSpan? crashTimeout = null)
+        /// <summary>
+        /// Holds the resolution lock for the lifetime of the launched game, mirroring the
+        /// sticky-target pattern of the FPS/ETW pipeline: like an entry in Task Manager,
+        /// the lock is only released when the game process actually exits. Foreground
+        /// changes (alt-tab, Windows key, other windows) never release it.
+        /// </summary>
+        public void WatchProcess(int rootProcessId)
         {
-            var timeout = crashTimeout ?? TimeSpan.FromSeconds(30);
+            var identity = ResolveProcessIdentity(rootProcessId);
 
             lock (_lock)
             {
@@ -210,20 +222,39 @@ namespace IconGrid.Helpers.Launcher
 
             var token = _watchdogCts.Token;
 
+            WriteTrace(identity != null
+                ? $"[DisplayResolutionService] WatchProcess started for PID {identity.Value.Pid} (root {rootProcessId}, StartTime {identity.Value.StartFileTimeUtc}). Resolution lock held until the game process exits."
+                : $"[DisplayResolutionService] WatchProcess started for PID {rootProcessId} but the process could not be resolved; holding lock until the process exits.");
+
             Task.Run(async () =>
             {
-                var sw = Stopwatch.StartNew();
+                var watchPid = identity?.Pid ?? rootProcessId;
+                var watchStartFileTimeUtc = identity?.StartFileTimeUtc ?? 0L;
+                var executableName = identity?.ExecutableName;
+
                 while (!token.IsCancellationRequested)
                 {
-                    if (!IsProcessAlive(rootProcessId))
+                    if (!IsProcessAlive(watchPid, watchStartFileTimeUtc))
                     {
-                        RestoreResolution(rootProcessId);
-                        return;
-                    }
+                        // The watched process exited. If it was a short-lived root (e.g. a
+                        // launcher) that handed off to the real game process with the same
+                        // executable name, keep the lock and follow the handoff instead of
+                        // restoring the original resolution.
+                        var handoffPid = FindHandoffProcess(watchPid, executableName);
+                        if (handoffPid > 0)
+                        {
+                            WriteTrace($"[DisplayResolutionService] Root process {watchPid} exited but a game process with the same executable is still running (PID {handoffPid}); keeping the resolution locked.");
+                            var handoffIdentity = ResolveProcessIdentity(handoffPid);
+                            if (handoffIdentity != null)
+                            {
+                                watchPid = handoffIdentity.Value.Pid;
+                                watchStartFileTimeUtc = handoffIdentity.Value.StartFileTimeUtc;
+                                executableName = handoffIdentity.Value.ExecutableName;
+                            }
+                            continue;
+                        }
 
-                    if (sw.Elapsed >= timeout)
-                    {
-                        Debug.WriteLine($"[DisplayResolutionService] Watchdog timeout ({sw.Elapsed.TotalSeconds:F0}s); restoring resolution as crash fallback.");
+                        WriteTrace($"[DisplayResolutionService] Process {watchPid} exited; restoring resolution.");
                         RestoreResolution(rootProcessId);
                         return;
                     }
@@ -257,7 +288,7 @@ namespace IconGrid.Helpers.Launcher
             }
         }
 
-        private static bool IsProcessAlive(int pid)
+        private static bool IsProcessAlive(int pid, long startFileTimeUtc)
         {
             if (pid <= 0)
                 return false;
@@ -265,11 +296,121 @@ namespace IconGrid.Helpers.Launcher
             try
             {
                 using var process = Process.GetProcessById(pid);
-                return !process.HasExited;
+                if (process.HasExited)
+                    return false;
+
+                // PID-reuse protection: if the PID was recycled since we locked it, treat it
+                // as gone so a completely different process with the same PID cannot hold the
+                // resolution lock indefinitely.
+                if (startFileTimeUtc > 0)
+                {
+                    var currentStartFileTimeUtc = process.StartTime.ToUniversalTime().ToFileTimeUtc();
+                    if (currentStartFileTimeUtc != startFileTimeUtc)
+                        return false;
+                }
+
+                return true;
             }
             catch
             {
                 return false;
+            }
+        }
+
+        private static (int Pid, long StartFileTimeUtc, string? ExecutableName)? ResolveProcessIdentity(int pid)
+        {
+            if (pid <= 0)
+                return null;
+
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                if (process.HasExited)
+                    return null;
+
+                string? executableName = null;
+                try
+                {
+                    var fileName = process.MainModule?.FileName;
+                    if (!string.IsNullOrWhiteSpace(fileName))
+                        executableName = Path.GetFileName(fileName);
+                }
+                catch
+                {
+                    // access denied or process exited between calls — executable name stays null
+                }
+
+                return (process.Id, process.StartTime.ToUniversalTime().ToFileTimeUtc(), executableName);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static int FindHandoffProcess(int deadPid, string? executableName)
+        {
+            if (string.IsNullOrWhiteSpace(executableName))
+                return 0;
+
+            var bestPid = 0;
+            var bestStartTime = DateTime.MinValue;
+
+            try
+            {
+                foreach (var process in Process.GetProcesses())
+                {
+                    try
+                    {
+                        if (process.Id == deadPid || process.HasExited)
+                            continue;
+
+                        var fileName = process.MainModule?.FileName;
+                        if (fileName == null ||
+                            !string.Equals(Path.GetFileName(fileName), executableName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        // Prefer the newest matching instance — that is the actual game process.
+                        var startTime = process.StartTime;
+                        if (startTime > bestStartTime)
+                        {
+                            bestStartTime = startTime;
+                            bestPid = process.Id;
+                        }
+                    }
+                    catch
+                    {
+                        // skip inaccessible or transient processes
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+
+            return bestPid;
+        }
+
+        private static void WriteTrace(string message)
+        {
+            try
+            {
+                var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var folder = System.IO.Path.Combine(appData, "IconGrid");
+                System.IO.Directory.CreateDirectory(folder);
+                var logPath = System.IO.Path.Combine(folder, "trace.log");
+                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:O}] {message}{Environment.NewLine}");
+            }
+            catch
+            {
+                // logging must never break resolution handling
             }
         }
 
