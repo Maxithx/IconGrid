@@ -46,6 +46,19 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
 - The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
 
+#### Transparent background
+
+The gaming overlay has two independent transparency modes, configured on the Gaming Overlay settings page:
+
+- **Transparent background** — the overlay background is always transparent. Text color can be customized with the built-in color picker (white, black, yellow, blue, green, pink, cyan, or a custom Windows color).
+- **Auto transparent background (while in game)** — the overlay automatically becomes transparent only when a game is running and tracked by IconGrid's FPS pipeline. On the Windows desktop, the overlay keeps its normal opaque background. This gives you the best of both worlds: a clean transparent overlay in-game, and full readability on the desktop.
+
+When either transparency mode is active, the overlay text color switches to the user-chosen custom color — keeping the hardware monitor labels (CPU, GPU, FPS, ping, network) legible against the now-transparent background.
+
+#### Color picker for overlay text
+
+When transparency is enabled, the overlay text color picker becomes visible on the Gaming Overlay settings page. Choose from 7 preset swatches (White, Black, Yellow, Blue, Green, Pink, Cyan) or open the Windows color dialog via "Custom color..." for any RGB value. The selected swatch is highlighted with an accent-colored ring, and custom colors are normalized to hex format for reliable persistence.
+
 #### Recommended game display mode
 
 - Use **Fullscreen Windowed** (borderless) in your games for the best overlay experience. The game fills the screen but Windows keeps the desktop at the monitor's native resolution, so IconGrid can display the overlay correctly on top of the game.
@@ -73,6 +86,26 @@ Like classic overlay tools (e.g. FPS Overlay), the gaming overlay can snap to a 
 
 Whenever the overlay opens or the display resolution changes (game start/exit), it snaps back to the chosen placement so it never ends up mid-screen or off-screen after a mode switch. The overlay is never locked — you can still drag it anywhere afterwards, and that position is preserved (returning to `Custom` keeps it).
 
+### Game Resolution — per-game display resolution switching
+
+IconGrid can automatically switch your monitor to a lower resolution before launching a game, and restore the original resolution when the game exits.
+
+**Why this exists:** When you run Windows at 4K (3840×2160), your desktop is sharp and spacious — but your graphics card may struggle to maintain smooth performance at that resolution in games. The standard solution is to switch the game itself to a lower resolution like 2560×1440 or 1920×1080, but this only works if the game runs in **Exclusive Fullscreen** mode — which prevents the gaming overlay from appearing.
+
+By running games in **Fullscreen Windowed** mode (required for the overlay) and letting IconGrid switch the whole monitor resolution before launch, you get:
+- **Sharp 4K desktop** when working in Windows
+- **Smooth game performance** at your GPU's optimal resolution (e.g. 1440p or 1080p)
+- **Gaming overlay works** because the game stays in Fullscreen Windowed mode at the new resolution
+
+**How it works:**
+- Each shortcut in the launcher can optionally have a **Game Resolution** configured (set on the Game Resolution settings page — pick from common resolutions like 3840×2160, 2560×1440, 1920×1080, etc.).
+- When you launch that shortcut, IconGrid changes the primary monitor to the configured resolution before the game starts.
+- While the game runs, the resolution is **sticky** — it only reverts when the game process actually exits (not when you alt-tab away or click another window). This is the same target-retention technique used by the FPS pipeline.
+- The overlay's scale and position automatically follow the new resolution (see Overlay Scale and Default Position above) — so the overlay looks correct at 1440p without any manual adjustment.
+- When the game exits, the original resolution is restored, along with any desktop window layout that was moved during the resolution switch.
+
+**Per-resolution overlay scale** works hand-in-hand with Game Resolution: set your 4K overlay scale to 100%, your 1440p scale to 135% or 150%, and the overlay automatically sizes correctly at every resolution.
+
 ## Settings pages
 
 - `StartsidePage.xaml`: startup, topmost behavior, UI scale, general launcher options, and the built-in `Dansk` / `English` language switcher.
@@ -81,7 +114,8 @@ Whenever the overlay opens or the display resolution changes (game start/exit), 
 - `HardwarePage.xaml`: hardware diagnostics and related status.
 - `HjaelpPage.xaml`: help and troubleshooting content.
 - `AboutPage.xaml`: version and project information.
-- `GamingOverlayPage.xaml`: dedicated gaming overlay settings, including overlay scale and ETW/FPS setup status.
+- `GamingOverlayPage.xaml`: dedicated gaming overlay settings — overlay scale, per-resolution default scales, default position, transparent background, auto-transparent while in game, and overlay text color picker.
+- `GameResolutionPage.xaml`: per-game display resolution configuration — assign a target resolution to each launcher shortcut so IconGrid switches the monitor resolution before the game launches.
 
 ## Architecture
 
