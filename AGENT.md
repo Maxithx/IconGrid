@@ -45,6 +45,19 @@ Before making changes, read these files in this order:
 - The gaming overlay must not reuse the existing settings page flow; if it needs settings, add a dedicated settings page for it.
 - Do not assume the gaming overlay will appear inside a game's fullscreen composition; treat it as a desktop overlay requirement unless proven otherwise.
 
+## Testing IconGrid locally (deploy to C:\IconGrid)
+
+- The user tests IconGrid by copying from `E:\IconGrid-GitHub\bin` to `C:\IconGrid` and running it from there. Always deploy to `C:\IconGrid` before asking the user to test a change.
+- **CRITICAL — copy the whole build output, not just the .exe.** IconGrid is a framework-dependent .NET app: all code lives in `IconGrid.dll`, NOT in `IconGrid.exe`. Copying only the exe leaves the old dll in place and the user keeps running the previous build (this burned a long debugging session on 2026-08-06).
+- Steps to deploy a change for testing:
+  1. Build the configuration you want the user to test, e.g. `dotnet build IconGrid.csproj -c Release` (or `-c Debug` — confirm with the user which one they use).
+  2. Copy the ENTIRE output folder: `Copy-Item 'E:\IconGrid-GitHub\bin\Release\net10.0-windows10.0.22621.0\*' 'C:\IconGrid\' -Recurse -Force` (adjust the config folder to Debug if needed).
+  3. Make sure all IconGrid processes are fully closed first (launcher + hardware-monitor agent, e.g. `IconGrid.exe` and `IconGridFpsAgent.exe` in Task Manager > Details). A running process keeps the old dll loaded.
+  4. Verify the copy: `C:\IconGrid\IconGrid.dll` must have the same (or newer) LastWriteTime as the freshly built dll in `bin\<Config>\net10.0-windows10.0.22621.0\`. If it still shows an old timestamp, the dll was not copied and the test is meaningless.
+  5. Check Task Manager that the process StartTime is after the copy timestamp.
+- If the user reports "nothing changed" after a code fix, FIRST check whether `C:\IconGrid\IconGrid.dll` is stale (wrong build config or exe-only copy) before debugging the code further.
+- Diagnostic logging: trace.log lives at `C:\Users\<user>\AppData\Roaming\IconGrid\trace.log`. When a build includes new `[GamingOverlay]`-style trace lines, use them to confirm the NEW code is actually running before analyzing behavior.
+
 ## Session memory (MCP notes server)
 
 - A local MCP server named `icongrid-notes` provides note tools: `list_notes`, `read_note`, `search_notes`, `update_note`, `check_architecture_rules`, `check_version_consistency`.
