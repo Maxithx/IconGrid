@@ -389,7 +389,7 @@
                                     Maximum="1.5"
                                     TickFrequency="0.05"
                                     SmallChange="0.05"
-                                    LargeChange="0.1"
+                                    LargeChange="0.10"
                                     IsSnapToTickEnabled="True"
                                     PreviewMouseLeftButtonDown="PopupScaleSlider_PreviewMouseLeftButtonDown"
                                     PreviewMouseLeftButtonUp="PopupScaleSlider_PreviewMouseLeftButtonUp"

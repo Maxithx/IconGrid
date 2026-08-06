@@ -890,3 +890,44 @@ Næste skridt (næste session):
 3. Overvej at gøre `WatchProcess` robust: tjek `HasExited` korrekt (ikke bare første processobjekt), og ignorer display-ændringer der ikke kommer fra os så længe spillet lever
 4. Evt. implementér samme sticky-target pattern som FPS-agenten (hold resolution-lås i grace period)
 5. Manuel test: POE1 med GameResolution → start → alt-tab til Stifinder → opløsning skal BLIVE i 1440p → tilbage til spillet → alt virker → luk spil → 4K returneres
+
+## Session 2026-08-06: Sticky-target fix godkendt + overlay position diagnose
+
+- **Sticky-target fix for Game Resolution:** `DisplayResolutionService.WatchProcess` fjernede den ubetingede 30s-crash-watchdog (der ALTID gendannede opløsningen uanset om spillet levede). Opløsningslåsen frigives nu KUN når spilprocessen dør (`HasExited`-baseret med PID-reuse-beskyttelse via StartTime) + handoff-fallback hvis en root-launcher dør men en spilproces med samme exe kører. **Godkendt af bruger:** POE1 og POE2 holder nu opløsningen indtil spillet lukkes.
+- **Overlay position bug (1440p → 4K):** `ApplyPositionPreset` brugte `VisualTreeHelper.GetDpi` (stale lige efter mode-skift). Fix v1: `GetDpiForSystem` virkede ikke (returnerer system-DPI 96). Fix v2: `GetDpiForMonitor` (MDT_EFFECTIVE_DPI) + `LogTrace` med faktiske beregningstal implementeret.
+- **KRITISK DEPLOY-LÆRE** (dokumenteret i `.local-state/gaming-overlay.md`): IconGrid er framework-dependent .NET — al kode ligger i **IconGrid.dll**, IKKE IconGrid.exe. Tidligere kopierede vi kun exe'en → gammel dll kørte. Kopiér **HELE** `bin\Release` til `C:\IconGrid` og luk IconGrid HELT før deploy.
+- **Næste skridt:** brugeren genstarter HELT og tester med ny build (dll=01:34) → trace.log vil nu indeholde `[GamingOverlay]`-linjer med faktiske tal → ret eventuel resterende rodårsag (TopRight→top-mid tyder på for stor `Width` i `ApplyPositionPreset`). Derefter UX-fase (snap-indikator + drag→Custom).
+- **Nattens overlay-scale-debug er fuldt dokumenteret:** Se `.local-state/gaming-overlay.md` (kronologisk ændringshistorik med build-tider + brugerresultater) og `.local-state/next-session-overlay-scale.md` (komplet, selvstændig prompt til næste chat — kopiér hele filen som første besked). **Anbefalet første skridt i næste session: rull `ApplyScaleSettled` tilbage til 05:11-tilstanden** (synkront `ApplyWindowSize()` → `ApplyPositionPreset()` + `OnLocationChanged`-loop-breaker) og fjern derefter den sidste nedskalerings-frame via clamp/ét-pass-tilgang. 05:33-tilstanden (Left/Top før Width) er en REGRESSION — glitcher både op og ned + ud af viewport. `SetWindowPos` i slider-path (05:02) giver DWM-rysten på AllowsTransparency-vinduer — behold kun til opløsningsskift. Sticky-target fixet (`WatchProcess`, 30s-watchdog fjernet) er GODKENDT og røres ikke.
+
+## Session 2026-08-06 (05:51) — Clamp fix for overlay down-scaling glitch
+
+- Started from 05:11 baseline (synkront `ApplyWindowSize()` → `ApplyPositionPreset()` + loop-breaker) — which was already in the file.
+- Added clamp in `ApplyPositionPreset()`: after computing left/top, clamp all four edges against screen bounds before applying to `Left`/`Top`. This ensures that even if WPF separates Width and Left into different layout passes, the overlay position is always within the viewport.
+- Files changed: `Views/Launcher/GamingOverlayWindow.xaml.cs` (clamp block ~4 lines in `ApplyPositionPreset`).
+- Build: 0 errors, 0 warnings. Architecture check: passed.
+- Deployed to `C:\IconGrid` at 05:50.
+- READY FOR USER TEST: Start `C:\IconGrid\IconGrid.exe`, open Gaming Overlay, scale slider 150→100. Verify no flash, no off-viewport drift, overlay stays top-right.
+
+- First attempt: clamp-only in ApplyPositionPreset. User test: scaling smooth, but overlay drifts away from TopRight preset position — WPF re-anchors window between Width change (Background prio) and ApplyPositionPreset call.
+- Second attempt (06:01): Wrapped entire resize+reposition in `Dispatcher.BeginInvoke(DispatcherPriority.Render)` so WPF batches Width + Left/Top into single layout pass. Clamp still in place as safety net.
+- Deployed at 06:01.
+- READY FOR USER TEST.
+
+
+## Session 2026-08-06 (20:32) — Popup slider fix deployed
+
+- Fix: popup slider now skips ALL scale updates during drag (`_isDraggingPopupScaleSlider` guard in ViewModel_PropertyChanged).
+- Scale applied once atomically via SetWindowPos in FinishPopupScaleSliderDrag().
+- 5% steps restored (TickFrequency=0.05).
+- Build: 0 errors. Deployed to C:\IconGrid at 20:32.
+
+## Session 2026-08-06 — Complete summary
+
+## Scale slider — FÆRDIG
+- **Popup-slider**: 5% steps, ingen updates under drag, atomisk SetWindowPos når musen slippes.
+- **Settings-side slider**: LayoutTransform under drag, debounce + SetWindowPos når settled.
+- **Begge sliders**: overlay holder TopRight position, ingen rysten/hop.
+- **Release build** deployed til C:\IconGrid (723 KB).
+
+## Uafklaret
+- **Gennemsigtigheds-bug**: overlay bliver utilsigtet gennemsigtigt på Windows-skrivebordet. Brugeren har indstillinger for at det kun skal være transparent i spil (Auto transparent background). Skal debugges næste session — IsInGame flaget rapporterer muligvis forkert.
