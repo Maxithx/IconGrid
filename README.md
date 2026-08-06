@@ -90,7 +90,7 @@ Whenever the overlay opens or the display resolution changes (game start/exit), 
 
 IconGrid can automatically switch your monitor to a lower resolution before launching a game, and restore the original resolution when the game exits.
 
-**Why this exists:** When you run Windows at 4K (3840×2160), your desktop is sharp and spacious — but your graphics card may struggle to maintain smooth performance at that resolution in games. The standard solution is to switch the game itself to a lower resolution like 2560×1440 or 1920×1080, but this only works if the game runs in **Exclusive Fullscreen** mode — which prevents the gaming overlay from appearing.
+**Why this exists:** When you run Windows at 4K (3840×2160), your desktop is sharp and spacious — but your graphics card may struggle to maintain smooth performance at that resolution in games. The standard solution is to switch the game itself to a lower resolution like 2560×1440 or 1920×1080 — but this only works if the game runs in **Exclusive Fullscreen** mode. In that mode the gaming overlay does appear, but clicking on it alt-tabs you out of the game and back to Windows — making it impractical to interact with.
 
 By running games in **Fullscreen Windowed** mode (required for the overlay) and letting IconGrid switch the whole monitor resolution before launch, you get:
 - **Sharp 4K desktop** when working in Windows
