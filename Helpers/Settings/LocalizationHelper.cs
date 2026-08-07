@@ -210,7 +210,7 @@ public static class LocalizationHelper
             ["HomeIntroLine1"] = "Administrer generelle indstillinger og hvordan IconGrid interagerer med dit system.",
             ["HomeIntroLine2"] = "Konfigurer opstart, visning og kernefunktioner fra et sted.",
             ["SystemAndStartupTitle"] = "System og opstart",
-            ["LanguageSectionTitle"] = "Sprog og region",
+            ["LanguageSectionTitle"] = "Sprog",
             ["LanguageSectionDescription"] = "Vælg hvilket sprog IconGrid bruger i launcheren og på indstillingssiderne.",
             ["ToggleStatePrefix"] = "Slået",
             ["ToggleStateOn"] = "til",

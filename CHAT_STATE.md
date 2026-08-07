@@ -1285,3 +1285,11 @@ Bruger-godkendt og committet i dag:
   De må ALDRIG stages/pushes. `.gitignore` har nu `publish/`, så det er beskyttet.
   Release-zip ligger på: `E:\IconGrid-GitHub\publish\IconGrid-0.7.0-beta.1-win-x64.zip` (~83 MB).
 - Commit-historik i dag: b68bfbd (kategori-fix), 3945a80 (CHAT_STATE), 343d096 (.gitignore).
+
+## Session 2026-08-07 (aften) — Brugerændring: LanguageSectionTitle
+
+- Brugeren ændrede `Helpers/Settings/LocalizationHelper.cs`: `LanguageSectionTitle` da: "Sprog og region" → "Sprog".
+- Byggede: `dotnet build IconGrid.csproj` → 0 fejl, 0 advarsler (BUILD_EXIT=0).
+- Lukkede kørende IconGrid (2 proc + FpsAgent) og kopierede `bin\Debug\net10.0-windows10.0.22621.0\*` → `C:\icongrid` (EXIT=0).
+- Verificeret: `C:\icongrid\IconGrid.dll` = 2026-08-07 20:39:59, 874.496 bytes (nyt build).
+- Næste: commit + push af ændringen (LocalizationHelper.cs evt. + CHAT_STATE.md).
