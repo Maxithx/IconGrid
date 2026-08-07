@@ -103,6 +103,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Text="{Binding StartDirectlyInLauncherLabel}"
+                                               FontSize="14"
                                                FontWeight="SemiBold"
                                                Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                     <TextBlock Text="{Binding StartDirectlyInLauncherDescription}"
@@ -119,6 +120,7 @@
                                 <TextBlock Margin="0,0,0,4"
                                            Text="{Binding UiScaleDescription}"
                                            FontSize="14"
+                                           FontWeight="SemiBold"
                                            Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <Grid Margin="0,4,0,0">
                                     <Grid.ColumnDefinitions>

@@ -7,29 +7,72 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!--
-        Hero and card text should reuse the same brushes as Startside so we stay on-brand:
-        - Hero titles use TopBarForeground
-        - Supporting text uses SettingsSubtextForeground
-        - All buttons rely on AccentBrush for emphasis and StartsideSectionCardStyle for layout
-        When you create a new page, wrap content in TemplatePage and place primary actions inside Startside cards.
+        Settings page design contract (mirrors how the real pages are built).
+
+        Typography scale (all settings pages follow this):
+          - Hero title         FontSize 20 | SemiBold | TopBarForeground      -> page title at the top
+          - Card/block title   FontSize 16 | SemiBold | TopBarForeground      -> main section inside a card (e.g. "System and startup", "FPS setup")
+          - Section title      FontSize 14 | SemiBold | TopBarForeground      -> sub-section inside a card (e.g. "Overlay scale", "Restore after exit")
+          - Body / intro       FontSize 13 | Normal   | SettingsSubtextForeground | Wrap -> descriptions under titles
+          - Badge / status     FontSize 12 | per use  | SettingsSubtextForeground -> small labels, badges, console text
+        Text brushes:
+          - Titles always use TopBarForeground
+          - Supporting text always uses SettingsSubtextForeground
+          - Emphasis (buttons, links, selected swatches) uses AccentBrush
+        Cards:
+          - Always wrap content in StartsideSectionCardStyle (CornerRadius 6, default Padding 28,
+            Margin 0,0,0,5 between cards)
+          - Compact list/filter cards may override Padding to 16 (e.g. GameResolution category filter)
+          - Hero sub-borders use Padding 12 (e.g. GamingOverlay scale block)
+        Layout:
+          - Wrap the page in TemplatePage and place primary actions inside Startside cards
+          - Hero elements are separated with Margin 0,16,0,0 (intro after title uses 0,8,0,0)
+        When you create a new page, use TemplatePage + StartsideSectionCardStyle and derive text from
+        the styles below so the whole app stays consistent.
     -->
+
+    <!-- Hero title: page name at the top of the page. FontSize 20 | SemiBold | TopBarForeground -->
     <Style x:Key="TemplateHeroTitleStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="20" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{Binding TopBarForeground}" />
     </Style>
+
+    <!-- Card/block title: main section inside a card. FontSize 16 | SemiBold | TopBarForeground -->
+    <Style x:Key="TemplateCardTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{Binding TopBarForeground}" />
+    </Style>
+
+    <!-- Section title: sub-section inside a card. FontSize 14 | SemiBold | TopBarForeground -->
+    <Style x:Key="TemplateSectionTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{Binding TopBarForeground}" />
+    </Style>
+
+    <!-- Body/intro text: description under a title. FontSize 13 | Normal | SettingsSubtextForeground | Wrap -->
     <Style x:Key="TemplateHeroBodyStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Foreground" Value="{Binding SettingsSubtextForeground}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
+
+    <!-- Badge/status text: small labels, badges, console. FontSize 12 | SettingsSubtextForeground -->
+    <Style x:Key="TemplateSmallTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{Binding SettingsSubtextForeground}" />
+    </Style>
+
     <Style x:Key="TemplateActionButtonStyle" TargetType="Button" BasedOn="{StaticResource LayoutActionButtonStyle}">
         <Setter Property="Background" Value="{Binding AccentBrush}" />
         <Setter Property="BorderBrush" Value="{Binding AccentBrush}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="FontSize" Value="14" />
     </Style>
+
     <sys:String x:Key="TemplateGuidance">
-        Use TemplatePage + StartsideSectionCardStyle for consistent spacing, card radius, and hero margins. Always derive text/buttons from the brushes above.
+        Settings page contract: hero title (20/SemiBold/TopBarForeground) -> intro (13/SettingsSubtextForeground/Wrap) -> cards (StartsideSectionCardStyle, 5px gap). Card titles 16, section titles 14, body 13, small labels 12. Titles use TopBarForeground, body uses SettingsSubtextForeground, emphasis uses AccentBrush. Wrap the page in TemplatePage.
     </sys:String>
 </ResourceDictionary>

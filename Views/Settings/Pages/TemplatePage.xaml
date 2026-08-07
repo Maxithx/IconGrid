@@ -19,6 +19,16 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!--
+        Usage contract (mirrors how the real settings pages are built):
+        - HeroContent: TextBlock with TemplateHeroTitleStyle (title, 20/SemiBold) followed by a
+          TextBlock with TemplateHeroBodyStyle (intro, 13/SettingsSubtextForeground, margin 0,8,0,0).
+          Additional hero sections are separated with Margin 0,16,0,0.
+        - CardsContent: a StackPanel of StartsideSectionCardStyle borders (5px gap between them).
+          Card titles use TemplateCardTitleStyle (16), section titles use TemplateSectionTitleStyle
+          (14), body text uses TemplateHeroBodyStyle, small labels/badges use TemplateSmallTextStyle.
+        - Buttons use TemplateActionButtonStyle (AccentBrush background, white text).
+    -->
     <Grid Background="Transparent"
           helpers:DevInspector.Metadata="Template cards layout → Views/TemplatePage.xaml">
         <Border HorizontalAlignment="Center"
