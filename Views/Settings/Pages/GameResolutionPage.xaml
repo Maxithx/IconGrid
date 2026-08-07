@@ -82,29 +82,34 @@
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
                 <StackPanel>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding CategoryFilterTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <TextBlock Margin="0,2,16,0"
-                                       Text="{Binding CategoryFilterDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
-                                       TextWrapping="Wrap"
-                                       FontSize="13"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                        </StackPanel>
-                        <ComboBox Grid.Column="1"
-                                  Width="180"
-                                  VerticalAlignment="Center"
-                                  Style="{StaticResource GameResComboBoxStyle}"
-                                  SelectedItem="{Binding SelectedCategory, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}, Mode=TwoWay}"
-                                  ItemsSource="{Binding AvailableCategories, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
-                    </Grid>
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            Padding="16"
+                            Margin="0,0,0,12"
+                            helpers:DevInspector.Metadata="Category filter card -> Views/GameResolutionPage.xaml">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CategoryFilterTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <TextBlock Margin="0,2,16,0"
+                                           Text="{Binding CategoryFilterDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      Width="180"
+                                      VerticalAlignment="Center"
+                                      Style="{StaticResource GameResComboBoxStyle}"
+                                      SelectedItem="{Binding SelectedCategory, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}, Mode=TwoWay}"
+                                      ItemsSource="{Binding AvailableCategories, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16">
                         <ItemsControl ItemsSource="{Binding FilteredShortcuts, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
                             <ItemsControl.ItemTemplate>
