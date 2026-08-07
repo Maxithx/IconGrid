@@ -1108,3 +1108,24 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
 - **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
 - **Bruger-godkendt:** planen godkendt ("godkendt") før implementering.
 - **Commit:** `e94d9d9` "docs: align settings page template and guidelines with real typography scale" — pushet (`14f2206..e94d9d9 main -> main`).
+
+## Session 2026-08-07 (06:23-06:26) — Grundig stil-audit af alle settings-sider + LayoutPage normalisering
+
+- **Forespørgsel:** Brugeren spurgte om jeg faktisk havde kigget på om ALLE sider bruger samme stil/font. Ærligt svar: den tidligere FontSize-søgning var overfladisk; jeg udførte nu en grundig audit.
+- **Grundig audit — 9 settings-sider gennemgået:**
+  - Startside: ✅ (normaliseret tidligere: UiScaleDescription + StartDirectlyInLauncherLabel)
+  - Hardware: ✅ 20/16/13/12 — konsistent
+  - GamingOverlay: ✅ 20/14/13/16/12 — konsistent (efter sektions-flytning i `519019e`)
+  - GameResolution: ✅ 20/14/13/12 — konsistent
+  - Layout: ⚠️ **3 toggle-labels brugte `FontSize="13"` + `TopBarForeground`** — afveg fra alle andre siders toggle-mønster (flade labels, SettingsSubtextForeground, default 12)
+  - GenvejsIkoner: ✅ 20/16/13 — konsistent
+  - About: ✅ 20/13 — konsistent
+  - Hjaelp: ✅ 20/13 — konsistent
+  - Test: ✅ 20/16/13/12/14 + Consolas special — konsistent (diagnostik-side, undtagelse velbegrundet)
+- **Fix (deployed 06:26):** `Views/Settings/Pages/LayoutPage.xaml` — 3 toggle-labels (LayoutSkipMinimizedText, LayoutActiveScreenOnlyText, LayoutReserveSlotToggleText) normaliseret fra `FontSize="13"` + `TopBarForeground` til flade `SettingsSubtextForeground` (default 12) — identisk med Startside/Layout-field-label-mønstret. Ikke commitet endnu — afventer bruger-godkendelse.
+- **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
+- **STATUS — klar til ny session:**
+  1. NÆSTE SKRIDT: Bruger-godkendelse af LayoutPage-normaliseringen → commit + push (engelske besked, fx "ui: normalize Layout page toggle labels to match settings design contract").
+  2. Tjek arkitektur (check_architecture_rules) før commit.
+  3. Manuel test: Layout-siden — bekræft toggle-labels stadig ligner resten af appen efter normalisering.
+  4. Opdater `.local-state/ui-design-guidelines.md` hvis nye afvigelser dukker op.
