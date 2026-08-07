@@ -1138,3 +1138,25 @@ Bruger-godkendt kl. 06:32: "alt ser godt ud commit og push".
 - `check_architecture_rules` før commit: kun kendt, præeksisterende MainViewModel.cs-overtrædelse (1327 linjer, limit 1200) — ikke relateret til XAML-ændringen.
 - Working tree nu ren; ingen u-committede ændringer.
 - STATUS: LayoutPage-normaliseringen er nu FÆRDIG og pushet. Næste åbne emner: MainViewModel.cs 1327-linje overtrædelse (dokumenteret tolerance), gennemsigtigheds-bug (IsInGame), FPS file-state collision, ARCHITECTURE_RULES examples + DK kommentarer (optional polish).
+
+## Session 2026-08-07 (14:44-15:00): Fix — Transparent while in game hænger efter spil-lukning
+
+Opgave: 'Transparent while in game' (AutoTransparentBackground) forblev i Windows efter spil-lukning. OFF gav baggrund, men ON gav transparent selvom intet spil kørte.
+
+Root cause: `Helpers/Launcher/SystemMonitor.cs` FpsTimer_Tick's FPS-fallback til IsInGame (hasNativeFps/hasCorrectedFps) kunne hænge true pga. 'hold sidste FPS' (fps-state.json LiveFpsValue stale). FPS-pipelinen er godkendt og IKKE rørt.
+
+Fix: IsInGame følger nu UDELUKKENDE native-agentens TargetPid (SetInGame(trackedGamePid > 0)). TargetPid=0 eller utilgængelig shared memory = ikke i spil → solid baggrund i Windows. Spil-start → TargetPid>0 → transparent. XML-doc + kommentar opdateret. Build: 0 fejl / 0 advarsler. Deployet til C:\IconGrid (IconGrid.dll 14:58:56, hele bin\Debug kopieret).
+
+Dokumentation: .local-state/gaming-overlay.md (fix-sektion), .local-state/regex-commands-cheatsheet.md (NY — brugeren bad om at samle gode regex/kommando-mønstre; Select-String viste sig mere pålidelig end search_files pga. gentagne XML-korruptionsfejl).
+
+Næste skridt: Manuel test (1. AutoTransparent ON uden spil → solid baggrund. 2. Start spil → transparent. 3. Luk spil → solid med det samme. 4. OFF→ON uden spil → solid). Ved godkendelse: commit + push.
+
+## Session 2026-08-07 (15:08-15:12): Stavefejl-fix godkendt + kommitteret
+
+Efter bruger-godkendelse af transparent-fixet (tidligere i sessionen, commit 6727847 pushet) rapporterede brugeren danske stavefejl med ÆØÅ på Gaming Overlay-siden (Goer/Naar/Paa/traekker/Saa).
+
+Fix: `Views/Settings/Pages/GamingOverlayPage.xaml.cs` `RefreshLocalizedText()` da-gren — 11 tekster rettet: Goer→Gør, Saa→Så, Paa→På, Naar→Når, storrelse→størrelse, foelger→følger, afhaenger→afhænger, Koer→Kør, noedvendig→nødvendig, foreslaaede→foreslåede, laesbarhed→læsbarhed, skaermen→skærmen, oploesningsskift→opløsningsskift, track→træk, traekker→trækker.
+
+Build: 0 fejl / 0 advarsler (DLL 15:11:16). Deployet til C:\IconGrid (hele bin\Debug). Commit 54f2620 pushet: `6727847..54f2620 main -> main`.
+
+Næste skridt: Manuel test — åbn Gaming Overlay-siden på dansk og bekræft stavningen. Bemærk: FPS-pipelinen er IKKE rørt (bruger-godkendt).
