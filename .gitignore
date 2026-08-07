@@ -18,6 +18,7 @@ backups/
 _backups/
 logs/
 fps-overlay-1.7.0-beta/
+publish/
 
 # Gemte logs og data
 trace.log
