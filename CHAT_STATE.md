@@ -1262,3 +1262,15 @@ Bruger-godkendt og committet i dag:
 - Push: `git push origin main` → `338f906..b68bfbd main -> main` (OK).
 - Lærdom genbekræftet: `&&` er IKKE gyldig i PowerShell — kør git add/commit/push hver for sig.
 - Opgaven er dermed fuldt afsluttet: lokaliseret dropdown + hero card + build kopieret til C:\icongrid + commit/push.
+
+## Session 2026-08-07 (aften) — Release-pakke til vennen
+
+- Byggede self-contained Release-publish: `dotnet publish IconGrid.csproj -c Release -r win-x64 --self-contained true -o E:\IconGrid-GitHub\publish\0.7.0-beta.1` (EXIT=0, 517 filer).
+- Verificerede at `Tools\FpsAgent\IconGridFpsAgent.exe` er med i publish (Test-Path True) + Assets/figma-icons.
+- Pakkede release-zip: `E:\IconGrid-GitHub\publish\IconGrid-0.7.0-beta.1-win-x64.zip` — 83.200.171 bytes (~83 MB), 07-08-2026 20:11:21.
+- Zip'en er self-contained win-x64: vennen kan køre IconGrid.exe direkte uden at installere .NET 10 runtime.
+- gh CLI er IKKE installeret på maskinen, så der blev ikke oprettet en GitHub Release — zip-filen kan sendes direkte.
+- Næste skridt for brugeren: Send `E:\IconGrid-GitHub\publish\IconGrid-0.7.0-beta.1-win-x64.zip` til vennen.
+  - Vennen pakker zip'en ud, kører `IconGrid.exe`.
+  - Data gemmes i `%APPDATA%\IconGrid` (config.json, items.json) — nye maskiner starter med tomt setup.
+  - Hvis FPS/hardware-monitor skal virke: brugerniveau kan kræve task scheduler / evt. elevat for monitor-delen (README: 'Hardware monitor startup').
