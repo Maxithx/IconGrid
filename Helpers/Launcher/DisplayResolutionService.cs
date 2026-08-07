@@ -74,8 +74,16 @@ namespace IconGrid.Helpers.Launcher
         private DEVMODE? _pendingOriginalMode;
         private CancellationTokenSource? _watchdogCts;
         private bool _disposed;
+        private WindowTrackingService? _trackingService;
 
         public event Action? ResolutionRestored;
+
+        /// <summary>
+        /// Injects the window tracking service so it can be notified of resolution
+        /// changes. This keeps the tracking store's current-resolution key in sync
+        /// with the actual display state.
+        /// </summary>
+        public void SetTrackingService(WindowTrackingService? service) => _trackingService = service;
 
         public static IReadOnlyList<string> GetSupportedResolutions()
         {
@@ -169,8 +177,10 @@ namespace IconGrid.Helpers.Launcher
                 if (result == DISP_CHANGE_SUCCESSFUL)
                 {
                     _pendingOriginalMode = current;
-                    Debug.WriteLine($"[DisplayResolutionService] Switched primary display to {width}x{height}");
-                    WriteTrace($"[DisplayResolutionService] Switched primary display to {width}x{height}");
+                    var resKey = $"{width}x{height}";
+                    Debug.WriteLine($"[DisplayResolutionService] Switched primary display to {resKey}");
+                    WriteTrace($"[DisplayResolutionService] Switched primary display to {resKey}");
+                    _trackingService?.NotifyResolutionChange(resKey);
                 }
                 else
                 {
@@ -200,6 +210,7 @@ namespace IconGrid.Helpers.Launcher
                 ? $"[DisplayResolutionService] Restored original resolution for process {rootProcessId}"
                 : $"[DisplayResolutionService] Restore failed for process {rootProcessId}: {result}");
 
+            _trackingService?.NotifyResolutionChange(GetCurrentResolution() ?? "3840x2160");
             ResolutionRestored?.Invoke();
         }
 

@@ -5,17 +5,29 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using IconGrid.Helpers.Launcher;
 using IconGrid.Models;
 using IconGrid.ViewModels;
 
 namespace IconGrid.Helpers
 {
-    /// <summary>
-    /// Owns the window-arranging / layout-engine logic that previously lived in MainWindow.xaml.cs.
-    /// Keeps the launcher shell focused on window lifetime and UI composition.
-    /// </summary>
-    public static class WindowLayoutEngine
-    {
+        /// <summary>
+        /// Owns the window-arranging / layout-engine logic that previously lived in MainWindow.xaml.cs.
+        /// Keeps the launcher shell focused on window lifetime and UI composition.
+        /// </summary>
+        public static class WindowLayoutEngine
+        {
+            private static WindowTrackingService? _trackingService;
+
+            /// <summary>
+            /// Injects the window tracking service so the layout engine can query
+            /// reliable positional data (LastSeenOpenRect) for minimized windows
+            /// whose GetWindowRect returns (-32000, -32000).
+            /// </summary>
+            public static void SetTrackingService(WindowTrackingService? service)
+            {
+                _trackingService = service;
+            }
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
         {

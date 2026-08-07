@@ -47,7 +47,8 @@ Before making changes, read these files in this order:
 
 ## Testing IconGrid locally (deploy to C:\IconGrid)
 
-- The user tests IconGrid by copying from `E:\IconGrid-GitHub\bin` to `C:\IconGrid` and running it from there. Always deploy to `C:\IconGrid` before asking the user to test a change.
+- The user tests IconGrid by copying from `E:\IconGrid-GitHub\bin` to `C:\IconGrid` and running it from there. **Always deploy to `C:\IconGrid` after every build, without waiting for the user to ask.**
+- After every deploy, note the deploy timestamp in `CHAT_STATE.md` under `## Session ...` so the user can verify which build is running.
 - **CRITICAL — copy the whole build output, not just the .exe.** IconGrid is a framework-dependent .NET app: all code lives in `IconGrid.dll`, NOT in `IconGrid.exe`. Copying only the exe leaves the old dll in place and the user keeps running the previous build (this burned a long debugging session on 2026-08-06).
 - Steps to deploy a change for testing:
   1. Build the configuration you want the user to test, e.g. `dotnet build IconGrid.csproj -c Release` (or `-c Debug` — confirm with the user which one they use).

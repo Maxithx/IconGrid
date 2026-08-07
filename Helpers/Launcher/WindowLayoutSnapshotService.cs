@@ -34,10 +34,21 @@ namespace IconGrid.Helpers.Launcher
         private readonly object _lock = new();
         private readonly HashSet<IntPtr> _iconGridWindows = new();
         private List<WindowSnapshot>? _snapshot;
+        private WindowTrackingService? _trackingService;
 
         private sealed record WindowSnapshot(IntPtr Hwnd, bool WasIconic, RECT Rect);
 
         public bool HasSnapshot { get { lock (_lock) { return _snapshot != null; } } }
+
+        /// <summary>
+        /// Injects the window tracking service so Restore() can use tracked
+        /// positional data when a window's current rect is invalid (e.g. minimized
+        /// windows returning (-32000, -32000) via GetWindowRect).
+        /// </summary>
+        public void SetTrackingService(WindowTrackingService? service)
+        {
+            _trackingService = service;
+        }
 
         public void Capture()
         {
@@ -89,6 +100,20 @@ namespace IconGrid.Helpers.Launcher
             }
         }
 
+        /// <summary>
+        /// Restores windows to their snapshot positions after a resolution change.
+        ///
+        /// IMPORTANT DESIGN CHOICES:
+        /// - Minimized windows are NEVER touched. They stay minimized until the user
+        ///   opens them manually. The tracking service records their LastSeenOpenRect
+        ///   so the layout engine can use it if needed, but Restore must not
+        ///   un-minimize anything.
+        /// - Only windows that are COMPLETELY off-screen (100% outside the viewport)
+        ///   are repositioned. Windows that are visible and on-screen are left alone —
+        ///   the user's saved layout handles their positioning correctly.
+        /// - For off-screen windows, the snapshot rect is tried first; if that's also
+        ///   off-screen, the tracking service's LastSeenOpenRect is used as fallback.
+        /// </summary>
         public void Restore()
         {
             List<WindowSnapshot>? snapshot;
@@ -101,19 +126,83 @@ namespace IconGrid.Helpers.Launcher
             if (snapshot == null || snapshot.Count == 0)
                 return;
 
+            // Get the current viewport bounds for off-screen detection.
+            var work = System.Windows.SystemParameters.WorkArea;
+            var viewLeft = (int)work.Left;
+            var viewTop = (int)work.Top;
+            var viewRight = (int)work.Right;
+            var viewBottom = (int)work.Bottom;
+
             foreach (var entry in snapshot)
             {
+                // NEVER touch a window that is currently minimized.
+                // The user wants minimized windows to stay minimized.
+                if (IsIconic(entry.Hwnd))
+                    continue;
+
                 if (!IsWindow(entry.Hwnd))
                     continue;
-                if (!IsWindowVisible(entry.Hwnd) && !entry.WasIconic)
+                if (!IsWindowVisible(entry.Hwnd))
                     continue;
 
-                if (entry.WasIconic)
-                    ShowWindow(entry.Hwnd, SW_RESTORE);
+                // Get the current rect from the OS.
+                if (!GetWindowRect(entry.Hwnd, out var currentRect))
+                    continue;
 
-                var width = Math.Max(100, entry.Rect.Right - entry.Rect.Left);
-                var height = Math.Max(100, entry.Rect.Bottom - entry.Rect.Top);
-                SetWindowPos(entry.Hwnd, IntPtr.Zero, entry.Rect.Left, entry.Rect.Top, width, height,
+                var currentWidth = Math.Max(100, currentRect.Right - currentRect.Left);
+                var currentHeight = Math.Max(50, currentRect.Bottom - currentRect.Top);
+
+                // Check if the window is FULLY off-screen (100% outside viewport).
+                var isOffScreen = currentRect.Right <= viewLeft
+                               || currentRect.Bottom <= viewTop
+                               || currentRect.Left >= viewRight
+                               || currentRect.Top >= viewBottom;
+
+                if (!isOffScreen)
+                    continue; // Window is visible — don't touch it.
+
+                // Window is off-screen. Try the snapshot rect first.
+                var useRect = entry.Rect;
+                var snapshotOffScreen = useRect.Right <= viewLeft
+                                     || useRect.Bottom <= viewTop
+                                     || useRect.Left >= viewRight
+                                     || useRect.Top >= viewBottom;
+
+                if (snapshotOffScreen && _trackingService != null)
+                {
+                    // Snapshot rect is also off-screen — try tracking data.
+                    var tracked = _trackingService.GetLastSeenOpenRect(entry.Hwnd);
+                    if (tracked != null)
+                    {
+                        var tr = tracked.Value;
+                        useRect = new RECT
+                        {
+                            Left = tr.Left,
+                            Top = tr.Top,
+                            Right = tr.Right,
+                            Bottom = tr.Bottom
+                        };
+                    }
+                }
+
+                // If still off-screen, clamp to a safe position.
+                var useWidth = Math.Max(100, useRect.Right - useRect.Left);
+                var useHeight = Math.Max(50, useRect.Bottom - useRect.Top);
+
+                var useOffScreen = useRect.Right <= viewLeft
+                                || useRect.Bottom <= viewTop
+                                || useRect.Left >= viewRight
+                                || useRect.Top >= viewBottom;
+
+                if (useOffScreen)
+                {
+                    useRect.Left = viewLeft + 50;
+                    useRect.Top = viewTop + 50;
+                    useWidth = Math.Min(useWidth, viewRight - viewLeft - 100);
+                    useHeight = Math.Min(useHeight, viewBottom - viewTop - 100);
+                }
+
+                SetWindowPos(entry.Hwnd, IntPtr.Zero, useRect.Left, useRect.Top, useWidth, useHeight,
                     SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
             }
         }

@@ -10,6 +10,7 @@ using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Windows.Input;
 using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using WMedia = System.Windows.Media;
 using IconGrid.Helpers;
@@ -23,6 +24,49 @@ namespace IconGrid.ViewModels
 {
     public partial class MainViewModel : INotifyPropertyChanged
     {
+        // ---------- Win32 P/Invoke for window repositioning ----------
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        private const int SM_CXSCREEN = 0;
+        private const int SM_CYSCREEN = 1;
+        private const uint SWP_NOZORDER = 0x0004;
+        private const uint SWP_NOACTIVATE = 0x0010;
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_ASYNCWINDOWPOS = 0x4000;
+
         // ---------- Fields ----------
 
         private int _iconsPerRow = 4;
@@ -70,6 +114,13 @@ namespace IconGrid.ViewModels
         private readonly LauncherItemLaunchManager _itemLaunchManager;
         private readonly DisplayResolutionService _displayResolutionService = new();
         private readonly WindowLayoutSnapshotService _windowLayoutSnapshotService = new();
+        private readonly WindowTrackingService _windowTrackingService = new();
+        private readonly DispatcherTimer _resolutionRestoreTimer = new(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        private string? _desktopResolution;
+        private bool _pendingWindowReposition;
         private readonly LauncherThemeState _themeState = new();
         private readonly LauncherThemeCoordinator _themeCoordinator = new();
         private readonly LauncherLocalizationState _localizationState = new();
@@ -115,7 +166,105 @@ namespace IconGrid.ViewModels
 
             (SelectTabCommand, ResetSettingsCommand) = CreateCommands();
             RunStartupInitialization();
+            _windowTrackingService.Start();
             _isInitializing = false;
+
+            // ResolutionRestoreAgent DISABLED — timer locked display to wrong resolution.
+            // _resolutionRestoreTimer.Tick += ResolutionRestoreTimer_Tick;
+            // _resolutionRestoreTimer.Start();
+        }
+
+        private void ResolutionRestoreTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_restoreGameResolutionAfterExit || _displayResolutionService == null)
+                return;
+
+            _desktopResolution ??= DisplayResolutionService.GetCurrentResolution();
+            if (string.IsNullOrWhiteSpace(_desktopResolution))
+                return;
+
+            var current = DisplayResolutionService.GetCurrentResolution();
+            if (string.IsNullOrWhiteSpace(current))
+                return;
+
+            if (current != _desktopResolution)
+            {
+                // Screen is stuck at a non-native resolution. Retry the restore.
+                Debug.WriteLine($"[ResolutionRestoreAgent] Screen is at {current}, expected {_desktopResolution}. Retrying restore.");
+                _displayResolutionService.TrySetResolution(_desktopResolution);
+                _pendingWindowReposition = true;
+                return;
+            }
+
+            // Resolution is correct. Run the window reposition safety pass once
+            // after the restore to fix windows that ended up outside the viewport.
+            if (_pendingWindowReposition)
+            {
+                _pendingWindowReposition = false;
+                RepositionOffscreenWindows();
+            }
+        }
+
+        private void RepositionOffscreenWindows()
+        {
+            try
+            {
+                var screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                var screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                if (screenWidth <= 0 || screenHeight <= 0)
+                    return;
+
+                var repositionedCount = 0;
+
+                EnumWindows((hWnd, _) =>
+                {
+                    try
+                    {
+                        // Skip invisible and minimized windows.
+                        if (!IsWindowVisible(hWnd) || IsIconic(hWnd))
+                            return true;
+
+                        if (!GetWindowRect(hWnd, out var rect))
+                            return true;
+
+                        var width = rect.Right - rect.Left;
+                        var height = rect.Bottom - rect.Top;
+                        if (width <= 0 || height <= 0)
+                            return true;
+
+                        // Check if the window is entirely outside the visible desktop.
+                        var isOffscreen = rect.Right < 0 ||
+                                          rect.Bottom < 0 ||
+                                          rect.Left >= screenWidth ||
+                                          rect.Top >= screenHeight;
+
+                        if (!isOffscreen)
+                            return true;
+
+                        // Reposition to a safe location near the top-left corner.
+                        const int safeX = 50;
+                        const int safeY = 50;
+                        SetWindowPos(hWnd, IntPtr.Zero, safeX, safeY, 0, 0,
+                            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+                        repositionedCount++;
+                    }
+                    catch
+                    {
+                        // Skip inaccessible windows.
+                    }
+
+                    return true;
+                }, IntPtr.Zero);
+
+                if (repositionedCount > 0)
+                {
+                    Debug.WriteLine($"[ResolutionRestoreAgent] Repositioned {repositionedCount} off-screen windows.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ResolutionRestoreAgent] Window repositioning failed: {ex.Message}");
+            }
         }
 
         // ---------- Public properties ----------
@@ -857,6 +1006,10 @@ namespace IconGrid.ViewModels
             var itemIconManager = new LauncherItemIconManager();
             var itemLaunchManager = new LauncherItemLaunchManager(RememberFpsTarget, _displayResolutionService, () => RestoreGameResolutionAfterExit);
             itemLaunchManager.SetWindowLayoutSnapshotService(_windowLayoutSnapshotService);
+            itemLaunchManager.SetTrackingService(_windowTrackingService);
+            _windowLayoutSnapshotService.SetTrackingService(_windowTrackingService);
+            _displayResolutionService.SetTrackingService(_windowTrackingService);
+            WindowLayoutEngine.SetTrackingService(_windowTrackingService);
             return (
                 new LauncherItemsManager(Items, () => SelectedTab),
                 itemIconManager,
@@ -1172,10 +1325,3 @@ namespace IconGrid.ViewModels
         }
     }
 }
-
-
-
-
-
-
-

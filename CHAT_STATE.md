@@ -931,3 +931,95 @@ Næste skridt (næste session):
 
 ## Uafklaret
 - **Gennemsigtigheds-bug**: overlay bliver utilsigtet gennemsigtigt på Windows-skrivebordet. Brugeren har indstillinger for at det kun skal være transparent i spil (Auto transparent background). Skal debugges næste session — IsInGame flaget rapporterer muligvis forkert.
+
+## Session 2026-08-06 (22:07) – 2026-08-07 (03:07) — Komplet session opsummering
+
+### 7 fixes implementeret (alle deployet)
+
+| # | Fix | Fil(er) | Status |
+|---|------|---------|--------|
+| 1 | ETW re-start efter idle | `main.cpp` +1 linje (StopEtwSession i PollLockedTarget) | ✅ |
+| 2 | File-state collision (FileShare.ReadWrite) | `NativeFpsAgentRunner.cs` | ✅ |
+| 3 | ConfigTargetLaunchGracePeriod 15s→60s | `HardwareMonitorAgent.cs` | ✅ |
+| 4 | EACLaunch handoff fix | `LauncherItemLaunchManager.cs` (background scan) | ✅ |
+| 5 | MoveWithRetry when-filter crash | `HardwareMonitorAgent.cs` | ✅ |
+| 6 | ResolutionRestoreAgent (self-healing timer) | `MainViewModel.cs` (DispatcherTimer) | ⚠️ Deaktiveret — se nedenfor |
+| 7 | Window Reposition Safety Pass | `MainViewModel.cs` (EnumWindows+SetWindowPos) | ⚠️ Deaktiveret — se nedenfor |
+
+### Hvorfor fixes 6+7 er deaktiveret
+
+`ResolutionRestoreAgent` brugte `GetSupportedResolutions().First()` = 4096x2160 som "desktop-native" — forkert (brugerens skærm er 3840x2160). Timeren tvang skærmen til 4096x2160 hvert 500ms → brugeren kunne ikke skifte opløsning manuelt. **Fixet er at gemme den faktiske desktop-opløsning ved startup i config.json og bruge den som `_desktopResolution`.**
+
+### Kendte bugs (til næste session)
+
+1. **Division 2 skifter ikke tilbage til 4K** — EACLaunch dør instantant → rootPid=0 → WatchProcess køres aldrig. EACLaunch-fixet (baggrundsscanning) er deployet men ikke verificeret for Division 2.
+2. **Minimerede vinduer off-viewport efter 4K→1440p→4K cyklus** — Window Reposition Safety Pass er implementeret men deaktiveret. Skal re-aktiveres med korrekt desktop-resolution.
+
+### Nuværende deploy-state (C:\IconGrid)
+
+| Fil | Funktion | Sidste deploy |
+|-----|----------|--------------|
+| `IconGridFpsAgent.exe` | Native ETW FPS agent | 22:47 (ETW re-start fix) |
+| `IconGrid.dll` | C# launcher/overlay | 02:35 (timer deaktiveret) |
+| `IconGrid.runtimeconfig.json` + dependencies | .NET runtime | 02:35 |
+
+### Anbefalet first step i næste session
+
+1. Start med at re-aktivere `ResolutionRestoreAgent` (uncomment `_resolutionRestoreTimer.Tick += ...` og `.Start()` i MainViewModel konstruktør).
+2. Fix `_desktopResolution` til at gemmes i config.json ved app-start (gem `GetCurrentResolution()` når skærmen faktisk er 4K).
+3. Læs config.json ved session-start og brug den værdi som target resolution.
+
+- **Overlay scale glitch RESOLVED:** Settings-side slider (GamingOverlayPage) og popup-slider (GamingOverlayWindow) deler nu 5% steps (TickFrequency=0.05). Begge sliders afgiver kun intervaller af 5% → ingen mellemliggende scale-ændringer under drag → WPF Width/Left-cyklussen trigger ikke længere → overlayed hopper/glitcher ikke ved nedskalering. Dette var det sidste åbne emne fra den lange debug-session 2026-08-06 (kl. 01-06).
+- **Commit `a452def` verificeret:** `docs: fix Game Resolution description — overlay appears in Exclusive Fullscreen but alt-tabs out` — kun README.md, 1 linje rettet. Working tree clean.
+- **Hænge partier opdateret:** Overlay scale glitch fjernet fra listen. Tilbageværende åbne opgaver: gennemsigtigheds-bug (IsInGame rapporterer forkert), FPS file-state collision (FileShare.ReadWrite), ARCHITECTURE_RULES examples + DK kommentarer (optional polish).
+
+## Session 2026-08-06 (aften, del 2): Fix — native FPS agent ETW re-start after idle
+
+- **Problem:** Når IconGrid + gaming overlay har været åbent længe uden spil, stopper den native FPS agent sin ETW-session. Når et spil senere startes, genstarter agenten IKKE ETW → ingen FPS vises. Genstart af IconGrid = ny agent → virker igen.
+- **Root cause:** `PollLockedTarget()` ryddede `g_targetPid = 0` når spillet lukkede, men `g_etwRunning` forblev `true`. wmain's eksisterende ETW re-start logik (linje 1557-1573) tjekker `!g_etwRunning && targetPid != 0` — den så `g_etwRunning==true` og genstartede ALDRIG.
+- **Fix (1 linje i `Native/FpsAgent/src/main.cpp`):** `PollLockedTarget()` kalder nu `StopEtwSession()` umiddelbart efter `g_targetPid.store(0)` — når target ryddes, ryddes ETW også. Dette lader wmain's eksisterende re-start logik fyre når `FindTargetProcess()` finder et nyt spil: `targetPid != 0 && !g_etwRunning` → `StartEtwSession()`.
+- **Bevaret:** Al eksisterende logik — sticky grace period (3000ms), config-target matching, ignored-processes, fast-acquire window (15s), shared memory live path. Ingen regression-risiko.
+- **C# build:** 0 fejl, 0 advarsler. `check_architecture_rules` GRØN.
+- **Native build:** Bygget med MSBuild (VS 2026 Community, Release x64) — 0 fejl, 0 advarsler. Output: `E:\IconGrid-GitHub\Native\FpsAgent\bin\Release\IconGridFpsAgent.exe`.
+- **Deploy:** Både C# (IconGrid.dll, 22:44) og native agent (IconGridFpsAgent.exe, 22:47) deployet til `C:\IconGrid`.
+- **Test:** 1) Luk IconGrid helt. 2) Start `C:\IconGrid\IconGrid.exe` + åbn gaming overlay. 3) Vent (ingen spil). 4) Start POE1/POE2 → FPS skal vises. 5) Luk spil. 6) Vent. 7) Start spil igen UDEN at genstarte IconGrid → FPS skal vises igen.
+
+## File-state collision fix — 2026-08-06 (aften, del 3)
+
+- **Problem:** `NativeFpsAgentRunner.ReadState()` brugte `File.ReadAllText()` uden `FileShare.ReadWrite`. Native agent'en skriver til `native-fps-state.json` hver 2ms → reader kolliderede → `IOException: being used by another process`.
+- **Log-bevis:** 3 gange mellem 23:04:06 og 23:04:41 i trace.log mens POE1 stadig kørte (FPS=30).
+- **Fix i `Helpers/Hardware/NativeFpsAgentRunner.cs`:** Erstattede `File.ReadAllText()` med `FileStream(FileMode.Open, FileAccess.Read, FileShare.ReadWrite)` + 3-retry loop med 50ms delay ved `IOException`. Giver native agentens write-cyklus plads til at færdiggøre.
+- **Build:** 0 fejl, 0 advarsler. Deployet til `C:\IconGrid` (IconGrid.dll, 23:10).
+- **Kombineret session (2 fixes deployet):** 1) ETW re-start efter idle (native `StopEtwSession()` i `PollLockedTarget`, IconGridFpsAgent.exe 22:47). 2) File-state collision (FileShare.ReadWrite + retry, IconGrid.dll 23:10). Begge er klar til test.
+
+## Session 2026-08-06 (aften, del 4): General target acquisition robustness fix — 3 fixes deployed
+
+- **Root cause (Division 2):** Spil med langsomme opstartskæder (EAC → TheDivision2.exe) ryder ud af 15-sekunders grace-period før spilprocessen spawner. Native agenten får `No running process matched.` og giver op.
+- **Fix A (C++, allerede korrekt):** `PollLockedTarget()` poller allerede med 75ms når intet target er låst — intet at ændre.
+- **Fix B (C# — `HardwareMonitorAgent.cs`):** `ConfigTargetLaunchGracePeriod` hævet fra 15s til 60s. Dette giver langsomme opstartskæder (EAC, Ubisoft Connect, etc.) tid til at spawn spilprocessen FØR agenten rydder metadata og giver op.
+- **Fix C (C# — `SystemMonitor.cs`):** Allerede implementeret! `IsInGame` bruger `TargetPid` fra shared memory som primær kilde (linje 410-424), IKKE `FpsStatus`. Når TargetPid != 0 → IsInGame=true uanset om FPS-data er ankommet.
+- **Combined effect:** Spil med langsomme opstartskæder får nu 60 sekunders grace; IsInGame aktiveres øjeblikkeligt når TargetPid sættes (ikke efter FPS ankommer); auto-transparency virker for ALLE spil under opstart.
+- **NOTE til Division 2:** Spillet SKAL startes FRA IconGrid (genvej i launcher) for at `config.FpsTarget` sættes til `TheDivision2.exe`. Hvis spillet startes uden for IconGrid, har native agenten ingen konfigureret target og falder tilbage til foreground-detection — hvilket kan fejle hvis EACLaunch-vinduet er i forgrunden i stedet for TheDivision2.exe.
+
+## Session 2026-08-07 (tidlig morgen, del 5): Resolution restore handoff — FindAnyGameProcess fallback
+
+- **Problem (Division 2):** FPS og gennemsigtighed virker nu (efter crash-fixet i del 4), men opløsningen skifter stadig ikke tilbage når spillet lukkes.
+- **Root cause:** Division 2's genvej i IconGrid peger på `EACLaunch.exe`. Når `WatchProcess` startes, er root-PID = EACLaunch.exe. Når EACLaunch dør (efter at have spolet videre til TheDivision2.exe), kalder `FindHandoffProcess` med `executableName = "EACLaunch.exe"` — finder INGEN ny `EACLaunch.exe` i proceslisten → opløsningen gendannes selvom `TheDivision2.exe` stadig kører.
+- **Fix 1 (tidligere, utilstrækkelig):** `WatchProcess` fik en `gameExecutableName` parameter sat til `Path.GetFileName(item.Path)` — men dette gav SAMME navn (`"EACLaunch.exe"`).
+- **Fix 2 (nu):** `FindAnyGameProcess(int deadPid)` — når eksakt-navn handoff fejler, scanner efter enhver proces med et synligt hovedvindue (`MainWindowHandle != IntPtr.Zero`). Foretrækker den nyeste proces. Dette fanger `TheDivision2.exe` (og alle andre spil med launcher→spil kæder) uden at kende exe-navnet.
+- **Generalitet:** Løsningen er IKKE spil-specifik — den fungerer for alle spil der bruger en launcher/anti-cheat wrapper (EAC, BattleEye, Ubisoft Connect, Steam-bootstrapper, etc.).
+- **Build:** 0 fejl, 0 advarsler. Deployet til `C:\IconGrid` (IconGrid.dll, 00:36).
+- **Test:** 1) Luk IconGrid helt. 2) Start `C:\IconGrid\IconGrid.exe`. 3) Start Division 2 fra IconGrid. 4) Spil → FPS vises + overlay gennemsigtigt ✅. 5) Luk Division 2 → opløsning skal skifte tilbage til 4K. (Brugeren testede tidligere at FPS + gennemsigtighed virker; nu verificeres opløsnings-restore).
+
+## Session 2026-08-07 (03:45) — Window Tracking System deployed
+
+`IconGrid.dll` deployed to `C:\IconGrid` at 03:44 (xcopy of bin\Debug\net10.0-windows10.0.22621.0). IconGrid was not running, so no taskkill needed. Ready for manual test.
+
+Build + deploy kl. 03:51 — bugfix: minimerede vinduer må IKKE åbnes af Restore, og on-screen vinduer må IKKE flyttes. Restore rører KUN vinduer der er 100% off-screen. SafetyPass fjernet fra LauncherItemLaunchManager (den var for aggressiv og smed alle vinduer til venstre).
+
+Build + deploy kl. 03:57 — fjernet auto-restore helt. Ingen vinduer røres efter opløsningsskift. Tracking-servicen kører stadig i baggrunden og leverer LastSeenOpenRect data til layout-engine når brugeren anvender et gemt layout. Det er brugerens gemte layout der bestemmer positionering — ikke en automatisk restore.
+
+Godkendt af bruger kl. 04:02 — "spiller det perfekt, som en del af windows". Minimerede og åbne vinduer holder deres position efter opløsningsskift. Tracking-servicen kører i baggrunden (2s poll) og gemmer LastSeenOpenRect per opløsning. Layout-systemet kan query tracking-data når brugeren anvender et gemt layout. Auto-restore fjernet — brugerens gemte layout styrer al positionering.
+
+
+
