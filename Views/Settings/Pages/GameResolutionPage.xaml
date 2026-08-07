@@ -84,7 +84,6 @@
                 <StackPanel>
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
                             Padding="16"
-                            Margin="0,0,0,12"
                             helpers:DevInspector.Metadata="Category filter card -> Views/GameResolutionPage.xaml">
                         <Grid>
                             <Grid.ColumnDefinitions>
