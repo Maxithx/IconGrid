@@ -1093,3 +1093,18 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
 - **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
 - **Godkendt af bruger:** "det spiller perfekt" — commit + push udført.
 - **Commit:** `519019e` "ui: move overlay position, transparency, and color picker above scale on Gaming Overlay page" — pushet (`fd6b128..519019e main -> main`).
+
+## Session 2026-08-07 (06:08-06:21) — Settings-page designkontrakt: TemplateGuidelines + TemplatePage + lokal UI-design GUIDELINE
+
+- **Forespørgsel:** Brugeren bad om at opdatere `Views/Settings/Pages/TemplatePage.xaml` og `Views/TemplateGuidelines.xaml` så de SPEJLER den faktiske praksis på settings-siderne, normalisere afvigelser, og gemme den opdaterede viden i `.local-state`. Ingen redesign.
+- **Analyse:** Den reelle typografi-skala blev kortlagt på tværs af alle settings-sider (Startside, Hardware, GamingOverlay, Layout, GameResolution, GenvejsIkoner, Hjaelp, Test, About): Hero-titel 20/SemiBold/TopBarForeground, Card-overskrift 16/SemiBold, Sektionstitel 14/SemiBold, Body 13/Normal/SettingsSubtextForeground/Wrap, Badge/label 12. TemplateGuidelines kendte kun 20 og 13 — 16/14/12 manglede.
+- **Ændringer:**
+  1. `Views/TemplateGuidelines.xaml` — tilføjet `TemplateCardTitleStyle` (16), `TemplateSectionTitleStyle` (14), `TemplateSmallTextStyle` (12); opdateret kommentar-blok + `TemplateGuidance`-streng til at dokumentere hele skalaen, farver (TopBarForeground/SettingsSubtextForeground/AccentBrush), card-regler (StartsideSectionCardStyle, padding 28/16/12, 5px-gap) og hero-margins (0,16).
+  2. `Views/Settings/Pages/TemplatePage.xaml` — tilføjet Usage-contract-kommentar der beskriver forventet HeroContent/CardsContent-struktur (titel→intro→cards, style-valg pr. niveau).
+  3. `Views/Settings/Pages/StartsidePage.xaml` — normaliseret `UiScaleDescription` (tilføjet FontWeight=SemiBold så den matcher alle 14-sektionstitler) og `StartDirectlyInLauncherLabel` (tilføjet FontSize=14 — var på WPF default 12 trods SemiBold, markant mindre end andre sektionstitler).
+  4. `Views/Settings/Pages/GamingOverlayPage.xaml` — KUN rækkefølge-flytning (Default position/transparent/farve over scale) fra forrige commit; ingen ændring i denne del.
+  5. `.local-state/ui-design-guidelines.md` (NY, dansk, gitignored) — fuld designkontrakt: typografi-skala-tabel med kodeeksempler, farve-brushes, card-regler, TemplatePage-layout, knapper/toggles/inputs, sprog-regel (local-state=dansk, GitHub/kode/commits=engelsk).
+- **Sprog-regel (dokumenteret):** `.local-state/*.md` på dansk (gitignored, lokalt); GitHub/kode/XAML-kommentarer/commits på engelsk; UI-brugertekster da+en via lokalisering.
+- **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
+- **Bruger-godkendt:** planen godkendt ("godkendt") før implementering.
+- **Commit:** `e94d9d9` "docs: align settings page template and guidelines with real typography scale" — pushet (`14f2206..e94d9d9 main -> main`).
