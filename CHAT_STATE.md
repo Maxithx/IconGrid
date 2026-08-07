@@ -1075,4 +1075,12 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
   - Division 2: `Switched primary display to 2560x1440` (05:35:08) → `Found real game process via FindAnyGameProcess: PID 34156. Binding resolution lock.` (05:35:28) → `WatchProcess started for PID 34156` → `Re-targeted resolution lock from PID 34156 to PID 27424` (05:35:49, spillet oprettede sit rigtige DX12-vindue) → `Process 34156 exited; restoring resolution.` (05:36:34) → `Restored original resolution for process 34156` (05:36:35)
   - POE/POE2 (05:37-05:39): samme mønster med `Restored original resolution`
 - **Vigtig observation fra log:** Der var en kort oscillation mellem PID 34156 ↔ 27424 (05:35:49) og dobbelte `Binding`/`WatchProcess`-kald grundet to samtidige scan-iterationer. Slutresultatet var korrekt (opløsning gendannet), og `WatchProcess` annullerer altid den forrige watchdog — så kun den nyeste overlevede. Ingen kodeændring nødvendig; brugeren er fuldt tilfreds.
-- **Status: FIX FÆRDIG OG GODKENDT.** Næste skridt: commit + push når brugeren ønsker det.
+- **Status: FIX FÆRDIG OG GODKENDT.** Commit `3252f8e` pushet. Næste skridt: commit + push når brugeren ønsker det.
+
+## Session 2026-08-07 (05:48) — Game Resolution siden: Category-område i card
+
+- **Forespørgsel:** På Game Resolution-siden så 'Category' + tilhørende elementer grimt ud fordi de lå i et råt Grid uden ramme, mens resten af siden brugte `StartsideSectionCardStyle`-cards.
+- **Fix:** `Views/Settings/Pages/GameResolutionPage.xaml` — Category-filter-området (titel + beskrivelse + kategori-dropdown) er nu omsluttet i en `Border` med `StartsideSectionCardStyle`, `Padding="16"`, `Margin="0,0,0,12"` og `DevInspector.Metadata="Category filter card -> Views/GameResolutionPage.xaml"` — identisk stil som listen nedenunder og resten af siden.
+- **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid (XAML kompileres ind i IconGrid.dll).
+- **Commit:** `2e25316` "ui: wrap category filter on Game Resolution page in matching card style" — pushet (`3252f8e..2e25316 main -> main`).
+- **Næste skridt:** Manuel test — åbn Game Resolution-siden og bekræft at Category-området nu har samme card-udseende som resten.
