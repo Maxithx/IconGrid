@@ -1251,3 +1251,14 @@ Bruger-godkendt og committet i dag:
   via `Get-Item C:\icongrid\IconGrid.dll`.
 - Næste skridt: manuel UI-test i C:\icongrid-build'et — åbn Game Resolution med dansk sprog,
   bekræft at dropdown viser Spil/Udvikling/Overvågning osv.
+
+## Session 2026-08-07 (aften) — Committet og pushet
+
+- Brugeren bekræftede at det hele spiller nu (kategori-dropdown viser dansk ved dansk sprog, kategori i hero card).
+- Commit: `b68bfbd` "Fix localized category dropdown and merge category selector into hero card on Game Resolution page"
+  - 5 filer, 190 insertions, 46 deletions:
+    CHAT_STATE.md, Helpers/Converters/TabNameLocalizationConverter.cs,
+    Helpers/Settings/LocalizationHelper.cs, Views/Settings/Pages/GameResolutionPage.xaml(.cs).
+- Push: `git push origin main` → `338f906..b68bfbd main -> main` (OK).
+- Lærdom genbekræftet: `&&` er IKKE gyldig i PowerShell — kør git add/commit/push hver for sig.
+- Opgaven er dermed fuldt afsluttet: lokaliseret dropdown + hero card + build kopieret til C:\icongrid + commit/push.
