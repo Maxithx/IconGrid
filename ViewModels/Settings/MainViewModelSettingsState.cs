@@ -15,6 +15,10 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayAutoTransparentBackground { get; set; }
         public string GamingOverlayTextColor { get; set; } = "#FFFFFF";
         public string GamingOverlayPositionPreset { get; set; } = "TopRight";
+        public int GameLauncherAutoBehavior { get; set; }
+        public bool AutoShowGamingOverlayOnGameStart { get; set; }
+        public bool AutoCloseGamingOverlayOnGameEnd { get; set; }
+        public bool RestoreLauncherAfterOverlayClosed { get; set; }
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }

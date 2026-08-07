@@ -8,18 +8,25 @@ namespace IconGrid.Views
     {
         private GamingOverlayWindow? _window;
 
+        /// <summary>
+        /// Raised when the gaming overlay window closes (user clicks close, or it is
+        /// closed programmatically). MainWindow uses this to restore the launcher when
+        /// the "RestoreLauncherAfterOverlayClosed" option is enabled.
+        /// </summary>
+        public event Action? OverlayClosed;
+
         public void Show(Window owner, MainViewModel viewModel, GamingOverlayLayout layout)
         {
             if (_window == null || _window.IsLoaded == false)
             {
                 _window = new GamingOverlayWindow(viewModel, layout);
-                _window.Closed += (_, _) => _window = null;
+                _window.Closed += OnOverlayWindowClosed;
             }
             else
             {
                 _window.Close();
                 _window = new GamingOverlayWindow(viewModel, layout);
-                _window.Closed += (_, _) => _window = null;
+                _window.Closed += OnOverlayWindowClosed;
             }
 
             if (!_window.TryApplySavedPosition())
@@ -48,6 +55,12 @@ namespace IconGrid.Views
 
             _window.Close();
             _window = null;
+        }
+
+        private void OnOverlayWindowClosed(object? sender, EventArgs e)
+        {
+            _window = null;
+            OverlayClosed?.Invoke();
         }
 
         private static void PositionRelativeToOwner(Window owner, Window window)

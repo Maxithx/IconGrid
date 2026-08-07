@@ -18,6 +18,10 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayAutoTransparentBackground { get; init; }
         public string GamingOverlayTextColor { get; init; } = "#FFFFFF";
         public string GamingOverlayPositionPreset { get; init; } = "TopRight";
+        public int GameLauncherAutoBehavior { get; init; }
+        public bool AutoShowGamingOverlayOnGameStart { get; init; }
+        public bool AutoCloseGamingOverlayOnGameEnd { get; init; }
+        public bool RestoreLauncherAfterOverlayClosed { get; init; }
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -58,6 +62,10 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,
                 GamingOverlayTextColor = string.IsNullOrWhiteSpace(config.GamingOverlayTextColor) ? "#FFFFFF" : config.GamingOverlayTextColor,
                 GamingOverlayPositionPreset = string.IsNullOrWhiteSpace(config.GamingOverlayPositionPreset) ? "TopRight" : config.GamingOverlayPositionPreset,
+                GameLauncherAutoBehavior = config.GameLauncherAutoBehavior,
+                AutoShowGamingOverlayOnGameStart = config.AutoShowGamingOverlayOnGameStart,
+                AutoCloseGamingOverlayOnGameEnd = config.AutoCloseGamingOverlayOnGameEnd,
+                RestoreLauncherAfterOverlayClosed = config.RestoreLauncherAfterOverlayClosed,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,

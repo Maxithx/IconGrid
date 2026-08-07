@@ -188,6 +188,10 @@ namespace IconGrid.ViewModels
             };
 
             SaveSettingsToConfig();
+
+            // Notify listeners (MainWindow) that a game was launched so they can
+            // apply the configured auto-behavior (show overlay / hide launcher).
+            GameLaunched?.Invoke();
         }
 
         private static bool ProcessIsAlive(int pid)

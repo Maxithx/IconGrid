@@ -176,6 +176,50 @@ namespace IconGrid.Helpers
             SlideTo(-_window.Height + 8);
         }
 
+        /// <summary>
+        /// Hides or minimizes the launcher when a game starts, based on the configured
+        /// behavior (0=None, 1=AutoHide/slide down, 2=MinimizeToTaskbar).
+        /// Works regardless of "Always on top".
+        /// </summary>
+        public void HideForGame(int behavior)
+        {
+            _autoHideEnabled = false;
+            _autoHideTimer?.Stop();
+
+            if (behavior == 1)
+            {
+                if (!_isHidden)
+                {
+                    SlideTo(-_window.Height + 8);
+                }
+            }
+            else if (behavior == 2)
+            {
+                if (_window.WindowState != WindowState.Minimized)
+                {
+                    _window.WindowState = WindowState.Minimized;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Restores the launcher after a game ends or the overlay closes: un-minimizes
+        /// and slides it back into view if it was auto-hidden.
+        /// </summary>
+        public void RestoreLauncherFromGame()
+        {
+            if (_window.WindowState == WindowState.Minimized)
+            {
+                _window.WindowState = WindowState.Normal;
+                _window.Activate();
+            }
+
+            if (_isHidden)
+            {
+                SlideTo(0);
+            }
+        }
+
         private void SlideTo(double targetTop)
         {
             var animation = new DoubleAnimation

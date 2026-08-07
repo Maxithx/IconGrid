@@ -91,6 +91,10 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayAutoTransparentBackground = false;
         private string _gamingOverlayTextColor = "#FFFFFF";
         private string _gamingOverlayPositionPreset = "TopRight";
+        private int _gameLauncherAutoBehavior = 0; // GameAutoBehaviorMode: 0=None, 1=AutoHide, 2=MinimizeToTaskbar
+        private bool _autoShowGamingOverlayOnGameStart = false;
+        private bool _autoCloseGamingOverlayOnGameEnd = false;
+        private bool _restoreLauncherAfterOverlayClosed = false;
         private bool _restoreGameResolutionAfterExit = true;
         private Dictionary<string, double> _gamingOverlayResolutionScales = new();
         private const double GamingOverlayBaseWidth = 720;
@@ -133,6 +137,20 @@ namespace IconGrid.ViewModels
         private FpsTargetConfig _fpsTarget = new();
 
         public SystemMonitor SystemMonitor => _systemMonitor;
+
+        /// <summary>
+        /// Raised when a game is launched from IconGrid (after the FPS target is remembered).
+        /// MainWindow subscribes to apply the configured auto-behavior.
+        /// </summary>
+        public event Action? GameLaunched;
+
+        /// <summary>
+        /// Raised when the tracked game process exits (IsInGame transitions true -> false).
+        /// MainWindow subscribes to apply the configured auto-close/restore behavior.
+        /// </summary>
+        public event Action? GameExited;
+
+        private bool _wasInGame;
 
         // ---------- Constructor ----------
 
@@ -1189,6 +1207,14 @@ namespace IconGrid.ViewModels
                 OnPropertyChanged(nameof(GamingOverlayTransparentBackgroundEffective));
                 OnPropertyChanged(nameof(GamingOverlayTextBrush));
                 OnPropertyChanged(nameof(GamingOverlayTextColorHex));
+
+                // Detect the game-exit transition (in-game -> not in-game).
+                if (_wasInGame && !_systemMonitor.IsInGame)
+                {
+                    GameExited?.Invoke();
+                }
+
+                _wasInGame = _systemMonitor.IsInGame;
             }
         }
 

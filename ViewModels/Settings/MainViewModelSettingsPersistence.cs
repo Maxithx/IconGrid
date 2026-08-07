@@ -28,6 +28,10 @@ namespace IconGrid.ViewModels.Settings
                 config.GamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
                 config.GamingOverlayTextColor = state.GamingOverlayTextColor;
                 config.GamingOverlayPositionPreset = state.GamingOverlayPositionPreset;
+                config.GameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
+                config.AutoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
+                config.AutoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
+                config.RestoreLauncherAfterOverlayClosed = state.RestoreLauncherAfterOverlayClosed;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
                 config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;

@@ -360,24 +360,93 @@
                                 Content="{Binding OverlayCustomColorButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                     </StackPanel>
 
-                    <Border Margin="0,16,0,0"
-                            Padding="12"
-                            CornerRadius="8"
-                            Background="Transparent"
-                            BorderBrush="{StaticResource GamingOverlayLightBorderBrush}"
-                            BorderThickness="0">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                        <Setter Property="BorderThickness" Value="1" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
+                </StackPanel>
+            </views:TemplatePage.HeroContent>
+            <views:TemplatePage.CardsContent>
+                <StackPanel>
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding GameAutoBehaviorTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Text="{Binding GameAutoBehaviorIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                            <TextBlock Margin="0,16,0,0"
+                                       Text="{Binding GameAutoShowTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding GameAutoShowIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ToggleButton Style="{StaticResource ToggleSwitchStyle}"
+                                          Margin="0,8,0,0"
+                                          HorizontalAlignment="Left"
+                                          IsChecked="{Binding AutoShowGamingOverlayOnGameStart, Mode=TwoWay}" />
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding RestoreLauncherTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding RestoreLauncherAfterOverlayClosed, Mode=TwoWay}" />
+                            </Grid>
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding RestoreLauncherIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding GameAutoCloseTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding AutoCloseGamingOverlayOnGameEnd, Mode=TwoWay}" />
+                            </Grid>
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding GameAutoCloseIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                            <TextBlock Margin="0,16,0,0"
+                                       Text="{Binding GameLauncherBehaviorTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ComboBox Margin="0,8,0,0"
+                                      MaxWidth="280"
+                                      HorizontalAlignment="Left"
+                                      ItemsSource="{Binding GameLauncherBehaviorItems, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                      SelectedValuePath="Key"
+                                      DisplayMemberPath="Value"
+                                      SelectedValue="{Binding SelectedGameLauncherBehavior, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <TextBlock Text="{Binding OverlayScaleTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       FontSize="14"
+                                       FontSize="16"
                                        FontWeight="SemiBold"
                                        Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                             <Grid Margin="0,10,0,0">
@@ -445,10 +514,7 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
-                </StackPanel>
-            </views:TemplatePage.HeroContent>
-            <views:TemplatePage.CardsContent>
-                <StackPanel>
+
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <Grid>
@@ -594,6 +660,7 @@
                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                         </StackPanel>
                     </Border>
+
                 </StackPanel>
             </views:TemplatePage.CardsContent>
         </views:TemplatePage>

@@ -118,6 +118,10 @@ namespace IconGrid.Views.Launcher
                 _monitorPollingController.SetPollingEnabled);
             _devOverlayController = new DevOverlayController(this, _viewModel);
             _dragDropHelper = new LauncherDragDropHelper(_viewModel, IsOverLauncherTile);
+
+            _viewModel.GameLaunched += OnGameLaunched;
+            _viewModel.GameExited += OnGameExited;
+            _gamingOverlayWindowCoordinator.OverlayClosed += OnGamingOverlayClosed;
             _monitorPollingController.Start();
             _pawnIoWarningController.Update();
             LogTrace($"MainWindow created. Elevated={IsCurrentProcessElevated()}");
@@ -768,6 +772,36 @@ namespace IconGrid.Views.Launcher
             _gamingOverlayWindowCoordinator.Show(this, _viewModel, layout);
         }
 
+        private void OnGameLaunched()
+        {
+            // Apply the configured launcher behavior: 0=None, 1=AutoHide, 2=MinimizeToTaskbar.
+            _windowModeController?.HideForGame(_viewModel.GameLauncherAutoBehavior);
+
+            // Optionally show the gaming overlay at the chosen "Default position".
+            if (_viewModel.AutoShowGamingOverlayOnGameStart)
+            {
+                ShowGamingOverlay(GamingOverlayLayout.Horizontal);
+            }
+        }
+
+        private void OnGameExited()
+        {
+            // Optionally close the gaming overlay when the game exits.
+            if (_viewModel.AutoCloseGamingOverlayOnGameEnd)
+            {
+                _gamingOverlayWindowCoordinator.Close();
+            }
+        }
+
+        private void OnGamingOverlayClosed()
+        {
+            // Optionally restore the launcher if it was hidden/minimized for a game.
+            if (_viewModel.RestoreLauncherAfterOverlayClosed)
+            {
+                _windowModeController?.RestoreLauncherFromGame();
+            }
+        }
+
         private void RefreshLayoutCardSelection()
         {
             try
@@ -869,9 +903,13 @@ namespace IconGrid.Views.Launcher
             HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
             if (_viewModel != null)
             {
+                _viewModel.GameLaunched -= OnGameLaunched;
+                _viewModel.GameExited -= OnGameExited;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 _viewModel.SystemMonitor.Dispose();
             }
+
+            _gamingOverlayWindowCoordinator.OverlayClosed -= OnGamingOverlayClosed;
             _pawnIoWarningController.Close();
             _settingsWindowCoordinator.Close();
             _gamingOverlayWindowCoordinator.Close();

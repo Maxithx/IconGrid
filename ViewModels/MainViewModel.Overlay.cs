@@ -26,6 +26,70 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Launcher behavior while a game is running: 0=None, 1=AutoHide, 2=MinimizeToTaskbar.
+        /// Persisted in config.
+        /// </summary>
+        public int GameLauncherAutoBehavior
+        {
+            get => _gameLauncherAutoBehavior;
+            set
+            {
+                var clamped = Math.Max(0, Math.Min(2, value));
+                if (SetField(ref _gameLauncherAutoBehavior, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Automatically show the gaming overlay when a game starts (positioned at the
+        /// chosen "Default position"). Persisted in config.
+        /// </summary>
+        public bool AutoShowGamingOverlayOnGameStart
+        {
+            get => _autoShowGamingOverlayOnGameStart;
+            set
+            {
+                if (SetField(ref _autoShowGamingOverlayOnGameStart, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Automatically close the gaming overlay when the game exits. Persisted in config.
+        /// </summary>
+        public bool AutoCloseGamingOverlayOnGameEnd
+        {
+            get => _autoCloseGamingOverlayOnGameEnd;
+            set
+            {
+                if (SetField(ref _autoCloseGamingOverlayOnGameEnd, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Restore the main launcher (if it was hidden/minimized for a game) when the
+        /// gaming overlay is closed — manually or automatically. Persisted in config.
+        /// </summary>
+        public bool RestoreLauncherAfterOverlayClosed
+        {
+            get => _restoreLauncherAfterOverlayClosed;
+            set
+            {
+                if (SetField(ref _restoreLauncherAfterOverlayClosed, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns the default overlay scale for a resolution like "3840x2160".
         /// Falls back to the built-in default (100% for every resolution — the scale is
         /// the real physical size; the 1440p=135% legacy default only applied when the

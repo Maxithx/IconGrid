@@ -78,7 +78,18 @@ namespace IconGrid.Views
         private string _resolutionDefaultsIntroText = string.Empty;
         private string _overlayPositionTitleText = string.Empty;
         private string _overlayPositionIntroText = string.Empty;
+        private string _gameAutoBehaviorTitleText = string.Empty;
+        private string _gameAutoBehaviorIntroText = string.Empty;
+        private string _gameAutoShowTitleText = string.Empty;
+        private string _gameAutoShowIntroText = string.Empty;
+        private string _gameAutoCloseTitleText = string.Empty;
+        private string _gameAutoCloseIntroText = string.Empty;
+        private string _restoreLauncherTitleText = string.Empty;
+        private string _restoreLauncherIntroText = string.Empty;
+        private string _gameLauncherBehaviorTitleText = string.Empty;
+        private string _gameLauncherBehaviorIntroText = string.Empty;
         private List<KeyValuePair<string, string>> _overlayPositionPresetItems = new();
+        private List<KeyValuePair<string, string>> _gameLauncherBehaviorItems = new();
         private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
 
         public GamingOverlayPage()
@@ -261,6 +272,131 @@ namespace IconGrid.Views
         {
             get => _overlayPositionIntroText;
             private set => SetField(ref _overlayPositionIntroText, value);
+        }
+
+        public string GameAutoBehaviorTitleText
+        {
+            get => _gameAutoBehaviorTitleText;
+            private set => SetField(ref _gameAutoBehaviorTitleText, value);
+        }
+
+        public string GameAutoBehaviorIntroText
+        {
+            get => _gameAutoBehaviorIntroText;
+            private set => SetField(ref _gameAutoBehaviorIntroText, value);
+        }
+
+        public string GameAutoShowTitleText
+        {
+            get => _gameAutoShowTitleText;
+            private set => SetField(ref _gameAutoShowTitleText, value);
+        }
+
+        public string GameAutoShowIntroText
+        {
+            get => _gameAutoShowIntroText;
+            private set => SetField(ref _gameAutoShowIntroText, value);
+        }
+
+        public string GameAutoCloseTitleText
+        {
+            get => _gameAutoCloseTitleText;
+            private set => SetField(ref _gameAutoCloseTitleText, value);
+        }
+
+        public string GameAutoCloseIntroText
+        {
+            get => _gameAutoCloseIntroText;
+            private set => SetField(ref _gameAutoCloseIntroText, value);
+        }
+
+        public string RestoreLauncherTitleText
+        {
+            get => _restoreLauncherTitleText;
+            private set => SetField(ref _restoreLauncherTitleText, value);
+        }
+
+        public string RestoreLauncherIntroText
+        {
+            get => _restoreLauncherIntroText;
+            private set => SetField(ref _restoreLauncherIntroText, value);
+        }
+
+        public string GameLauncherBehaviorTitleText
+        {
+            get => _gameLauncherBehaviorTitleText;
+            private set => SetField(ref _gameLauncherBehaviorTitleText, value);
+        }
+
+        public string GameLauncherBehaviorIntroText
+        {
+            get => _gameLauncherBehaviorIntroText;
+            private set => SetField(ref _gameLauncherBehaviorIntroText, value);
+        }
+
+        /// <summary>
+        /// Localized options for the launcher auto-behavior while a game runs.
+        /// Key = GameAutoBehaviorMode value ("0"/"1"/"2"), Value = display text.
+        /// </summary>
+        public List<KeyValuePair<string, string>> GameLauncherBehaviorItems
+        {
+            get => _gameLauncherBehaviorItems;
+            private set => SetField(ref _gameLauncherBehaviorItems, value);
+        }
+
+        /// <summary>
+        /// Currently selected launcher behavior (forwards to MainViewModel).
+        /// </summary>
+        public string SelectedGameLauncherBehavior
+        {
+            get => _mainViewModel?.GameLauncherAutoBehavior.ToString() ?? "0";
+            set
+            {
+                if (_mainViewModel != null && int.TryParse(value, out var parsed))
+                {
+                    _mainViewModel.GameLauncherAutoBehavior = parsed;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedGameLauncherBehavior)));
+                }
+            }
+        }
+
+        public bool AutoShowGamingOverlayOnGameStart
+        {
+            get => _mainViewModel?.AutoShowGamingOverlayOnGameStart ?? false;
+            set
+            {
+                if (_mainViewModel != null)
+                {
+                    _mainViewModel.AutoShowGamingOverlayOnGameStart = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoShowGamingOverlayOnGameStart)));
+                }
+            }
+        }
+
+        public bool AutoCloseGamingOverlayOnGameEnd
+        {
+            get => _mainViewModel?.AutoCloseGamingOverlayOnGameEnd ?? false;
+            set
+            {
+                if (_mainViewModel != null)
+                {
+                    _mainViewModel.AutoCloseGamingOverlayOnGameEnd = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoCloseGamingOverlayOnGameEnd)));
+                }
+            }
+        }
+
+        public bool RestoreLauncherAfterOverlayClosed
+        {
+            get => _mainViewModel?.RestoreLauncherAfterOverlayClosed ?? false;
+            set
+            {
+                if (_mainViewModel != null)
+                {
+                    _mainViewModel.RestoreLauncherAfterOverlayClosed = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RestoreLauncherAfterOverlayClosed)));
+                }
+            }
         }
 
         /// <summary>
@@ -489,6 +625,22 @@ namespace IconGrid.Views
                     new("BottomRight", "Bund højre"),
                     new("Custom", "Brugerdefineret")
                 };
+                GameAutoBehaviorTitleText = "Automatisk under spil";
+                GameAutoBehaviorIntroText = "Vælg hvad IconGrid gør med launcher'n og gaming overlayet, når et spil startes fra launcher'n.";
+                GameAutoShowTitleText = "Vis gaming overlay automatisk ved spilstart";
+                GameAutoShowIntroText = "Gaming overlayet åbner automatisk og placeres ved din valgte standardplacering, når et spil startes.";
+                GameAutoCloseTitleText = "Luk gaming overlay når spillet lukkes";
+                GameAutoCloseIntroText = "Gaming overlayet lukkes automatisk, når spillet afsluttes.";
+                RestoreLauncherTitleText = "Genåbn launcher når overlayet lukkes";
+                RestoreLauncherIntroText = "Launcher'n åbnes igen, hvis den blev skjult eller minimeret for spillet, når gaming overlayet lukkes.";
+                GameLauncherBehaviorTitleText = "Launcher-adfærd under spil";
+                GameLauncherBehaviorIntroText = "Vælg hvad der sker med launcher-vinduet, mens et spil kører.";
+                GameLauncherBehaviorItems = new List<KeyValuePair<string, string>>
+                {
+                    new("0", "Gør intet"),
+                    new("1", "Auto-skjul (glider ned)"),
+                    new("2", "Minimer til proceslinjen")
+                };
             }
             else
             {
@@ -526,6 +678,22 @@ namespace IconGrid.Views
                     new("BottomCenter", "Bottom center"),
                     new("BottomRight", "Bottom right"),
                     new("Custom", "Custom")
+                };
+                GameAutoBehaviorTitleText = "Automatic while in game";
+                GameAutoBehaviorIntroText = "Choose what IconGrid does with the launcher and gaming overlay when a game starts from the launcher.";
+                GameAutoShowTitleText = "Show gaming overlay automatically on game start";
+                GameAutoShowIntroText = "The gaming overlay opens automatically at your chosen default position when a game starts.";
+                GameAutoCloseTitleText = "Close gaming overlay when the game exits";
+                GameAutoCloseIntroText = "The gaming overlay closes automatically when the game ends.";
+                RestoreLauncherTitleText = "Reopen launcher when the overlay closes";
+                RestoreLauncherIntroText = "The launcher is restored if it was hidden or minimized for the game when the gaming overlay closes.";
+                GameLauncherBehaviorTitleText = "Launcher behavior while in game";
+                GameLauncherBehaviorIntroText = "Choose what happens to the launcher window while a game is running.";
+                GameLauncherBehaviorItems = new List<KeyValuePair<string, string>>
+                {
+                    new("0", "Do nothing"),
+                    new("1", "Auto-hide (slide down)"),
+                    new("2", "Minimize to taskbar")
                 };
             }
         }

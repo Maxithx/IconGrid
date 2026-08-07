@@ -25,6 +25,10 @@ namespace IconGrid.ViewModels
             _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
             _gamingOverlayTextColor = string.IsNullOrWhiteSpace(state.GamingOverlayTextColor) ? "#FFFFFF" : state.GamingOverlayTextColor;
             _gamingOverlayPositionPreset = string.IsNullOrWhiteSpace(state.GamingOverlayPositionPreset) ? "TopRight" : state.GamingOverlayPositionPreset;
+            _gameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
+            _autoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
+            _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
+            _restoreLauncherAfterOverlayClosed = state.RestoreLauncherAfterOverlayClosed;
             _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
             _gamingOverlayResolutionScales = state.GamingOverlayResolutionScales ?? new Dictionary<string, double>();
             _showDesktopIcon = state.ShowDesktopIcon;
@@ -61,6 +65,10 @@ namespace IconGrid.ViewModels
             _gamingOverlayAutoTransparentBackground = false;
             _gamingOverlayTextColor = "#FFFFFF";
             _gamingOverlayPositionPreset = "TopRight";
+            _gameLauncherAutoBehavior = 0;
+            _autoShowGamingOverlayOnGameStart = false;
+            _autoCloseGamingOverlayOnGameEnd = false;
+            _restoreLauncherAfterOverlayClosed = false;
             _restoreGameResolutionAfterExit = true;
             _gamingOverlayResolutionScales = new Dictionary<string, double>();
             _isAlwaysOnTop = false;
@@ -103,6 +111,10 @@ namespace IconGrid.ViewModels
                 GamingOverlayAutoTransparentBackground = _gamingOverlayAutoTransparentBackground,
                 GamingOverlayTextColor = _gamingOverlayTextColor,
                 GamingOverlayPositionPreset = _gamingOverlayPositionPreset,
+                GameLauncherAutoBehavior = _gameLauncherAutoBehavior,
+                AutoShowGamingOverlayOnGameStart = _autoShowGamingOverlayOnGameStart,
+                AutoCloseGamingOverlayOnGameEnd = _autoCloseGamingOverlayOnGameEnd,
+                RestoreLauncherAfterOverlayClosed = _restoreLauncherAfterOverlayClosed,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,

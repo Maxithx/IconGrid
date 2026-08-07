@@ -18,6 +18,10 @@ public class ConfigModel
     public bool GamingOverlayAutoTransparentBackground { get; set; } = false; // transparent only while a game is running
     public string GamingOverlayTextColor { get; set; } = "#FFFFFF"; // overlay text color as hex (used when transparent)
     public string GamingOverlayPositionPreset { get; set; } = "TopRight"; // corner/edge default placement ("TopLeft".."BottomRight", or "Custom")
+    public int GameLauncherAutoBehavior { get; set; } = 0; // GameAutoBehaviorMode: 0=None, 1=AutoHide, 2=MinimizeToTaskbar
+    public bool AutoShowGamingOverlayOnGameStart { get; set; } = false; // auto-show gaming overlay when a game starts
+    public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false; // auto-close gaming overlay when a game exits
+    public bool RestoreLauncherAfterOverlayClosed { get; set; } = false; // restore launcher (if minimized/hidden for game) when overlay closes
     public bool ShowDesktopIcon { get; set; } = true;      // show floating desktop icon when minimized
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
