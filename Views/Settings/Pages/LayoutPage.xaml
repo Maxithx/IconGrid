@@ -318,8 +318,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding LayoutSkipMinimizedText}"
                                                            VerticalAlignment="Center"
-                                                           FontSize="13"
-                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 <ToggleButton Grid.Column="1"
                                                               Style="{StaticResource ToggleSwitchStyle}"
                                                               IsChecked="{Binding LayoutSkipMinimized, Mode=TwoWay}" />
@@ -333,8 +332,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding LayoutActiveScreenOnlyText}"
                                                            VerticalAlignment="Center"
-                                                           FontSize="13"
-                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 <ToggleButton Grid.Column="1"
                                                               Style="{StaticResource ToggleSwitchStyle}"
                                                               IsChecked="{Binding LayoutCurrentMonitorOnly, Mode=TwoWay}" />
@@ -378,8 +376,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding LayoutReserveSlotToggleText}"
                                                            VerticalAlignment="Center"
-                                                           FontSize="13"
-                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 <ToggleButton Grid.Column="1"
                                                               Style="{StaticResource ToggleSwitchStyle}"
                                                               IsChecked="{Binding LayoutReserveIconGridSlot, Mode=TwoWay}" />
