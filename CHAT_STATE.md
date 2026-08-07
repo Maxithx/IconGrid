@@ -1184,3 +1184,11 @@ Bruger-godkendt ("alt virker som det skal") og committet:
 - `2026dfa` ui: tighten ping dot spacing in launcher monitor row (1 fil — separat kosmetisk tweak fundet i working tree; margin 6→4)
 - Arkitektur: 2 dokumenterede overtrædelser (File Size Limit Policy) — MainWindow.xaml.cs 1006 (limit 1000, +6 fra auto-funktions-wiring), MainViewModel.cs 1353 (limit 1200, kendt præeksisterende). Build: 0 fejl / 0 advarsler.
 - Næste skridt: reducer MainWindow.xaml.cs 1006→1000 (små dryp, fx træk en håndfuld metoder ud) for at vende tilbage til grøn; MainViewModel 1353 er den kendte dokumenterede tolerance.
+
+## Session 2026-08-07 (19:02) — Gaming overlay side: foldbare sektioner + Live vs Trend fjernet
+
+Bruger-godkendt og committet i dag:
+- `0000b5a` feat: make all gaming overlay settings sections collapsible and remove Live vs Trend card (2 filer, +580/-524): Alle 4 sektioner på Gaming Overlay-siden (hero + Automatik under spil + Overlay størrelse + FPS setup) er nu foldbare expanders (Layout-sidens mønster: transparent header + Segoe Fluent pil &#xE70D; roteret via BooleanToAngleConverter, default foldet ind). 'Planlagte indstillinger / Live vs trend'-cardet fjernet helt + ubrugte FpsResponsiveness/fPlannedOverlaySettings-properties ryddet fra code-behind. Overskriftstørrelser normaliseret: alle foldbare headers = 16/SemiBold/TopBarForeground (hero var 20).
+- `3628bed` docs: document collapsible section typography rule in settings template guidelines (TemplateGuidelines.xaml): ny 'Collapsible sections'-sektion — foldbare headers skal ALTID bruge Card/block-niveau (16/SemiBold/TopBarForeground) uanset hero/almindeligt card, så folded/unfolded læser konsistent; indhold beholder 14/13/12. TemplateGuidance opdateret.
+- Byg: 0 fejl / 0 advarsler. Deployet til C:\IconGrid. Working tree ren efter push.
+- Næste åbne emner: MainViewModel.cs 1327-linje overtrædelse (dokumenteret tolerance), arkitektur-check-status ved næste kørsel.
