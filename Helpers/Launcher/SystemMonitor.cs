@@ -80,10 +80,13 @@ namespace IconGrid.Helpers
         }
 
         /// <summary>
-        /// True when a game process is actively tracked. Derived from the native FPS agent's
-        /// TargetPid (primary) or live FPS data (fallback), NOT from whether the FPS display
-        /// happens to show a number. This keeps "Transparent while in game" decoupled from
-        /// the FPS counter so the background returns as soon as the game exits.
+        /// True when a game process is actively tracked by the native FPS agent
+        /// (TargetPid > 0 in shared memory). Deliberately does NOT use FPS data:
+        /// the FPS pipeline is independent of whether a game process is running,
+        /// and the "hold last FPS" behavior could keep a stale value that made the
+        /// overlay stay transparent in Windows after the game closed. Transparency
+        /// follows the tracked game process only, so the background returns to solid
+        /// as soon as the game exits.
         /// </summary>
         public bool IsInGame => _inGame;
         public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); } }
@@ -403,25 +406,18 @@ namespace IconGrid.Helpers
             var correctedFpsValue = fpsState?.LiveFpsValue;
             var hasCorrectedFps = correctedFpsValue.HasValue && correctedFpsValue.Value > 0;
 
-            // In-game is driven primarily by the native agent's tracked PID. When the game
+            // In-game is driven ONLY by the native agent's tracked PID. When the game
             // exits, TargetPid drops to 0 immediately, so the overlay background returns
             // right away instead of waiting for the FPS feed to decay.
+            //
+            // IMPORTANT: We deliberately do NOT use FPS data to decide IsInGame. The FPS
+            // pipeline is independent of whether a game process is actually running — the
+            // "hold last FPS" behavior can keep a stale value, which made the overlay stay
+            // transparent in Windows after the game closed. Transparency must follow the
+            // tracked game process only: TargetPid greater than 0 means a game is running,
+            // anything else (0 or unavailable shared memory) means no game is tracked.
             var trackedGamePid = nativeFpsState?.TargetPid ?? 0;
-            if (trackedGamePid > 0)
-            {
-                SetInGame(true);
-            }
-            else if (nativeFpsState == null)
-            {
-                // Native agent is not running / shared memory unavailable;
-                // fall back to live FPS signals so the overlay still turns transparent.
-                SetInGame(hasNativeFps || hasCorrectedFps);
-            }
-            else
-            {
-                // Native agent is running and explicitly reports no tracked game process.
-                SetInGame(false);
-            }
+            SetInGame(trackedGamePid > 0);
             if (!hasNativeFps && fpsState == null)
             {
                 _targetFpsValue = null;
