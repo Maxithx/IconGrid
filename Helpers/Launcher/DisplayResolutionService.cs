@@ -299,6 +299,34 @@ namespace IconGrid.Helpers.Launcher
             }
         }
 
+        /// <summary>
+        /// Re-targets an existing resolution lock from one process to another.
+        /// Used when a launcher (e.g. EACLaunch) hands off to the real game process
+        /// with a different executable name. The saved original resolution is moved
+        /// to the new process id and a fresh watchdog is started on it, so the
+        /// resolution is restored when the REAL game process exits — not when the
+        /// launcher (which often stays alive in the background) exits.
+        /// </summary>
+        public bool RetargetResolutionLock(int oldRootProcessId, int newRootProcessId)
+        {
+            if (oldRootProcessId == newRootProcessId)
+                return false;
+
+            lock (_lock)
+            {
+                if (!_savedDevModes.TryGetValue(oldRootProcessId, out var original))
+                    return false;
+
+                _savedDevModes.Remove(oldRootProcessId);
+                _savedDevModes[newRootProcessId] = original;
+            }
+
+            WriteTrace($"[DisplayResolutionService] Re-targeted resolution lock from PID {oldRootProcessId} to PID {newRootProcessId}.");
+            WatchProcess(newRootProcessId);
+            return true;
+        }
+
+
         private static bool IsProcessAlive(int pid, long startFileTimeUtc)
         {
             if (pid <= 0)
