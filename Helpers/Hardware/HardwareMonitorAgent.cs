@@ -21,7 +21,7 @@ public static class HardwareMonitorAgent
     private const int MinimumGameWindowHeight = 540;
     private static readonly TimeSpan RecentVisibleWindowLaunchGracePeriod = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan StaleVisibleWindowPenaltyAge = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan ConfigTargetLaunchGracePeriod = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan ConfigTargetLaunchGracePeriod = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan NonGameProbeTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan NonGameCooldown = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromSeconds(5);
@@ -1428,13 +1428,15 @@ exit:
                 File.Move(tempPath, statePath, overwrite: true);
                 return;
             }
-            catch (UnauthorizedAccessException) when (attempt < AtomicWriteRetryCount - 1)
+            catch (UnauthorizedAccessException)
             {
-                Thread.Sleep(AtomicWriteRetryDelayMs);
+                if (attempt < AtomicWriteRetryCount - 1)
+                    Thread.Sleep(AtomicWriteRetryDelayMs);
             }
-            catch (IOException) when (attempt < AtomicWriteRetryCount - 1)
+            catch (IOException)
             {
-                Thread.Sleep(AtomicWriteRetryDelayMs);
+                if (attempt < AtomicWriteRetryCount - 1)
+                    Thread.Sleep(AtomicWriteRetryDelayMs);
             }
         }
 

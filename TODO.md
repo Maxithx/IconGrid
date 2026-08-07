@@ -221,12 +221,12 @@
 - [x] Få stabil FPS-visning i både launcher-topbar og gaming overlay for `Path of Exile`
 - [x] Fjern `PresentMonFpsProvider`, den bundtede `PresentMon`-binær og al CLI-baseret FPS-logik når native worker-sporet virker
 - [x] Hold FPS-løsningen passiv og lav-risiko uden injection, DLL-detours eller graphics API hooking
-- [ ] FPS: Forbedr spike-filter recovery så overlay følger raw FPS ved stærk `Source=PrimaryApi` (PoE2 background-cap 30→60 fastholdelse)
-- [ ] FPS: Ryd stale launch-session-ownership efter PoE2 exit/spilskift ("No running process matched")
-- [ ] FPS: Undgå file-read collision på `native-fps-state.json` (FileShare.ReadWrite eller retry)
-- [ ] Arkitektur: Nedbring `MainWindow.xaml.cs` (3473 linjer) — flyt layout-engine til `Helpers/Launcher/WindowLayoutEngine.cs`
-- [ ] Arkitektur: Nedbring `MainViewModel.cs` (1940 linjer) — ekstraher UI/layout-målings-state
-- [ ] Arkitektur: Nedbring `HardwareMonitorAgent.cs` (1680 linjer) — hold worker fokuseret
+- [x] FPS: ETW re-start efter idle — native agent stopper ETW når target ryddes (2026-08-06, +1 linje i main.cpp)
+- [x] FPS: File-state collision fix — FileShare.ReadWrite + 3-retry (2026-08-06, NativeFpsAgentRunner.cs)
+- [x] FPS: Grace period 15s→60s for langsomme opstartskæder (EAC/Ubisoft → Division 2) (2026-08-06)
+- [x] FPS: Resolution restore handoff — WatchProcess følger spillets exe, ikke kun root launcher (2026-08-07, DisplayResolutionService.cs + LauncherItemLaunchManager.cs)
+- [x] FPS: MoveWithRetry crash fix — when-filter fejlede på sidste retry (2026-08-07, HardwareMonitorAgent.cs)
+- [ ] FPS: Global baggrunds-scanner — auto-detect spil startet uden for IconGrid (Steam, Epic, etc.) via EnumWindows + fullscreen GPU-signal. Ca. 50 linjer i HardwareMonitorAgent.cs. Ingen ny agent-proces.
 - [ ] Skalering: Få main launcher UI + gaming overlay til at skalere korrekt med Windows 11 DPI-skala (fx 2560x1440 @ 125%) — undersøg `PerMonitorV2` i `app.manifest` + undgå dobbelt-skalering mellem appens egen `uiScale`/overlay-scale og Windows-skala
 
 ## Dokumentation

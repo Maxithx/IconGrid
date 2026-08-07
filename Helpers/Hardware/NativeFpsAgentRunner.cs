@@ -171,8 +171,28 @@ internal sealed class NativeFpsAgentRunner : IDisposable
                 return ReadSharedMemoryState(null);
             }
 
-            var json = File.ReadAllText(_statePath);
-            fileState = JsonSerializer.Deserialize<NativeFpsAgentState>(json, JsonOptions);
+            const int maxRetries = 3;
+            const int retryDelayMs = 50;
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    using var stream = new FileStream(
+                        _statePath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite);
+                    using var reader = new StreamReader(stream);
+                    var json = reader.ReadToEnd();
+                    fileState = JsonSerializer.Deserialize<NativeFpsAgentState>(json, JsonOptions);
+                    break;
+                }
+                catch (IOException) when (attempt < maxRetries - 1)
+                {
+                    Thread.Sleep(retryDelayMs);
+                }
+            }
+
             if (fileState == null || DateTime.UtcNow - fileState.CapturedAtUtc > StateMaxAge)
             {
                 fileState = null;

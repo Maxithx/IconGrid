@@ -1001,6 +1001,8 @@ namespace
         MoveFileExW(tempPath.c_str(), statePath.c_str(), MOVEFILE_REPLACE_EXISTING);
     }
 
+    void StopEtwSession();
+
     void PollLockedTarget()
     {
         DWORD lockedPid = 0;
@@ -1076,6 +1078,7 @@ namespace
             g_targetPid.store(0, std::memory_order_relaxed);
             UpdateTargetState(0, L"");
             UpdateCandidateState(0, L"");
+            StopEtwSession();
 
             const auto candidate = FindTargetProcess();
             if (candidate.has_value())
