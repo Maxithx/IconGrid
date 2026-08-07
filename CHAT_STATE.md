@@ -1160,3 +1160,27 @@ Fix: `Views/Settings/Pages/GamingOverlayPage.xaml.cs` `RefreshLocalizedText()` d
 Build: 0 fejl / 0 advarsler (DLL 15:11:16). Deployet til C:\IconGrid (hele bin\Debug). Commit 54f2620 pushet: `6727847..54f2620 main -> main`.
 
 Næste skridt: Manuel test — åbn Gaming Overlay-siden på dansk og bekræft stavningen. Bemærk: FPS-pipelinen er IKKE rørt (bruger-godkendt).
+
+## Session 2026-08-07 (17:19-17:56): Auto-funktioner under spil implementeret
+
+4 nye auto-funktioner implementeret på Gaming Overlay-siden (ny card 'Automatisk under spil'):
+1. Launcher-adfærd under spil (dropdown: Gør intet / Auto-skjul / Minimer til proceslinjen) — virker uanset 'Altid øverst'
+2. Vis gaming overlay automatisk ved spilstart (placeret ved valgte Default position)
+3. Luk gaming overlay når spillet lukkes (via IsInGame→false)
+4. Genåbn launcher når overlayet lukkes (manuelt eller automatisk)
+
+Filer: Models/GameAutoBehaviorMode.cs (ny enum), ConfigModel + SettingsState + ConfigState + Persistence + MainViewModel.Settings/Overlay (4 felter), MainViewModel.cs (events GameLaunched/GameExited), MainViewModel.Items.cs (fyrer GameLaunched i RememberFpsTarget), MainWindow.xaml.cs (OnGameLaunched/OnGameExited/OnGamingOverlayClosed), LauncherWindowModeController.cs (HideForGame/RestoreLauncherFromGame), GamingOverlayWindowCoordinator.cs (OverlayClosed event), GamingOverlayPage.xaml/.cs (UI + da/en).
+
+UI-layout: 'Automatisk under spil' card + 'Overlay størrelse' card (flyttet ud af hero til eget card) er nu ØVERST i CardsContent — hero indeholder kun position/transparent/farve.
+
+Build: 0 fejl / 0 advarsler. Deployet til C:\IconGrid (DLL 17:55:46).
+
+Næste skridt: Manuel test af alle 4 funktioner. Commit/push afventer bruger-godkendelse.
+
+## Session 2026-08-07 (18:14) — Auto-funktioner commitet + pushet
+
+Bruger-godkendt ("alt virker som det skal") og committet:
+- `13a91f9` feat: add auto-behavior for launcher and gaming overlay during gameplay (14 filer, +495/-22, ny Models/GameAutoBehaviorMode.cs)
+- `2026dfa` ui: tighten ping dot spacing in launcher monitor row (1 fil — separat kosmetisk tweak fundet i working tree; margin 6→4)
+- Arkitektur: 2 dokumenterede overtrædelser (File Size Limit Policy) — MainWindow.xaml.cs 1006 (limit 1000, +6 fra auto-funktions-wiring), MainViewModel.cs 1353 (limit 1200, kendt præeksisterende). Build: 0 fejl / 0 advarsler.
+- Næste skridt: reducer MainWindow.xaml.cs 1006→1000 (små dryp, fx træk en håndfuld metoder ud) for at vende tilbage til grøn; MainViewModel 1353 er den kendte dokumenterede tolerance.
