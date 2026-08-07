@@ -39,7 +39,7 @@
                 Height="10"
                 CornerRadius="5"
                 VerticalAlignment="Center"
-                Margin="0,0,6,0"
+                Margin="0,0,4,0"
                 Background="{Binding SystemMonitor.PingSeverityLevel, Converter={StaticResource PingSeverityBrush}}" />
         <TextBlock Style="{StaticResource NetworkMonitorTextStyle}"
                    MinWidth="70"
@@ -68,7 +68,7 @@
             <Run FontFamily="Consolas" Text="{Binding SystemMonitor.UploadStatus, Mode=OneWay}" />
         </TextBlock>
         <TextBlock Style="{StaticResource MonitorTextStyle}"
-                   Margin="6,0,0,0"
+                   Margin="4,0,0,0"
                    Width="75"
                    TextAlignment="Right"
                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
