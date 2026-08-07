@@ -1129,3 +1129,12 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
   2. Tjek arkitektur (check_architecture_rules) før commit.
   3. Manuel test: Layout-siden — bekræft toggle-labels stadig ligner resten af appen efter normalisering.
   4. Opdater `.local-state/ui-design-guidelines.md` hvis nye afvigelser dukker op.
+
+## Session 2026-08-07 (06:32) — LayoutPage normalisering committet + pushet
+
+Bruger-godkendt kl. 06:32: "alt ser godt ud commit og push".
+- Commit `9188f9e` "ui: normalize Layout page toggle labels to match settings design contract" (1 fil, +3/-6) — LayoutPage.xaml toggle-labels normaliseret.
+- Pushet: `9f2136e..9188f9e main -> main`.
+- `check_architecture_rules` før commit: kun kendt, præeksisterende MainViewModel.cs-overtrædelse (1327 linjer, limit 1200) — ikke relateret til XAML-ændringen.
+- Working tree nu ren; ingen u-committede ændringer.
+- STATUS: LayoutPage-normaliseringen er nu FÆRDIG og pushet. Næste åbne emner: MainViewModel.cs 1327-linje overtrædelse (dokumenteret tolerance), gennemsigtigheds-bug (IsInGame), FPS file-state collision, ARCHITECTURE_RULES examples + DK kommentarer (optional polish).
