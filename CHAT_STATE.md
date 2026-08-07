@@ -1092,4 +1092,4 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
 - **Fix:** `Views/Settings/Pages/GamingOverlayPage.xaml` — hero-stacken omarrangeret. Ny rækkefølge (top → bund): 1) Default position (dropdown) 2) Transparent background (toggle) 3) Transparent while in game (toggle) 4) Farvevælger (swatches + custom, vises når transparent er aktiv) 5) Overlay scale (slider) + per-opløsning defaults (rykket ned i bunden i sin egen Border).
 - **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
 - **Godkendt af bruger:** "det spiller perfekt" — commit + push udført.
-- **Commit:** `(se git log)` — GamingOverlayPage.xaml + CHAT_STATE.md pushet.
+- **Commit:** `519019e` "ui: move overlay position, transparency, and color picker above scale on Gaming Overlay page" — pushet (`fd6b128..519019e main -> main`).
