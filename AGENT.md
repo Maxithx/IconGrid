@@ -16,12 +16,15 @@ Before making changes, read these files in this order:
 - `README.md` describes the intended application behavior and project structure.
 - `ARCHITECTURE_RULES.md` contains the constraints for keeping the codebase modular and stable.
 
-## Commit and push rules (CRITICAL)
+## Commit and push rules (CRITICAL — ask FIRST, every time)
 
-- Do NOT commit or push any changes unless the user explicitly says so.
-- All changes must be tested and verified by the user before any commit is made.
-- Commits are only made after the user gives clear approval (e.g. "commit", "push", "godkend").
-- This applies even for small fixes, typos, or documentation changes.
+- NEVER commit or push on your own initiative. NEVER assume approval.
+- Before ANY commit or push, ask the user explicitly, e.g.: "Skal dette committes og pushes?"
+- Wait for an explicit positive answer ("commit", "push", "godkend", "ja") before running `git commit` / `git push`.
+- A previous approval for an earlier change does NOT carry over to later changes in the same session. Ask again for each new change.
+- Deployment to `C:\IconGrid` for testing is NOT approval to commit/push. The user must test and give separate, explicit commit approval.
+- This applies even for small fixes, typos, or documentation changes — including `CHAT_STATE.md`.
+- If in doubt: ask. Asking takes one message; an unwanted push is a trust violation.
 
 ## File backup rules
 
