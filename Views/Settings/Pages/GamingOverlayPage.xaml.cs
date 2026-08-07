@@ -62,8 +62,6 @@ namespace IconGrid.Views
         private string _overlayTextColorTitleText = "Text color";
         private string _overlayCustomColorButtonText = "Custom color...";
         private string _overlayScaleTitleText = string.Empty;
-        private string _fpsResponsivenessTitleText = string.Empty;
-        private string _fpsResponsivenessIntroText = string.Empty;
         private string _fpsSetupTitleText = string.Empty;
         private string _fpsSetupIntroText = string.Empty;
         private string _refreshFpsSetupButtonText = string.Empty;
@@ -71,8 +69,6 @@ namespace IconGrid.Views
         private string _runFpsSetupFixHelpText = string.Empty;
         private string _technicalDetailsTitleText = string.Empty;
         private string _technicalDetailsIntroText = string.Empty;
-        private string _plannedOverlaySettingsTitleText = string.Empty;
-        private string _plannedOverlaySettingsIntroText = string.Empty;
         private string _readyBadgeText = "Ready";
         private string _resolutionDefaultsTitleText = string.Empty;
         private string _resolutionDefaultsIntroText = string.Empty;
@@ -176,18 +172,6 @@ namespace IconGrid.Views
             private set => SetField(ref _overlayScaleTitleText, value);
         }
 
-        public string FpsResponsivenessTitleText
-        {
-            get => _fpsResponsivenessTitleText;
-            private set => SetField(ref _fpsResponsivenessTitleText, value);
-        }
-
-        public string FpsResponsivenessIntroText
-        {
-            get => _fpsResponsivenessIntroText;
-            private set => SetField(ref _fpsResponsivenessIntroText, value);
-        }
-
         public string FpsSetupTitleText
         {
             get => _fpsSetupTitleText;
@@ -228,18 +212,6 @@ namespace IconGrid.Views
         {
             get => _technicalDetailsIntroText;
             private set => SetField(ref _technicalDetailsIntroText, value);
-        }
-
-        public string PlannedOverlaySettingsTitleText
-        {
-            get => _plannedOverlaySettingsTitleText;
-            private set => SetField(ref _plannedOverlaySettingsTitleText, value);
-        }
-
-        public string PlannedOverlaySettingsIntroText
-        {
-            get => _plannedOverlaySettingsIntroText;
-            private set => SetField(ref _plannedOverlaySettingsIntroText, value);
         }
 
         public string ReadyBadgeText
@@ -599,8 +571,6 @@ namespace IconGrid.Views
                 OverlayTextColorTitleText = "Tekstfarve";
                 OverlayCustomColorButtonText = "Brugerdefineret farve...";
                 OverlayScaleTitleText = "Overlay størrelse";
-                FpsResponsivenessTitleText = "FPS opdateringshastighed";
-                FpsResponsivenessIntroText = "IconGrid viser nu et live FPS-tal i overlayet og et mere stabilt trend-tal ved siden af. Denne slider styrer, hvor hurtigt trend-tallet følger de nye ETW-data.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW afhænger af, at den aktuelle Windows-bruger har den rigtige tracing-adgang. Denne sektion tjekker det kendte krav om Brugere af ydelseslog.";
                 RefreshFpsSetupButtonText = "Opdater FPS setup-status";
@@ -608,8 +578,6 @@ namespace IconGrid.Views
                 RunFpsSetupFixHelpText = "Kun nødvendig hvis den aktuelle bruger mangler medlemskab af Brugere af ydelseslog.";
                 TechnicalDetailsTitleText = "Tekniske detaljer";
                 TechnicalDetailsIntroText = "Vis den tekniske ETW-status og den foreslåede kommando.";
-                PlannedOverlaySettingsTitleText = "Live vs trend";
-                PlannedOverlaySettingsIntroText = "Overlayet viser nu et hurtigt live-tal for korte spikes og et mere smooth trend-tal for læsbarhed.";
                 ReadyBadgeText = "Klar";
                 ResolutionDefaultsTitleText = "Standard scale per opløsning";
                 ResolutionDefaultsIntroText = "Vælg den standard overlay-scale IconGrid bruger, når skærmen skifter til hver opløsning. Juster sliders her, eller træk i overlayets egen slider — begge steder gemmer som standard.";
@@ -653,8 +621,6 @@ namespace IconGrid.Views
                 OverlayTextColorTitleText = "Text color";
                 OverlayCustomColorButtonText = "Custom color...";
                 OverlayScaleTitleText = "Overlay scale";
-                FpsResponsivenessTitleText = "FPS update responsiveness";
-                FpsResponsivenessIntroText = "IconGrid now shows a live FPS number in the overlay and a steadier trend number beside it. This slider controls how quickly the trend number follows new ETW data.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW depends on the current Windows user having the right tracing access. This section checks the known Performance Log Users requirement.";
                 RefreshFpsSetupButtonText = "Refresh FPS setup status";
@@ -662,8 +628,6 @@ namespace IconGrid.Views
                 RunFpsSetupFixHelpText = "Only needed when the current user is missing Performance Log Users membership.";
                 TechnicalDetailsTitleText = "Technical details";
                 TechnicalDetailsIntroText = "Show the technical ETW status and the suggested command.";
-                PlannedOverlaySettingsTitleText = "Live vs trend";
-                PlannedOverlaySettingsIntroText = "The overlay now shows a fast live number for short spikes and a smoother trend number for readability.";
                 ReadyBadgeText = "Ready";
                 ResolutionDefaultsTitleText = "Default scale per resolution";
                 ResolutionDefaultsIntroText = "Choose the default overlay scale IconGrid uses when the display switches to each resolution. Adjust any slider here, or drag the overlay's own slider — both save as the default.";
