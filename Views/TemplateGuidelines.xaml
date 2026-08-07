@@ -27,6 +27,13 @@
         Layout:
           - Wrap the page in TemplatePage and place primary actions inside Startside cards
           - Hero elements are separated with Margin 0,16,0,0 (intro after title uses 0,8,0,0)
+        Collapsible sections (Expander cards):
+          - When a card is collapsible, the header must use the Card/block title level (16/SemiBold/TopBarForeground)
+            regardless of whether it is a hero card or a regular card. All collapsible headers on a page must be
+            the same font size so the folded/unfolded state reads consistently.
+          - Header content = title + intro (13), trailing chevron (&#xE70D;, Segoe Fluent Icons, FontSize 18) rotated 180 deg
+            via BooleanToAngleConverter when expanded.
+          - Inner content keeps the normal scale: section titles 14, body 13, small labels 12.
         When you create a new page, use TemplatePage + StartsideSectionCardStyle and derive text from
         the styles below so the whole app stays consistent.
     -->
@@ -73,6 +80,6 @@
     </Style>
 
     <sys:String x:Key="TemplateGuidance">
-        Settings page contract: hero title (20/SemiBold/TopBarForeground) -> intro (13/SettingsSubtextForeground/Wrap) -> cards (StartsideSectionCardStyle, 5px gap). Card titles 16, section titles 14, body 13, small labels 12. Titles use TopBarForeground, body uses SettingsSubtextForeground, emphasis uses AccentBrush. Wrap the page in TemplatePage.
+        Settings page contract: hero title (20/SemiBold/TopBarForeground, or 16 when the hero is a collapsible Expander) -> intro (13/SettingsSubtextForeground/Wrap) -> cards (StartsideSectionCardStyle, 5px gap). Card titles 16, section titles 14, body 13, small labels 12. Collapsible section headers must ALL use 16 so folded/unfolded stays consistent; inner content keeps 14/13/12. Titles use TopBarForeground, body uses SettingsSubtextForeground, emphasis uses AccentBrush. Wrap the page in TemplatePage.
     </sys:String>
 </ResourceDictionary>
