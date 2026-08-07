@@ -1274,3 +1274,14 @@ Bruger-godkendt og committet i dag:
   - Vennen pakker zip'en ud, kører `IconGrid.exe`.
   - Data gemmes i `%APPDATA%\IconGrid` (config.json, items.json) — nye maskiner starter med tomt setup.
   - Hvis FPS/hardware-monitor skal virke: brugerniveau kan kræve task scheduler / evt. elevat for monitor-delen (README: 'Hardware monitor startup').
+
+## Session 2026-08-07 (aften) — publish/ gitignored (vigtigt!)
+
+- Brugeren gjorde opmærksom på at `publish/`-mappen (83 MB release-zip) IKKE må på internettet.
+- `.gitignore` manglede `publish/` (git viste `?? publish/`). Tilføjede linjen `publish/` under 'Projekt-specifikke mapper'.
+- Commit `343d096` "Ignore publish/ folder so release builds never get pushed" (1 insertion).
+- Push OK: `3945a80..343d096 main -> main` — publish/ kom IKKE med.
+- LÆRDOM (vigtig): `publish/` og `E:\IconGrid-GitHub\publish\` er RELEASE-ARTIFAKTER (zip + ukomprimeret publish-mappe).
+  De må ALDRIG stages/pushes. `.gitignore` har nu `publish/`, så det er beskyttet.
+  Release-zip ligger på: `E:\IconGrid-GitHub\publish\IconGrid-0.7.0-beta.1-win-x64.zip` (~83 MB).
+- Commit-historik i dag: b68bfbd (kategori-fix), 3945a80 (CHAT_STATE), 343d096 (.gitignore).
