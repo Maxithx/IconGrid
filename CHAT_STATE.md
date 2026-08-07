@@ -1085,3 +1085,11 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
 - **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid (XAML kompileres ind i IconGrid.dll).
 - **Commits:** `2e25316` "ui: wrap category filter on Game Resolution page in matching card style" + `1dfd752` "ui: use consistent card spacing on Game Resolution page (remove margin override)" — begge pushet.
 - **Næste skridt:** Manuel test — åbn Game Resolution-siden og bekræft at Category-cardet har samme udseende OG samme mellemrum som resten af siden.
+
+## Session 2026-08-07 (05:57-06:03) — Gaming Overlay siden: Default position/transparent/farvevælger flyttet over Overlay scale
+
+- **Forespørgsel:** Brugeren ønskede at 'Default position', 'Transparent background', 'Transparent background while in game' og farvevælgeren skulle ligge OVER 'Overlay scale' på Gaming Overlay-siden (de var tidligere nederst bagest).
+- **Fix:** `Views/Settings/Pages/GamingOverlayPage.xaml` — hero-stacken omarrangeret. Ny rækkefølge (top → bund): 1) Default position (dropdown) 2) Transparent background (toggle) 3) Transparent while in game (toggle) 4) Farvevælger (swatches + custom, vises når transparent er aktiv) 5) Overlay scale (slider) + per-opløsning defaults (rykket ned i bunden i sin egen Border).
+- **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid.
+- **Godkendt af bruger:** "det spiller perfekt" — commit + push udført.
+- **Commit:** `(se git log)` — GamingOverlayPage.xaml + CHAT_STATE.md pushet.

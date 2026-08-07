@@ -159,109 +159,23 @@
                                TextWrapping="Wrap"
                                FontSize="13"
                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                    <Border Margin="0,16,0,0"
-                            Padding="12"
-                            CornerRadius="8"
-                            Background="Transparent"
-                            BorderBrush="{StaticResource GamingOverlayLightBorderBrush}"
-                            BorderThickness="0">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                        <Setter Property="BorderThickness" Value="1" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <StackPanel>
-                            <TextBlock Text="{Binding OverlayScaleTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Slider Minimum="1.0"
-                                        Maximum="1.5"
-                                        TickFrequency="0.05"
-                                        SmallChange="0.05"
-                                        LargeChange="0.1"
-                                        IsSnapToTickEnabled="True"
-                                        Value="{Binding GamingOverlayUiScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                        Style="{StaticResource ModernSliderStyle}" />
-                                <TextBlock Grid.Column="1"
-                                           Margin="12,0,0,0"
-                                           VerticalAlignment="Center"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           Text="{Binding GamingOverlayUiScale, StringFormat={}{0:P0}}" />
-                            </Grid>
-                            <TextBlock Margin="0,16,0,0"
-                                       Text="{Binding ResolutionDefaultsTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Text="{Binding ResolutionDefaultsIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       TextWrapping="Wrap"
-                                       FontSize="13"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <ItemsControl ItemsSource="{Binding ResolutionScaleEntries, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                          Margin="0,10,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="0,6">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="110" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding Resolution}"
-                                                       VerticalAlignment="Center"
-                                                       FontSize="13"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <Slider Grid.Column="1"
-                                                    Minimum="1.0"
-                                                    Maximum="1.5"
-                                                    TickFrequency="0.05"
-                                                    SmallChange="0.05"
-                                                    LargeChange="0.1"
-                                                    IsSnapToTickEnabled="True"
-                                                    Value="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    Style="{StaticResource ModernSliderStyle}" />
-                                            <TextBlock Grid.Column="2"
-                                                       Margin="12,0,0,0"
-                                                       Width="52"
-                                                       VerticalAlignment="Center"
-                                                       TextAlignment="Right"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                       Text="{Binding Scale, StringFormat={}{0:P0}}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <TextBlock Margin="0,16,0,0"
-                                       Text="{Binding OverlayPositionTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <TextBlock Margin="0,4,0,0"
-                                       Text="{Binding OverlayPositionIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                       TextWrapping="Wrap"
-                                       FontSize="13"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <ComboBox Margin="0,10,0,0"
-                                      MaxWidth="280"
-                                      HorizontalAlignment="Left"
-                                      ItemsSource="{Binding OverlayPositionPresetItems, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                      SelectedValuePath="Key"
-                                      DisplayMemberPath="Value"
-                                      SelectedValue="{Binding SelectedOverlayPositionPreset, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}, Mode=TwoWay}" />
-                        </StackPanel>
-                    </Border>
+                    <TextBlock Margin="0,16,0,0"
+                               Text="{Binding OverlayPositionTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding OverlayPositionIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <ComboBox Margin="0,10,0,0"
+                              MaxWidth="280"
+                              HorizontalAlignment="Left"
+                              ItemsSource="{Binding OverlayPositionPresetItems, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                              SelectedValuePath="Key"
+                              DisplayMemberPath="Value"
+                              SelectedValue="{Binding SelectedOverlayPositionPreset, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}, Mode=TwoWay}" />
 
                     <Grid Margin="0,16,0,0">
                         <Grid.ColumnDefinitions>
@@ -445,6 +359,92 @@
                                 Click="OverlayCustomColorButton_Click"
                                 Content="{Binding OverlayCustomColorButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                     </StackPanel>
+
+                    <Border Margin="0,16,0,0"
+                            Padding="12"
+                            CornerRadius="8"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource GamingOverlayLightBorderBrush}"
+                            BorderThickness="0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                        <Setter Property="BorderThickness" Value="1" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="{Binding OverlayScaleTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="1.0"
+                                        Maximum="1.5"
+                                        TickFrequency="0.05"
+                                        SmallChange="0.05"
+                                        LargeChange="0.1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding GamingOverlayUiScale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        Style="{StaticResource ModernSliderStyle}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding GamingOverlayUiScale, StringFormat={}{0:P0}}" />
+                            </Grid>
+                            <TextBlock Margin="0,16,0,0"
+                                       Text="{Binding ResolutionDefaultsTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding ResolutionDefaultsIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                       TextWrapping="Wrap"
+                                       FontSize="13"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ItemsControl ItemsSource="{Binding ResolutionScaleEntries, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                          Margin="0,10,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Resolution}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <Slider Grid.Column="1"
+                                                    Minimum="1.0"
+                                                    Maximum="1.5"
+                                                    TickFrequency="0.05"
+                                                    SmallChange="0.05"
+                                                    LargeChange="0.1"
+                                                    IsSnapToTickEnabled="True"
+                                                    Value="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Style="{StaticResource ModernSliderStyle}" />
+                                            <TextBlock Grid.Column="2"
+                                                       Margin="12,0,0,0"
+                                                       Width="52"
+                                                       VerticalAlignment="Center"
+                                                       TextAlignment="Right"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       Text="{Binding Scale, StringFormat={}{0:P0}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
