@@ -1080,7 +1080,8 @@ Division 2 launches via a launcher chain (EACLaunch -> TheDivision2.exe). The ol
 ## Session 2026-08-07 (05:48) — Game Resolution siden: Category-område i card
 
 - **Forespørgsel:** På Game Resolution-siden så 'Category' + tilhørende elementer grimt ud fordi de lå i et råt Grid uden ramme, mens resten af siden brugte `StartsideSectionCardStyle`-cards.
-- **Fix:** `Views/Settings/Pages/GameResolutionPage.xaml` — Category-filter-området (titel + beskrivelse + kategori-dropdown) er nu omsluttet i en `Border` med `StartsideSectionCardStyle`, `Padding="16"`, `Margin="0,0,0,12"` og `DevInspector.Metadata="Category filter card -> Views/GameResolutionPage.xaml"` — identisk stil som listen nedenunder og resten af siden.
+- **Fix:** `Views/Settings/Pages/GameResolutionPage.xaml` — Category-filter-området (titel + beskrivelse + kategori-dropdown) er nu omsluttet i en `Border` med `StartsideSectionCardStyle`, `Padding="16"` og `DevInspector.Metadata="Category filter card -> Views/GameResolutionPage.xaml"` — identisk stil som listen nedenunder og resten af siden.
+- **Spacing-fix (opfølgning):** `StartsideSectionCardStyle` har allerede indbygget `Margin="0,0,0,5"` (konsistent 5px mellem alle cards på hele appen). Den første version overskrev margin til `0,0,0,12` hvilket skabte uensartet mellemrum — denne override er fjernet (commit `1dfd752`), så begge cards på siden bruger stylens standard 5px-gap præcis som alle andre sider.
 - **Byg:** 0 fejl / 0 advarsler. **Deploy:** 86 filer -> C:\IconGrid (XAML kompileres ind i IconGrid.dll).
-- **Commit:** `2e25316` "ui: wrap category filter on Game Resolution page in matching card style" — pushet (`3252f8e..2e25316 main -> main`).
-- **Næste skridt:** Manuel test — åbn Game Resolution-siden og bekræft at Category-området nu har samme card-udseende som resten.
+- **Commits:** `2e25316` "ui: wrap category filter on Game Resolution page in matching card style" + `1dfd752` "ui: use consistent card spacing on Game Resolution page (remove margin override)" — begge pushet.
+- **Næste skridt:** Manuel test — åbn Game Resolution-siden og bekræft at Category-cardet har samme udseende OG samme mellemrum som resten af siden.
