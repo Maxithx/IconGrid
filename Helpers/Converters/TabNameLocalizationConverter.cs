@@ -17,17 +17,35 @@ public class TabNameLocalizationConverter : IMultiValueConverter
         var tabName = values[0]?.ToString() ?? string.Empty;
         var language = values[1]?.ToString() ?? "en";
 
-        var translationKey = tabName switch
+        return LocalizeCategoryName(tabName, language);
+    }
+
+    /// <summary>
+    /// Localizes a known category/tab name (Games, Software, Develop) using the
+    /// active launcher language. Unknown categories are returned unchanged.
+    /// </summary>
+    public static string LocalizeCategoryName(string categoryName, string language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            language = "en";
+        }
+
+        var translationKey = categoryName switch
         {
             "Games" => "TabGames",
             "Software" => "TabSoftware",
             "Develop" => "TabDevelop",
+            "Internet" => "TabInternet",
+            "Monitor" => "TabMonitor",
+            "Passlock" => "TabPasslock",
+            "Windows" => "TabWindows",
             _ => null
         };
 
         if (translationKey == null)
         {
-            return tabName;
+            return categoryName;
         }
 
         return LocalizationHelper.Get(language, translationKey);

@@ -1192,3 +1192,62 @@ Bruger-godkendt og committet i dag:
 - `3628bed` docs: document collapsible section typography rule in settings template guidelines (TemplateGuidelines.xaml): ny 'Collapsible sections'-sektion — foldbare headers skal ALTID bruge Card/block-niveau (16/SemiBold/TopBarForeground) uanset hero/almindeligt card, så folded/unfolded læser konsistent; indhold beholder 14/13/12. TemplateGuidance opdateret.
 - Byg: 0 fejl / 0 advarsler. Deployet til C:\IconGrid. Working tree ren efter push.
 - Næste åbne emner: MainViewModel.cs 1327-linje overtrædelse (dokumenteret tolerance), arkitektur-check-status ved næste kørsel.
+
+## Session 2026-08-07 — GameResolutionPage (kategori + hero card)
+
+- GameResolutionPage (Views/Settings/Pages/GameResolutionPage.xaml/.cs):
+  - Kategori-dropdown viser nu lokaliserede navne (Spil/Software/Udvikling i stedet for Games/Software/Develop) ved dansk sprog.
+  - Ny `CategoryOption`-klasse (Key + lokaliseret DisplayName) bruges i AvailableCategories/SelectedCategory.
+  - `TabNameLocalizationConverter.LocalizeCategoryName(categoryName, language)` er nu en offentlig statisk metode, genbrugt af både LauncherTabsBar (konverteren) og GameResolutionPage.
+  - Kategori-filteret er flyttet fra sit eget kort ind i hero-card'et, over 'Vælg en opløsning for hver genvej'-introen.
+  - Bygget med `dotnet build IconGrid.csproj`: 0 fejl, 0 advarsler.
+  - Bemærk: check_architecture_rules viser præeksisterende overtrædelser i Views/Launcher/MainWindow.xaml.cs (1006 linjer) og ViewModels/MainViewModel.cs (1353 linjer) - ikke forårsaget af denne opgave.
+- Næste skridt: manuel UI-test af GameResolutionPage (skift sprog til dansk og bekræft dropdown + hero card-layout).
+
+- Supplerende: Oprettet `.local-state/project-structure.md` (gitignored) — reference-dokument over hele IconGrid mappe-/filstrukturen (rode, Assets, Controls, Helpers, Models, Native, ViewModels, Views, IconGrid.Package, tools, .local-state). Bruges som hurtig navigations-reference i fremtidige sessioner.
+  - Bemærk: dokumentet er gitignored og kun lokalt.
+  - Næste skridt: manuel UI-test af GameResolutionPage (skift sprog til dansk og bekræft dropdown + hero card-layout).
+
+
+## Session 2026-08-07 (aften) — Fix: kategori-dropdown viste engelsk trods dansk
+
+- Brugeren rapporterede at kategori-dropdown'en STADIG viste engelsk ved dansk sprog.
+- Årsag: `DisplayMemberPath="DisplayName"` cacher SelectionBox-strengen i WPF ComboBox.
+  Når `CategoryOption.DisplayName` ændres ved sprogskift, opdateres dropdown-listen,
+  men det lukkede felt kan blive ved med at vise den gamle (engelske) streng.
+- Fix:
+  1. Erstattede `DisplayMemberPath="DisplayName"` med et `ComboBox.ItemTemplate`
+     (`<TextBlock Text="{Binding DisplayName}" />`) — selection-boxen følger nu live bindinger.
+  2. `MainViewModel_PropertyChanged` kalder nu også `RefreshShortcuts()` når Language ændres,
+     så kategorierne genopbygges (Clear + re-add) og den nye lokaliserede tekst tvinges frem.
+- Bygget: 0 fejl, 0 advarsler.
+- Næste skridt: manuel UI-test — åbn Game Resolution, skift sprog til dansk, og bekræft at
+  dropdown-en viser Spil/Software/Udvikling (både i den lukkede boks og i listen).
+
+## Session 2026-08-07 (aften) — ENDELIG fix: kategori-dropdown viste engelsk
+
+- Rodårsag (fundet efter 2 forsøg): Brugerens faktiske kategorier i `%APPDATA%\IconGrid\items.json` er:
+  `Develop, Games, Internet, Monitor, Passlock, Software, Windows`.
+- `TabNameLocalizationConverter.LocalizeCategoryName` oversatte KUN `Games/Software/Develop` — så
+  `Internet`, `Monitor`, `Passlock`, `Windows` blev returneret uændret (på engelsk) ved dansk sprog.
+- Fix:
+  1. `Helpers/Settings/LocalizationHelper.cs`: + `TabInternet`, `TabMonitor`, `TabPasslock`, `TabWindows`
+     (en + da). Dansk: Internet→Internet, Monitor→Overvågning, Passlock→Passlock, Windows→Windows.
+  2. `Helpers/Converters/TabNameLocalizationConverter.cs`: udvidede switch'en med de 4 nye kategorier.
+  3. (Tidligere) XAML ItemTemplate i stedet for DisplayMemberPath + RefreshShortcuts() ved sprogskift
+     — for at tvinge selection-boxen til at gengive ny tekst.
+- Resultat ved dansk sprog: Games→Spil, Develop→Udvikling, Monitor→Overvågning; Internet/Passlock/
+  Software/Windows forbliver (korrekt, da de er ens/produktnavne). Bygget: 0 fejl, 0 advarsler.
+
+## Session 2026-08-07 (aften) — Build kopieret til C:\icongrid
+
+- Brugeren tester iconGrid fra `C:\icongrid` (ikke fra bin\Debug).
+- Lukkede kørende IconGrid/IconGridFpsAgent-processer (godkendt) og kopierede hele
+  `bin\Debug\net10.0-windows10.0.22621.0\*` til `C:\icongrid` med `Copy-Item -Recurse -Force`.
+- Bekræftet: `C:\icongrid\IconGrid.dll` (874.496 bytes) og `IconGrid.exe` (179.200 bytes)
+  har nu LastWriteTime 07-08-2026 19:55:36 — samme som det nye build. Kopiering OK, EXIT=0.
+- Lærdom: Test-mappen er `C:\icongrid`. Efter build: luk IconGrid-proces hvis nødvendigt,
+  kopiér `bin\Debug\net10.0-windows10.0.22621.0\*` → `C:\icongrid` -Recurse -Force, og verificér
+  via `Get-Item C:\icongrid\IconGrid.dll`.
+- Næste skridt: manuel UI-test i C:\icongrid-build'et — åbn Game Resolution med dansk sprog,
+  bekræft at dropdown viser Spil/Udvikling/Overvågning osv.

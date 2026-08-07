@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using IconGrid.Helpers;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Models;
 using IconGrid.ViewModels;
@@ -22,9 +23,9 @@ namespace IconGrid.Views
         private string _resolutionListIntroText = string.Empty;
         private string _categoryFilterTitleText = string.Empty;
         private string _categoryFilterDescriptionText = string.Empty;
-        private string _selectedCategory = "Games";
+        private CategoryOption? _selectedCategory;
         private readonly ObservableCollection<LauncherItem> _allShortcuts = new();
-        private readonly ObservableCollection<string> _availableCategories = new();
+        private readonly ObservableCollection<CategoryOption> _availableCategories = new();
         private IReadOnlyList<string> _supportedResolutions;
 
         public GameResolutionPage()
@@ -46,19 +47,19 @@ namespace IconGrid.Views
         /// </summary>
         public ObservableCollection<LauncherItem> FilteredShortcuts { get; } = new();
 
-        public ObservableCollection<string> AvailableCategories => _availableCategories;
+        public ObservableCollection<CategoryOption> AvailableCategories => _availableCategories;
 
         public IReadOnlyList<string> SupportedResolutions => _supportedResolutions;
 
-        public string SelectedCategory
+        public CategoryOption? SelectedCategory
         {
             get => _selectedCategory;
             set
             {
-                if (string.Equals(_selectedCategory, value, System.StringComparison.Ordinal))
+                if (ReferenceEquals(_selectedCategory, value))
                     return;
 
-                _selectedCategory = value ?? string.Empty;
+                _selectedCategory = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedCategory)));
                 RefreshFilteredShortcuts();
             }
@@ -153,7 +154,12 @@ namespace IconGrid.Views
         private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), System.StringComparison.Ordinal))
+            {
                 RefreshLocalizedText();
+                // Rebuild the category options so the ComboBox selection box
+                // re-renders with the newly localized DisplayName.
+                RefreshShortcuts();
+            }
         }
 
         private void RefreshShortcuts()
@@ -167,21 +173,29 @@ namespace IconGrid.Views
             _allShortcuts.Clear();
             _availableCategories.Clear();
 
+            var language = _mainViewModel.Language;
+            if (string.IsNullOrWhiteSpace(language))
+                language = DefaultLanguage;
+
             foreach (var item in _mainViewModel.Items)
             {
                 item.PropertyChanged += Item_PropertyChanged;
                 _allShortcuts.Add(item);
 
-                if (!_availableCategories.Contains(item.Category))
-                    _availableCategories.Add(item.Category);
+                if (!_availableCategories.Any(c => string.Equals(c.Key, item.Category, System.StringComparison.OrdinalIgnoreCase)))
+                {
+                    _availableCategories.Add(new CategoryOption(
+                        item.Category,
+                        TabNameLocalizationConverter.LocalizeCategoryName(item.Category, language)));
+                }
             }
 
             // Keep the selected category if it still exists; otherwise fall back to the first one.
-            if (!_availableCategories.Contains(_selectedCategory))
-            {
-                _selectedCategory = _availableCategories.FirstOrDefault() ?? "Games";
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedCategory)));
-            }
+            var selectedKey = _selectedCategory?.Key;
+            _selectedCategory = _availableCategories.FirstOrDefault(c => string.Equals(c.Key, selectedKey, System.StringComparison.OrdinalIgnoreCase))
+                                ?? _availableCategories.FirstOrDefault()
+                                ?? new CategoryOption("Games", TabNameLocalizationConverter.LocalizeCategoryName("Games", language));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedCategory)));
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AvailableCategories)));
             RefreshFilteredShortcuts();
@@ -193,10 +207,14 @@ namespace IconGrid.Views
                 item.PropertyChanged -= Item_PropertyChanged;
 
             FilteredShortcuts.Clear();
-            foreach (var item in _allShortcuts.Where(i => string.Equals(i.Category, _selectedCategory, System.StringComparison.OrdinalIgnoreCase)))
+            var selectedKey = _selectedCategory?.Key;
+            if (selectedKey != null)
             {
-                item.PropertyChanged += Item_PropertyChanged;
-                FilteredShortcuts.Add(item);
+                foreach (var item in _allShortcuts.Where(i => string.Equals(i.Category, selectedKey, System.StringComparison.OrdinalIgnoreCase)))
+                {
+                    item.PropertyChanged += Item_PropertyChanged;
+                    FilteredShortcuts.Add(item);
+                }
             }
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(FilteredShortcuts)));
@@ -237,6 +255,11 @@ namespace IconGrid.Views
                 CategoryFilterTitleText = "Category";
                 CategoryFilterDescriptionText = "Only show shortcuts from the selected category.";
             }
+
+            foreach (var category in _availableCategories)
+            {
+                category.DisplayName = TabNameLocalizationConverter.LocalizeCategoryName(category.Key, language);
+            }
         }
 
         private void SetField(ref string field, string value, [CallerMemberName] string? propertyName = null)
@@ -247,5 +270,39 @@ namespace IconGrid.Views
             field = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    /// <summary>
+    /// A category/tab in the launcher with a localized display name.
+    /// The Key is the raw category name used for filtering; DisplayName follows the active UI language.
+    /// </summary>
+    public sealed class CategoryOption : INotifyPropertyChanged
+    {
+        private string _displayName;
+
+        public CategoryOption(string key, string displayName)
+        {
+            Key = key;
+            _displayName = displayName;
+        }
+
+        public string Key { get; }
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                if (string.Equals(_displayName, value, System.StringComparison.Ordinal))
+                    return;
+
+                _displayName = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayName)));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public override string ToString() => DisplayName;
     }
 }
