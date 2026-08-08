@@ -34,20 +34,55 @@ namespace IconGrid.Views
             set => SetValue(IsSidebarCollapsedProperty, value);
         }
 
-        public SettingsWindow(MainViewModel viewModel)
+        /// <summary>
+        /// Creates the settings window.
+        /// </summary>
+        /// <param name="viewModel">The main view model.</param>
+        /// <param name="openGamingOverlay">
+        /// When true, the window opens directly on the Gaming Overlay settings page.
+        /// Used by the gaming overlay's "Open gaming overlay settings" button.
+        /// </param>
+        public SettingsWindow(MainViewModel viewModel, bool openGamingOverlay = false)
         {
             _viewModel = viewModel;
             DataContext = _viewModel;
             InitializeComponent();
-            Owner = System.Windows.Application.Current?.MainWindow;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+            // When a game is running, do NOT set MainWindow as owner. WPF brings
+            // the owner window to the foreground when an owned window opens —
+            // that would reveal the launcher that is hidden for the game.
+            var isInGame = _viewModel.SystemMonitor.IsInGame;
+            if (isInGame)
+            {
+                Owner = null;
+                WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+            else
+            {
+                Owner = System.Windows.Application.Current?.MainWindow;
+                WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+
             LocationChanged += SettingsWindow_LocationChanged;
             Closed += SettingsWindow_Closed;
             Loaded += SettingsWindow_Loaded;
             Unloaded += SettingsWindow_Unloaded;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-            Dispatcher.BeginInvoke(new Action(() => ShowPage(new StartsidePage(), StartsideNavButton)),
-                                   DispatcherPriority.Loaded);
+
+            // Initial page selection must match the requested destination. The
+            // StartsidePage is the default; when opened from the gaming overlay,
+            // navigate directly to the Gaming Overlay settings page instead.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (openGamingOverlay)
+                {
+                    ShowGamingOverlayPage();
+                }
+                else
+                {
+                    ShowPage(new StartsidePage(), StartsideNavButton);
+                }
+            }), DispatcherPriority.Loaded);
         }
 
         private static void OnIsSidebarCollapsedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

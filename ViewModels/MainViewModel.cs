@@ -1208,8 +1208,18 @@ namespace IconGrid.ViewModels
                 OnPropertyChanged(nameof(GamingOverlayTextBrush));
                 OnPropertyChanged(nameof(GamingOverlayTextColorHex));
 
-                // Detect the game-exit transition (in-game -> not in-game).
-                if (_wasInGame && !_systemMonitor.IsInGame)
+                // Detect transitions in both directions:
+                //  - not in-game -> in-game: a game was detected (either launched from
+                //    IconGrid OR started externally, e.g. standalone anti-cheat launch).
+                //    Fire GameLaunched so the configured auto-show/auto-behavior applies
+                //    to externally started games too — previously the overlay would only
+                //    appear for games launched through IconGrid.
+                //  - in-game -> not in-game: fire GameExited so the overlay auto-closes.
+                if (!_wasInGame && _systemMonitor.IsInGame)
+                {
+                    GameLaunched?.Invoke();
+                }
+                else if (_wasInGame && !_systemMonitor.IsInGame)
                 {
                     GameExited?.Invoke();
                 }

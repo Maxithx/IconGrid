@@ -828,10 +828,11 @@ namespace IconGrid.Views
 
             if (settingsWindow == null)
             {
-                settingsWindow = new SettingsWindow(_viewModel)
-                {
-                    Owner = Owner ?? System.Windows.Application.Current?.MainWindow
-                };
+                // Open directly on the Gaming Overlay settings page. The SettingsWindow
+                // constructor already decides Owner based on IsInGame: during a game it
+                // sets Owner = null so WPF does not bring the hidden launcher to the
+                // foreground. Do NOT override Owner here (an explicit Owner would undo that).
+                settingsWindow = new SettingsWindow(_viewModel, openGamingOverlay: true);
 
                 if (!settingsWindow.TryApplySavedPosition() && settingsWindow.Owner != null)
                 {

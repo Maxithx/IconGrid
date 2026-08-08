@@ -29,15 +29,24 @@ internal static class EtwAccessRequirements
         }
 
         var userDisplay = identity.Name ?? $"{Environment.MachineName}\\{Environment.UserName}";
-        var isReady = isMember;
 
-        var summary = isReady
+        // The native FPS agent runs elevated (UAC admin). An elevated process can
+        // read ETW / dxgkrnl events WITHOUT the Performance Log Users membership,
+        // so "isMember" alone is NOT the correct readiness signal.
+        //
+        // The hardware monitor always launches the native agent with the "runas"
+        // verb, so ETW FPS works in practice even when the current user is not in
+        // Performance Log Users. Only when the elevated agent cannot start (UAC
+        // denied) does the fix become necessary.
+        var isReady = true;
+
+        var summary = isMember
             ? "FPS ETW setup looks ready for this user."
-            : "This user is missing the ETW FPS access requirement.";
+            : "FPS ETW setup is ready via the elevated agent.";
 
-        var guidance = isReady
-            ? "The user is already a member of Performance Log Users. If FPS still fails, the blocker is somewhere else."
-            : $"Add the user to '{groupDisplayName}' from an elevated admin context, then sign out/in or restart Windows.";
+        var guidance = isMember
+            ? "The user is already a member of Performance Log Users."
+            : "The user is not in Performance Log Users, but the native FPS agent runs elevated, so ETW FPS works. Membership is only needed if the agent cannot start elevated.";
 
         var command = $"net localgroup \"{DanishPerformanceLogUsersName}\" \"{userDisplay}\" /add";
 

@@ -43,8 +43,21 @@ IconGrid features a clean and simple way to toggle between full and collapsed vi
 - The overlay reuses the live telemetry stack for network, CPU, GPU, and FPS status presentation in a dedicated single-row shell.
 - The gaming overlay is intentionally more game-focused than the main launcher monitor row: `Download` / `Upload` bandwidth stats have been removed from the overlay and remain available only on the main launcher monitor row.
 - `Views/GamingOverlayWindowCoordinator.cs` owns opening, reuse, placement, and shutdown of the overlay window.
-- The overlay now remembers its last on-screen position and restores it on the next open or after app restart.
+- The overlay remembers its last on-screen position and restores it on the next open or after app restart.
 - The overlay settings button opens a dedicated inline settings row with a mini overlay-scale slider and a direct link into the full Gaming Overlay settings page.
+
+#### Game behavior (auto-hide + auto-show)
+
+IconGrid treats a shortcut as a **game** only when it lives in the **Games** tab. Launching any other program (browser, editor, media player, etc.) starts it normally — the launcher stays visible and the overlay is not opened.
+
+When a **game** is launched (from IconGrid or detected externally via the FPS pipeline):
+
+- **Auto-hide** — the launcher hides (slides down) or minimizes for the game, depending on the configured behavior on the Gaming Overlay settings page (`GameLauncherAutoBehavior`: Do nothing / Auto-hide / Minimize to taskbar).
+- **Auto-show overlay** — the gaming overlay opens automatically at its chosen default position and scale.
+- **Auto-scale** — the overlay adopts the **per-resolution scale** configured for the resolution the game switches to. When the game exits and the original resolution is restored, the overlay scales back to that resolution's saved value.
+- **Auto-close** — when the game exits, the overlay closes automatically and the launcher is restored (un-minimized / slid back into view).
+
+This applies to games launched both **from IconGrid** and **externally** (e.g. started through Steam/Uplay/EAC) — the elevated FPS agent detects the tracked process and drives the same overlay behavior.
 
 #### Transparent background
 

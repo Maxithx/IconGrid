@@ -32,6 +32,8 @@ public static class HardwareMonitorAgent
         "ApplicationFrameHost",
         "SearchApp",
         "StartMenuExperienceHost",
+        "SystemSettings",
+        "mscopilot",
         "Battle.net",
         "steam",
         "steamwebhelper",
@@ -1384,6 +1386,19 @@ exit:
             using var process = Process.GetProcessById(pid);
             return !process.HasExited;
         }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Access denied: anti-cheat protected processes (EAC/BattlEye) deny
+            // PROCESS_QUERY_INFORMATION even to elevated callers. Access denied is
+            // ONLY raised for an existing process with restricted handles — a
+            // non-existent PID throws ArgumentException instead. Treat as alive,
+            // otherwise the agent thinks the game exited and closes the overlay.
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
         catch
         {
             return false;
@@ -1398,6 +1413,16 @@ exit:
         {
             using var process = Process.GetProcessById(parentPid.Value);
             return !process.HasExited;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // Same anti-cheat protection as ProcessIsAlive: access denied means
+            // the parent process exists but cannot be queried.
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
         }
         catch
         {

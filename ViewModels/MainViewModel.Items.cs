@@ -140,6 +140,15 @@ namespace IconGrid.ViewModels
                 return;
             }
 
+            // Only items from the Games category are treated as games. Launching any
+            // other program (browser, code editor, media player, shortcut, etc.) must
+            // NOT hide the launcher, show the gaming overlay, or persist an FPS target.
+            if (!IsGameItem(item))
+            {
+                Debug.WriteLine($"Skipping FPS target for non-game item: {item.DisplayName} (Category={item.Category})");
+                return;
+            }
+
             // Only save the FPS target if the launched process actually started and is still alive.
             if (launchSession != null)
             {
@@ -192,6 +201,21 @@ namespace IconGrid.ViewModels
             // Notify listeners (MainWindow) that a game was launched so they can
             // apply the configured auto-behavior (show overlay / hide launcher).
             GameLaunched?.Invoke();
+        }
+
+        /// <summary>
+        /// Determines whether a launcher item should be treated as a game.
+        /// Only items in the "Games" category trigger the game behavior
+        /// (hide launcher, show overlay, persist FPS target).
+        /// </summary>
+        private static bool IsGameItem(LauncherItem item)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            return string.Equals(item.Category, "Games", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ProcessIsAlive(int pid)
