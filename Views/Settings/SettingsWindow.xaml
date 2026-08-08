@@ -678,13 +678,11 @@
                                 <Border Width="28"
                                         Height="28"
                                         CornerRadius="6"
-                                        Background="{Binding AccentBrush}">
-                                    <TextBlock Text="RES"
-                                               FontSize="9"
-                                               FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               Foreground="White" />
+                                        Background="transparent">
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Resolution.png"
+                                           Width="24"
+                                           Height="24"
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
                                            Text="Game resolution"

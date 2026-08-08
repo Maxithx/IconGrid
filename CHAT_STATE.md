@@ -1293,3 +1293,18 @@ Bruger-godkendt og committet i dag:
 - Lukkede kørende IconGrid (2 proc + FpsAgent) og kopierede `bin\Debug\net10.0-windows10.0.22621.0\*` → `C:\icongrid` (EXIT=0).
 - Verificeret: `C:\icongrid\IconGrid.dll` = 2026-08-07 20:39:59, 874.496 bytes (nyt build).
 - Næste: commit + push af ændringen (LocalizationHelper.cs evt. + CHAT_STATE.md).
+
+## Session 2026-08-08 (17:03) — Commit & push: Game-only launcher behavior, overlay settings navigation, hardening
+
+- Commit `98268fb` "Fix game-only launcher behavior, overlay settings navigation, and hardening" (8 files, +136/-19) pushet til origin/main.
+- Ændringer:
+  - **Helpers/Hardware/EtwAccessRequirements.cs**: FPS setup status accounts for elevated native agent.
+  - **Helpers/Hardware/HardwareMonitorAgent.cs**: Ignore SystemSettings/mscopilot as game candidates; handle anti-cheat access-denied as 'alive' so Division 2 overlay stays open.
+  - **ViewModels/MainViewModel.cs**: Bindings/overlay logic for game-only behavior.
+  - **ViewModels/MainViewModel.Items.cs**: Treat only Games-category items as games (no launcher hide/overlay for non-games); auto-show overlay for externally started games via IsInGame transition.
+  - **Views/Launcher/GamingOverlayWindow.xaml.cs**: Open Gaming Overlay settings page directly from overlay.
+  - **Views/Settings/SettingsWindow.xaml.cs**: Keep launcher hidden in-game during settings navigation.
+  - **README.md**: Document game auto-hide/auto-show/auto-scale.
+  - **figma-icons/Resolution.png**: Added (image asset).
+- Working tree ren efter push.
+- Næste skridt: Manuel test af game-only behavior — start en non-Games genvej (fx fra Software/Develop kategori) og bekræft at launcher ikke auto-skjuler og overlay ikke auto-åbner. Start et Games-genvej og bekræft at auto-skjul/auto-show fungerer. Test Division 2 overlay overlevelse med anti-cheat access-denied.
