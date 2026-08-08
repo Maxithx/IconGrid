@@ -28,16 +28,16 @@ namespace IconGrid.Controls
         public event RoutedEventHandler? ResetIconClick;
         public event RoutedEventHandler? RenameItemClick;
         public event RoutedEventHandler? RemoveItemClick;
+        public event RoutedEventHandler? IdleHideClick;
 
         private void ItemsControl_DragOver(object sender, System.Windows.DragEventArgs e) => ItemsDragOver?.Invoke(sender, e);
         private void ItemsControl_Drop(object sender, System.Windows.DragEventArgs e) => ItemsDrop?.Invoke(sender, e);
         private void ContentArea_ContextMenuOpening(object sender, ContextMenuEventArgs e) => ContentAreaContextMenuOpening?.Invoke(sender, e);
         private void IconScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e) => IconScrollChanged?.Invoke(sender, e);
+        private void IdleHideButton_Click(object sender, RoutedEventArgs e) => IdleHideClick?.Invoke(sender, e);
 
         /// <summary>
         /// Routes the mouse wheel to horizontal scrolling in carousel mode.
-        /// The carousel ScrollViewer has no vertical overflow, so the wheel is
-        /// translated into a horizontal offset change.
         /// </summary>
         private void CarouselScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
@@ -48,13 +48,25 @@ namespace IconGrid.Controls
                 return;
 
             e.Handled = true;
-            scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
+            var offset = scrollViewer.HorizontalOffset - e.Delta;
+            scrollViewer.ScrollToHorizontalOffset(offset);
         }
-        private void LauncherItem_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) => LauncherItemPreviewMouseLeftButtonDown?.Invoke(sender, e);
-        private void LauncherItem_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e) => LauncherItemPreviewMouseMove?.Invoke(sender, e);
-        private void LauncherItem_DragOver(object sender, System.Windows.DragEventArgs e) => LauncherItemDragOver?.Invoke(sender, e);
-        private void LauncherItem_Drop(object sender, System.Windows.DragEventArgs e) => LauncherItemDrop?.Invoke(sender, e);
-        private void LauncherItemButton_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => LauncherItemMouseDoubleClick?.Invoke(sender, e);
+
+        private void LauncherItem_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+            => LauncherItemPreviewMouseLeftButtonDown?.Invoke(sender, e);
+
+        private void LauncherItem_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+            => LauncherItemPreviewMouseMove?.Invoke(sender, e);
+
+        private void LauncherItem_DragOver(object sender, System.Windows.DragEventArgs e)
+            => LauncherItemDragOver?.Invoke(sender, e);
+
+        private void LauncherItem_Drop(object sender, System.Windows.DragEventArgs e)
+            => LauncherItemDrop?.Invoke(sender, e);
+
+        private void LauncherItemButton_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+            => LauncherItemMouseDoubleClick?.Invoke(sender, e);
+
         private void OpenItemMenuItem_Click(object sender, RoutedEventArgs e) => OpenItemClick?.Invoke(sender, e);
         private void RunAsAdminMenuItem_Click(object sender, RoutedEventArgs e) => RunAsAdminClick?.Invoke(sender, e);
         private void OpenLocationMenuItem_Click(object sender, RoutedEventArgs e) => OpenLocationClick?.Invoke(sender, e);

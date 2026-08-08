@@ -52,8 +52,6 @@
             <Style TargetType="Border">
                 <Setter Property="Padding" Value="20,17,20,17" />
                 <Style.Triggers>
-                    <!-- Carousel mode uses the same inner width as grid (20+20 padding),
-                         so 4 carousel cells occupy exactly the same space as 4 grid columns -->
                     <DataTrigger Binding="{Binding IconViewMode}" Value="Carousel">
                         <Setter Property="Padding" Value="20,20,20,20" />
                     </DataTrigger>
@@ -78,7 +76,7 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <!-- Grid mode: up to N rows, vertical scrolling -->
+            <!-- Grid mode -->
             <ScrollViewer x:Name="GridScrollViewer"
                           HorizontalScrollBarVisibility="Disabled"
                           PanningMode="VerticalOnly"
@@ -121,7 +119,7 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <!-- Carousel mode: single row, horizontal scrolling -->
+            <!-- Carousel mode -->
             <ScrollViewer x:Name="CarouselScrollViewer"
                           VerticalScrollBarVisibility="Disabled"
                           PanningMode="HorizontalOnly"
@@ -161,13 +159,42 @@
                         <Style TargetType="ContentPresenter">
                             <Setter Property="HorizontalAlignment" Value="Center" />
                             <Setter Property="VerticalAlignment" Value="Top" />
-                            <!-- Each carousel cell gets the same width as a grid column,
-                                 so exactly IconsPerRow icons are visible -->
                             <Setter Property="Width" Value="{Binding DataContext.CarouselCellWidth, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
             </ScrollViewer>
+
+            <!-- Idle hide mini-button -->
+            <Button x:Name="IdleHideButton"
+                    Width="24"
+                    Height="16"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,8,4"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    Cursor="Hand"
+                    ToolTip="Hide launcher"
+                    Click="IdleHideButton_Click">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <TextBlock Text="▼"
+                                       FontSize="8"
+                                       FontFamily="Segoe UI"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
         </Grid>
     </Border>
 </UserControl>

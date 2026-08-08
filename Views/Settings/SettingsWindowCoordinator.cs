@@ -7,18 +7,22 @@ namespace IconGrid.Views
     internal sealed class SettingsWindowCoordinator
     {
         private SettingsWindow? _window;
+        private MainViewModel? _viewModel;
 
         public void Show(Window owner, MainViewModel viewModel, Action<bool> setSkipSavingLocation, Action<string>? logTrace = null)
         {
             if (_window == null)
             {
+                _viewModel = viewModel;
                 _window = new SettingsWindow(viewModel)
                 {
                     Owner = owner
                 };
                 _window.Closed += (_, _) =>
                 {
+                    viewModel.IsSettingsWindowOpen = false;
                     _window = null;
+                    _viewModel = null;
                     setSkipSavingLocation(false);
                     logTrace?.Invoke($"Settings window closed; returning to normal focus from {owner.Left:F1},{owner.Top:F1}");
                 };
@@ -40,6 +44,7 @@ namespace IconGrid.Views
                 return;
             }
 
+            viewModel.IsSettingsWindowOpen = true;
             setSkipSavingLocation(true);
             _window.Show();
         }
@@ -51,8 +56,11 @@ namespace IconGrid.Views
                 return;
             }
 
+            if (_viewModel != null)
+                _viewModel.IsSettingsWindowOpen = false;
             _window.Close();
             _window = null;
+            _viewModel = null;
         }
 
         private static void PositionRelativeToOwner(Window owner, SettingsWindow window)

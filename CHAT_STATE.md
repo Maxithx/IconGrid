@@ -1349,3 +1349,153 @@ Bruger-godkendt og committet i dag:
 - `DisplayResolutionService.cs`
 - `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`
 - `TODO.md`
+
+## Session 2026-08-08 (18:00-20:44) — Launcher idle hide + Gaming Overlay page restructuring
+
+## Status at session end
+
+### Completed and committed (3 commits pushed)
+- `98268fb` — Game-only launcher behavior, overlay settings navigation, hardening (8 files)
+- `1cbb2bf` — Resolution.png sidebar icon (XAML + csproj fix)
+- `0d1d05b` — Game Resolution moved into Gaming Overlay page, overlay scale intro text, current resolution + Hz (11 files, +278/-169)
+- `fcca091` — TODO.md cleanup (only active tasks: icons + system guide)
+
+### Completed but NOT committed (working tree dirty)
+
+**Gaming Overlay page restructuring + auto-hide feature — 11 files changed:**
+
+1. **Game Resolution embedded as collapsible card** in Gaming Overlay page (bottom). Removed from sidebar.
+2. **Overlay scale card** now has intro text matching other cards.
+3. **Current resolution + Hz** displayed in Game Resolution section (e.g. "3840x2160 @ 144Hz") via new `DisplayResolutionService.GetCurrentResolutionWithHz()`.
+4. **Launcher idle hide system** — full persistence chain + controller + UI:
+   - `Models/LauncherHideMode.cs` (new) — AlwaysVisible/Manual/Auto/AutoAndManual
+   - Persistence chain: ConfigModel → SettingsState → ConfigState → Persistence → MainViewModel.Settings
+   - `Helpers/Launcher/LauncherWindowModeController.cs` (rewritten) — `ToggleManualHide()`, `PeekStripClicked()`, proximity timer, `SlideToPeek()` (6px), coordination with game-hide
+   - `Controls/Launcher/LauncherGrid.xaml` + `.cs` — mini ▼ button (Segoe UI, fixed from Segoe Fluent Icons) + `IdleHideClick` event
+   - `Views/Settings/Pages/StartsidePage.xaml` + `.cs` — "Launcher synlighed" dropdown with 4 modes + full da/en localization
+   - Persistence now saves correctly (SelectLauncherHideMode notified after items rebuild)
+
+### INCOMPLETE — needs wiring in next session
+
+**Missing connections in `MainWindow.xaml.cs`:**
+1. `IdleHideButton_Click` handler NOT yet added to call `_windowModeController?.ToggleManualHide()`
+2. `ViewModel_PropertyChanged` NOT yet subscribed to `LauncherHideMode` changes (need to call `_windowModeController?.ApplyIdleHideMode()` when setting changes)
+
+**Missing connections in `MainWindow.xaml`:**
+- `IdleHideClick="IdleHideButton_Click"` IS already wired in XAML (line 651)
+
+### Paint/drag-drop false trigger (bug)
+- Drag-drop into Paint triggers game auto-hide/overlay because native FPS agent sees mspaint.exe as foreground.
+- NOT fixed this session — needs `mspaint` added to ignored foreground processes.
+
+## Next session first steps
+1. Use `write_to_file` for MainWindow.xaml.cs since `replace_in_file` keeps failing on this file.
+2. Add `IdleHideButton_Click` handler + `LauncherHideMode` PropertyChanged subscription.
+3. Build + deploy → test manual/auto hide.
+4. Fix paint/drag-drop false trigger.
+5. Commit + push (await approval).
+
+## Files changed (uncommitted)
+- Models/LauncherHideMode.cs (NEW)
+- Models/ConfigModel.cs
+- ViewModels/Settings/MainViewModelSettingsState.cs
+- ViewModels/Settings/MainViewModelConfigState.cs
+- ViewModels/Settings/MainViewModelSettingsPersistence.cs
+- ViewModels/MainViewModel.Settings.cs
+- ViewModels/MainViewModel.cs
+- Helpers/Launcher/LauncherWindowModeController.cs (rewritten)
+- Controls/Launcher/LauncherGrid.xaml + .cs
+- Views/Settings/Pages/StartsidePage.xaml + .cs
+- Views/Launcher/MainWindow.xaml (XAML wiring done)
+- Views/Launcher/MainWindow.xaml.cs (handler NOT wired yet — 2 lines missing)
+- Models/GameResolutionPage.xaml (stripped TemplatePage wrapper)
+- Views/Settings/Pages/GamingOverlayPage.xaml + .cs
+- Helpers/Launcher/DisplayResolutionService.cs (GetCurrentResolutionWithHz)
+- Views/Settings/SettingsWindow.xaml + .cs (removed GameResolution sidebar)
+- TODO.md
+
+## Session findings (2026-08-08)
+
+- **21:07** — Deployed Debug build to C:\IconGrid: IdleHideButton_Click handler + LauncherHideMode PropertyChanged subscription wired in MainWindow.xaml.cs, ApplyIdleHideMode made public in LauncherWindowModeController.cs. Both dll timestamps match (21:06:36).
+
+- **21:41** — Deployed Debug build to C:\IconGrid: idle auto-hide delay persistence (ConfigModel → MainViewModel → UI slider), mode descriptions on StartsidePage, PeekStripClicked on click instead of DragMove. Both dll timestamps match (21:40:45).
+
+- **22:13** — Genbygget med --no-incremental (ren build). Deployer til C:\IconGrid. String-søgning i DLL for IsSettingsWindowOpen var upålidelig (property name compiles til IL, ikke string literal). Deployment verificeres via timestamps.
+
+
+
+## Session 2026-08-09 (00:00-00:50) — Auto-hide system fixes + proximity zone debugging
+
+## Summary
+Massiv session med debugging af auto-hide proximity zone. Proximity trigger var 200px forskudt til venstre — root cause var at `_window.Left`/`_window.Width` IKKE opdateres under WPF `BeginAnimation` (animationssystemet rører kun den renderede position). Fixet med Win32 `GetWindowRect`.
+
+## Changes deployed (C:\IconGrid, 00:42)
+- **Proximity zone fix:** Win32 `GetWindowRect` bruges nu i `IdleProximityTimer_Tick` + `IsCursorInPeekZone()` — giver den FAKTISKE renderede position uanset animationer.
+- **Direction-aware SlideToPeek:** Launcher i top-halvdel → slide op. Launcher i bund-halvdel → slide ned (6px synlig i bunden).
+- **_originalTop caching:** `SlideToPeek` gemmer original position via `GetWindowRect`; `SlideToVisible` restorer den. Ellers gik launcher til toppen.
+- **_isHidden fix:** Sættes nu eksplicit (`true` i SlideToPeek, `false` i SlideToVisible) — ikke afledt fra `targetTop < 0` (virkede ikke for bottom-peek).
+- **Auto-re-hide:** Når launcher vises via hover/proximity, starter `_idleHideDelayTimer` så den auto-hider igen efter X sekunder uden interaktion.
+- **Fjernet Auto+Manual mode:** Kun 3 modes: Altid synlig / Manuel / Auto.
+- **Settings-åben → ingen hide:** `IsSettingsWindowOpen` property + `SettingsWindowCoordinator` wiring + check i `HandleMouseLeave`/`IdleHideDelayTimer_Tick`/`HandleAutoHideTick`.
+- **PeekActivationMode:** Ny dropdown på startsiden: 'Ved hover' (proximity) / 'Ved klik på striben'. Fuld persistence-kæde.
+- **Auto-hide delay:** Bruger-konfigurerbar 1/2/3/5/10 sekunder. Fuld persistence-kæde.
+- **BoolToVisibilityConverter:** Registreret globalt i App.xaml (fix til SettingsWindow crash).
+- **Forklarende tekster** på startsiden under Launcher synlighed dropdown.
+
+## Known issues for next session
+1. **Proximity zone stadig upålidelig** — selv med GetWindowRect trigger hover kun i et smalt område. Skal debugges videre.
+2. **Bottom-peek test mangler** — brugeren har ikke testet launcher i bunden endnu.
+3. **Process-linje overlap** — hvis launcher placeres nederst på skærmen (nær proceslinjen), ved programmet ikke at det er 'bunden'. Skal måske bruge `WorkArea` i stedet for `Screen.Bounds`.
+4. **Work-area clamping** — launcher kan trækkes ud af viewport. `ClampWindowToWorkArea()` findes men kaldes ikke fra DragMove.
+
+## Files modified this session
+- Helpers/Launcher/LauncherWindowModeController.cs (hele auto-hide controlleren)
+- Views/Launcher/MainWindow.xaml.cs (IdleHideButton_Click, PropertyChanged handlers)
+- Models/LauncherHideMode.cs (fjernet AutoAndManual)
+- Models/ConfigModel.cs (IdleAutoHideDelaySeconds, PeekActivationMode)
+- ViewModels/Settings/* (SettingsState, ConfigState, Persistence)
+- ViewModels/MainViewModel.cs + .Settings.cs (nye properties + wiring)
+- Views/Settings/Pages/StartsidePage.xaml + .cs (UI: modes, delay, peek activation, descriptions)
+- Views/Settings/SettingsWindowCoordinator.cs (IsSettingsWindowOpen tracking)
+- App.xaml (BoolToVisibilityConverter globalt)
+
+## NOT committed — alt er uncommitted (working tree very dirty ~15+ files)
+
+## Session 8/9 2026 — Auto-hide & proximity fixes
+
+### Fixes applied (build succeeded, deployed to C:\IconGrid)
+
+#### 1. DPI mismatch — ROOT CAUSE of proximity zone offset
+- `GetWindowRect` and `Forms.Cursor.Position` return **physical pixels**
+- `SystemParameters.WorkArea` and `_peekHeight` use **WPF logical pixels (DIP)**
+- On PerMonitorV2 (manifest confirmed: `dpiAwareness=PerMonitorV2`), 150% scaling means physical coords are 1.5× DIP coords.
+- **Fix:** Added `GetWindowDpiScale()` using `PresentationSource.FromVisual(_window).CompositionTarget.TransformToDevice.M11`. All physical coords (`rect.Left`, `rect.Right`, `cursorPos.X/Y`) are now divided by `dpiScale` before comparison with DIP values.
+
+#### 2. _originalTop DPI mismatch
+- `SlideToPeek()` stored `currentRect.Top` (physical px) without converting to DIP.
+- `SlideToVisible()` restored it via `SlideTo(restoreTop)` which applies to `Window.TopProperty` (DIP).
+- **Fix:** Convert `currentRect.Top / dpiScale` for `_originalTop`.
+
+#### 3. Taskbar overlap detection (bottom-peek direction)
+- `SlideToPeek()` used `(area.Top + area.Bottom) / 2.0` for direction — but `area` is `WorkArea` which excludes taskbar.
+- **Fix:** Use `Screen.Bounds` (includes taskbar) for center Y calculation, `WorkArea.Bottom` for actual peek position. This correctly detects top vs bottom when launcher overlaps taskbar zone.
+
+#### 4. DragMove clamping
+- `ClampWindowToWorkArea()` existed but was never called after `DragMove()`.
+- **Fix:** Added clamping in `Window_MouseLeftButtonDown` after `DragMove()`, gated by new `AllowMultiMonitorDrag` toggle (default false).
+
+#### 5. New setting: AllowMultiMonitorDrag
+- Added through full pipeline: `ConfigModel` → `MainViewModelConfigState` → `MainViewModelSettingsState` → `MainViewModel.Settings.cs` → `MainViewModel` public property.
+- Default: false (clamping enabled). When false, DragMove is followed by `ClampWindowToWorkArea()`.
+
+### Trace.log format updated
+- Now includes `dpiScale`, `isPeekBottom`, and uses DIP-normalized zone coords.
+
+### Files changed
+- `Helpers/Launcher/LauncherWindowModeController.cs` — DPI fix, Screen.Bounds direction, originalTop fix
+- `Views/Launcher/MainWindow.xaml.cs` — DragMove clamping + AllowMultiMonitorDrag gate
+- `Models/ConfigModel.cs` — +AllowMultiMonitorDrag
+- `ViewModels/Settings/MainViewModelConfigState.cs` — +AllowMultiMonitorDrag
+- `ViewModels/Settings/MainViewModelSettingsState.cs` — +AllowMultiMonitorDrag
+- `ViewModels/MainViewModel.cs` — +_allowMultiMonitorDrag field + AllowMultiMonitorDrag property
+- `ViewModels/MainViewModel.Settings.cs` — wiring for AllowMultiMonitorDrag

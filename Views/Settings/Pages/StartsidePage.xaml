@@ -117,6 +117,70 @@
                             </Grid>
 
                             <StackPanel Margin="0,18,0,0">
+                                <TextBlock Margin="0,18,0,0"
+                                           Text="{Binding LauncherVisibilityTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding LauncherVisibilityDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <ComboBox Margin="0,10,0,0"
+                                          MaxWidth="280"
+                                          HorizontalAlignment="Left"
+                                          ItemsSource="{Binding LauncherHideModeItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                          SelectedValuePath="Key"
+                                          DisplayMemberPath="Value"
+                                          SelectedValue="{Binding SelectedLauncherHideMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+
+                                <TextBlock Margin="0,8,0,0"
+                                           Text="{Binding LauncherVisibilityModeDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                <StackPanel Margin="0,14,0,0"
+                                            Visibility="{Binding AutoHideDelayVisible, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding AutoHideDelayLabelText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Text="{Binding AutoHideDelayDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="12"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <ComboBox Margin="0,10,0,0"
+                                              MaxWidth="200"
+                                              HorizontalAlignment="Left"
+                                              ItemsSource="{Binding AutoHideDelayItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                              SelectedValuePath="Key"
+                                              DisplayMemberPath="Value"
+                                              SelectedValue="{Binding SelectedAutoHideDelay, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+
+                                    <TextBlock Margin="0,14,0,0"
+                                               Text="{Binding PeekActivationLabelText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Text="{Binding PeekActivationDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="12"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <ComboBox Margin="0,10,0,0"
+                                              MaxWidth="200"
+                                              HorizontalAlignment="Left"
+                                              ItemsSource="{Binding PeekActivationItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
+                                              SelectedValuePath="Key"
+                                              DisplayMemberPath="Value"
+                                              SelectedValue="{Binding SelectedPeekActivationMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,18,0,0">
                                 <TextBlock Margin="0,0,0,4"
                                            Text="{Binding UiScaleDescription}"
                                            FontSize="14"

@@ -647,8 +647,9 @@
                                                CopyPathClick="CopyPathMenuItem_Click"
                                                ChangeIconClick="ChangeIconMenuItem_Click"
                                                ResetIconClick="ResetIconMenuItem_Click"
-                                               RenameItemClick="RenameMenuItem_Click"
-                                               RemoveItemClick="RemoveItemMenuItem_Click" />
+                                                RenameItemClick="RenameMenuItem_Click"
+                                                RemoveItemClick="RemoveItemMenuItem_Click"
+                                                IdleHideClick="IdleHideButton_Click" />
                     </Grid>
                     <Grid Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisibilityConverter}}"
                           Background="#FFF3F3F3"
