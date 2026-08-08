@@ -62,6 +62,7 @@ namespace IconGrid.Views
         private string _overlayTextColorTitleText = "Text color";
         private string _overlayCustomColorButtonText = "Custom color...";
         private string _overlayScaleTitleText = string.Empty;
+        private string _overlayScaleIntroText = string.Empty;
         private string _fpsSetupTitleText = string.Empty;
         private string _fpsSetupIntroText = string.Empty;
         private string _refreshFpsSetupButtonText = string.Empty;
@@ -84,6 +85,8 @@ namespace IconGrid.Views
         private string _restoreLauncherIntroText = string.Empty;
         private string _gameLauncherBehaviorTitleText = string.Empty;
         private string _gameLauncherBehaviorIntroText = string.Empty;
+        private string _gameResolutionTitleText = string.Empty;
+        private string _gameResolutionIntroText = string.Empty;
         private List<KeyValuePair<string, string>> _overlayPositionPresetItems = new();
         private List<KeyValuePair<string, string>> _gameLauncherBehaviorItems = new();
         private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
@@ -170,6 +173,12 @@ namespace IconGrid.Views
         {
             get => _overlayScaleTitleText;
             private set => SetField(ref _overlayScaleTitleText, value);
+        }
+
+        public string OverlayScaleIntroText
+        {
+            get => _overlayScaleIntroText;
+            private set => SetField(ref _overlayScaleIntroText, value);
         }
 
         public string FpsSetupTitleText
@@ -304,6 +313,18 @@ namespace IconGrid.Views
         {
             get => _gameLauncherBehaviorIntroText;
             private set => SetField(ref _gameLauncherBehaviorIntroText, value);
+        }
+
+        public string GameResolutionTitleText
+        {
+            get => _gameResolutionTitleText;
+            private set => SetField(ref _gameResolutionTitleText, value);
+        }
+
+        public string GameResolutionIntroText
+        {
+            get => _gameResolutionIntroText;
+            private set => SetField(ref _gameResolutionIntroText, value);
         }
 
         /// <summary>
@@ -571,6 +592,7 @@ namespace IconGrid.Views
                 OverlayTextColorTitleText = "Tekstfarve";
                 OverlayCustomColorButtonText = "Brugerdefineret farve...";
                 OverlayScaleTitleText = "Overlay størrelse";
+                OverlayScaleIntroText = "Juster overlayets fysiske størrelse og standard scale per opløsning. Træk i sliders her, eller brug overlayets egen slider — begge gemmer automatisk.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW afhænger af, at den aktuelle Windows-bruger har den rigtige tracing-adgang. Denne sektion tjekker det kendte krav om Brugere af ydelseslog.";
                 RefreshFpsSetupButtonText = "Opdater FPS setup-status";
@@ -609,6 +631,8 @@ namespace IconGrid.Views
                     new("1", "Auto-skjul (glider ned)"),
                     new("2", "Minimer til proceslinjen")
                 };
+                GameResolutionTitleText = "Spilopløsning";
+                GameResolutionIntroText = "Vælg hvilken skærmopløsning IconGrid skal skifte til, før et spil startes fra dine genveje.";
             }
             else
             {
@@ -621,6 +645,7 @@ namespace IconGrid.Views
                 OverlayTextColorTitleText = "Text color";
                 OverlayCustomColorButtonText = "Custom color...";
                 OverlayScaleTitleText = "Overlay scale";
+                OverlayScaleIntroText = "Adjust the overlay's physical size and default scale per resolution. Drag any slider here, or use the overlay's own slider — both save automatically.";
                 FpsSetupTitleText = "FPS setup status";
                 FpsSetupIntroText = "IconGrid FPS via ETW depends on the current Windows user having the right tracing access. This section checks the known Performance Log Users requirement.";
                 RefreshFpsSetupButtonText = "Refresh FPS setup status";
@@ -659,6 +684,8 @@ namespace IconGrid.Views
                     new("1", "Auto-hide (slide down)"),
                     new("2", "Minimize to taskbar")
                 };
+                GameResolutionTitleText = "Game resolution";
+                GameResolutionIntroText = "Choose which display resolution IconGrid should switch to before launching a game from your shortcuts.";
             }
         }
 

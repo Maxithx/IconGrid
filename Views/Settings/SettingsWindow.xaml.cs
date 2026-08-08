@@ -195,11 +195,6 @@ namespace IconGrid.Views
             ShowGamingOverlayPage();
         }
 
-        private void GameResolutionNavButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowPage(new GameResolutionPage(), GameResolutionNavButton);
-        }
-
         private void AboutNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new AboutPage(), AboutNavButton);

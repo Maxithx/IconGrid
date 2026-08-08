@@ -23,6 +23,8 @@ namespace IconGrid.Views
         private string _resolutionListIntroText = string.Empty;
         private string _categoryFilterTitleText = string.Empty;
         private string _categoryFilterDescriptionText = string.Empty;
+        private string _currentResolutionLabelText = string.Empty;
+        private string _currentResolutionValue = string.Empty;
         private CategoryOption? _selectedCategory;
         private readonly ObservableCollection<LauncherItem> _allShortcuts = new();
         private readonly ObservableCollection<CategoryOption> _availableCategories = new();
@@ -107,11 +109,24 @@ namespace IconGrid.Views
             private set => SetField(ref _categoryFilterDescriptionText, value);
         }
 
+        public string CurrentResolutionLabelText
+        {
+            get => _currentResolutionLabelText;
+            private set => SetField(ref _currentResolutionLabelText, value);
+        }
+
+        public string CurrentResolutionValue
+        {
+            get => _currentResolutionValue;
+            private set => SetField(ref _currentResolutionValue, value);
+        }
+
         private void GameResolutionPage_Loaded(object sender, RoutedEventArgs e)
         {
             AttachMainViewModel();
             RefreshLocalizedText();
             RefreshShortcuts();
+            RefreshCurrentResolution();
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SupportedResolutions)));
         }
 
@@ -162,6 +177,11 @@ namespace IconGrid.Views
             }
         }
 
+        private void RefreshCurrentResolution()
+        {
+            CurrentResolutionValue = DisplayResolutionService.GetCurrentResolutionWithHz();
+        }
+
         private void RefreshShortcuts()
         {
             if (_mainViewModel == null)
@@ -190,9 +210,10 @@ namespace IconGrid.Views
                 }
             }
 
-            // Keep the selected category if it still exists; otherwise fall back to the first one.
+            // Keep the selected category if it still exists; otherwise fall back to "Games".
             var selectedKey = _selectedCategory?.Key;
             _selectedCategory = _availableCategories.FirstOrDefault(c => string.Equals(c.Key, selectedKey, System.StringComparison.OrdinalIgnoreCase))
+                                ?? _availableCategories.FirstOrDefault(c => string.Equals(c.Key, "Games", System.StringComparison.OrdinalIgnoreCase))
                                 ?? _availableCategories.FirstOrDefault()
                                 ?? new CategoryOption("Games", TabNameLocalizationConverter.LocalizeCategoryName("Games", language));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedCategory)));
@@ -244,6 +265,7 @@ namespace IconGrid.Views
                 ResolutionListIntroText = "Vælg en opløsning for hver genvej. Tom = skift ikke opløsning.";
                 CategoryFilterTitleText = "Kategori";
                 CategoryFilterDescriptionText = "Vis kun genveje fra den valgte kategori.";
+                CurrentResolutionLabelText = "Nuværende opløsning";
             }
             else
             {
@@ -254,6 +276,7 @@ namespace IconGrid.Views
                 ResolutionListIntroText = "Pick a resolution for each shortcut. Empty = do not change resolution.";
                 CategoryFilterTitleText = "Category";
                 CategoryFilterDescriptionText = "Only show shortcuts from the selected category.";
+                CurrentResolutionLabelText = "Current resolution";
             }
 
             foreach (var category in _availableCategories)

@@ -125,6 +125,21 @@ namespace IconGrid.Helpers.Launcher
                 : null;
         }
 
+        /// <summary>
+        /// Returns the current display resolution and refresh rate, e.g. "3840x2160 @ 144Hz".
+        /// </summary>
+        public static string GetCurrentResolutionWithHz()
+        {
+            var mode = new DEVMODE();
+            mode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+
+            if (!EnumDisplaySettings(PrimaryDeviceName, ENUM_CURRENT_SETTINGS, ref mode))
+                return "Unknown";
+
+            var hz = mode.dmDisplayFrequency > 0 ? $"{mode.dmDisplayFrequency}Hz" : "?Hz";
+            return $"{mode.dmPelsWidth}x{mode.dmPelsHeight} @ {hz}";
+        }
+
         public static (int Width, int Height)? ParseResolution(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))

@@ -1308,3 +1308,44 @@ Bruger-godkendt og committet i dag:
   - **figma-icons/Resolution.png**: Added (image asset).
 - Working tree ren efter push.
 - Næste skridt: Manuel test af game-only behavior — start en non-Games genvej (fx fra Software/Develop kategori) og bekræft at launcher ikke auto-skjuler og overlay ikke auto-åbner. Start et Games-genvej og bekræft at auto-skjul/auto-show fungerer. Test Division 2 overlay overlevelse med anti-cheat access-denied.
+
+- **Deploy til C:\IconGrid (18:12):** Bygget (Debug, 0 fejl/0 advarsler) kopieret til test-mappe. IconGrid.dll ~875 KB, timestamp 18:10:46.
+
+
+## Session 2026-08-08 (18:00-19:06) — Gaming Overlay settings reorganization + Game Resolution embedded
+
+- **Commit `98268fb`** (pushed): Game-only launcher behavior, overlay settings navigation, hardening (8 files, +136/-19).
+- **Commit `1cbb2bf`** (pushed): Sidebar icon replaced with Resolution.png (1 XAML file).
+- **Root cause: Resolution.png not in .csproj** — added Content Include to copy to output.
+- **Session continued with 3 major changes (NOT yet committed — about to commit + push):**
+
+### 1. Overlay scale card — missing intro text
+- `GamingOverlayPage.xaml.cs`: Added `OverlayScaleIntroText` property with da/en localization.
+- `GamingOverlayPage.xaml`: Header now shows title + intro text (same pattern as other cards).
+
+### 2. Game Resolution moved from sidebar into Gaming Overlay page
+- `GamingOverlayPage.xaml`: New collapsible card at bottom with `<views:GameResolutionPage />` embedded.
+- `GamingOverlayPage.xaml.cs`: Added `GameResolutionTitleText` + `GameResolutionIntroText` with da/en localization.
+- `GameResolutionPage.xaml`: Stripped TemplatePage/ScrollViewer wrapper (no longer standalone). Added current resolution + Hz display at top ("Nuværende opløsning: 3840x2160 @ 144Hz" in accent color).
+- `GameResolutionPage.xaml.cs`: Category now defaults to "Games" (previously first alphabetically). Added `CurrentResolutionLabelText` + `CurrentResolutionValue` with `RefreshCurrentResolution()`.
+- `DisplayResolutionService.cs`: Added `GetCurrentResolutionWithHz()` static method.
+- `SettingsWindow.xaml`: Removed GameResolutionNavButton from sidebar.
+- `SettingsWindow.xaml.cs`: Removed GameResolutionNavButton_Click handler.
+
+### 3. Current resolution + Hz display
+- New static method `DisplayResolutionService.GetCurrentResolutionWithHz()` returns e.g. "3840x2160 @ 144Hz".
+- Displayed at top of Game Resolution section with label (da: "Nuværende opløsning" / en: "Current resolution") and value in accent color.
+
+### Build & deploy
+- All builds: 0 errors, 0 warnings.
+- Deployed to `C:\IconGrid` after each build.
+
+### Icons pending
+- Added to `TODO.md` under "Gaming overlay icons (pending)": 5 icons needed for collapsible headers.
+
+### Files changed (uncommitted, 6 files)
+- `GamingOverlayPage.xaml`, `GamingOverlayPage.xaml.cs`
+- `GameResolutionPage.xaml`, `GameResolutionPage.xaml.cs`
+- `DisplayResolutionService.cs`
+- `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`
+- `TODO.md`

@@ -536,10 +536,16 @@
                                   IsExpanded="False"
                                   helpers:DevInspector.Metadata="Overlay scale card expander -> Views/GamingOverlayPage.xaml">
                             <Expander.Header>
-                                <TextBlock Text="{Binding OverlayScaleTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <StackPanel>
+                                    <TextBlock Text="{Binding OverlayScaleTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Text="{Binding OverlayScaleIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
@@ -749,6 +755,28 @@
                                         </Expander>
                                     </Border>
                                 </StackPanel>
+                            </Expander.Content>
+                        </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Game resolution card expander -> Views/GamingOverlayPage.xaml">
+                            <Expander.Header>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding GameResolutionTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Text="{Binding GameResolutionIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <views:GameResolutionPage Margin="0,10,0,0" />
                             </Expander.Content>
                         </Expander>
                     </Border>

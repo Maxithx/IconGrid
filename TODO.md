@@ -238,6 +238,14 @@
 - [ ] Dokumentér nye controls/helpers når de bliver arkitektonisk vigtige
 - [ ] Dokumentér den endelige C++/C# FPS-arkitektur, når den native worker er på plads
 
+## Gaming overlay icons (pending)
+
+- [ ] Create icons for collapsible section headers on Gaming Overlay settings page:
+      `Gaming overlay`, `Automatisk under spil` (Automatic while in game),
+      `Overlay størrelse` (Overlay scale), `FPS setup status`, `Spilopløsning` (Game resolution)
+- [ ] Add icon files to `figma-icons/` and register in `IconGrid.csproj`
+- [ ] Wire icons into expander headers in `GamingOverlayPage.xaml`
+
 ## Kendte åbne problemer
 
 - Startup kan stadig give to `IconGrid.exe`-processer ved Windows-login
