@@ -55,6 +55,10 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableContentScroll { get; set; }
         public string IconViewMode { get; set; } = "Grid";
         public bool RestoreGameResolutionAfterExit { get; set; } = true;
+        public int LauncherHideMode { get; set; }
+        public int IdleAutoHideDelaySeconds { get; set; }
+        public int PeekActivationMode { get; set; }
+        public bool AllowMultiMonitorDrag { get; set; }
         public Dictionary<string, double> GamingOverlayResolutionScales { get; set; } = new();
         public int WindowAnimationDurationMs { get; set; }
         public FpsTargetConfig FpsTarget { get; set; } = new();

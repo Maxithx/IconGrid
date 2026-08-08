@@ -30,6 +30,9 @@ namespace IconGrid.ViewModels
             _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
             _restoreLauncherAfterOverlayClosed = state.RestoreLauncherAfterOverlayClosed;
             _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
+            _launcherHideMode = state.LauncherHideMode;
+            _idleAutoHideDelaySeconds = state.IdleAutoHideDelaySeconds;
+            _peekActivationMode = state.PeekActivationMode;
             _gamingOverlayResolutionScales = state.GamingOverlayResolutionScales ?? new Dictionary<string, double>();
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
@@ -70,6 +73,9 @@ namespace IconGrid.ViewModels
             _autoCloseGamingOverlayOnGameEnd = false;
             _restoreLauncherAfterOverlayClosed = false;
             _restoreGameResolutionAfterExit = true;
+            _launcherHideMode = 0;
+            _idleAutoHideDelaySeconds = 2;
+            _peekActivationMode = 0;
             _gamingOverlayResolutionScales = new Dictionary<string, double>();
             _isAlwaysOnTop = false;
             _isFloatingIconTopmost = true;
@@ -132,6 +138,10 @@ namespace IconGrid.ViewModels
                 EnableContentScroll = _enableContentScroll,
                 IconViewMode = _layoutMeasurements.IconViewMode,
                 RestoreGameResolutionAfterExit = _restoreGameResolutionAfterExit,
+                LauncherHideMode = _launcherHideMode,
+                IdleAutoHideDelaySeconds = _idleAutoHideDelaySeconds,
+                PeekActivationMode = _peekActivationMode,
+                AllowMultiMonitorDrag = _allowMultiMonitorDrag,
                 GamingOverlayResolutionScales = _gamingOverlayResolutionScales,
                 WindowAnimationDurationMs = _windowAnimationDurationMs,
                 FpsTarget = _fpsTarget

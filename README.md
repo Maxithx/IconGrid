@@ -20,6 +20,13 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
   1. **Carousel view** — the shortcuts are laid out on a single long horizontal row. The window shows exactly 4 icons at a time (same spacing as the grid), and you scroll through the rest with the mouse wheel or the thin horizontal scrollbar.
   2. **Grid view** — the shortcuts are laid out on multiple vertical rows with 4 icons per row, scrolled with the thin vertical scrollbar.
 - Closing the launcher hides it back to floating-icon mode instead of terminating the process.
+- **Launcher hide modes** (configured on the Startside settings page):
+  - **Always visible** — the launcher stays open and never hides itself.
+  - **Manual hide** — click the mini-button in the icon area to toggle the launcher between visible and a 10px peek strip at the screen edge. Click the peek strip to show it again.
+  - **Auto-hide** — after 1-10 seconds of mouse inactivity (configurable delay), the launcher slides up (top) or down (bottom) to a 10px peek strip. Hover over the peek strip to reveal the launcher, or click it. The launcher re-hides automatically when the mouse leaves. Direction-aware: in the top half of the screen it slides up, in the bottom half it slides down.
+  - **Peek activation** — hover over the peek strip (proximity detection) or click only.
+  - **Settings-open suppression** — auto-hide is automatically paused while the Settings window is open.
+- **Drag clamping** — after dragging the launcher, it snaps back into the work area so it can't be pulled entirely off-screen. Multi-monitor drag can be enabled via a toggle setting.
 
 ![IconGrid Screenshot](Assets/git-img/IconGrid.png)
 

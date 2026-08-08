@@ -31,6 +31,10 @@ namespace IconGrid.ViewModels.Settings
         public bool EnableContentScroll { get; init; }
         public string IconViewMode { get; init; } = "Grid";
         public bool RestoreGameResolutionAfterExit { get; init; } = true;
+        public int LauncherHideMode { get; init; }
+        public int IdleAutoHideDelaySeconds { get; init; }
+        public int PeekActivationMode { get; init; }
+        public bool AllowMultiMonitorDrag { get; init; }
         public Dictionary<string, double> GamingOverlayResolutionScales { get; init; } = new();
         public int WindowAnimationDurationMs { get; init; }
         public FpsTargetConfig FpsTarget { get; init; } = new();
@@ -75,6 +79,10 @@ namespace IconGrid.ViewModels.Settings
                 EnableContentScroll = config.EnableContentScroll,
                 IconViewMode = string.Equals(config.IconViewMode, "Carousel", StringComparison.OrdinalIgnoreCase) ? "Carousel" : "Grid",
                 RestoreGameResolutionAfterExit = config.RestoreGameResolutionAfterExit,
+                LauncherHideMode = config.LauncherHideMode,
+                IdleAutoHideDelaySeconds = Math.Max(1, Math.Min(10, config.IdleAutoHideDelaySeconds)),
+                PeekActivationMode = config.PeekActivationMode == 1 ? 1 : 0,
+                AllowMultiMonitorDrag = config.AllowMultiMonitorDrag,
                 GamingOverlayResolutionScales = config.GamingOverlayResolutionScales ?? new Dictionary<string, double>(),
                 WindowAnimationDurationMs = config.WindowAnimationDurationMs,
                 FpsTarget = config.FpsTarget ?? new FpsTargetConfig(),

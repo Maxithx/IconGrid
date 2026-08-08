@@ -96,6 +96,10 @@ namespace IconGrid.ViewModels
         private bool _autoCloseGamingOverlayOnGameEnd = false;
         private bool _restoreLauncherAfterOverlayClosed = false;
         private bool _restoreGameResolutionAfterExit = true;
+        private int _launcherHideMode = 0; // LauncherHideMode: 0=AlwaysVisible, 1=Manual, 2=Auto, 3=AutoAndManual
+        private int _idleAutoHideDelaySeconds = 2; // delay before idle auto-hide kicks in (1-10)
+        private int _peekActivationMode = 0; // 0=hover proximity, 1=click only
+        private bool _allowMultiMonitorDrag = false;
         private Dictionary<string, double> _gamingOverlayResolutionScales = new();
         private const double GamingOverlayBaseWidth = 720;
         private const double GamingOverlayBaseHeight = 44;
@@ -504,6 +508,56 @@ namespace IconGrid.ViewModels
             }
         }
 
+        public int LauncherHideMode
+        {
+            get => _launcherHideMode;
+            set
+            {
+                if (SetField(ref _launcherHideMode, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        public int IdleAutoHideDelaySeconds
+        {
+            get => _idleAutoHideDelaySeconds;
+            set
+            {
+                var clamped = Math.Max(1, Math.Min(10, value));
+                if (SetField(ref _idleAutoHideDelaySeconds, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        public int PeekActivationMode
+        {
+            get => _peekActivationMode;
+            set
+            {
+                var clamped = value == 1 ? 1 : 0;
+                if (SetField(ref _peekActivationMode, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        public bool AllowMultiMonitorDrag
+        {
+            get => _allowMultiMonitorDrag;
+            set
+            {
+                if (SetField(ref _allowMultiMonitorDrag, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
         public string GamingOverlayTextColorHex
         {
             get
@@ -605,6 +659,17 @@ namespace IconGrid.ViewModels
         /// Indicates any overlay (settings or layouts) is active.
         /// </summary>
         public bool IsOverlayOpen => _overlayState.IsOverlayOpen;
+
+        /// <summary>
+        /// True when the separate Settings window is open (not the inline overlay).
+        /// Set by SettingsWindowCoordinator. Suppresses idle auto-hide.
+        /// </summary>
+        public bool IsSettingsWindowOpen
+        {
+            get => _isSettingsWindowOpen;
+            set => SetField(ref _isSettingsWindowOpen, value);
+        }
+        private bool _isSettingsWindowOpen;
 
         /// <summary>
         /// Whether the full IconGrid UI is visible (vs. floating icon mode).

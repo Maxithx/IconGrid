@@ -311,6 +311,21 @@ namespace IconGrid.Views.Launcher
             _devOverlayController?.UpdateVisibility();
         }
 
+        if (string.Equals(e.PropertyName, nameof(MainViewModel.LauncherHideMode), StringComparison.OrdinalIgnoreCase))
+        {
+            _windowModeController?.ApplyIdleHideMode();
+        }
+
+        if (string.Equals(e.PropertyName, nameof(MainViewModel.IsSettingsWindowOpen), StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_viewModel.IsSettingsWindowOpen)
+            {
+                // Settings window just closed — mouse is likely outside the launcher.
+                // Restart the idle auto-hide timer so it can fire naturally.
+                _windowModeController?.HandleMouseLeave();
+            }
+        }
+
         if (string.Equals(e.PropertyName, nameof(MainViewModel.AccentBrush), StringComparison.OrdinalIgnoreCase) ||
             string.Equals(e.PropertyName, nameof(MainViewModel.IsLightTheme), StringComparison.OrdinalIgnoreCase))
         {
@@ -385,9 +400,26 @@ namespace IconGrid.Views.Launcher
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left)
+            if (e.ChangedButton != MouseButton.Left)
+                return;
+
+            // If the launcher is idle-hidden, a click on the peek strip should show it
+            // instead of starting a drag.
+            if (_windowModeController?.IsIdleHideActive == true && _windowModeController.IsHidden)
             {
-                DragMove();
+                _windowModeController.PeekStripClicked();
+                e.Handled = true;
+                return;
+            }
+
+            DragMove();
+
+            // Clamp to work area after drag so the user can't pull the window
+            // entirely off-screen. Multi-monitor drag bypasses clamping when
+            // the AllowMultiMonitorDrag flag is set.
+            if (!_viewModel.AllowMultiMonitorDrag)
+            {
+                _windowModeController?.ClampWindowToWorkArea();
             }
         }
 
@@ -408,6 +440,11 @@ namespace IconGrid.Views.Launcher
         private void Window_Drop(object sender, System.Windows.DragEventArgs e)
         {
             _dragDropHelper?.HandleWindowDrop(sender, e);
+        }
+
+        private void IdleHideButton_Click(object sender, RoutedEventArgs e)
+        {
+            _windowModeController?.ToggleManualHide();
         }
 
         // WPF DragEventArgs (fully-qualified to avoid ambiguity with WinForms)

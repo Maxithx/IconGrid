@@ -28,6 +28,10 @@ public class ConfigModel
     public bool EnableContentScroll { get; set; } = true;
     public string IconViewMode { get; set; } = "Grid";       // "Grid" or "Carousel"
     public bool RestoreGameResolutionAfterExit { get; set; } = true; // restore original resolution when a game exits
+    public int LauncherHideMode { get; set; } = 0; // LauncherHideMode: 0=AlwaysVisible, 1=Manual, 2=Auto, 3=AutoAndManual
+    public int IdleAutoHideDelaySeconds { get; set; } = 2; // delay before auto-hide kicks in (1-10)
+        public int PeekActivationMode { get; set; } = 0; // 0=hover proximity, 1=click only
+        public bool AllowMultiMonitorDrag { get; set; } = false; // allow DragMove to cross monitors without clamping
     public Dictionary<string, double> GamingOverlayResolutionScales { get; set; } = new(); // per-resolution default overlay scale ("WxH" -> 1.0..1.5)
     public bool IsLightTheme { get; set; } = true;
     public bool StartWithWindows { get; set; } = false;
