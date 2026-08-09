@@ -30,6 +30,8 @@ namespace IconGrid.Views
         private readonly ObservableCollection<CategoryOption> _availableCategories = new();
         private IReadOnlyList<string> _supportedResolutions;
 
+        private readonly ExternalGameRegistry _externalRegistry = new();
+
         public GameResolutionPage()
         {
             InitializeComponent();
@@ -207,6 +209,26 @@ namespace IconGrid.Views
                     _availableCategories.Add(new CategoryOption(
                         item.Category,
                         TabNameLocalizationConverter.LocalizeCategoryName(item.Category, language)));
+                }
+            }
+
+            // Include external games detected via foreground/FPS detection
+            // (games launched outside IconGrid — Battle.net, Steam, Ubisoft, etc.)
+            var externalItems = _externalRegistry.GetLauncherItems();
+            if (externalItems.Count > 0)
+            {
+                var externalCategory = "External";
+                if (!_availableCategories.Any(c => string.Equals(c.Key, externalCategory, System.StringComparison.OrdinalIgnoreCase)))
+                {
+                    _availableCategories.Add(new CategoryOption(
+                        externalCategory,
+                        TabNameLocalizationConverter.LocalizeCategoryName(externalCategory, language)));
+                }
+
+                foreach (var item in externalItems)
+                {
+                    item.PropertyChanged += Item_PropertyChanged;
+                    _allShortcuts.Add(item);
                 }
             }
 

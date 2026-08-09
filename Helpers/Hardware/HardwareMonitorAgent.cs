@@ -146,6 +146,9 @@ public static class HardwareMonitorAgent
     private const long WsExLayered = 0x00080000L;
     private const long WsExNoActivate = 0x08000000L;
 
+    private static readonly Launcher.ExternalGameRegistry ExternalGames = new();
+    private static Launcher.DisplayResolutionService? _externalDisplayResolution;
+
     private sealed record VisibleWindowCandidate(int Pid, string ProcessName, long Area, DateTime? StartedAtUtc, int Score);
 
     public static int Run(string[] args, Action<string>? log = null)
@@ -1036,6 +1039,17 @@ exit:
             currentForegroundPidObservedAtUtc = DateTime.UtcNow;
             overrideExpiresAtUtc = DateTime.UtcNow.AddSeconds(30);
             log?.Invoke($"Foreground override activated for PID {newForegroundPid.Value} until {overrideExpiresAtUtc.Value:HH:mm:ss}.");
+
+            // Auto-register external games (not already in IconGrid shortcuts)
+            // so GameResolutionPage can show them and the user can configure
+            // resolution switching for games launched from Battle.net/Steam/etc.
+            TryAutoRegisterExternalGame(newForegroundPid.Value, log);
+
+            // Check if this external game has a saved resolution — if so,
+            // switch to it now so the player doesn't need to open the settings
+            // page manually before every external launch.
+            TryApplyExternalGameResolution(newForegroundPid.Value, log);
+
             nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid, newForegroundPid);
         }
     }
@@ -1156,6 +1170,67 @@ exit:
         return nativeState.MatchedDxgiEventCount > 0 ||
                nativeState.MatchedD3D9EventCount > 0 ||
                nativeState.MatchedDxgKrnlEventCount > 0;
+    }
+
+    /// <summary>
+    /// Auto-registers an external game (started outside IconGrid) so
+    /// GameResolutionPage can show it. Only called when foreground detection
+    /// discovers a new game PID that is NOT already in the user's shortcut list.
+    /// </summary>
+    private static void TryAutoRegisterExternalGame(int pid, Action<string>? log)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            var path = process.MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            if (ExternalGames.TryRegister(path))
+            {
+                log?.Invoke($"Auto-registered external game: {Path.GetFileName(path)} at {path}");
+            }
+        }
+        catch
+        {
+            // Non-critical — external game registration is best-effort.
+        }
+    }
+
+    /// <summary>
+    /// Applies a saved GameResolution for an external game when it is
+    /// first detected via foreground polling. Uses the same
+    /// DisplayResolutionService pipeline as regular IconGrid shortcuts.
+    /// </summary>
+    private static void TryApplyExternalGameResolution(int pid, Action<string>? log)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            var path = process.MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            var resolution = ExternalGames.GetResolution(path);
+            if (string.IsNullOrWhiteSpace(resolution))
+                return;
+
+            var parsed = Launcher.DisplayResolutionService.ParseResolution(resolution);
+            if (parsed == null)
+                return;
+
+            _externalDisplayResolution ??= new Launcher.DisplayResolutionService();
+            if (_externalDisplayResolution.TrySetResolution(parsed.Value.Width, parsed.Value.Height))
+            {
+                _externalDisplayResolution.AttachPendingResolution(pid);
+                _externalDisplayResolution.WatchProcess(pid);
+                log?.Invoke($"Applied external game resolution {resolution} for {Path.GetFileName(path)} (PID={pid})");
+            }
+        }
+        catch
+        {
+            // Non-critical — resolution switching is best-effort.
+        }
     }
 
     private static int? TryGetCompatibleConfigForegroundPid(

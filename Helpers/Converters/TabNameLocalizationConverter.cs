@@ -40,6 +40,7 @@ public class TabNameLocalizationConverter : IMultiValueConverter
             "Monitor" => "TabMonitor",
             "Passlock" => "TabPasslock",
             "Windows" => "TabWindows",
+            "External" => "TabExternal",
             _ => null
         };
 

@@ -1600,14 +1600,24 @@ private void OnGamingOverlayClosed()
 
 **File**: `Views/Launcher/MainWindow.xaml.cs` — modify `OnGamingOverlayClosed()` method (line 833-840).
 
-### Unapplied changes in working tree
+### Fixes 2-3 implemented + peek restore bug fixed
 
-- `Helpers/Hardware/HardwareMonitorAgent.cs` — IsNonRenderingProcess + ignored-list entries (WmiPrvSE, notepad, mspaint)
-- Built and deployed to `C:\IconGrid` (Debug). NOT committed.
+All fixes deployed, tested, and committed.
 
-### Next session first steps
-1. Read this CHAT_STATE.md section
-2. Implement Fix 2 (MainViewModel.Items.cs — IsKnownLauncherProcess check)
-3. Implement Fix 3 (MainWindow.xaml.cs — OnGamingOverlayClosed unconditionally calls RestoreLauncherFromGame)
-4. Build + deploy + test
-5. Commit + push (await user approval)
+**Fix 2** (`MainViewModel.Items.cs`): `IsKnownLauncherProcess` checks Battle.net, Steam, Ubisoft Connect, EA Desktop, Epic Games Launcher, generic launcher.exe paths before `IsGameItem` → these never fire `GameLaunched` even if placed in the Games category.
+
+**Fix 3** (`MainWindow.xaml.cs`): `OnGamingOverlayClosed` unconditionally calls `RestoreLauncherFromGame` to clear `_isGameHideActive` flag → peek zone always works after closing the overlay.
+
+**Fix 3b** (`LauncherWindowModeController.cs`): `RestoreLauncherFromGame` now guards with `if (!_isGameHideActive) return` — when a game was started externally (e.g. COD from Battle.net), `HideForGame` was never called so there's nothing to restore.
+
+**Fix 3c** (`LauncherWindowModeController.cs`): New `_preGameTop` field in `HideForGame` saves the VISIBLE window position before hiding, separate from `_originalTop` which may have been overwritten by auto-hide's `SlideToPeek` to the peek position (-202.7). `SlideToPreGameTop()` restores to this position in `RestoreLauncherFromGame`.
+
+### Commits pushed
+
+- `81fea04` — fix: prevent non-game programs from triggering gaming overlay and fix hide/peek state after game exit (4 files, +234/-24)
+- `97e41db` — chore: update session state and add collaps-ikon asset (CHAT_STATE.md + figma-icons/collaps-ikon.png)
+- Pushed to origin/main: `464b97a..97e41db`
+
+### Working tree clean
+
+- `git status --short`: nothing (all changes committed and pushed)
