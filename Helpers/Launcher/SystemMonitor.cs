@@ -67,8 +67,37 @@ namespace IconGrid.Helpers
         public string GpuUsage { get => _gpuUsage; private set { _gpuUsage = value; OnPropertyChanged(); } }
         public double GpuUsagePercent { get => _gpuUsagePercent; private set { _gpuUsagePercent = value; OnPropertyChanged(); } }
         public string GpuName { get => _gpuName; private set { _gpuName = value; OnPropertyChanged(); } }
-        public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); } }
-        public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); } }
+        public string DownloadStatus { get => _downloadStatus; private set { _downloadStatus = value; OnPropertyChanged(); NotifyDownloadPartsChanged(); } }
+        public string UploadStatus { get => _uploadStatus; private set { _uploadStatus = value; OnPropertyChanged(); NotifyUploadPartsChanged(); } }
+
+        public string DownloadValue => SplitSpeed(_downloadStatus).value;
+        public string DownloadUnit => SplitSpeed(_downloadStatus).unit;
+        public string UploadValue => SplitSpeed(_uploadStatus).value;
+        public string UploadUnit => SplitSpeed(_uploadStatus).unit;
+
+        private void NotifyDownloadPartsChanged()
+        {
+            OnPropertyChanged(nameof(DownloadValue));
+            OnPropertyChanged(nameof(DownloadUnit));
+        }
+
+        private void NotifyUploadPartsChanged()
+        {
+            OnPropertyChanged(nameof(UploadValue));
+            OnPropertyChanged(nameof(UploadUnit));
+        }
+
+        private static (string value, string unit) SplitSpeed(string status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return ("--", "");
+
+            var lastSpace = status.LastIndexOf(' ');
+            if (lastSpace < 0)
+                return (status, "");
+
+            return (status[..lastSpace], status[(lastSpace + 1)..]);
+        }
         public string FpsStatus
         {
             get => _fpsStatus;

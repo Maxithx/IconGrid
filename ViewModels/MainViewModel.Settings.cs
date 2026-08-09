@@ -52,6 +52,12 @@ namespace IconGrid.ViewModels
             _monitorDividerGap = state.MonitorDividerGap;
             _monitorCpuBarGap = state.MonitorCpuBarGap;
             _monitorGpuBarGap = state.MonitorGpuBarGap;
+            _monitorDownloadLabelToValueGap = state.MonitorDownloadLabelToValueGap;
+            _monitorUploadLabelToValueGap = state.MonitorUploadLabelToValueGap;
+            _monitorDownloadValueToUnitGap = state.MonitorDownloadValueToUnitGap;
+            _monitorUploadValueToUnitGap = state.MonitorUploadValueToUnitGap;
+            _monitorDownloadValueWidth = state.MonitorDownloadValueWidth;
+            _monitorUploadValueWidth = state.MonitorUploadValueWidth;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
             _language = state.Language;
             _windowStateStore.ApplyConfig(
@@ -169,6 +175,12 @@ namespace IconGrid.ViewModels
                 MonitorDividerGap = _monitorDividerGap,
                 MonitorCpuBarGap = _monitorCpuBarGap,
                 MonitorGpuBarGap = _monitorGpuBarGap,
+                MonitorDownloadLabelToValueGap = _monitorDownloadLabelToValueGap,
+                MonitorUploadLabelToValueGap = _monitorUploadLabelToValueGap,
+                MonitorDownloadValueToUnitGap = _monitorDownloadValueToUnitGap,
+                MonitorUploadValueToUnitGap = _monitorUploadValueToUnitGap,
+                MonitorDownloadValueWidth = _monitorDownloadValueWidth,
+                MonitorUploadValueWidth = _monitorUploadValueWidth,
             };
 
             _layoutState.ApplyToSettingsState(state);

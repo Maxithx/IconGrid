@@ -86,6 +86,12 @@ namespace IconGrid.ViewModels.Settings
                 config.MonitorDividerGap = state.MonitorDividerGap;
                 config.MonitorCpuBarGap = state.MonitorCpuBarGap;
                 config.MonitorGpuBarGap = state.MonitorGpuBarGap;
+                config.MonitorDownloadLabelToValueGap = state.MonitorDownloadLabelToValueGap;
+                config.MonitorUploadLabelToValueGap = state.MonitorUploadLabelToValueGap;
+                config.MonitorDownloadValueToUnitGap = state.MonitorDownloadValueToUnitGap;
+                config.MonitorUploadValueToUnitGap = state.MonitorUploadValueToUnitGap;
+                config.MonitorDownloadValueWidth = state.MonitorDownloadValueWidth;
+                config.MonitorUploadValueWidth = state.MonitorUploadValueWidth;
 
                 _configManager.SaveConfig(config);
             }
