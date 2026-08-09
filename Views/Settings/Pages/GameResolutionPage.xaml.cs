@@ -30,8 +30,6 @@ namespace IconGrid.Views
         private readonly ObservableCollection<CategoryOption> _availableCategories = new();
         private IReadOnlyList<string> _supportedResolutions;
 
-        private readonly ExternalGameRegistry _externalRegistry = new();
-
         public GameResolutionPage()
         {
             InitializeComponent();
@@ -214,7 +212,9 @@ namespace IconGrid.Views
 
             // Include external games detected via foreground/FPS detection
             // (games launched outside IconGrid — Battle.net, Steam, Ubisoft, etc.)
-            var externalItems = _externalRegistry.GetLauncherItems();
+            // Always read from disk fresh so newly registered games appear immediately.
+            var externalRegistry = new ExternalGameRegistry();
+            var externalItems = externalRegistry.GetLauncherItems();
             if (externalItems.Count > 0)
             {
                 var externalCategory = "External";
