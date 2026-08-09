@@ -13,6 +13,16 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 - Shortcut icons are fully drag-and-drop manageable with right-click context menus (rename, change icon, run as admin, copy path, remove).
 - Closing the launcher hides it back to floating-icon mode instead of terminating the process.
 
+### Categories (tabs)
+
+Shortcuts are organized into category tabs at the top of the launcher (Games, Apps, Video, etc.). Each tab is shown as a clickable pill-shaped button:
+
+- **Add tab** — click the `+` button next to the tabs to create a new category.
+- **Rename / Remove tab** — right-click any tab for rename and remove options.
+- **Reorder tabs** — drag any tab horizontally and drop it before or after another to change the order. The selected tab stays selected.
+- **Move shortcut to another tab** — drag any shortcut icon from the grid and drop it onto a different category tab. The shortcut moves to that category and appears at the end of its list. Drop on the same tab does nothing (no duplicates).
+- Tab order and category assignments are persisted across restarts.
+
 ### Floating icon
 
 ![IconGrid Floating icon Screenshot](Assets/git-img/Floatingicon.png)
