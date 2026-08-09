@@ -38,6 +38,17 @@ namespace IconGrid.ViewModels.Settings
         public Dictionary<string, double> GamingOverlayResolutionScales { get; init; } = new();
         public int WindowAnimationDurationMs { get; init; }
         public FpsTargetConfig FpsTarget { get; init; } = new();
+        public double MonitorPingToNetGap { get; init; } = 4;
+        public double MonitorNetToDownloadGap { get; init; } = 6;
+        public double MonitorDownloadToUploadGap { get; init; } = 4;
+        public double MonitorUploadToCpuGap { get; init; } = 4;
+        public double MonitorCpuToGpuGap { get; init; } = 4;
+        public bool MonitorDivider1Visible { get; init; } = true;
+        public bool MonitorDivider2Visible { get; init; } = true;
+        public bool MonitorDivider3Visible { get; init; } = true;
+        public double MonitorDividerGap { get; init; } = 4;
+        public double MonitorCpuBarGap { get; init; } = 6;
+        public double MonitorGpuBarGap { get; init; } = 6;
         public string Language { get; init; } = "da";
         public double? WindowLeft { get; init; }
         public double? WindowTop { get; init; }
@@ -94,7 +105,18 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayWindowLeft = config.GamingOverlayWindowLeft,
                 GamingOverlayWindowTop = config.GamingOverlayWindowTop,
                 FloatingIconLeft = config.FloatingIconLeft,
-                FloatingIconTop = config.FloatingIconTop
+                FloatingIconTop = config.FloatingIconTop,
+                MonitorPingToNetGap = config.MonitorPingToNetGap,
+                MonitorNetToDownloadGap = config.MonitorNetToDownloadGap,
+                MonitorDownloadToUploadGap = config.MonitorDownloadToUploadGap,
+                MonitorUploadToCpuGap = config.MonitorUploadToCpuGap,
+                MonitorCpuToGpuGap = config.MonitorCpuToGpuGap,
+                MonitorDivider1Visible = config.MonitorDivider1Visible,
+                MonitorDivider2Visible = config.MonitorDivider2Visible,
+                MonitorDivider3Visible = config.MonitorDivider3Visible,
+                MonitorDividerGap = config.MonitorDividerGap,
+                MonitorCpuBarGap = config.MonitorCpuBarGap,
+                MonitorGpuBarGap = config.MonitorGpuBarGap
             };
         }
     }

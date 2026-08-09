@@ -749,6 +749,20 @@ namespace IconGrid.Views.Launcher
             _viewModel.IsHelpOpen = false;
         }
 
+        private void MonitorLayoutCloseButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            _viewModel.IsMonitorLayoutOpen = false;
+        }
+
+        private void MonitorLayoutResetButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            _viewModel.MonitorPingToNetGap = 4;
+            _viewModel.MonitorNetToDownloadGap = 6;
+            _viewModel.MonitorDownloadToUploadGap = 4;
+            _viewModel.MonitorUploadToCpuGap = 4;
+            _viewModel.MonitorCpuToGpuGap = 4;
+        }
+
         private void LayoutPresetButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.Button button || button.ContextMenu == null) return;

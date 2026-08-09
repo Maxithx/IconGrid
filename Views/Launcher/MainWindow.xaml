@@ -7,6 +7,7 @@
         xmlns:models="clr-namespace:IconGrid.Models"
         xmlns:helpers="clr-namespace:IconGrid.Helpers"
         xmlns:controls="clr-namespace:IconGrid.Controls"
+        xmlns:converters="clr-namespace:IconGrid.Helpers.Converters"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         Title="IconGrid"
@@ -40,6 +41,7 @@
         <helpers:TabNameLocalizationConverter x:Key="TabNameLocalizationConverter" />
         <helpers:PingSeverityToBrushConverter x:Key="PingSeverityBrush" />
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
+        <converters:DoubleToLeftMarginConverter x:Key="DoubleToLeftMarginConverter" />
 
         <Storyboard x:Key="SlideUpAnimation">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"

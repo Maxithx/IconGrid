@@ -185,6 +185,11 @@ namespace IconGrid.Views
             ShowPage(new HardwarePage(), HardwareNavButton);
         }
 
+        private void MonitorLayoutNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(new MonitorRowLayoutPage(), MonitorLayoutNavButton);
+        }
+
         private void TestNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new TestPage(), TestNavButton);

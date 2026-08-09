@@ -40,6 +40,17 @@ namespace IconGrid.ViewModels
             _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust, state.IconViewMode);
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
             _enableContentScroll = state.EnableContentScroll;
+            _monitorPingToNetGap = state.MonitorPingToNetGap;
+            _monitorNetToDownloadGap = state.MonitorNetToDownloadGap;
+            _monitorDownloadToUploadGap = state.MonitorDownloadToUploadGap;
+            _monitorUploadToCpuGap = state.MonitorUploadToCpuGap;
+            _monitorCpuToGpuGap = state.MonitorCpuToGpuGap;
+            _monitorDivider1Visible = state.MonitorDivider1Visible;
+            _monitorDivider2Visible = state.MonitorDivider2Visible;
+            _monitorDivider3Visible = state.MonitorDivider3Visible;
+            _monitorDividerGap = state.MonitorDividerGap;
+            _monitorCpuBarGap = state.MonitorCpuBarGap;
+            _monitorGpuBarGap = state.MonitorGpuBarGap;
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
             _language = state.Language;
             _windowStateStore.ApplyConfig(
@@ -144,7 +155,18 @@ namespace IconGrid.ViewModels
                 AllowMultiMonitorDrag = _allowMultiMonitorDrag,
                 GamingOverlayResolutionScales = _gamingOverlayResolutionScales,
                 WindowAnimationDurationMs = _windowAnimationDurationMs,
-                FpsTarget = _fpsTarget
+                FpsTarget = _fpsTarget,
+                MonitorPingToNetGap = _monitorPingToNetGap,
+                MonitorNetToDownloadGap = _monitorNetToDownloadGap,
+                MonitorDownloadToUploadGap = _monitorDownloadToUploadGap,
+                MonitorUploadToCpuGap = _monitorUploadToCpuGap,
+                MonitorCpuToGpuGap = _monitorCpuToGpuGap,
+                MonitorDivider1Visible = _monitorDivider1Visible,
+                MonitorDivider2Visible = _monitorDivider2Visible,
+                MonitorDivider3Visible = _monitorDivider3Visible,
+                MonitorDividerGap = _monitorDividerGap,
+                MonitorCpuBarGap = _monitorCpuBarGap,
+                MonitorGpuBarGap = _monitorGpuBarGap,
             };
 
             _layoutState.ApplyToSettingsState(state);

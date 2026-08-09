@@ -62,5 +62,16 @@ namespace IconGrid.ViewModels.Settings
         public Dictionary<string, double> GamingOverlayResolutionScales { get; set; } = new();
         public int WindowAnimationDurationMs { get; set; }
         public FpsTargetConfig FpsTarget { get; set; } = new();
+        public double MonitorPingToNetGap { get; set; } = 4;
+        public double MonitorNetToDownloadGap { get; set; } = 6;
+        public double MonitorDownloadToUploadGap { get; set; } = 4;
+        public double MonitorUploadToCpuGap { get; set; } = 4;
+        public double MonitorCpuToGpuGap { get; set; } = 4;
+        public bool MonitorDivider1Visible { get; set; } = true;
+        public bool MonitorDivider2Visible { get; set; } = true;
+        public bool MonitorDivider3Visible { get; set; } = true;
+        public double MonitorDividerGap { get; set; } = 4;
+        public double MonitorCpuBarGap { get; set; } = 6;
+        public double MonitorGpuBarGap { get; set; } = 6;
     }
 }

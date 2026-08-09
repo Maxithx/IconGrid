@@ -108,6 +108,26 @@ namespace IconGrid.ViewModels
         private bool _enableContentScroll = true;
         private int _windowAnimationDurationMs = 250;
 
+        // Monitor row layout margins (adjustable via Monitor Layout page)
+        private double _monitorPingToNetGap = 4;
+        private double _monitorNetToDownloadGap = 6;
+        private double _monitorDownloadToUploadGap = 4;
+        private double _monitorUploadToCpuGap = 4;
+        private double _monitorCpuToGpuGap = 4;
+
+        // Monitor row divider visibility (Divider0 = before Download, Divider1 = between Down/Up, Divider2 = between Up/CPU, Divider3 = between CPU/GPU)
+        private bool _monitorDivider0Visible = true;
+        private bool _monitorDivider1Visible = true;
+        private bool _monitorDivider2Visible = true;
+        private bool _monitorDivider3Visible = true;
+
+        // Monitor row divider gap (symmetric left+right)
+        private double _monitorDividerGap = 4;
+
+        // Monitor row bar gaps (CPU/GPU usage bar left margin)
+        private double _monitorCpuBarGap = 6;
+        private double _monitorGpuBarGap = 6;
+
         private readonly LauncherLayoutMeasurements _layoutMeasurements = new();
         private readonly LauncherLayoutState _layoutState = new();
         private readonly WindowStateStore _windowStateStore = new();
@@ -655,6 +675,129 @@ namespace IconGrid.ViewModels
             }
         }
 
+        public bool IsMonitorLayoutOpen
+        {
+            get => _overlayState.IsMonitorLayoutOpen;
+            set
+            {
+                if (!_overlayState.SetMonitorLayoutOpen(value, out var settingsChanged, out var layoutsChanged, out var helpChanged))
+                    return;
+
+                NotifyOverlayStateChangedExtended(nameof(IsMonitorLayoutOpen),
+                    settingsChanged, nameof(IsSettingsOpen),
+                    layoutsChanged, nameof(IsLayoutsOpen),
+                    helpChanged, nameof(IsHelpOpen));
+            }
+        }
+
+        // ── Monitor Row Layout Margins ──
+
+        public double MonitorPingToNetGap
+        {
+            get => _monitorPingToNetGap;
+            set
+            {
+                if (SetField(ref _monitorPingToNetGap, Math.Max(-20, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorPingToNetGap));
+            }
+        }
+
+        public double MonitorNetToDownloadGap
+        {
+            get => _monitorNetToDownloadGap;
+            set
+            {
+                if (SetField(ref _monitorNetToDownloadGap, Math.Max(-20, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorNetToDownloadGap));
+            }
+        }
+
+        public double MonitorDownloadToUploadGap
+        {
+            get => _monitorDownloadToUploadGap;
+            set
+            {
+                if (SetField(ref _monitorDownloadToUploadGap, Math.Max(-20, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorDownloadToUploadGap));
+            }
+        }
+
+        public double MonitorUploadToCpuGap
+        {
+            get => _monitorUploadToCpuGap;
+            set
+            {
+                if (SetField(ref _monitorUploadToCpuGap, Math.Max(-20, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorUploadToCpuGap));
+            }
+        }
+
+        public double MonitorCpuToGpuGap
+        {
+            get => _monitorCpuToGpuGap;
+            set
+            {
+                if (SetField(ref _monitorCpuToGpuGap, Math.Max(-20, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorCpuToGpuGap));
+            }
+        }
+
+        // ── Monitor Row Dividers ──
+
+        public bool MonitorDivider0Visible
+        {
+            get => _monitorDivider0Visible;
+            set => SetField(ref _monitorDivider0Visible, value);
+        }
+
+        public bool MonitorDivider1Visible
+        {
+            get => _monitorDivider1Visible;
+            set => SetField(ref _monitorDivider1Visible, value);
+        }
+
+        public bool MonitorDivider2Visible
+        {
+            get => _monitorDivider2Visible;
+            set => SetField(ref _monitorDivider2Visible, value);
+        }
+
+        public bool MonitorDivider3Visible
+        {
+            get => _monitorDivider3Visible;
+            set => SetField(ref _monitorDivider3Visible, value);
+        }
+
+        public double MonitorDividerGap
+        {
+            get => _monitorDividerGap;
+            set
+            {
+                if (SetField(ref _monitorDividerGap, Math.Max(0, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorDividerGap));
+            }
+        }
+
+        public double MonitorCpuBarGap
+        {
+            get => _monitorCpuBarGap;
+            set
+            {
+                if (SetField(ref _monitorCpuBarGap, Math.Max(0, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorCpuBarGap));
+            }
+        }
+
+        public double MonitorGpuBarGap
+        {
+            get => _monitorGpuBarGap;
+            set
+            {
+                if (SetField(ref _monitorGpuBarGap, Math.Max(0, Math.Min(30, value))))
+                    OnPropertyChanged(nameof(MonitorGpuBarGap));
+            }
+        }
+
         /// <summary>
         /// Indicates any overlay (settings or layouts) is active.
         /// </summary>
@@ -1058,6 +1201,24 @@ namespace IconGrid.ViewModels
                 OnPropertyChanged(secondaryPropertyName);
             if (tertiaryChanged)
                 OnPropertyChanged(tertiaryPropertyName);
+
+            OnPropertyChanged(nameof(IsOverlayOpen));
+            _layoutMeasurements.NotifyContentHeightChanged();
+        }
+
+        private void NotifyOverlayStateChangedExtended(
+            string propertyName,
+            bool secondChanged, string secondName,
+            bool thirdChanged, string thirdName,
+            bool fourthChanged, string fourthName)
+        {
+            OnPropertyChanged(propertyName);
+            if (secondChanged)
+                OnPropertyChanged(secondName);
+            if (thirdChanged)
+                OnPropertyChanged(thirdName);
+            if (fourthChanged)
+                OnPropertyChanged(fourthName);
 
             OnPropertyChanged(nameof(IsOverlayOpen));
             _layoutMeasurements.NotifyContentHeightChanged();

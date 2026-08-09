@@ -1671,3 +1671,70 @@ Der er TO kald til `AttemptExternalGameRegistration`:
 4. Build + deploy
 5. Test: Start COD fra Battle.net → tjek `external-games.json` → tjek Game Resolution-siden for "Eksterne spil"
 6. Commit + push (AFVENT BRUGER-GODKENDELSE)
+
+## Monitor Row Layout Editor — 2026-08-09
+
+
+### Feature implemented
+- **Monitor Row Layout editor side** tilgængelig via "More"-knappen (⚙️) i tab-baren.
+- 5 real-time justerbare margins mellem monitor-elementerne: Ping→Net, Net→Download, Download→Upload, Upload→CPU, CPU→GPU.
+- Hver margin har en slider (0-30 px) med live opdatering af monitor row i topbaren.
+- Reset-knap sætter alle margins tilbage til default (Ping→Net=4, Net→Download=6, resten=4).
+- Ingen persistens i denne test-version — margins genstarter til default når appen genstartes.
+
+### CORRECTION 2026-08-09 (17:55)
+- **FIXED:** More-knappen (\u2699\uFE0F) er gendannet til at \u00e5bne Settings-vinduet.
+- **FIXED:** Inline overlay i MainWindow er fjernet.
+- **NEW:** Monitor Row Layout er nu en rigtig side i Settings sidebar'en (mellem Hardware og Help) med TemplatePage + StartsideSectionCardStyle design.
+- Navigation: ML knap i sidebar med accent-farvet badge.
+
+### Files changed (9 files)
+- `ViewModels/Launcher/LauncherOverlayState.cs` — + `IsMonitorLayoutOpen` state
+- `ViewModels/MainViewModel.cs` — + 5 margin properties + `IsMonitorLayoutOpen` wrapper + `NotifyOverlayStateChangedExtended`
+- `Helpers/Converters/DoubleToLeftMarginConverter.cs` — NY converter double → Thickness
+- `Controls/Launcher/LauncherMonitorRow.xaml` — hardcoded margins → bindings
+- `Views/Launcher/MainWindow.xaml` — + Monitor Layout overlay Grid med 5 sliders
+- `Views/Launcher/MainWindow.xaml.cs` — + close/reset handlers, More button → Monitor Layout
+
+### Build & deploy
+- `dotnet build` succeeded (0 errors, 0 warnings)
+- Deployed to `C:\icongrid` (IconGrid.dll 919.552 bytes)
+
+## Monitor Row Layout — final state 2026-08-09
+
+
+### Complete session
+- Monitor Row Layout side i Settings sidebar (ML knap mellem HW og Help) med TemplatePage + StartsideSectionCardStyle design.
+- 5 element-gap sliders (0-30 px) med full persistence: Ping→Net, Net→Download, Download→Upload, Upload→CPU, CPU→GPU.
+- 4 divider toggles (Net|Download, Download|Upload, Upload|CPU, CPU|GPU) med persistence.
+- Divider gap slider (symmetrisk 0-30 px) med persistence.
+- CPU/GPU bar-gap sliders (0-30 px) med persistence.
+- Reset defaults knap.
+- **ALL** hardcoded Width/MinWidth removed — elements auto-size to text, 0px margin = completely flush.
+
+### Fixes
+- More-knap (⚙️) restored to open Settings window.
+- Inline overlay removed from MainWindow.
+- items.json recovered from config.json (16 items).
+
+### Deploy safety
+- `deploy-test.cmd` created in repo root — safe deploy script that ONLY copies DLLs + EXEs, never data files.
+- AGENT.md updated with deploy safety rules.
+- .clinerules updated with SESSION START rule (read AGENT.md + CHAT_STATE.md first).
+
+### Files changed (16 files)
+- Controls/Launcher/LauncherMonitorRow.xaml
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml + .cs
+- Views/Settings/SettingsWindow.xaml + .cs
+- ViewModels/MainViewModel.cs + .Settings.cs
+- Models/ConfigModel.cs
+- ViewModels/Settings/MainViewModelConfigState.cs + MainViewModelSettingsState.cs
+- Helpers/Converters/DoubleToLeftMarginConverter.cs
+- ViewModels/Launcher/LauncherOverlayState.cs
+- deploy-test.cmd (NEW)
+- AGENT.md
+- .clinerules
+
+### Pending
+- Commit + push (await user approval)
+- User to re-create shortcut paths

@@ -8,6 +8,7 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - PATHS: Always use absolute Windows paths (e.g., E:\IconGrid-GitHub\...). Never use forward slashes (/) for filesystem paths. The active repository/worktree is `E:\IconGrid-GitHub` only.
 
 ## 2. FILE & TOOLING STRATEGY
+- SESSION START: Before making any changes, read `AGENT.md` and `CHAT_STATE.md`. These contain project rules, deploy procedures, and current session state.
 - FILE API FIRST: Always prefer VS Code's `read_file` and `write_to_file` over shell commands for reading/writing code.
 - MULTI-FILE OPS: Do not use complex pipelines. If you need to search multiple files, read them one by one using the File API.
 - CONTEXT MANAGEMENT: For large files (>500 lines), never read the whole file. Ask to read specific sections (by line number or method) to keep token usage efficient.

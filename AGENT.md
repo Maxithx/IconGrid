@@ -54,8 +54,10 @@ Before making changes, read these files in this order:
 - After every deploy, note the deploy timestamp in `CHAT_STATE.md` under `## Session ...` so the user can verify which build is running.
 - **CRITICAL — copy the whole build output, not just the .exe.** IconGrid is a framework-dependent .NET app: all code lives in `IconGrid.dll`, NOT in `IconGrid.exe`. Copying only the exe leaves the old dll in place and the user keeps running the previous build (this burned a long debugging session on 2026-08-06).
 - Steps to deploy a change for testing:
-  1. Build the configuration you want the user to test, e.g. `dotnet build IconGrid.csproj -c Release` (or `-c Debug` — confirm with the user which one they use).
-  2. Copy the ENTIRE output folder: `Copy-Item 'E:\IconGrid-GitHub\bin\Release\net10.0-windows10.0.22621.0\*' 'C:\IconGrid\' -Recurse -Force` (adjust the config folder to Debug if needed).
+  1. Build the configuration you want the user to test, e.g. `dotnet build IconGrid.csproj` (the user tests Debug builds).
+  2. **NEVER use `xcopy /e` or `Copy-Item -Recurse` to copy the ENTIRE build output to `C:\IconGrid`** — this can overwrite the user's data files (`config.json`, `items.json`) with stale or empty copies from `bin\Debug`. Only copy DLLs + EXEs + runtime config files.
+  3. **PREFER `deploy-test.cmd`** in the repo root — it stops running processes and copies only DLLs, EXEs, runtimeconfig.json, and deps.json. Run it as: `cmd /c E:\IconGrid-GitHub\deploy-test.cmd`.
+  4. If deploying manually: `taskkill /f /im IconGrid.exe`, then `xcopy /y /q "E:\IconGrid-GitHub\bin\Debug\net10.0-windows10.0.22621.0\*.dll" "C:\icongrid\" >nul` (repeat for *.exe, *.runtimeconfig.json, *.deps.json).
   3. Make sure all IconGrid processes are fully closed first (launcher + hardware-monitor agent, e.g. `IconGrid.exe` and `IconGridFpsAgent.exe` in Task Manager > Details). A running process keeps the old dll loaded.
   4. Verify the copy: `C:\IconGrid\IconGrid.dll` must have the same (or newer) LastWriteTime as the freshly built dll in `bin\<Config>\net10.0-windows10.0.22621.0\`. If it still shows an old timestamp, the dll was not copied and the test is meaningless.
   5. Check Task Manager that the process StartTime is after the copy timestamp.

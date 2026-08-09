@@ -595,6 +595,31 @@
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
+                        <Button x:Name="MonitorLayoutNavButton"
+                                Style="{StaticResource NavButtonStyle}"
+                                Margin="0,6,0,0"
+                                ToolTip="{Binding MonitorRowLayoutTitle}"
+                                Click="MonitorLayoutNavButton_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="28"
+                                        Height="28"
+                                        CornerRadius="6"
+                                        Background="{Binding AccentBrush}">
+                                    <TextBlock Text="ML"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="White" />
+                                </Border>
+                                <TextBlock Margin="12,0,0,0"
+                                           Text="Monitor Row Layout"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="HelpNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"

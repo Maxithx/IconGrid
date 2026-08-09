@@ -8,7 +8,9 @@ namespace IconGrid.ViewModels.Launcher
 
         public bool IsHelpOpen { get; private set; }
 
-        public bool IsOverlayOpen => IsSettingsOpen || IsLayoutsOpen || IsHelpOpen;
+        public bool IsMonitorLayoutOpen { get; private set; }
+
+        public bool IsOverlayOpen => IsSettingsOpen || IsLayoutsOpen || IsHelpOpen || IsMonitorLayoutOpen;
 
         public bool SetSettingsOpen(bool value, out bool layoutsChanged, out bool helpChanged)
         {
@@ -64,6 +66,28 @@ namespace IconGrid.ViewModels.Launcher
             layoutsChanged = IsLayoutsOpen;
             IsSettingsOpen = false;
             IsLayoutsOpen = false;
+            return true;
+        }
+
+        public bool SetMonitorLayoutOpen(bool value, out bool settingsChanged, out bool layoutsChanged, out bool helpChanged)
+        {
+            settingsChanged = false;
+            layoutsChanged = false;
+            helpChanged = false;
+
+            if (IsMonitorLayoutOpen == value)
+                return false;
+
+            IsMonitorLayoutOpen = value;
+            if (!value)
+                return true;
+
+            settingsChanged = IsSettingsOpen;
+            layoutsChanged = IsLayoutsOpen;
+            helpChanged = IsHelpOpen;
+            IsSettingsOpen = false;
+            IsLayoutsOpen = false;
+            IsHelpOpen = false;
             return true;
         }
     }
