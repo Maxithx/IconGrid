@@ -140,6 +140,14 @@ namespace IconGrid.ViewModels
                 return;
             }
 
+            // Known launcher processes (Battle.net, Steam, etc.) should never trigger
+            // game behavior even if they're in the Games category.
+            if (IsKnownLauncherProcess(item.Path))
+            {
+                Debug.WriteLine($"Skipping FPS target for known launcher: {item.DisplayName} (Path={item.Path})");
+                return;
+            }
+
             // Only items from the Games category are treated as games. Launching any
             // other program (browser, code editor, media player, shortcut, etc.) must
             // NOT hide the launcher, show the gaming overlay, or persist an FPS target.
@@ -201,6 +209,28 @@ namespace IconGrid.ViewModels
             // Notify listeners (MainWindow) that a game was launched so they can
             // apply the configured auto-behavior (show overlay / hide launcher).
             GameLaunched?.Invoke();
+        }
+
+        /// <summary>
+        /// Checks whether the launched executable is a known game store/launcher
+        /// (Battle.net, Steam, Ubisoft Connect, etc.). These programs should never
+        /// trigger game behavior (overlay, auto-hide, FPS target) even if the user
+        /// placed them in the Games category.
+        /// </summary>
+        private static bool IsKnownLauncherProcess(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            var normalized = Path.GetFileNameWithoutExtension(path).Trim();
+            return normalized.Equals("Battle.net", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("Battle.net Launcher", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("steam", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("steamwebhelper", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("upc", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("EADesktop", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("EpicGamesLauncher", StringComparison.OrdinalIgnoreCase) ||
+                   normalized.Equals("launcher", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

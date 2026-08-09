@@ -37,6 +37,8 @@ namespace IconGrid.Helpers
         private bool _isGameHideActive;
         private bool _isPeekAtBottom; // true when launcher is hidden at the bottom edge
         private double? _originalTop;  // saved position before peek (DIP), used to restore; null = not saved
+        private double? _preGameTop;   // window position BEFORE game-hide (DIP). Separate from _originalTop
+                                       // because auto-hide may have already saved the peek position there.
 
         // Win32 interop for getting the actual rendered window position.
         // _window.Left/Top/Width are NOT updated during WPF animations
@@ -497,6 +499,27 @@ namespace IconGrid.Helpers
 
         public void HideForGame(int behavior)
         {
+            // Save the VISIBLE window position BEFORE hiding. If the launcher
+            // is already hidden by auto-hide, _originalTop contains the PEEK
+            // position (e.g. -202.7), not the visible one. Use the CURRENT
+            // rendered position as the restore target instead — that's where
+            // the user last saw the launcher before the game started.
+            //
+            // This matters because auto-hide fires SlideToPeek FIRST (saving
+            // the visible position in _originalTop), then the idle delay timer
+            // slides the window to the peek position. If a game starts while
+            // the window is already at its peek position, _originalTop has been
+            // overwritten — so we store the pre-game position separately.
+            var dpiScale = GetWindowDpiScale();
+            if (TryGetWindowRect(out var currentRect))
+            {
+                _preGameTop = _isHidden ? _originalTop : currentRect.Top / dpiScale;
+            }
+            else
+            {
+                _preGameTop = _isHidden ? _originalTop : _window.Top;
+            }
+
             _isGameHideActive = true;
             _autoHideEnabled = false;
             _autoHideTimer?.Stop();
@@ -505,10 +528,8 @@ namespace IconGrid.Helpers
 
             if (behavior == 1)
             {
-                if (!_isHidden)
-                {
-                    SlideTo(-_window.Height + 8);
-                }
+                _isHidden = true;
+                SlideTo(-_window.Height + 8);
             }
             else if (behavior == 2)
             {
@@ -519,8 +540,29 @@ namespace IconGrid.Helpers
             }
         }
 
+        private void SlideToPreGameTop()
+        {
+            _isHidden = false;
+            _isPeekAtBottom = false;
+            _isManuallyHidden = false;
+            var restoreTop = _preGameTop ?? _originalTop ?? _window.Top;
+            TraceSlideToVisible(restoreTop);
+            SlideTo(restoreTop);
+            _originalTop = null;
+            _preGameTop = null;
+        }
+
         public void RestoreLauncherFromGame()
         {
+            // Only restore if the launcher was actually hidden for a game.
+            // When a game is started externally (e.g. COD from Battle.net),
+            // HideForGame is never called — so the launcher is still visible
+            // and in the user's chosen idle-hide mode. Running ApplyIdleHideMode
+            // here would restart the auto-hide delay timer in auto-hide mode
+            // and the launcher would disappear after X seconds for no reason.
+            if (!_isGameHideActive)
+                return;
+
             _isGameHideActive = false;
 
             if (_window.WindowState == WindowState.Minimized)
@@ -531,7 +573,11 @@ namespace IconGrid.Helpers
 
             if (_isHidden)
             {
-                SlideToVisible();
+                // Use the saved pre-game position, NOT _originalTop.
+                // _originalTop may have been overwritten by auto-hide's
+                // SlideToPeek while the game was starting, so it contains
+                // the peek position (-202.7) instead of the visible one.
+                SlideToPreGameTop();
             }
 
             if (_viewModel.IsFullWindowVisible)

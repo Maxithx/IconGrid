@@ -832,11 +832,16 @@ namespace IconGrid.Views.Launcher
 
         private void OnGamingOverlayClosed()
         {
-            // Optionally restore the launcher if it was hidden/minimized for a game.
-            if (_viewModel.RestoreLauncherAfterOverlayClosed)
-            {
-                _windowModeController?.RestoreLauncherFromGame();
-            }
+            // Always clear the game-hide state so idle-hide/peek can work again.
+            // When the overlay is closed (manually or automatically), the
+            // _isGameHideActive flag must be reset — otherwise the proximity
+            // timer returns immediately and the peek strip becomes dead.
+            //
+            // RestoreLauncherFromGame handles this safely: it clears the flag,
+            // un-minimizes the window, slides to visible if hidden, and
+            // re-applies the normal idle-hide mode so auto-hide/manual-hide
+            // continue to work exactly as configured.
+            _windowModeController?.RestoreLauncherFromGame();
         }
 
         private void RefreshLayoutCardSelection()

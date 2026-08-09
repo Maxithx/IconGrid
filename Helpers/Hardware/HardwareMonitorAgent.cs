@@ -34,6 +34,7 @@ public static class HardwareMonitorAgent
         "StartMenuExperienceHost",
         "SystemSettings",
         "mscopilot",
+        "WmiPrvSE",
         "Battle.net",
         "steam",
         "steamwebhelper",
@@ -45,9 +46,10 @@ public static class HardwareMonitorAgent
         "brave",
         "chrome",
         "msedge",
-        "firefox"
+        "firefox",
+        "notepad",
+        "mspaint"
     };
-
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly FpsNormalizerState FpsNormalizer = new();
 
@@ -79,6 +81,53 @@ public static class HardwareMonitorAgent
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
     private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+    // Toolhelp32 for module enumeration — used to confidently identify
+    // non-rendering programs (Notepad, Paint, etc.) via module list.
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool Module32FirstW(IntPtr hSnapshot, ref MODULEENTRY32W lpme);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool Module32NextW(IntPtr hSnapshot, ref MODULEENTRY32W lpme);
+
+    private const uint Th32csSnapmodule = 0x00000008;
+    private const int MaxModuleName32 = 255;
+    private const int MaxPath = 260;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MODULEENTRY32W
+    {
+        public uint dwSize;
+        public uint th32ModuleID;
+        public uint th32ProcessID;
+        public uint GlblcntUsage;
+        public uint ProccntUsage;
+        public IntPtr modBaseAddr;
+        public uint modBaseSize;
+        public IntPtr hModule;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MaxModuleName32 + 1)]
+        public string szModule;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MaxPath)]
+        public string szExePath;
+    }
+
+    private static readonly string[] GraphicsApiDlls =
+    {
+        "d3d9.dll",
+        "d3d10.dll",
+        "d3d10core.dll",
+        "d3d11.dll",
+        "d3d12.dll",
+        "d3d12core.dll",
+        "dxgi.dll",
+        "vulkan-1.dll",
+        "opengl32.dll"
+    };
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
@@ -285,10 +334,6 @@ public static class HardwareMonitorAgent
                 }
                 else if (nativeFpsStarted)
                 {
-                    // Native FPS agent is running but reports no usable FPS.
-                    // If we have a confirmed game PID that is still alive, hold the last known FPS
-                    // instead of decaying to "--". This handles games that render very slowly in background.
-                    // When nativeState is null (file locked), preserve current sticky-hold state — don't toggle.
                     var holdLastFps = confirmedForegroundGamePid.HasValue &&
                                       ProcessIsAlive(confirmedForegroundGamePid.Value) &&
                                       (nativeState == null || (nativeState.EtwRunning && nativeState.TargetPid > 0));
@@ -298,7 +343,6 @@ public static class HardwareMonitorAgent
                 }
                 else
                 {
-                    // Native agent unavailable; degrade to local fallback formatting only.
                     snapshot.FpsStatus = fpsMeter.GetSnapshot().LiveFpsFormatted;
                     snapshot.FpsSource = "FpsMeter";
                 }
@@ -431,8 +475,9 @@ exit:
     }
 
     /// <summary>
-    /// Attempts to detect the foreground window's process ID, excluding known system/IconGrid processes.
-    /// Returns null if the foreground window belongs to an ignored process or cannot be determined.
+    /// Optimistic foreground-detection entry point. Filters out ignored
+    /// processes and windows that are too small, then optionally uses the
+    /// module-list check as a positive skip for known non-rendering programs.
     /// </summary>
     private static int? TryGetForegroundGamePid(Action<string>? log)
     {
@@ -448,7 +493,6 @@ exit:
 
             string? processName = null;
 
-            // Check if the process is one we should ignore (IconGrid itself, Explorer, etc.)
             try
             {
                 using var process = Process.GetProcessById((int)pid);
@@ -463,6 +507,17 @@ exit:
 
                 if (!IsLikelyGameForegroundWindow(foregroundHwnd, processName, log))
                 {
+                    return null;
+                }
+
+                // Optimistic skip: if the module list is available and shows
+                // zero graphics API DLLs, this process is NOT a game and we can
+                // confidently skip it. When the module list is unavailable
+                // (elevated anti-cheat, UWP container isolation), we DO NOT
+                // reject — we let the native FPS agent probe the process.
+                if (IsNonRenderingProcess((int)pid))
+                {
+                    log?.Invoke($"Skipping foreground PID {(int)pid} ({processName}) — module scan confirmed no graphics API DLLs.");
                     return null;
                 }
 
@@ -566,6 +621,12 @@ exit:
                         return true;
                     }
 
+                    // Same optimistic skip as the foreground path.
+                    if (IsNonRenderingProcess((int)candidatePid))
+                    {
+                        return true;
+                    }
+
                     if (!GetWindowRect(hwnd, out var rect))
                     {
                         return true;
@@ -659,6 +720,76 @@ exit:
         return score;
     }
 
+    /// <summary>
+    /// Returns true ONLY when module enumeration SUCCEEDS and proves the
+    /// process has no graphics API DLLs loaded. This is a safe, conservative
+    /// filter: it will never reject a game.
+    ///
+    /// When the enumeration is unavailable (elevated anti-cheat process
+    /// denying TH32CS_SNAPMODULE, AppContainer-isolated UWP/GamePass process
+    /// with hidden module lists), the method returns FALSE — we let the
+    /// native FPS agent probe the process instead.
+    /// </summary>
+    private static bool IsNonRenderingProcess(int pid)
+    {
+        if (pid <= 0)
+        {
+            return false;
+        }
+
+        var snapshot = CreateToolhelp32Snapshot(Th32csSnapmodule, (uint)pid);
+        if (snapshot == IntPtr.Zero || snapshot == (IntPtr)(-1))
+        {
+            // Snapshot unavailable — don't reject. Anti-cheat and UWP
+            // processes may block this API.
+            return false;
+        }
+
+        try
+        {
+            var entry = new MODULEENTRY32W();
+            entry.dwSize = (uint)Marshal.SizeOf<MODULEENTRY32W>();
+
+            if (!Module32FirstW(snapshot, ref entry))
+            {
+                // Cannot enumerate modules — don't reject.
+                return false;
+            }
+
+            do
+            {
+                foreach (var graphicsDll in GraphicsApiDlls)
+                {
+                    if (string.Equals(entry.szModule, graphicsDll, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Found a graphics DLL — process COULD be a game.
+                        // Do not skip it.
+                        // Exit early since we found positive evidence.
+                        return false;
+                    }
+                }
+            } while (Module32NextW(snapshot, ref entry));
+
+            // Module enumeration succeeded, and ZERO graphics DLLs were found.
+            // This process is definitely NOT a game (e.g. Notepad, Paint).
+            return true;
+        }
+        catch
+        {
+            // Exception during enumeration — don't reject.
+            return false;
+        }
+        finally
+        {
+            // Can't use `using` on a HANDLE from CreateToolhelp32Snapshot.
+            // CloseHandle is the only way to release it.
+            if (snapshot != IntPtr.Zero && snapshot != (IntPtr)(-1))
+            {
+                try { Marshal.FreeHGlobal(snapshot); } catch { }
+            }
+        }
+    }
+
     private static bool LooksLikeOverlayWindow(IntPtr hwnd)
     {
         try
@@ -679,8 +810,6 @@ exit:
                 return true;
             }
 
-            // Large fallback windows that are both layered and topmost are usually overlays,
-            // not the actual game surface we want to track behind IconGrid.
             if ((exStyle & WsExLayered) != 0 && (exStyle & WsExTopmost) != 0)
             {
                 return true;
@@ -736,7 +865,7 @@ exit:
 
 
     /// <summary>
-    /// Polls the foreground window PID. If it changes to a new game process, 
+    /// Polls the foreground window PID. If it changes to a new game process,
     /// restarts the native FPS agent with the new foreground PID.
     /// Also checks if the config target process is still alive; if not, falls back to foreground detection.
     /// </summary>
