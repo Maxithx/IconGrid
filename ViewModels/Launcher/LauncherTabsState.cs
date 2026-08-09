@@ -75,6 +75,36 @@ namespace IconGrid.ViewModels.Launcher
             return true;
         }
 
+        public bool MoveTab(string tabName, string? targetTabName, bool insertAfter)
+        {
+            if (string.IsNullOrWhiteSpace(tabName) || string.IsNullOrWhiteSpace(targetTabName))
+                return false;
+
+            if (string.Equals(tabName, targetTabName, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var sourceIndex = Tabs.IndexOf(tabName);
+            var targetIndex = Tabs.IndexOf(targetTabName);
+
+            if (sourceIndex < 0 || targetIndex < 0)
+                return false;
+
+            var destinationIndex = insertAfter
+                ? (sourceIndex < targetIndex ? targetIndex : targetIndex + 1)
+                : (sourceIndex < targetIndex ? targetIndex - 1 : targetIndex);
+
+            if (destinationIndex < 0)
+                destinationIndex = 0;
+            if (destinationIndex >= Tabs.Count)
+                destinationIndex = Tabs.Count - 1;
+
+            if (destinationIndex == sourceIndex)
+                return false;
+
+            Tabs.Move(sourceIndex, destinationIndex);
+            return true;
+        }
+
         public bool RemoveTab(string tabName)
         {
             if (string.IsNullOrWhiteSpace(tabName))

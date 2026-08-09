@@ -79,6 +79,43 @@ namespace IconGrid.ViewModels.Launcher
             return true;
         }
 
+        /// <summary>
+        /// Moves a launcher item to a different category, repositioning it at the end
+        /// of the target category in the flat item list.
+        /// </summary>
+        public bool MoveItemToCategory(LauncherItem? item, string newCategory)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(newCategory))
+                return false;
+
+            if (string.Equals(item.Category, newCategory, StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var sourceIndex = _items.IndexOf(item);
+            if (sourceIndex < 0)
+                return false;
+
+            item.Category = newCategory;
+
+            // Find the index just after the last item already in the target category.
+            // Walk backwards from the end of the list so we can handle the case where
+            // the source item has already been removed conceptually (its Category is
+            // now the target category).
+            var insertIndex = _items.Count;
+            for (var i = _items.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(_items[i].Category, newCategory, StringComparison.OrdinalIgnoreCase)
+                    && !ReferenceEquals(_items[i], item))
+                {
+                    insertIndex = i + 1;
+                    break;
+                }
+            }
+
+            _items.Move(sourceIndex, insertIndex > sourceIndex ? insertIndex - 1 : insertIndex);
+            return true;
+        }
+
         private List<LauncherItem> GetItemsForTabSnapshot(string? tabName)
         {
             if (string.IsNullOrWhiteSpace(tabName))

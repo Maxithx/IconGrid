@@ -47,12 +47,19 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <RadioButton Margin="4,0"
-                                         Style="{DynamicResource TabToggleStyle}"
-                                         Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                         CommandParameter="{Binding}"
-                                         Click="TabToggle_Click"
-                                         helpers:DevInspector.Metadata="{Binding ., StringFormat=Tab: {0} (ViewModels/MainViewModel.cs)}">
+                             <RadioButton Margin="4,0"
+                                          Style="{DynamicResource TabToggleStyle}"
+                                          Command="{Binding DataContext.SelectTabCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          CommandParameter="{Binding}"
+                                          Click="TabToggle_Click"
+                                          AllowDrop="True"
+                                          PreviewMouseLeftButtonDown="Tab_PreviewMouseLeftButtonDown"
+                                          PreviewMouseMove="Tab_PreviewMouseMove"
+                                          DragEnter="Tab_DragEnter"
+                                          DragOver="Tab_DragOver"
+                                          DragLeave="Tab_DragLeave"
+                                          Drop="Tab_Drop"
+                                          helpers:DevInspector.Metadata="{Binding ., StringFormat=Tab: {0} (ViewModels/MainViewModel.cs)}">
                                 <RadioButton.ContextMenu>
                                     <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                         <MenuItem Header="{Binding DataContext.RenameLabel, Source={x:Reference Root}}" Click="RenameTabMenuItem_Click" />

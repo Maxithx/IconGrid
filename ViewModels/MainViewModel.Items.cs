@@ -119,6 +119,36 @@ namespace IconGrid.ViewModels
             SaveItemsToFile();
         }
 
+        /// <summary>
+        /// Moves a category tab to a new position relative to another tab.
+        /// </summary>
+        public void MoveTab(string tabName, string targetTabName, bool insertAfter)
+        {
+            if (string.IsNullOrWhiteSpace(tabName) || string.IsNullOrWhiteSpace(targetTabName))
+                return;
+
+            if (!_tabsState.MoveTab(tabName, targetTabName, insertAfter))
+                return;
+
+            SaveSettingsToConfig();
+        }
+
+        /// <summary>
+        /// Moves a launcher item to a different category (tab). The item is repositioned
+        /// at the end of the target category in the flat item list.
+        /// </summary>
+        public void MoveItemToCategory(LauncherItem item, string newCategory)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(newCategory))
+                return;
+
+            if (!_itemsManager.MoveItemToCategory(item, newCategory))
+                return;
+
+            OnPropertyChanged(nameof(CurrentItems));
+            SaveItemsToFile();
+        }
+
         public void HandleFileDrop(string[] files)
         {
             if (!_shortcutManager.HandleFileDrop(files, SelectedTab))
