@@ -928,6 +928,13 @@ exit:
                 currentForegroundPidObservedAtUtc = null;
             }
 
+            // Even when the config-target owns the native agent, still auto-register
+            // any NEW foreground game that doesn't match the config-target. This covers
+            // the case where PathOfExile.exe is the stale config-target from a previous
+            // session, but the user starts COD from Battle.net — we want COD to show up
+            // on the Game Resolution page.
+            AttemptExternalGameRegistration(nativeState, log);
+
             if (nativeFpsStarted &&
                 (nativeOwnsConfigTarget ||
                  (!configTargetChanged && (nativeState == null || nativeState.TargetPid == 0))))
@@ -1170,6 +1177,19 @@ exit:
         return nativeState.MatchedDxgiEventCount > 0 ||
                nativeState.MatchedD3D9EventCount > 0 ||
                nativeState.MatchedDxgKrnlEventCount > 0;
+    }
+
+    /// <summary>
+    /// When a config-target is authoritative but the native agent has locked onto
+    /// a DIFFERENT process (e.g. PathOfExile.exe target, but COD started from
+    /// Battle.net), still register the actual game process as an external game.
+    /// </summary>
+    private static void AttemptExternalGameRegistration(NativeFpsAgentState? nativeState, Action<string>? log)
+    {
+        if (nativeState == null || nativeState.TargetPid <= 0)
+            return;
+
+        TryAutoRegisterExternalGame(nativeState.TargetPid, log);
     }
 
     /// <summary>
