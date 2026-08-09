@@ -67,6 +67,7 @@ namespace IconGrid.ViewModels.Settings
         public double MonitorDownloadToUploadGap { get; set; } = 4;
         public double MonitorUploadToCpuGap { get; set; } = 4;
         public double MonitorCpuToGpuGap { get; set; } = 4;
+        public bool MonitorDivider0Visible { get; set; } = true;
         public bool MonitorDivider1Visible { get; set; } = true;
         public bool MonitorDivider2Visible { get; set; } = true;
         public bool MonitorDivider3Visible { get; set; } = true;

@@ -698,7 +698,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorPingToNetGap, Math.Max(-20, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorPingToNetGap));
+                }
             }
         }
 
@@ -708,7 +711,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorNetToDownloadGap, Math.Max(-20, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorNetToDownloadGap));
+                }
             }
         }
 
@@ -718,7 +724,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorDownloadToUploadGap, Math.Max(-20, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorDownloadToUploadGap));
+                }
             }
         }
 
@@ -728,7 +737,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorUploadToCpuGap, Math.Max(-20, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorUploadToCpuGap));
+                }
             }
         }
 
@@ -738,7 +750,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorCpuToGpuGap, Math.Max(-20, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorCpuToGpuGap));
+                }
             }
         }
 
@@ -747,25 +762,41 @@ namespace IconGrid.ViewModels
         public bool MonitorDivider0Visible
         {
             get => _monitorDivider0Visible;
-            set => SetField(ref _monitorDivider0Visible, value);
+            set
+            {
+                if (SetField(ref _monitorDivider0Visible, value))
+                    SaveSettingsToConfig();
+            }
         }
 
         public bool MonitorDivider1Visible
         {
             get => _monitorDivider1Visible;
-            set => SetField(ref _monitorDivider1Visible, value);
+            set
+            {
+                if (SetField(ref _monitorDivider1Visible, value))
+                    SaveSettingsToConfig();
+            }
         }
 
         public bool MonitorDivider2Visible
         {
             get => _monitorDivider2Visible;
-            set => SetField(ref _monitorDivider2Visible, value);
+            set
+            {
+                if (SetField(ref _monitorDivider2Visible, value))
+                    SaveSettingsToConfig();
+            }
         }
 
         public bool MonitorDivider3Visible
         {
             get => _monitorDivider3Visible;
-            set => SetField(ref _monitorDivider3Visible, value);
+            set
+            {
+                if (SetField(ref _monitorDivider3Visible, value))
+                    SaveSettingsToConfig();
+            }
         }
 
         public double MonitorDividerGap
@@ -774,7 +805,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorDividerGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorDividerGap));
+                }
             }
         }
 
@@ -784,7 +818,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorCpuBarGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorCpuBarGap));
+                }
             }
         }
 
@@ -794,7 +831,10 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _monitorGpuBarGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
                     OnPropertyChanged(nameof(MonitorGpuBarGap));
+                }
             }
         }
 

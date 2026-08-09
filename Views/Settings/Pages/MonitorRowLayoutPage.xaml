@@ -3,7 +3,53 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
              xmlns:views="clr-namespace:IconGrid.Views"
-             Background="Transparent">
+             Background="Transparent"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="ResetDefaultsButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#FF0078D4" />
+                <Setter Property="BorderBrush" Value="#FF0078D4" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Padding" Value="14,8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Root" Property="Background" Value="#FF3E3E3E" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Root" Property="Background" Value="#FF2B2D31" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <ScrollViewer Margin="12"
                   VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
@@ -14,164 +60,282 @@
         </ScrollViewer.Resources>
         <views:TemplatePage Margin="0,0,8,0">
             <views:TemplatePage.HeroContent>
-                <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card">
-                    <TextBlock Text="Monitor Row Layout"
-                               FontSize="20" FontWeight="SemiBold"
-                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="Juster mellemrum mellem monitor-elementerne i topbaren."
-                               TextWrapping="Wrap" FontSize="13"
-                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutPage.xaml">
+                    <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
+                               Text="Monitor Row Layout" />
+                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                               Margin="0,8,0,0"
+                               Text="Juster mellemrum mellem monitor-elementerne i topbaren." />
                 </StackPanel>
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
                 <StackPanel>
 
                     <!-- Element Gaps -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}" helpers:DevInspector.Metadata="Monitor row element gaps">
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Monitor row element gaps card">
                         <StackPanel>
-                            <TextBlock Text="Element mellemrum" FontSize="16" FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                       Text="Element mellemrum" />
 
-                            <TextBlock Text="Ping dot → Net (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <!-- Ping → Net -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Ping dot → Net" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorPingToNetGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorPingToNetGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorPingToNetGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
 
-                            <TextBlock Text="Net → Download (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <!-- Net → Download -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Net → Download" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorNetToDownloadGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorNetToDownloadGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorNetToDownloadGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
 
-                            <TextBlock Text="Download → Upload (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <!-- Download → Upload -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Download → Upload" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorDownloadToUploadGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorDownloadToUploadGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorDownloadToUploadGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
 
-                            <TextBlock Text="Upload → CPU (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <!-- Upload → CPU -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Upload → CPU" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorUploadToCpuGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorUploadToCpuGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorUploadToCpuGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
 
-                            <TextBlock Text="CPU → GPU (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <!-- CPU → GPU -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="CPU → GPU" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorCpuToGpuGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorCpuToGpuGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorCpuToGpuGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
                     <!-- Dividers -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}" Margin="0,5,0,0" helpers:DevInspector.Metadata="Monitor row dividers">
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Monitor row dividers card">
                         <StackPanel>
-                            <TextBlock Text="Dividers" FontSize="16" FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                       Text="Dividers" />
 
-                            <StackPanel Margin="0,12,0,0">
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="Net | Download" VerticalAlignment="Center"
-                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <ToggleButton Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
-                                                  IsChecked="{Binding MonitorDivider0Visible, Mode=TwoWay}" />
-                                </Grid>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="Download | Upload" VerticalAlignment="Center"
-                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <ToggleButton Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
-                                                  IsChecked="{Binding MonitorDivider1Visible, Mode=TwoWay}" />
-                                </Grid>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="Upload | CPU" VerticalAlignment="Center"
-                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <ToggleButton Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
-                                                  IsChecked="{Binding MonitorDivider2Visible, Mode=TwoWay}" />
-                                </Grid>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="CPU | GPU" VerticalAlignment="Center"
-                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <ToggleButton Grid.Column="1" Style="{StaticResource ToggleSwitchStyle}"
-                                                  IsChecked="{Binding MonitorDivider3Visible, Mode=TwoWay}" />
-                                </Grid>
-                            </StackPanel>
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="Net | Download" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="Divider mellem netværkshastighed og download." />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorDivider0Visible, Mode=TwoWay}" />
+                            </Grid>
 
-                            <TextBlock Text="Divider gap (px)" FontSize="14" FontWeight="SemiBold" Margin="0,8,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="Download | Upload" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="Divider mellem download og upload." />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorDivider1Visible, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="Upload | CPU" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="Divider mellem upload og CPU." />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorDivider2Visible, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,16,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="CPU | GPU" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="Divider mellem CPU og GPU." />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorDivider3Visible, Mode=TwoWay}" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Divider gap" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorDividerGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorDividerGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorDividerGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
                     <!-- Bar Gaps -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}" Margin="0,5,0,0" helpers:DevInspector.Metadata="Monitor row bar gaps">
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Monitor row bar gaps card">
                         <StackPanel>
-                            <TextBlock Text="CPU / GPU usage bars" FontSize="16" FontWeight="SemiBold"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                       Text="CPU / GPU bjælker" />
 
-                            <TextBlock Text="CPU bar gap (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="CPU bar gap" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorCpuBarGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorCpuBarGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorCpuBarGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
 
-                            <TextBlock Text="GPU bar gap (px)" FontSize="14" FontWeight="SemiBold" Margin="0,12,0,0"
-                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,4,0,0">
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="GPU bar gap" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
                                 <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
-                                        TickFrequency="1" IsSnapToTickEnabled="True" Width="300"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
                                         Value="{Binding MonitorGpuBarGap, Mode=TwoWay}" />
-                                <TextBlock Text="{Binding MonitorGpuBarGap, StringFormat=' {0:F0} px'}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorGpuBarGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
+                    <!-- Reset -->
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Reset defaults" Padding="12,6" Click="ResetDefaultsButton_Click" />
+                        <Button Style="{StaticResource ResetDefaultsButtonStyle}"
+                                Content="Reset defaults"
+                                Click="ResetDefaultsButton_Click" />
                     </StackPanel>
                 </StackPanel>
             </views:TemplatePage.CardsContent>

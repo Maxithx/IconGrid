@@ -74,6 +74,18 @@ namespace IconGrid.ViewModels.Settings
                 config.GamingOverlayResolutionScales = state.GamingOverlayResolutionScales;
                 config.WindowAnimationDurationMs = state.WindowAnimationDurationMs;
                 config.FpsTarget = state.FpsTarget ?? new FpsTargetConfig();
+                config.MonitorPingToNetGap = state.MonitorPingToNetGap;
+                config.MonitorNetToDownloadGap = state.MonitorNetToDownloadGap;
+                config.MonitorDownloadToUploadGap = state.MonitorDownloadToUploadGap;
+                config.MonitorUploadToCpuGap = state.MonitorUploadToCpuGap;
+                config.MonitorCpuToGpuGap = state.MonitorCpuToGpuGap;
+                config.MonitorDivider0Visible = state.MonitorDivider0Visible;
+                config.MonitorDivider1Visible = state.MonitorDivider1Visible;
+                config.MonitorDivider2Visible = state.MonitorDivider2Visible;
+                config.MonitorDivider3Visible = state.MonitorDivider3Visible;
+                config.MonitorDividerGap = state.MonitorDividerGap;
+                config.MonitorCpuBarGap = state.MonitorCpuBarGap;
+                config.MonitorGpuBarGap = state.MonitorGpuBarGap;
 
                 _configManager.SaveConfig(config);
             }

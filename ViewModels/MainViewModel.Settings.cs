@@ -45,6 +45,7 @@ namespace IconGrid.ViewModels
             _monitorDownloadToUploadGap = state.MonitorDownloadToUploadGap;
             _monitorUploadToCpuGap = state.MonitorUploadToCpuGap;
             _monitorCpuToGpuGap = state.MonitorCpuToGpuGap;
+            _monitorDivider0Visible = state.MonitorDivider0Visible;
             _monitorDivider1Visible = state.MonitorDivider1Visible;
             _monitorDivider2Visible = state.MonitorDivider2Visible;
             _monitorDivider3Visible = state.MonitorDivider3Visible;
@@ -161,6 +162,7 @@ namespace IconGrid.ViewModels
                 MonitorDownloadToUploadGap = _monitorDownloadToUploadGap,
                 MonitorUploadToCpuGap = _monitorUploadToCpuGap,
                 MonitorCpuToGpuGap = _monitorCpuToGpuGap,
+                MonitorDivider0Visible = _monitorDivider0Visible,
                 MonitorDivider1Visible = _monitorDivider1Visible,
                 MonitorDivider2Visible = _monitorDivider2Visible,
                 MonitorDivider3Visible = _monitorDivider3Visible,
