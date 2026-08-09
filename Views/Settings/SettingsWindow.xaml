@@ -613,7 +613,7 @@
                                                Foreground="White" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
-                                           Text="Monitor Row Layout"
+                                           Text="{Binding MonitorRowLayoutNavTitle}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"

@@ -48,8 +48,14 @@ namespace IconGrid.ViewModels.Settings
         public bool MonitorDivider2Visible { get; init; } = true;
         public bool MonitorDivider3Visible { get; init; } = true;
         public double MonitorDividerGap { get; init; } = 4;
-        public double MonitorCpuBarGap { get; init; } = 6;
-        public double MonitorGpuBarGap { get; init; } = 6;
+        public double MonitorCpuBarGap { get; init; } = 0;
+        public double MonitorGpuBarGap { get; init; } = 0;
+        public double MonitorDownloadLabelToValueGap { get; init; } = 0;
+        public double MonitorUploadLabelToValueGap { get; init; } = 0;
+        public double MonitorDownloadValueToUnitGap { get; init; } = 0;
+        public double MonitorUploadValueToUnitGap { get; init; } = 0;
+        public double MonitorDownloadValueWidth { get; init; } = 0;
+        public double MonitorUploadValueWidth { get; init; } = 0;
         public string Language { get; init; } = "da";
         public double? WindowLeft { get; init; }
         public double? WindowTop { get; init; }
@@ -118,7 +124,13 @@ namespace IconGrid.ViewModels.Settings
                 MonitorDivider3Visible = config.MonitorDivider3Visible,
                 MonitorDividerGap = config.MonitorDividerGap,
                 MonitorCpuBarGap = config.MonitorCpuBarGap,
-                MonitorGpuBarGap = config.MonitorGpuBarGap
+                MonitorGpuBarGap = config.MonitorGpuBarGap,
+                MonitorDownloadLabelToValueGap = config.MonitorDownloadLabelToValueGap,
+                MonitorUploadLabelToValueGap = config.MonitorUploadLabelToValueGap,
+                MonitorDownloadValueToUnitGap = config.MonitorDownloadValueToUnitGap,
+                MonitorUploadValueToUnitGap = config.MonitorUploadValueToUnitGap,
+                MonitorDownloadValueWidth = config.MonitorDownloadValueWidth,
+                MonitorUploadValueWidth = config.MonitorUploadValueWidth
             };
         }
     }

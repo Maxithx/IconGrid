@@ -109,11 +109,11 @@ namespace IconGrid.ViewModels
         private int _windowAnimationDurationMs = 250;
 
         // Monitor row layout margins (adjustable via Monitor Layout page)
-        private double _monitorPingToNetGap = 4;
-        private double _monitorNetToDownloadGap = 6;
-        private double _monitorDownloadToUploadGap = 4;
-        private double _monitorUploadToCpuGap = 4;
-        private double _monitorCpuToGpuGap = 4;
+        private double _monitorPingToNetGap = 2;
+        private double _monitorNetToDownloadGap = 2;
+        private double _monitorDownloadToUploadGap = 2;
+        private double _monitorUploadToCpuGap = 2;
+        private double _monitorCpuToGpuGap = 2;
 
         // Monitor row divider visibility (Divider0 = before Download, Divider1 = between Down/Up, Divider2 = between Up/CPU, Divider3 = between CPU/GPU)
         private bool _monitorDivider0Visible = true;
@@ -122,11 +122,17 @@ namespace IconGrid.ViewModels
         private bool _monitorDivider3Visible = true;
 
         // Monitor row divider gap (symmetric left+right)
-        private double _monitorDividerGap = 4;
+        private double _monitorDividerGap = 0;
 
         // Monitor row bar gaps (CPU/GPU usage bar left margin)
-        private double _monitorCpuBarGap = 6;
-        private double _monitorGpuBarGap = 6;
+        private double _monitorCpuBarGap = 0;
+        private double _monitorGpuBarGap = 0;
+        private double _monitorDownloadLabelToValueGap = 0;
+        private double _monitorUploadLabelToValueGap = 0;
+        private double _monitorDownloadValueToUnitGap = 0;
+        private double _monitorUploadValueToUnitGap = 0;
+        private double _monitorDownloadValueWidth = 0;
+        private double _monitorUploadValueWidth = 0;
 
         private readonly LauncherLayoutMeasurements _layoutMeasurements = new();
         private readonly LauncherLayoutState _layoutState = new();
@@ -838,6 +844,110 @@ namespace IconGrid.ViewModels
             }
         }
 
+        // ── Monitor Row Value Locking (convenience toggles) ──
+
+        private const double LockedValueWidth = 55; // 4 digits in Consolas ~12px
+
+        public bool MonitorDownloadValueLocked
+        {
+            get => _monitorDownloadValueWidth > 0;
+            set
+            {
+                MonitorDownloadValueWidth = value ? LockedValueWidth : 0;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool MonitorUploadValueLocked
+        {
+            get => _monitorUploadValueWidth > 0;
+            set
+            {
+                MonitorUploadValueWidth = value ? LockedValueWidth : 0;
+                OnPropertyChanged();
+            }
+        }
+
+        // ── Monitor Row Label-to-Value Gaps ──
+
+        public double MonitorDownloadLabelToValueGap
+        {
+            get => _monitorDownloadLabelToValueGap;
+            set
+            {
+                if (SetField(ref _monitorDownloadLabelToValueGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorDownloadLabelToValueGap));
+                }
+            }
+        }
+
+        public double MonitorUploadLabelToValueGap
+        {
+            get => _monitorUploadLabelToValueGap;
+            set
+            {
+                if (SetField(ref _monitorUploadLabelToValueGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorUploadLabelToValueGap));
+                }
+            }
+        }
+
+        public double MonitorDownloadValueToUnitGap
+        {
+            get => _monitorDownloadValueToUnitGap;
+            set
+            {
+                if (SetField(ref _monitorDownloadValueToUnitGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorDownloadValueToUnitGap));
+                }
+            }
+        }
+
+        public double MonitorUploadValueToUnitGap
+        {
+            get => _monitorUploadValueToUnitGap;
+            set
+            {
+                if (SetField(ref _monitorUploadValueToUnitGap, Math.Max(0, Math.Min(30, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorUploadValueToUnitGap));
+                }
+            }
+        }
+
+        public double MonitorDownloadValueWidth
+        {
+            get => _monitorDownloadValueWidth;
+            set
+            {
+                if (SetField(ref _monitorDownloadValueWidth, Math.Max(0, Math.Min(120, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorDownloadValueWidth));
+                }
+            }
+        }
+
+        public double MonitorUploadValueWidth
+        {
+            get => _monitorUploadValueWidth;
+            set
+            {
+                if (SetField(ref _monitorUploadValueWidth, Math.Max(0, Math.Min(120, value))))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(MonitorUploadValueWidth));
+                }
+            }
+        }
+
         /// <summary>
         /// Indicates any overlay (settings or layouts) is active.
         /// </summary>
@@ -1002,6 +1112,107 @@ namespace IconGrid.ViewModels
         {
             _windowStateStore.SaveFloatingIconPosition(left, top);
             SaveSettingsToConfig();
+        }
+
+        /// <summary>
+        /// Saves the current monitor layout slider values as the user's preferred defaults.
+        /// These are used by the "Reset defaults" button on the Monitor Row Layout page.
+        /// Stored as a JSON blob in config.json (MonitorLayoutDefaults).
+        /// </summary>
+        public void SaveMonitorLayoutDefaults()
+        {
+            var defaults = new MonitorLayoutDefaultsSnapshot
+            {
+                MonitorPingToNetGap = _monitorPingToNetGap,
+                MonitorNetToDownloadGap = _monitorNetToDownloadGap,
+                MonitorDownloadToUploadGap = _monitorDownloadToUploadGap,
+                MonitorUploadToCpuGap = _monitorUploadToCpuGap,
+                MonitorCpuToGpuGap = _monitorCpuToGpuGap,
+                MonitorDivider0Visible = _monitorDivider0Visible,
+                MonitorDivider1Visible = _monitorDivider1Visible,
+                MonitorDivider2Visible = _monitorDivider2Visible,
+                MonitorDivider3Visible = _monitorDivider3Visible,
+                MonitorDividerGap = _monitorDividerGap,
+                MonitorCpuBarGap = _monitorCpuBarGap,
+                MonitorGpuBarGap = _monitorGpuBarGap,
+                MonitorDownloadLabelToValueGap = _monitorDownloadLabelToValueGap,
+                MonitorUploadLabelToValueGap = _monitorUploadLabelToValueGap,
+                MonitorDownloadValueToUnitGap = _monitorDownloadValueToUnitGap,
+                MonitorUploadValueToUnitGap = _monitorUploadValueToUnitGap,
+                MonitorDownloadValueWidth = _monitorDownloadValueWidth,
+                MonitorUploadValueWidth = _monitorUploadValueWidth,
+            };
+
+            _config.MonitorLayoutDefaults = System.Text.Json.JsonSerializer.Serialize(defaults);
+            SaveSettingsToConfig();
+        }
+
+        /// <summary>
+        /// Tries to apply saved monitor layout defaults from config.json.
+        /// Returns true if saved defaults were found and applied.
+        /// </summary>
+        public bool TryApplySavedMonitorLayoutDefaults()
+        {
+            if (string.IsNullOrWhiteSpace(_config.MonitorLayoutDefaults))
+                return false;
+
+            try
+            {
+                var defaults = System.Text.Json.JsonSerializer.Deserialize<MonitorLayoutDefaultsSnapshot>(_config.MonitorLayoutDefaults);
+                if (defaults == null)
+                    return false;
+
+                _monitorPingToNetGap = defaults.MonitorPingToNetGap;
+                _monitorNetToDownloadGap = defaults.MonitorNetToDownloadGap;
+                _monitorDownloadToUploadGap = defaults.MonitorDownloadToUploadGap;
+                _monitorUploadToCpuGap = defaults.MonitorUploadToCpuGap;
+                _monitorCpuToGpuGap = defaults.MonitorCpuToGpuGap;
+                _monitorDivider0Visible = defaults.MonitorDivider0Visible;
+                _monitorDivider1Visible = defaults.MonitorDivider1Visible;
+                _monitorDivider2Visible = defaults.MonitorDivider2Visible;
+                _monitorDivider3Visible = defaults.MonitorDivider3Visible;
+                _monitorDividerGap = defaults.MonitorDividerGap;
+                _monitorCpuBarGap = defaults.MonitorCpuBarGap;
+                _monitorGpuBarGap = defaults.MonitorGpuBarGap;
+                _monitorDownloadLabelToValueGap = defaults.MonitorDownloadLabelToValueGap;
+                _monitorUploadLabelToValueGap = defaults.MonitorUploadLabelToValueGap;
+                _monitorDownloadValueToUnitGap = defaults.MonitorDownloadValueToUnitGap;
+                _monitorUploadValueToUnitGap = defaults.MonitorUploadValueToUnitGap;
+                _monitorDownloadValueWidth = defaults.MonitorDownloadValueWidth;
+                _monitorUploadValueWidth = defaults.MonitorUploadValueWidth;
+
+                SaveSettingsToConfig();
+                NotifyAllMonitorLayoutPropertiesChanged();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void NotifyAllMonitorLayoutPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(MonitorPingToNetGap));
+            OnPropertyChanged(nameof(MonitorNetToDownloadGap));
+            OnPropertyChanged(nameof(MonitorDownloadToUploadGap));
+            OnPropertyChanged(nameof(MonitorUploadToCpuGap));
+            OnPropertyChanged(nameof(MonitorCpuToGpuGap));
+            OnPropertyChanged(nameof(MonitorDivider0Visible));
+            OnPropertyChanged(nameof(MonitorDivider1Visible));
+            OnPropertyChanged(nameof(MonitorDivider2Visible));
+            OnPropertyChanged(nameof(MonitorDivider3Visible));
+            OnPropertyChanged(nameof(MonitorDividerGap));
+            OnPropertyChanged(nameof(MonitorCpuBarGap));
+            OnPropertyChanged(nameof(MonitorGpuBarGap));
+            OnPropertyChanged(nameof(MonitorDownloadLabelToValueGap));
+            OnPropertyChanged(nameof(MonitorUploadLabelToValueGap));
+            OnPropertyChanged(nameof(MonitorDownloadValueToUnitGap));
+            OnPropertyChanged(nameof(MonitorUploadValueToUnitGap));
+            OnPropertyChanged(nameof(MonitorDownloadValueWidth));
+            OnPropertyChanged(nameof(MonitorUploadValueWidth));
+            OnPropertyChanged(nameof(MonitorDownloadValueLocked));
+            OnPropertyChanged(nameof(MonitorUploadValueLocked));
         }
 
         /// <summary>

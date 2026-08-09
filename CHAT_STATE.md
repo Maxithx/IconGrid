@@ -1738,3 +1738,223 @@ Der er TO kald til `AttemptExternalGameRegistration`:
 ### Pending
 - Commit + push (await user approval)
 - User to re-create shortcut paths
+
+## Session 2026-08-09 (aften): Shortcut-to-tab drag, tab reorder, monitor row persistence + redesign
+
+
+- **Drag shortcut to another category tab** — new `MoveItemToCategory()` in `LauncherItemsManager.cs` + `MainViewModel.Items.cs` delegate. `LauncherTabsBar` tabs accept `LauncherItem` drops with opacity feedback. Shortcut moves to target category and appears at the end of its list.
+- **Tab reorder via drag-and-drop** — new `MoveTab()` in `LauncherTabsState.cs` + `MainViewModel.Items.cs` delegate. `LauncherTabsBar` tabs support `PreviewMouseLeftButtonDown`/`PreviewMouseMove` to start a `TabReorder` drag, and the existing drop handlers process `TabReorder` data to move a tab before/after another based on drop X-position.
+
+- **Monitor row layout persistence BUG FIX** — ALL 11 monitor property setters in `MainViewModel.cs` were missing `SaveSettingsToConfig()` calls — sliders/toggles only updated RAM, never wrote to `config.json`. `MonitorDivider0Visible` was also completely missing from the persistence chain (`SettingsState`, `ConfigState`, `Persistence.Save`, `ApplyConfig`, `SaveSettingsToConfig`). Both issues fixed.
+
+- **MonitorRowLayoutPage redesign** — rewritten to match GamingOverlayPage design standard and TemplateGuidelines: `TemplateHeroTitleStyle` (20/SemiBold), `TemplateHeroBodyStyle` (13/SettingsSubtextForeground/Wrap), `TemplateCardTitleStyle` (16), `TemplateSectionTitleStyle` (14), `ModernSliderStyle` with Grid layout, `ToggleSwitchStyle` with title+description pattern, self-contained `ResetDefaultsButtonStyle` accent button (no `BasedOn`). Fixed crash caused by missing `TemplateGuidelines.xaml` merge + `TemplateActionButtonStyle` dependency on non-global `LayoutActionButtonStyle`.
+
+- **README.md updated** — new "Categories (tabs)" section documenting add/rename/remove/reorder tabs + drag shortcut to another tab.
+
+### Files changed (11 total across 3 commits)
+- `ViewModels/Launcher/LauncherItemsManager.cs`
+- `ViewModels/Launcher/LauncherTabsState.cs`
+- `ViewModels/MainViewModel.Items.cs`
+- `Controls/Launcher/LauncherTabsBar.xaml`
+- `Controls/Launcher/LauncherTabsBar.xaml.cs`
+- `ViewModels/MainViewModel.cs`
+- `ViewModels/Settings/MainViewModelSettingsState.cs`
+- `ViewModels/Settings/MainViewModelConfigState.cs`
+- `ViewModels/Settings/MainViewModelSettingsPersistence.cs`
+- `ViewModels/MainViewModel.Settings.cs`
+- `Views/Settings/Pages/MonitorRowLayoutPage.xaml`
+- `README.md`
+
+### Commits pushed
+- `9430bb3` feat: drag shortcuts to other category tabs + reorder tabs via drag-and-drop
+- `86bccca` docs: document category tab reorder and shortcut-to-tab drag-and-drop in README
+- `bac1a06` fix: persist monitor row layout settings + redesign MonitorRowLayoutPage to match design standard
+
+### Architecture
+- `check_architecture_rules`: pre-existing violations only (MainWindow 1062, MainViewModel 1589, HardwareMonitorAgent 1772) — no new violations introduced. All 3 new features follow existing architecture patterns (LauncherItemsManager, LauncherTabsState, focused XAML page).
+
+### Good next steps
+- Update ARCHITECTURE_RULES.md Recent Good Examples with new classes
+- Consider localizing MonitorRowLayoutPage strings
+- Optionally add Danish labels for the divider toggle descriptions
+
+## Session 2026-08-09 (aften, del 2): Monitor row layout complete overhaul
+
+
+Sessions start: Dragging shortcuts to other category tabs + tab reorder completed and committed in previous session part.
+
+### Monitor row layout — fuld overhaul
+- **Persistens-bug fixed**: ALLE 11 monitor-property setters i MainViewModel.cs manglede SaveSettingsToConfig() — sliders/toggles opdaterede kun RAM, skrev ALDRIG til config.json. MonitorDivider0Visible var helt fraværende fra persistens-kæden. Alle fixes implementeret i ConfigModel, MainViewModel, SettingsState, ConfigState, Persistence, og MainViewModel.Settings.
+- **MonitorRowLayoutPage redesignet**: Matchet til GamingOverlayPage standard og TemplateGuidelines med ModernSliderStyle, ToggleSwitchStyle, TemplateHeroTitleStyle osv. Rettet crash pga. manglende TemplateGuidelines.xaml merge og TemplateActionButtonStyle dependency på ikke-global LayoutActionButtonStyle.
+
+### Download/Upload layout shift fix
+- **Grundlæggende problem**: Når DL/UL hastighed skiftede mellem 0 KB/s og 1000.0 MB/s, ændrede tekst-bredden sig og skubbede hele monitor-rækken.
+- **Forsøgte løsninger**: MinWidth, Width med TextAlignment, split label/value/unit med bindbare Widths, lock-toggles — ingen af dem fungerede fuldt ud fordi auto-sizing af labels og units stadig påvirkede layoutet.
+- **Læste backup fra 21-07-2026**: Gamle version brugte præcis det rigtige: hvert element havde fast Width, intet var auto-sized.
+
+### Nuværende tilstand (deployet til C:\icongrid)
+- LauncherMonitorRow.xaml: Fast Width på alle elementer (Net=64, DL=125, UL=110, CPU=75, GPU=65). Alle element-gaps og divider-gaps er konfigurerbare via Monitor Row Layout siden.
+- Default værdier ændret til tight spacing: alle element-gaps = 2px, divider-gap = 0px.
+- ZeroToAutoWidthConverter oprettet (Helpers/Converters/) — bruges til at konvertere 0 til double.NaN (auto-width) for DL/UL value TextBlocks.
+- MonitorDownloadValueLocked / MonitorUploadValueLocked convenience toggles (sætter value-width til 55px eller 0).
+
+### Ikke-committede ændringer i working tree (BAC1A06 baseline)
+Følgende filer er ændret men IKKE committede:
+- Controls/Launcher/LauncherMonitorRow.xaml
+- Helpers/Converters/ZeroToAutoWidthConverter.cs (NY)
+- Helpers/Launcher/SystemMonitor.cs
+- Models/ConfigModel.cs
+- ViewModels/MainViewModel.cs
+- ViewModels/MainViewModel.Settings.cs
+- ViewModels/Settings/MainViewModelConfigState.cs
+- ViewModels/Settings/MainViewModelSettingsPersistence.cs
+- ViewModels/Settings/MainViewModelSettingsState.cs
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml
+
+### Kendt resterende issue (IKKE LØST)
+1. **CPU bar gap og GPU bar gap** har hardcodede margins (`Margin="MonitorCpuBarGap"` og `Margin="MonitorGpuBarGap"` i XAML er OK, men `MonitorCpuBarGap` default = 6 og `MonitorGpuBarGap` default = 6 i ConfigModel). Brugeren rapporterede at disse ikke kan justeres — sandsynligvis fordi sliderne på MonitorRowLayoutPage peger på de rigtige properties, men default værdierne på 6px giver et mellemrum der føles hardcodet. Skal sænkes til 0 eller 2px.
+
+2. **CPU-divider og GPU-divider opfører sig forskelligt**: Når man justerer CPU → GPU gap, påvirker det mellemrummet mellem CPU og GPU korrekt. Men der er et tilsvarende mellemrum mellem divideren til venstre for CPU og selve CPU-teksten som IKKE kan justeres. Slideren Upload → CPU styrer gap mellem Upload og CPU korrekt, men divideren mellem dem har sit eget gap (MonitorDividerGap). Brugeren ønsker at CPU-delen skal opføre sig symmetrisk med GPU-delen.
+
+### Good next steps (til ny chat session)
+1. Fix CPU bar gap og GPU bar gap: sæt defaults til 0 i ConfigModel, MainViewModel backing fields, og SettingsState — så de starter tight og kan justeres opad.
+2. Analysér Upload→CPU layoutet: Upload slutter med en StackPanel, så kommer Divider 2 (med MonitorDividerGap margin), så CPU temp (med MonitorUploadToCpuGap margin). Divider 2's højre margin + CPU temp's venstre margin = totalt gap mellem divider og CPU tekst. Brugeren vil have at CPU→GPU slideren (eller en ny slider) styrer dette gap på samme måde som mellem CPU og GPU.
+3. Overvej at tilføje en ny slider 'Divider → CPU' der styrer afstanden mellem Divider 2's højre side og CPU-teksten.
+4. Commit alle ændringer når de er færdige og testede.
+
+## Session 2026-08-09 (aften, del 3): CPU/GPU bar gap defaults lowered to 0 + reset button complete
+
+### Changes deployed (C:\IconGrid)
+- **CPU bar gap og GPU bar gap defaults sænket fra 6 → 0** i alle 4 persistens-lag (ConfigModel.cs, MainViewModel.cs backing fields, MainViewModelConfigState.cs, MainViewModelSettingsState.cs).
+- **Reset-knap opdateret** i MonitorRowLayoutPage.xaml.cs: reseter nu ALLE 18 monitor-properties med konsistente defaults (alle element-gaps = 2, divider-gap = 0, bar-gaps = 0, alle dividers visible = true, DL/UL sub-gaps = 0).
+
+### CPU/GPU bar symmetri
+- Begge bar-gaps (`MonitorCpuBarGap` / `MonitorGpuBarGap`) er nu 0px default — CPU og GPU usage-meter sidder flush mod deres temp-tekst.
+- Sliderne på Monitor Row Layout-siden fungerer fortsat (0-30px) og gemmes på tværs af genstart.
+
+### Files changed (5 files)
+- Models/ConfigModel.cs — MonitorCpuBarGap / MonitorGpuBarGap default 6→0
+- ViewModels/MainViewModel.cs — _monitorCpuBarGap / _monitorGpuBarGap default 6→0
+- ViewModels/Settings/MainViewModelConfigState.cs — MonitorCpuBarGap / MonitorGpuBarGap default 6→0
+- ViewModels/Settings/MainViewModelSettingsState.cs — MonitorCpuBarGap / MonitorGpuBarGap default 6→0
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml.cs — ResetDefaultsButton resets ALL monitor properties
+
+### Build & deploy
+- `dotnet build --no-incremental`: 0 errors, 0 warnings
+- Deployed to `C:\icongrid` via deploy-test.cmd
+- `check_architecture_rules`: pre-existing violations only (MainWindow 1062, MainViewModel 1739, HardwareMonitorAgent 1772) — no new violations
+
+### Working tree
+- 5 files modified, NOT committed (awaiting user approval)
+
+## Session 2026-08-09 (aften, del 3)
+
+### ARCHITECTURE_RULES.md compliance audit — 2026-08-10 01:07 CEST
+
+**Resultat:** ALLE regler overholdt. Tre pre-existing file-size violations (MainWindow 1062, MainViewModel 1840, HardwareMonitorAgent 1772) — alle dokumenterede tolerancer per File Size Limit Policy.
+
+| # | Regel | Status | Detalje |
+|---|-------|--------|----------|
+| 1 | MainWindow Rules | ✅ OK | Ingen ændringer i MainWindow denne session |
+| 2 | MainViewModel Rules | ⚠️ TOLERANCE | +101 linjer (1739→1840). 36 tynde localization-properties + SaveMonitorLayoutDefaults/TryApplySavedMonitorLayoutDefaults. Ingen forretningslogik lækket — kun delegation til _localizationState.Get() og JSON-serialisering |
+| 3 | Feature Placement Rules | ✅ OK | MonitorRowLayoutPage i Views/Settings/Pages/, MonitorLayoutDefaultsSnapshot i Models/, localization keys i LocalizationHelper.cs |
+| 4 | Preferred Extension Pattern | ✅ OK | ConfigModel → settings page UI → XAML bindings, præcis som foreskrevet |
+| 5 | Coordinator/Helper Rule | ✅ OK | Ingen nye coordinator/window concerns |
+| 6 | When To Create A Separate Control | ✅ OK | MonitorRowLayoutPage er en UserControl i Views/Settings/Pages/ — korrekt placering |
+| 7 | Refactor Trigger | ✅ OK | Ingen nye bindings til eksisterende sider, ingen ny realtime polling, ingen IPC/shared-memory i VM |
+| 8 | File Size Limit Policy | ✅ OK | Alle overskridelser dokumenteret i CHAT_STATE.md, tidsbegrænset |
+| 9 | Code Comments Language | ✅ OK | Alle kode-kommentarer på engelsk |
+| 10 | Security Checklist | ✅ OK | check_git_security passeret — ingen secrets staged |
+| 11 | Refactor Workflow | ✅ OK | Små isolerede steps, build efter hvert, check_architecture_rules efter hvert |
+| 12 | Recent Good Examples | 📝 BØR OPDATERES | MonitorRowLayoutPage (første fuldt centraliserede lokaliserede side) + MonitorLayoutDefaultsSnapshot bør tilføjes — valgfrit polish til fremtidig session |
+
+### MCP server upgrade — 2026-08-10 01:02 CEST
+- Tilføjet 4 nye check-værktøjer: `check_localization_completeness`, `check_git_security`, `check_xaml_hardcoded_danish`, `run_all_checks`
+- e2e test: ALL 31 TESTS PASSED, 12 værktøjer bekræftet
+- `.clinerules` opdateret: kræver `run_all_checks` ved session-afslutning
+- `AGENT.md` opdateret: Localization design pattern (4-step guide) + Architecture rules link
+
+### Session total — ændrede filer (14 filer, IKKE committede)
+- `Models/ConfigModel.cs` — bar gap defaults 6→0 + MonitorLayoutDefaults felt
+- `Models/MonitorLayoutDefaultsSnapshot.cs` — NY JSON-serialiserbar snapshot-klasse
+- `ViewModels/MainViewModel.cs` — backing fields 6→0 + SaveMonitorLayoutDefaults/TryApplySavedMonitorLayoutDefaults/NotifyAllMonitorLayoutPropertiesChanged (+101 linjer)
+- `ViewModels/MainViewModel.Localization.cs` — 36 nye localization properties + OnPropertyChanged i NotifyLocalizationPropertiesChanged
+- `ViewModels/Settings/MainViewModelConfigState.cs` — bar gap defaults 6→0
+- `ViewModels/Settings/MainViewModelSettingsState.cs` — bar gap defaults 6→0
+- `Helpers/Settings/LocalizationHelper.cs` — 36 en + 36 da nye nøgler
+- `Controls/Launcher/LauncherMonitorRow.xaml` — fjernet Width på CPU/GPU TextBlocks + TextAlignment Left på DL/UL values
+- `Views/Settings/Pages/MonitorRowLayoutPage.xaml` — alle tekster lokaliseret + save/reset buttons
+- `Views/Settings/Pages/MonitorRowLayoutPage.xaml.cs` — ResetDefaults prøver saved defaults først + SaveAsDefault handler
+- `Views/Settings/SettingsWindow.xaml` — ML sidebar text binding
+- `AGENT.md` — Localization design pattern + Architecture rules section
+- `.clinerules` — opdateret med run_all_checks + fuld MCP tool liste
+- `tools/mcp-notes-server/src/index.js` — 4 nye checks + run_all_checks wrapper
+
+### AGENT.md updated — localization design pattern + architecture rules link
+- Added **"Localization design pattern (da/en)"** section: 4-step pattern for adding localization to new settings pages (LocalizationHelper.cs → MainViewModel.Localization.cs → NotifyLocalizationPropertiesChanged → XAML bindings). Documents that MonitorRowLayoutPage is the first fully centralized-localized page and should be used as the template.
+- Added **"Architecture rules"** section: explicit link to ARCHITECTURE_RULES.md with note that .clinerules also enforces these rules.
+- .clinerules already references ARCHITECTURE_RULES.md (punkt 3: ARCHITECTURE GUARDRAILS + REFACTOR PROCESS) — no change needed there.
+
+### Working tree status (5 files modified, NOT committed)
+- Models/ConfigModel.cs — bar gap defaults 0 + MonitorLayoutDefaults
+- Models/MonitorLayoutDefaultsSnapshot.cs — NY
+- ViewModels/MainViewModel.cs — backing fields 0 + SaveMonitorLayoutDefaults/TryApply/NotifyAll
+- ViewModels/MainViewModel.Localization.cs — 36 nye properties + OnPropertyChanged
+- ViewModels/Settings/MainViewModelConfigState.cs — defaults 0
+- ViewModels/Settings/MainViewModelSettingsState.cs — defaults 0
+- Helpers/Settings/LocalizationHelper.cs — 36 en + 36 da nøgler
+- Controls/Launcher/LauncherMonitorRow.xaml — fjernet Widths + TextAlignment Left
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml — localized bindings + save/reset buttons
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml.cs — ResetDefaults try saved first, SaveAsDefault
+- Views/Settings/SettingsWindow.xaml — ML sidebar binding
+- AGENT.md — localization pattern + architecture rules link
+
+### Save current as default + Reset to my default
+- **Feature:** To knapper nederst på MonitorRowLayoutPage:
+  - **"Save current as default"** — gemmer de 18 nuværende slider-værdier som JSON-blob i config.json (`MonitorLayoutDefaults`).
+  - **"Reset to my default"** — gendanner de gemte defaults hvis de findes; ellers falder tilbage til hardcodede fabriks-standarder.
+- **Ny model:** `Models/MonitorLayoutDefaultsSnapshot.cs` — JSON-serializable klasse med alle 18 monitor properties.
+- **ConfigModel:** Nyt `MonitorLayoutDefaults` string-felt (JSON-blob).
+- **MainViewModel:** `SaveMonitorLayoutDefaults()` + `TryApplySavedMonitorLayoutDefaults()` metoder med `NotifyAllMonitorLayoutPropertiesChanged()` efter apply.
+- **MonitorRowLayoutPage.xaml.cs:** `ResetDefaultsButton_Click` prøver først `TryApplySavedMonitorLayoutDefaults()`; `SaveAsDefaultButton_Click` kalder `SaveMonitorLayoutDefaults()`.
+
+### Build & deploy
+- `dotnet build`: 0 errors, 0 warnings
+- Deployed to `C:\icongrid` via deploy-test.cmd
+
+### Files changed (this sub-step)
+- Models/MonitorLayoutDefaultsSnapshot.cs (NY)
+- Models/ConfigModel.cs (+MonitorLayoutDefaults)
+- ViewModels/MainViewModel.cs (+SaveMonitorLayoutDefaults, +TryApplySavedMonitorLayoutDefaults, +NotifyAllMonitorLayoutPropertiesChanged)
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml (+Save current as default knap + forklarende tekst)
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml.cs (+SaveAsDefaultButton_Click, opdateret ResetDefaults)
+
+### Label rename + value-width lock fix
+- **Fix 1:** Renamed "Upload → CPU" to "Divider → CPU" and "CPU → GPU" to "Divider → GPU" on MonitorRowLayoutPage (the sliders actually control the gap between the divider and the temp text, not between upload/CPU or CPU/GPU directly).
+- **Fix 3:** DL/UL value TextBlocks changed `TextAlignment="Right"` → `TextAlignment="Left"` in `LauncherMonitorRow.xaml`. When the value-width lock toggle is ON (fixed 55px width), right-alignment pushed the number far from the label, creating hardcoded dead space. Left-alignment hugs the label side, so `MonitorDownloadLabelToValueGap`/`MonitorUploadLabelToValueGap` sliders alone control the visual gap.
+
+### Build & deploy
+- `dotnet build`: 0 errors, 0 warnings
+- Deployed to `C:\icongrid` via deploy-test.cmd
+
+### Files changed this sub-step
+- `Views/Settings/Pages/MonitorRowLayoutPage.xaml` — 2 label renames
+- `Controls/Launcher/LauncherMonitorRow.xaml` — DL/UL value TextAlignment Right→Left
+
+### Hardcoded Width fix (CPU/GPU temp TextBlocks)
+- **Problem:** `Width="75"` (CPU) og `Width="65"` (GPU) på temp TextBlocks i `LauncherMonitorRow.xaml` skabte dead-space mellem tekst-slut og bar-start — et hårdkodet mellemrum som `MonitorCpuBarGap`/`MonitorGpuBarGap` sliderne IKKE kunne fjerne.
+- **Fix:** Fjernede begge faste Widths. TextBlocks auto-sizer nu til deres indhold, og `MonitorCpuBarGap`/`MonitorGpuBarGap` (0px default, 0-30px slider) styrer nu ALENE det visuelle gap mellem temp-tekst og usage-bar.
+- **Fil:** `Controls/Launcher/LauncherMonitorRow.xaml` — fjernet `Width="75"` på CPU TextBlock og `Width="65"` på GPU TextBlock.
+- **Build:** 0 fejl / 0 advarsler. **Deploy:** C:\IconGrid.
+
+### Session total (6 files)
+- Models/ConfigModel.cs — bar gap defaults 6→0
+- ViewModels/MainViewModel.cs — backing fields 6→0
+- ViewModels/Settings/MainViewModelConfigState.cs — defaults 6→0
+- ViewModels/Settings/MainViewModelSettingsState.cs — defaults 6→0
+- Views/Settings/Pages/MonitorRowLayoutPage.xaml.cs — reset button komplett
+- Controls/Launcher/LauncherMonitorRow.xaml — fjernet hardcoded Width på CPU/GPU TextBlocks
+
+
+
+

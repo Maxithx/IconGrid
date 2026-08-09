@@ -17,7 +17,7 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - SRP (Single Responsibility Principle): Logic belongs in ViewModels or Services, never in code-behind.
 - BINDING SAFETY: If a UI binding fails, verify the DataContext. Before making UI changes, read the associated ViewModel to confirm properties exist.
 - DEPENDENCY INJECTION: Always look for existing services in `/Helpers` before creating new logic.
-- ARCHITECTURE GUARDRAILS: `ARCHITECTURE_RULES.md` defines the modularity guardrails. Use the `check_architecture_rules` MCP tool before large refactors and at session end.
+- ARCHITECTURE GUARDRAILS: `ARCHITECTURE_RULES.md` defines the modularity guardrails. Use the `run_all_checks` MCP tool before large refactors and at session end. This runs file-size checks, version consistency, localization completeness, git security, and XAML hardcoded-Danish detection — all in one pass.
 - REFACTOR PROCESS: Refactors MUST be done in small steps with continuous verification (see ARCHITECTURE_RULES.md "Refactor Workflow"): one isolated change per step, build after every step, run `check_architecture_rules` after each step, manual UI test after each functional step, and commit only at stable checkpoints after user approval. Never do a big-bang rewrite.
 
 ## 4. BEHAVIORAL PROTOCOL
@@ -25,7 +25,7 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - If you need to find a file, use `Get-ChildItem` once. If it returns multiple results or fails, ask the user to confirm the path. Do not guess.
 
 ## 5. MCP NOTES AGENT
-- A local MCP server named `icongrid-notes` provides note tools: `list_notes`, `read_note`, `search_notes`, `update_note`, `check_architecture_rules`, `check_version_consistency`.
+- A local MCP server named `icongrid-notes` provides note tools (`list_notes`, `read_note`, `search_notes`, `append_to_note`, `replace_in_note`, `update_note`) and project enforcement tools (`run_all_checks`, `check_architecture_rules`, `check_version_consistency`, `check_localization_completeness`, `check_git_security`, `check_xaml_hardcoded_danish`).
 - Notes live in `CHAT_STATE.md` (tracked, repo root) and `.local-state/*.md` (gitignored).
 - Use the notes tools for all note/session-memory management instead of manually editing note files.
-- At session end, update `CHAT_STATE.md` with session findings and next steps (see AGENT.md "Session memory" section).
+- At session end, run `run_all_checks` and update `CHAT_STATE.md` with findings and next steps (see AGENT.md "Session memory" section).

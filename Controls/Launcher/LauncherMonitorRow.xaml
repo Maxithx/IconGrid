@@ -4,6 +4,7 @@
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
              xmlns:converters="clr-namespace:IconGrid.Helpers.Converters">
     <UserControl.Resources>
+        <converters:ZeroToAutoWidthConverter x:Key="ZeroToAutoWidthConverter" />
         <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
         <helpers:PingSeverityToBrushConverter x:Key="PingSeverityBrush" />
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
@@ -44,30 +45,51 @@
                 Background="{Binding SystemMonitor.PingSeverityLevel, Converter={StaticResource PingSeverityBrush}}" />
         <!-- Net -->
         <TextBlock Style="{StaticResource NetworkMonitorTextStyle}"
+                   Width="64"
                    Margin="{Binding MonitorPingToNetGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
             <Run Text="{Binding MonitorNetworkLabel, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding SystemMonitor.NetworkStatus, Mode=OneWay}" />
         </TextBlock>
-        <!-- Divider 0 (between Net and Download) -->
+        <!-- Divider 0 -->
         <TextBlock Style="{StaticResource MonitorDividerStyle}"
                    Visibility="{Binding MonitorDivider0Visible, Converter={StaticResource BoolToVisibilityConverter}}"
                    Margin="{Binding MonitorDividerGap, Converter={StaticResource DoubleToLeftMarginConverter}}" />
-        <!-- Download -->
-        <TextBlock Style="{StaticResource MonitorTextStyle}"
-                   Margin="{Binding MonitorNetToDownloadGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
-                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
-            <Run Text="{Binding MonitorDownloadLabel, Mode=OneWay}" /><Run Text=": " /><Run FontFamily="Consolas" Text="{Binding SystemMonitor.DownloadStatus, Mode=OneWay}" />
-        </TextBlock>
+        <!-- Download: label (auto), value (bindable width), unit (auto). Value-width slider controls stability. -->
+        <StackPanel Orientation="Horizontal"
+                    Margin="{Binding MonitorNetToDownloadGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Text="{Binding MonitorDownloadLabel, Mode=OneWay,StringFormat={}{0}: }" />
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Margin="{Binding MonitorDownloadLabelToValueGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                       Width="{Binding MonitorDownloadValueWidth, Converter={StaticResource ZeroToAutoWidthConverter}}"
+                       FontFamily="Consolas"
+                       TextAlignment="Left"
+                       Text="{Binding SystemMonitor.DownloadValue, Mode=OneWay}" />
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Margin="{Binding MonitorDownloadValueToUnitGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                       Text="{Binding SystemMonitor.DownloadUnit, Mode=OneWay}" />
+        </StackPanel>
         <!-- Divider 1 -->
         <TextBlock Style="{StaticResource MonitorDividerStyle}"
                    Visibility="{Binding MonitorDivider1Visible, Converter={StaticResource BoolToVisibilityConverter}}"
                    Margin="{Binding MonitorDividerGap, Converter={StaticResource DoubleToLeftMarginConverter}}" />
-        <!-- Upload -->
-        <TextBlock Style="{StaticResource MonitorTextStyle}"
-                   Margin="{Binding MonitorDownloadToUploadGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
-                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
-            <Run Text="{Binding MonitorUploadLabel, Mode=OneWay}" /><Run Text=": " /><Run FontFamily="Consolas" Text="{Binding SystemMonitor.UploadStatus, Mode=OneWay}" />
-        </TextBlock>
+        <!-- Upload: label (auto), value (bindable width), unit (auto). Value-width slider controls stability. -->
+        <StackPanel Orientation="Horizontal"
+                    Margin="{Binding MonitorDownloadToUploadGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Text="{Binding MonitorUploadLabel, Mode=OneWay,StringFormat={}{0}: }" />
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Margin="{Binding MonitorUploadLabelToValueGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                       Width="{Binding MonitorUploadValueWidth, Converter={StaticResource ZeroToAutoWidthConverter}}"
+                       FontFamily="Consolas"
+                       TextAlignment="Left"
+                       Text="{Binding SystemMonitor.UploadValue, Mode=OneWay}" />
+            <TextBlock Style="{StaticResource MonitorTextStyle}" VerticalAlignment="Center"
+                       Margin="{Binding MonitorUploadValueToUnitGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                       Text="{Binding SystemMonitor.UploadUnit, Mode=OneWay}" />
+        </StackPanel>
         <!-- Divider 2 -->
         <TextBlock Style="{StaticResource MonitorDividerStyle}"
                    Visibility="{Binding MonitorDivider2Visible, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -75,6 +97,7 @@
         <!-- CPU temp -->
         <TextBlock Style="{StaticResource MonitorTextStyle}"
                    Margin="{Binding MonitorUploadToCpuGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                   TextAlignment="Left"
                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
             <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding SystemMonitor.CpuTemp, Mode=OneWay}" />
         </TextBlock>
@@ -92,6 +115,7 @@
         <!-- GPU temp -->
         <TextBlock Style="{StaticResource MonitorTextStyle}"
                    Margin="{Binding MonitorCpuToGpuGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
+                   TextAlignment="Left"
                    ToolTip="{Binding SystemMonitor.GpuName}"
                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
             <Run Text="{Binding MonitorGpuLabel, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding SystemMonitor.GpuTemp, Mode=OneWay}" />

@@ -62,10 +62,10 @@
             <views:TemplatePage.HeroContent>
                 <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutPage.xaml">
                     <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
-                               Text="Monitor Row Layout" />
+                               Text="{Binding MonitorRowLayoutTitle}" />
                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                Margin="0,8,0,0"
-                               Text="Juster mellemrum mellem monitor-elementerne i topbaren." />
+                               Text="{Binding MonitorRowLayoutIntro}" />
                 </StackPanel>
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
@@ -76,12 +76,47 @@
                             helpers:DevInspector.Metadata="Monitor row element gaps card">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="Element mellemrum" />
+                                       Text="{Binding MonitorRowElementGapsTitle}" />
+
+                            <!-- Lock value widths (quick toggles) -->
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="{Binding MonitorRowLockDlWidthTitle}" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="{Binding MonitorRowLockDlWidthDescription}" />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorDownloadValueLocked, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Text="{Binding MonitorRowLockUlWidthTitle}" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="{Binding MonitorRowLockUlWidthDescription}" />
+                                </StackPanel>
+                                <ToggleButton Grid.Column="1"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsChecked="{Binding MonitorUploadValueLocked, Mode=TwoWay}" />
+                            </Grid>
 
                             <!-- Ping → Net -->
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="Ping dot → Net" />
+                                       Text="{Binding MonitorRowPingToNetLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -102,7 +137,7 @@
                             <!-- Net → Download -->
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="Net → Download" />
+                                       Text="{Binding MonitorRowNetToDownloadLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -123,7 +158,7 @@
                             <!-- Download → Upload -->
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="Download → Upload" />
+                                       Text="{Binding MonitorRowDownloadToUploadLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -141,10 +176,10 @@
                                            Text="{Binding MonitorDownloadToUploadGap, StringFormat={}{0:F0} px}" />
                             </Grid>
 
-                            <!-- Upload → CPU -->
-                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                       Margin="0,14,0,0"
-                                       Text="Upload → CPU" />
+                             <!-- Upload → CPU (gap between Divider 2 and CPU temp) -->
+                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                        Margin="0,14,0,0"
+                                        Text="{Binding MonitorRowDividerToCpuLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -162,10 +197,10 @@
                                            Text="{Binding MonitorUploadToCpuGap, StringFormat={}{0:F0} px}" />
                             </Grid>
 
-                            <!-- CPU → GPU -->
-                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                       Margin="0,14,0,0"
-                                       Text="CPU → GPU" />
+                             <!-- CPU → GPU (gap between Divider 3 and GPU temp) -->
+                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                        Margin="0,14,0,0"
+                                        Text="{Binding MonitorRowDividerToGpuLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -182,6 +217,132 @@
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Text="{Binding MonitorCpuToGpuGap, StringFormat={}{0:F0} px}" />
                             </Grid>
+
+                            <!-- Download label → value -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowDlLabelToValueLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorDownloadLabelToValueGap, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorDownloadLabelToValueGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
+
+                            <!-- Download value → unit -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowDlValueToUnitLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorDownloadValueToUnitGap, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorDownloadValueToUnitGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
+
+                            <!-- Upload label → value -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowUlLabelToValueLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorUploadLabelToValueGap, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorUploadLabelToValueGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
+
+                            <!-- Upload value → unit -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowUlValueToUnitLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="30" SmallChange="1" LargeChange="5"
+                                        TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorUploadValueToUnitGap, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorUploadValueToUnitGap, StringFormat={}{0:F0} px}" />
+                            </Grid>
+
+                            <!-- Download value width -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowDlValueWidthLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="120" SmallChange="1" LargeChange="10"
+                                        TickFrequency="5" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorDownloadValueWidth, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorDownloadValueWidth, StringFormat={}{0:F0} px}" />
+                            </Grid>
+
+                            <!-- Upload value width -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding MonitorRowUlValueWidthLabel}" />
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider Minimum="0" Maximum="120" SmallChange="1" LargeChange="10"
+                                        TickFrequency="5" IsSnapToTickEnabled="True"
+                                        Style="{StaticResource ModernSliderStyle}"
+                                        Value="{Binding MonitorUploadValueWidth, Mode=TwoWay}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           Text="{Binding MonitorUploadValueWidth, StringFormat={}{0:F0} px}" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
@@ -190,7 +351,7 @@
                             helpers:DevInspector.Metadata="Monitor row dividers card">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="Dividers" />
+                                       Text="{Binding MonitorRowDividersTitle}" />
 
                             <Grid Margin="0,14,0,0">
                                 <Grid.ColumnDefinitions>
@@ -199,10 +360,10 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                               Text="Net | Download" />
+                                               Text="{Binding MonitorRowDivider0Title}" />
                                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                                Margin="0,4,20,0"
-                                               Text="Divider mellem netværkshastighed og download." />
+                                               Text="{Binding MonitorRowDivider0Description}" />
                                 </StackPanel>
                                 <ToggleButton Grid.Column="1"
                                               Style="{StaticResource ToggleSwitchStyle}"
@@ -216,10 +377,10 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                               Text="Download | Upload" />
+                                               Text="{Binding MonitorRowDivider1Title}" />
                                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                                Margin="0,4,20,0"
-                                               Text="Divider mellem download og upload." />
+                                               Text="{Binding MonitorRowDivider1Description}" />
                                 </StackPanel>
                                 <ToggleButton Grid.Column="1"
                                               Style="{StaticResource ToggleSwitchStyle}"
@@ -233,10 +394,10 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                               Text="Upload | CPU" />
+                                               Text="{Binding MonitorRowDivider2Title}" />
                                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                                Margin="0,4,20,0"
-                                               Text="Divider mellem upload og CPU." />
+                                               Text="{Binding MonitorRowDivider2Description}" />
                                 </StackPanel>
                                 <ToggleButton Grid.Column="1"
                                               Style="{StaticResource ToggleSwitchStyle}"
@@ -250,10 +411,10 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                               Text="CPU | GPU" />
+                                               Text="{Binding MonitorRowDivider3Title}" />
                                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                                Margin="0,4,20,0"
-                                               Text="Divider mellem CPU og GPU." />
+                                               Text="{Binding MonitorRowDivider3Description}" />
                                 </StackPanel>
                                 <ToggleButton Grid.Column="1"
                                               Style="{StaticResource ToggleSwitchStyle}"
@@ -262,7 +423,7 @@
 
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="Divider gap" />
+                                       Text="{Binding MonitorRowDividerGapLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -287,11 +448,11 @@
                             helpers:DevInspector.Metadata="Monitor row bar gaps card">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="CPU / GPU bjælker" />
+                                       Text="{Binding MonitorRowBarGapsTitle}" />
 
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="CPU bar gap" />
+                                       Text="{Binding MonitorRowCpuBarGapLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -311,7 +472,7 @@
 
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
-                                       Text="GPU bar gap" />
+                                       Text="{Binding MonitorRowGpuBarGapLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -331,11 +492,20 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Reset -->
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Style="{StaticResource ResetDefaultsButtonStyle}"
-                                Content="Reset defaults"
-                                Click="ResetDefaultsButton_Click" />
+                    <!-- Reset / Save actions -->
+                    <StackPanel Margin="0,12,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource ResetDefaultsButtonStyle}"
+                                    Content="{Binding MonitorRowResetButton}"
+                                    Click="ResetDefaultsButton_Click" />
+                            <Button Style="{StaticResource ResetDefaultsButtonStyle}"
+                                    Margin="8,0,0,0"
+                                    Content="{Binding MonitorRowSaveAsDefaultButton}"
+                                    Click="SaveAsDefaultButton_Click" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                   Margin="0,8,0,0"
+                                   Text="{Binding MonitorRowSaveAsDefaultDescription}" />
                     </StackPanel>
                 </StackPanel>
             </views:TemplatePage.CardsContent>

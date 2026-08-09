@@ -80,9 +80,12 @@ Before making changes, read these files in this order:
   ```
   (Replace the `args`/`env` paths if the repo lives at a different location.)
 - Keep the server in sync with the repo: any change to `tools/mcp-notes-server/` is versioned with git like normal code.
-- Notes live in:
-  - `CHAT_STATE.md` (tracked, repo root) — always use `read_note`/`update_note` with note name `CHAT_STATE` for this file.
-  - `.local-state/*.md` (gitignored) — use plain names like `fps-etw` or `ui-launcher`.
+- Notes live in a two-part memory structure:
+  - `CHAT_STATE.md` (tracked, repo root) — **short-term memory** (~30 lines). Contains Current date, Current status, Architecture status, Working tree status, and Good next steps. This is the ONLY file a new AI needs to read to get started. Search with note name `CHAT_STATE`.
+  - `.local-state/session-history.md` (gitignored) — **long-term memory index**. Links to per-date session files in `sessions/`. Search with plain name `session-history`.
+  - `.local-state/sessions/*.md` (gitignored) — **per-date session logs**. Max ~500 lines each. Split into a new file when approaching 500 lines. Named `YYYY-MM-DD.md`. The index file must be updated when a new session file is created.
+  - `.local-state/*.md` (gitignored) — topic-specific memory (e.g. `fps-etw`, `ui-launcher`, `gaming-overlay`). Use plain names like `fps-etw` or `ui-launcher`.
+- Use `search_notes` to search across ALL notes at once — it covers both `CHAT_STATE.md` and all `.local-state/**` files.
 - Use `update_note` for structured updates (append under a heading, or replace exact text) instead of manually editing note files with `write_to_file`/`replace_in_file`.
 - Run `check_architecture_rules` before starting any large refactor and at the end of each session. Treat VIOLATION findings as required cleanup backlog; do not ignore new violations introduced by an edit.
 - Versioning: the app version lives in `AssemblyInfo.cs` (`AssemblyInformationalVersion` is the canonical SemVer, e.g. `0.7.0-beta.1`). Run `check_version_consistency` after any version bump. When a milestone is completed, propose a version bump and sync `README.md` ("Current version") together with `AssemblyInfo.cs`.
@@ -93,6 +96,26 @@ Before making changes, read these files in this order:
   4. If a `.local-state` technical reference changed materially (e.g. `fps-etw.md`), update it too.
   5. Commit `CHAT_STATE.md` only if the user explicitly approves a commit.
 - Do not store chat history as the source of truth; treat `CHAT_STATE.md` + `.local-state` as the persistent memory.
+
+## Localization design pattern (da/en)
+
+Every settings page or UI component that displays user-facing text MUST support both Danish and English following this pattern:
+
+1. **Add keys to `Helpers/Settings/LocalizationHelper.cs`** — insert keys in BOTH the `["en"]` and `["da"]` dictionaries. The `"da"` section is below line ~276. Key naming convention: `MonitorRowLayoutTitle`, `MonitorRowLockDlWidthTitle`, etc. (PascalCase, descriptive prefix for the feature).
+
+2. **Add readonly properties in `ViewModels/MainViewModel.Localization.cs`** — each key gets a one-liner: `public string MonitorRowLayoutTitle => _localizationState.Get(Language, "MonitorRowLayoutTitle");`
+
+3. **Add `OnPropertyChanged` calls in `NotifyLocalizationPropertiesChanged()`** (same file, ~line 126) — so the UI rebinds when the user switches language.
+
+4. **Bind XAML texts to the MainViewModel properties** — `Text="{Binding MonitorRowLayoutTitle}"` instead of hardcoded strings. The settings pages inherit MainViewModel as DataContext from the SettingsWindow.
+
+**Do NOT follow the GamingOverlayPage/StartsidePage pattern** of `DataContext = this` + `RefreshLocalizedText()` — that pattern predates the centralized localization system and is legacy. The centralized pattern (LocalizationHelper → MainViewModel.Localization → XAML bindings) is the preferred approach for new pages.
+
+**Note:** MonitorRowLayoutPage (2026-08-10) is the first fully centralized-localized page. Use it as the template for future settings pages.
+
+## Architecture rules
+
+`ARCHITECTURE_RULES.md` defines all modularity guardrails (file size limits, refactor workflow, feature placement rules, security checklist). Read it before any large refactor. Run `check_architecture_rules` after each step. The `.clinerules` file at the repo root enforces the same rules for the agent's runtime behavior.
 
 ## Current focus
 

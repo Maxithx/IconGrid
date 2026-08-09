@@ -258,6 +258,144 @@ async function architectureReport(includeOk = false) {
   return lines.join('\n');
 }
 
+// ---- Localization completeness check ----
+// Verifies that ALL keys in the "en" dictionary also exist in "da" (and vice versa).
+
+async function localizationReport() {
+  const fullPath = path.join(WORKSPACE_ROOT, 'Helpers', 'Settings', 'LocalizationHelper.cs');
+  if (!(await fileExists(fullPath))) {
+    return 'LocalizationHelper.cs not found.';
+  }
+
+  const text = await fs.readFile(fullPath, 'utf8');
+  const enStart = text.indexOf('["en"] = new()');
+  const daStart = text.indexOf('["da"] = new()');
+  if (enStart === -1 || daStart === -1) {
+    return 'Could not locate "en" or "da" dictionary blocks in LocalizationHelper.cs.';
+  }
+
+  const enBlock = text.slice(enStart, daStart);
+  const daBlock = text.slice(daStart);
+
+  const keyPattern = /\["([^"]+)"\]\s*=/g;
+  const enKeys = new Set();
+  const daKeys = new Set();
+  let match;
+  while ((match = keyPattern.exec(enBlock)) !== null) {
+    enKeys.add(match[1]);
+  }
+  while ((match = keyPattern.exec(daBlock)) !== null) {
+    daKeys.add(match[1]);
+  }
+
+  const missingInDa = [...enKeys].filter((k) => !daKeys.has(k) && k !== 'en' && k !== 'da');
+  const missingInEn = [...daKeys].filter((k) => !enKeys.has(k) && k !== 'en' && k !== 'da');
+
+  const lines = [];
+  lines.push(`en keys: ${enKeys.size} | da keys: ${daKeys.size}`);
+  if (missingInDa.length === 0 && missingInEn.length === 0) {
+    lines.push('All localization keys are synchronized between en and da.');
+  } else {
+    if (missingInDa.length > 0) {
+      lines.push(`Keys in en but MISSING in da (${missingInDa.length}): ${missingInDa.join(', ')}`);
+    }
+    if (missingInEn.length > 0) {
+      lines.push(`Keys in da but MISSING in en (${missingInEn.length}): ${missingInEn.join(', ')}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+// ---- Git security check ----
+// Scans tracked files for secrets (.pfx, .key, .pem, .env).
+
+async function gitSecurityReport() {
+  const { exec } = await import('node:child_process');
+  return new Promise((resolve) => {
+    exec('git ls-files', { cwd: WORKSPACE_ROOT }, (err, stdout) => {
+      if (err) {
+        resolve(`Git security check failed: ${err.message}`);
+        return;
+      }
+      const files = stdout.split(/\r?\n/).filter(Boolean);
+      const dangerous = files.filter((f) =>
+        /\.(pfx|key|pem)$/i.test(f) || /\.env(\..*)?$/i.test(f)
+      );
+      if (dangerous.length === 0) {
+        resolve('No staged secrets found (pfx/key/pem/env).');
+      } else {
+        resolve(
+          `DANGER — staged secrets found (${dangerous.length}):\n${dangerous.join('\n')}\nRemove these files from git tracking immediately.`
+        );
+      }
+    });
+  });
+}
+
+// ---- XAML hardcoded Danish check ----
+// Scans XAML files for hardcoded Danish text (Text="...æøå...") not using localization bindings.
+
+async function xamlDanishReport() {
+  const xamlDirs = ['Views', 'Controls'];
+  const results = [];
+
+  async function scanDir(dirPath) {
+    const fullDir = path.join(WORKSPACE_ROOT, dirPath);
+    try {
+      const entries = await fs.readdir(fullDir, { withFileTypes: true, recursive: true });
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.toLowerCase().endsWith('.xaml')) {
+          const filePath = path.join(entry.parentPath || fullDir, entry.name);
+          const text = await fs.readFile(filePath, 'utf8');
+          const lines = text.split(/\r?\n/);
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const danishMatch = line.match(/Text="([^"]*[æøåÆØÅ][^"]*)"/);
+            if (danishMatch && !line.includes('{Binding')) {
+              results.push(`${path.relative(WORKSPACE_ROOT, filePath)}:${i + 1}: ${line.trim()}`);
+            }
+          }
+        }
+      }
+    } catch {
+      // Directory may not exist — skip.
+    }
+  }
+
+  for (const dir of xamlDirs) {
+    await scanDir(dir);
+  }
+
+  if (results.length === 0) {
+    return 'No hardcoded Danish text found in XAML files.';
+  }
+  return `Hardcoded Danish text in XAML (${results.length} lines) — replace with localized bindings:\n${results.join('\n')}`;
+}
+
+// ---- Run all checks ----
+// Runs architecture, version, localization, git security, and XAML Danish checks at once.
+
+async function runAllChecks() {
+  const results = [];
+
+  results.push('=== Architecture rules ===');
+  results.push(await architectureReport(false));
+  results.push('');
+  results.push('=== Version consistency ===');
+  results.push(await versionReport());
+  results.push('');
+  results.push('=== Localization completeness ===');
+  results.push(await localizationReport());
+  results.push('');
+  results.push('=== Git security ===');
+  results.push(await gitSecurityReport());
+  results.push('');
+  results.push('=== XAML hardcoded Danish ===');
+  results.push(await xamlDanishReport());
+
+  return results.join('\n');
+}
+
 // ---- Version consistency check ----
 // Reads the app version from AssemblyInfo.cs and README.md and reports mismatches.
 const VERSION_FILES = [
@@ -555,6 +693,42 @@ class NotesServer {
             properties: {},
           },
         },
+        {
+          name: 'check_localization_completeness',
+          description:
+            'Check that ALL localization keys in LocalizationHelper.cs exist in BOTH the en and da dictionaries. Reports missing keys.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'check_git_security',
+          description:
+            'Scan git-tracked files for secrets (pfx, key, pem, env files). Returns a security report.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'check_xaml_hardcoded_danish',
+          description:
+            'Scan XAML files for hardcoded Danish text (Text="...æøå...") that should use localization bindings instead.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'run_all_checks',
+          description:
+            'Run ALL architecture, version, localization, security, and XAML checks at once. Use this at session end for a complete project health report.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
       ],
     }));
 
@@ -651,6 +825,34 @@ class NotesServer {
 
         case 'check_version_consistency': {
           const report = await versionReport();
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'check_localization_completeness': {
+          const report = await localizationReport();
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'check_git_security': {
+          const report = await gitSecurityReport();
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'check_xaml_hardcoded_danish': {
+          const report = await xamlDanishReport();
+          return {
+            content: [{ type: 'text', text: report }],
+          };
+        }
+
+        case 'run_all_checks': {
+          const report = await runAllChecks();
           return {
             content: [{ type: 'text', text: report }],
           };

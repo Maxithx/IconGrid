@@ -64,19 +64,32 @@ public class ConfigModel
     public int WindowAnimationDurationMs { get; set; } = 250;
     public FpsTargetConfig FpsTarget { get; set; } = new();
 
-    // Monitor row layout (persisted)
-    public double MonitorPingToNetGap { get; set; } = 4;
-    public double MonitorNetToDownloadGap { get; set; } = 6;
-    public double MonitorDownloadToUploadGap { get; set; } = 4;
-    public double MonitorUploadToCpuGap { get; set; } = 4;
-    public double MonitorCpuToGpuGap { get; set; } = 4;
+    // Monitor row layout (persisted) — all default to tight spacing, user can widen via sliders
+    public double MonitorPingToNetGap { get; set; } = 2;
+    public double MonitorNetToDownloadGap { get; set; } = 2;
+    public double MonitorDownloadToUploadGap { get; set; } = 2;
+    public double MonitorUploadToCpuGap { get; set; } = 2;
+    public double MonitorCpuToGpuGap { get; set; } = 2;
     public bool MonitorDivider0Visible { get; set; } = true;
     public bool MonitorDivider1Visible { get; set; } = true;
     public bool MonitorDivider2Visible { get; set; } = true;
     public bool MonitorDivider3Visible { get; set; } = true;
-    public double MonitorDividerGap { get; set; } = 4;
-    public double MonitorCpuBarGap { get; set; } = 6;
-    public double MonitorGpuBarGap { get; set; } = 6;
+    public double MonitorDividerGap { get; set; } = 0;
+    public double MonitorCpuBarGap { get; set; } = 0;
+    public double MonitorGpuBarGap { get; set; } = 0;
+    public double MonitorDownloadLabelToValueGap { get; set; } = 0;
+    public double MonitorUploadLabelToValueGap { get; set; } = 0;
+    public double MonitorDownloadValueToUnitGap { get; set; } = 0;
+    public double MonitorUploadValueToUnitGap { get; set; } = 0;
+    public double MonitorDownloadValueWidth { get; set; } = 0;
+    public double MonitorUploadValueWidth { get; set; } = 0;
+
+    /// <summary>
+    /// User-saved monitor layout defaults (JSON blob of 18 properties).
+    /// When set, the "Reset defaults" button uses these instead of the hardcoded factory defaults.
+    /// Saved via "Save current as default" button on MonitorRowLayoutPage.
+    /// </summary>
+    public string? MonitorLayoutDefaults { get; set; }
 
     public static readonly string[] DefaultTabs = ["Games", "Software", "Develop"];
 
