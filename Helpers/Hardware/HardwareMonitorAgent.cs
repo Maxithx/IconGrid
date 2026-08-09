@@ -933,7 +933,7 @@ exit:
             // the case where PathOfExile.exe is the stale config-target from a previous
             // session, but the user starts COD from Battle.net — we want COD to show up
             // on the Game Resolution page.
-            AttemptExternalGameRegistration(log);
+            AttemptExternalGameRegistration(nativeState, log);
 
             if (nativeFpsStarted &&
                 (nativeOwnsConfigTarget ||
@@ -942,13 +942,18 @@ exit:
                 return;
             }
 
-            log?.Invoke($"Configured FPS target changed or does not own the native agent. Restarting in config-first mode. TargetExe={configTarget?.ExecutableName ?? "null"} TargetPath={configTarget?.ResolvedExecutablePath ?? "null"} RootPid={configTarget?.RootProcessId?.ToString() ?? "null"} RootStartFileTime={configTarget?.RootProcessStartFileTimeUtc?.ToString() ?? "null"} CurrentForegroundPid={currentForegroundGamePid?.ToString() ?? "null"} NativeTargetPid={nativeState?.TargetPid.ToString() ?? "null"}");
+            // When the native agent has locked onto a DIFFERENT process than the
+            // stale config target (e.g. the user started COD externally), pass
+            // that PID as the foreground game so the agent locks onto it for FPS.
+            var externalForegroundPid = nativeState?.TargetPid > 0 ? nativeState.TargetPid : (int?)null;
+
+            log?.Invoke($"Configured FPS target changed or does not own the native agent. Restarting in config-first mode. TargetExe={configTarget?.ExecutableName ?? "null"} TargetPath={configTarget?.ResolvedExecutablePath ?? "null"} RootPid={configTarget?.RootProcessId?.ToString() ?? "null"} RootStartFileTime={configTarget?.RootProcessStartFileTimeUtc?.ToString() ?? "null"} CurrentForegroundPid={currentForegroundGamePid?.ToString() ?? "null"} NativeTargetPid={nativeState?.TargetPid.ToString() ?? "null"} ExternalForegroundPid={externalForegroundPid?.ToString() ?? "null"}");
             activeFpsTargetSignature = configTargetSignature;
-            currentForegroundGamePid = null;
+            currentForegroundGamePid = externalForegroundPid;
             confirmedForegroundGamePid = null;
             foregroundOverridePid = null;
             currentForegroundPidObservedAtUtc = null;
-            nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid, foregroundGamePid: null);
+            nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid, foregroundGamePid: externalForegroundPid);
             return;
         }
 
@@ -1185,12 +1190,22 @@ exit:
     /// COD started from Battle.net), register the foreground process so
     /// GameResolutionPage can show it.
     /// </summary>
-    private static void AttemptExternalGameRegistration(Action<string>? log)
+    private static void AttemptExternalGameRegistration(NativeFpsAgentState? nativeState, Action<string>? log)
     {
-        var foregroundPid = TryGetForegroundProcessPid();
-        if (foregroundPid.HasValue)
+        // Prioritize the native agent's TargetPid — it's the process the agent
+        // has actually locked onto (e.g. cod22-cod.exe after COD fully starts).
+        // Fall back to foreground PID only when the agent has no target.
+        if (nativeState?.TargetPid > 0)
         {
-            TryAutoRegisterExternalGame(foregroundPid.Value, log);
+            TryAutoRegisterExternalGame(nativeState.TargetPid, log);
+        }
+        else
+        {
+            var foregroundPid = TryGetForegroundProcessPid();
+            if (foregroundPid.HasValue)
+            {
+                TryAutoRegisterExternalGame(foregroundPid.Value, log);
+            }
         }
     }
 
@@ -1204,9 +1219,33 @@ exit:
         try
         {
             using var process = Process.GetProcessById(pid);
-            var path = process.MainModule?.FileName;
+
+            string? path = null;
+            try
+            {
+                path = process.MainModule?.FileName;
+            }
+            catch
+            {
+                // Process.MainModule is unavailable for UWP/GamePass/AppContainer
+                // processes (e.g. cod22-cod.exe). Use the process name as a
+                // fallback identifier.
+            }
+
             if (string.IsNullOrWhiteSpace(path))
-                return;
+            {
+                // Fallback: use the process name as a synthetic path identifier
+                // for UWP/GamePass games where MainModule is blocked.
+                var processName = process.ProcessName;
+                if (string.IsNullOrWhiteSpace(processName))
+                    return;
+
+                // Ensure .exe suffix for consistency with normal paths.
+                if (!processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    processName += ".exe";
+
+                path = processName;
+            }
 
             if (ExternalGames.TryRegister(path))
             {
@@ -1229,11 +1268,33 @@ exit:
         try
         {
             using var process = Process.GetProcessById(pid);
-            var path = process.MainModule?.FileName;
-            if (string.IsNullOrWhiteSpace(path))
-                return;
 
-            var resolution = ExternalGames.GetResolution(path);
+            // Resolve the external game key the same way TryAutoRegisterExternalGame
+            // stores it: use MainModule.FileName first, fall back to process name
+            // for UWP/GamePass/AppContainer processes where MainModule is blocked.
+            string? pathKey = null;
+            try
+            {
+                pathKey = process.MainModule?.FileName;
+            }
+            catch
+            {
+                // MainModule unavailable (UWP/GamePass).
+            }
+
+            if (string.IsNullOrWhiteSpace(pathKey))
+            {
+                pathKey = process.ProcessName;
+                if (string.IsNullOrWhiteSpace(pathKey))
+                    return;
+
+                // Match the .exe suffix convention used by TryAutoRegisterExternalGame
+                // so the lookup key matches the stored entry.
+                if (!pathKey.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    pathKey += ".exe";
+            }
+
+            var resolution = ExternalGames.GetResolution(pathKey);
             if (string.IsNullOrWhiteSpace(resolution))
                 return;
 
@@ -1246,7 +1307,7 @@ exit:
             {
                 _externalDisplayResolution.AttachPendingResolution(pid);
                 _externalDisplayResolution.WatchProcess(pid);
-                log?.Invoke($"Applied external game resolution {resolution} for {Path.GetFileName(path)} (PID={pid})");
+                log?.Invoke($"Applied external game resolution {resolution} for {Path.GetFileName(pathKey)} (PID={pid})");
             }
         }
         catch

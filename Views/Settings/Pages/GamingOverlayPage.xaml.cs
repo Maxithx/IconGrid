@@ -721,5 +721,18 @@ namespace IconGrid.Views
             field = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        private void GameResolutionCardExpander_Expanded(object sender, RoutedEventArgs e)
+        {
+            // Refresh shortcuts and current resolution when the user opens
+            // the Game Resolution section — external games (e.g. COD from
+            // Battle.net) are registered AFTER the page first loads.
+            if (sender is System.Windows.Controls.Expander expander &&
+                expander.Content is GameResolutionPage page)
+            {
+                page.RefreshShortcuts();
+                page.RefreshCurrentResolution();
+            }
+        }
     }
 }

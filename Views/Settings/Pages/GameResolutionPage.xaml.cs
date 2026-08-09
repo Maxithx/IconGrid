@@ -30,6 +30,14 @@ namespace IconGrid.Views
         private readonly ObservableCollection<CategoryOption> _availableCategories = new();
         private IReadOnlyList<string> _supportedResolutions;
 
+        /// <summary>
+        /// External games detected via foreground/FPS detection (games launched
+        /// outside IconGrid — Battle.net, Steam, Ubisoft, etc.). Shown as a
+        /// separate section below the regular shortcuts so new users see them
+        /// immediately without needing to find a category in the dropdown.
+        /// </summary>
+        public ObservableCollection<LauncherItem> ExternalGames { get; } = new();
+
         public GameResolutionPage()
         {
             InitializeComponent();
@@ -177,12 +185,12 @@ namespace IconGrid.Views
             }
         }
 
-        private void RefreshCurrentResolution()
+        public void RefreshCurrentResolution()
         {
             CurrentResolutionValue = DisplayResolutionService.GetCurrentResolutionWithHz();
         }
 
-        private void RefreshShortcuts()
+        public void RefreshShortcuts()
         {
             if (_mainViewModel == null)
                 return;
@@ -210,27 +218,26 @@ namespace IconGrid.Views
                 }
             }
 
-            // Include external games detected via foreground/FPS detection
-            // (games launched outside IconGrid — Battle.net, Steam, Ubisoft, etc.)
+            // External games detected via foreground/FPS detection
+            // (games launched outside IconGrid — Battle.net, Steam, Ubisoft, etc.).
             // Always read from disk fresh so newly registered games appear immediately.
+            // Shown as a separate section below the regular shortcuts so new users
+            // see them without needing to find them in the category dropdown.
             var externalRegistry = new ExternalGameRegistry();
             var externalItems = externalRegistry.GetLauncherItems();
+            foreach (var item in ExternalGames)
+                item.PropertyChanged -= Item_PropertyChanged;
+            ExternalGames.Clear();
             if (externalItems.Count > 0)
             {
-                var externalCategory = "External";
-                if (!_availableCategories.Any(c => string.Equals(c.Key, externalCategory, System.StringComparison.OrdinalIgnoreCase)))
-                {
-                    _availableCategories.Add(new CategoryOption(
-                        externalCategory,
-                        TabNameLocalizationConverter.LocalizeCategoryName(externalCategory, language)));
-                }
-
                 foreach (var item in externalItems)
                 {
                     item.PropertyChanged += Item_PropertyChanged;
-                    _allShortcuts.Add(item);
+                    ExternalGames.Add(item);
                 }
             }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ExternalGames)));
+            ExternalGamesSection.Visibility = ExternalGames.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             // Keep the selected category if it still exists; otherwise fall back to "Games".
             var selectedKey = _selectedCategory?.Key;
@@ -265,8 +272,19 @@ namespace IconGrid.Views
 
         private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (string.Equals(e.PropertyName, nameof(LauncherItem.GameResolution), System.StringComparison.Ordinal) &&
-                _mainViewModel != null)
+            if (!string.Equals(e.PropertyName, nameof(LauncherItem.GameResolution), System.StringComparison.Ordinal))
+                return;
+
+            if (sender is not LauncherItem item)
+                return;
+
+            // External games are persisted via ExternalGameRegistry (not MainViewModel items).
+            if (string.Equals(item.Category, "External", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var registry = new ExternalGameRegistry();
+                registry.SetResolution(item.Path, item.GameResolution);
+            }
+            else if (_mainViewModel != null)
             {
                 _mainViewModel.SaveItemsToFile();
             }
@@ -305,6 +323,19 @@ namespace IconGrid.Views
             {
                 category.DisplayName = TabNameLocalizationConverter.LocalizeCategoryName(category.Key, language);
             }
+        }
+
+        private void RemoveExternalGame_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement element || element.Tag is not string path)
+                return;
+
+            var registry = new ExternalGameRegistry();
+            registry.Remove(path);
+
+            // Re-read shortcuts to update the ExternalGames collection and
+            // hide the section if this was the last entry.
+            RefreshShortcuts();
         }
 
         private void SetField(ref string field, string value, [CallerMemberName] string? propertyName = null)

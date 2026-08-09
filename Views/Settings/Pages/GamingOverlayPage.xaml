@@ -762,6 +762,7 @@
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
                                   IsExpanded="False"
+                                  Expanded="GameResolutionCardExpander_Expanded"
                                   helpers:DevInspector.Metadata="Game resolution card expander -> Views/GamingOverlayPage.xaml">
                             <Expander.Header>
                                 <StackPanel>

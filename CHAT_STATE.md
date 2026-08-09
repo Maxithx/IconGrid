@@ -1621,3 +1621,53 @@ All fixes deployed, tested, and committed.
 ### Working tree clean
 
 - `git status --short`: nothing (all changes committed and pushed)
+
+## Session 2026-08-09 (nat, del 2) — External game registration NOT working
+
+## Session 2026-08-09 (nat, del 2) — External game registration NOT working
+
+### Status
+- `ExternalGameRegistry`, `AttemptExternalGameRegistration`, `TryAutoRegisterExternalGame`, `TryApplyExternalGameResolution` er alle deployet.
+- **Men**: COD startet udenfor IconGrid via Battle.net registreres IKKE som et eksternt spil.
+- `external-games.json` findes SLET IKKE — filen er aldrig blevet oprettet.
+
+### Root cause (trace.log bevis)
+
+Fra trace.log linje 83: `Rejecting foreground PID because window is too small for a likely game. Name=cod22-cod Size=843x480`
+- COD's launch-vindue er 843×480 — under `MinimumGameWindowWidth`/`MinimumGameWindowHeight` (960×540)
+- `TryGetForegroundGamePid` afviser COD fordi vinduet er for småt
+- `newForegroundPid` forbliver null i `TryUpdateForegroundGameTarget`
+- `TryAutoRegisterExternalGame` kaldes ALDRIG
+
+Når COD senere er fuldt startet og native agenten låser på det via visible-game-fallback, er `IsConfiguredTargetAuthoritative` true (stale PathOfExile.exe target) → koden tager den autoritative gren → `AttemptExternalGameRegistration(nativeState, log)` kaldes — men det var FØR vores fix, og brugte `nativeState.TargetPid` som pegede på `WmiPrvSE.exe` (ikke COD).
+
+Efter vores fix i `58d0ea8` kalder `AttemptExternalGameRegistration` nu `TryGetForegroundProcessPid()` — men foreground-process-PID'en er IKKE altid COD når native agenten er låst på en anden PID.
+
+### Den rigtige fix (IKKE implementeret endnu)
+
+`AttemptExternalGameRegistration` skal bruge **både** foreground-PID og native-agentens TargetPid:
+1. Hvis `nativeState.TargetPid > 0` → registrer `TargetPid` (den faktisk kørende game-proces som agenten ser)
+2. Fald tilbage til `TryGetForegroundProcessPid()` kun hvis agenten ikke har noget target
+
+Dette fanger COD fordi native agenten låser på `cod22-cod.exe` via `TryGetVisibleGamePidFallback` når COD er fuldt startet og vinduet er stort nok.
+
+### Hvilken `AttemptExternalGameRegistration` skal ændres
+
+Der er TO kald til `AttemptExternalGameRegistration`:
+1. I den config-target-autoritative gren (linje 936) — `AttemptExternalGameRegistration(log)` — dette kalder `TryGetForegroundProcessPid()` som måske IKKE giver COD's PID
+2. I bunden af `TryUpdateForegroundGameTarget` (linje 1053) — `TryAutoRegisterExternalGame(newForegroundPid.Value, log)` — dette kaldes KUN når `newForegroundPid` er sat, hvilket den IKKE er når COD's launch-vindue er for småt
+
+**Fix**: I den config-target-autoritative gren: kald `AttemptExternalGameRegistration` med **native agentens TargetPid** (ikke foreground-PID). Native agenten har allerede låst på den rigtige proces.
+
+### Fil at ændre
+- `Helpers/Hardware/HardwareMonitorAgent.cs` — `AttemptExternalGameRegistration` metode (linje 1182-1195)
+
+### Next session first steps
+1. Read this CHAT_STATE.md section
+2. Open `Helpers/Hardware/HardwareMonitorAgent.cs` at line ~1182
+3. Change `AttemptExternalGameRegistration(Action<string>? log)`:
+   - Første prioritet: `nativeState.TargetPid > 0` → registrer den PID
+   - Fallback: `TryGetForegroundProcessPid()`
+4. Build + deploy
+5. Test: Start COD fra Battle.net → tjek `external-games.json` → tjek Game Resolution-siden for "Eksterne spil"
+6. Commit + push (AFVENT BRUGER-GODKENDELSE)

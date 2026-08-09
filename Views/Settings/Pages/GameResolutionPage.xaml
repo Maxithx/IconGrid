@@ -137,5 +137,67 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Border>
+
+        <!-- External games section — always visible below the regular shortcuts.
+             Games started outside IconGrid (Battle.net, Steam, etc.) appear here
+             so new users see them immediately without needing the category dropdown. -->
+        <StackPanel x:Name="ExternalGamesSection" Margin="0,20,0,0"
+                    Visibility="Collapsed">
+            <TextBlock x:Name="ExternalGamesTitle"
+                       Text="External games"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16" Margin="0,8,0,0">
+                <ItemsControl ItemsSource="{Binding ExternalGames, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Text="{Binding Path}"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                                <ComboBox Grid.Column="1"
+                                          Width="160"
+                                          Margin="12,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Style="{StaticResource GameResComboBoxStyle}"
+                                          SelectedItem="{Binding GameResolution, Mode=TwoWay}"
+                                          ItemsSource="{Binding SupportedResolutions, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
+                                <Button Grid.Column="2"
+                                        Width="28" Height="28"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Cursor="Hand"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        ToolTip="Remove external game"
+                                        Click="RemoveExternalGame_Click"
+                                        Tag="{Binding Path}">
+                                    <TextBlock Text="&#xE711;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="14"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
     </StackPanel>
 </UserControl>
