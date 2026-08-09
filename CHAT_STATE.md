@@ -1499,3 +1499,115 @@ Massiv session med debugging af auto-hide proximity zone. Proximity trigger var 
 - `ViewModels/Settings/MainViewModelSettingsState.cs` — +AllowMultiMonitorDrag
 - `ViewModels/MainViewModel.cs` — +_allowMultiMonitorDrag field + AllowMultiMonitorDrag property
 - `ViewModels/MainViewModel.Settings.cs` — wiring for AllowMultiMonitorDrag
+
+## Session 2026-08-09 — README restructure + screenshot placeholders
+
+## README completely restructured
+
+- Old README was ~323 lines of developer-chronology mixed with user docs — hard to read, missing new features.
+- New README has clear sections: Main Launcher → Gaming Overlay → Settings pages → Game Resolution → Architecture.
+- All features now documented: launcher hide modes (Always visible/Manual/Auto), peek activation, carousel/grid toggle, position presets, per-resolution scale, transparent background, text color picker.
+- Settings pages table simplified from 8 to 7 (Game Resolution absorbed into Gaming Overlay).
+- 6 TODO screenshot placeholders with descriptions:
+  - `Assets/git-img/IconGrid-full.png` — Full launcher with shortcuts and live monitor strip
+  - `Assets/git-img/IconGrid-peek.png` — Launcher in auto-hide peek mode (10px strip)
+  - `Assets/git-img/IconGrid-carousel.png` — Carousel view with 4 icons + horizontal scrollbar
+  - `Assets/git-img/GamingOverlay-in-game.png` — Gaming overlay in-game (FPS, CPU, GPU, network)
+  - `Assets/git-img/Settings-Startside.png` — Startside settings (hide mode dropdown + peek toggle)
+  - `Assets/git-img/Settings-GamingOverlay.png` — Gaming Overlay settings (scale slider + position preset + transparency)
+- Old screenshots retained: `Floatingicon.png`, `IconGrid-collapsed.png`, `Settings.png`.
+- Game Resolution detail section now has "Configured from the **Gaming Overlay** settings page" note.
+
+## Session commits (this session)
+
+- `9ba68c2` Fix auto-hide proximity zone DPI mismatch, add DragMove clamping, slide animation hop fix (8 files)
+- `a3b996d` Add launcher hide mode settings UI, idle hide button, SettingsWindowCoordinator tracking (10 files)
+- `464b97a` docs: restructure README — user-oriented flow, 6 screenshot placeholders, Game Resolution consolidated under Gaming Overlay (README.md)
+
+## Next session
+
+- Take the 6 new screenshots and replace the TODO placeholders
+- Consider replacing the old screenshots with updated versions
+- Test bottom-peek with launcher in bottom half of screen (verified working in code, needs UI test)
+
+## Session 2026-08-09 (nat) — Non-game foreground detection + peek-zone fixes
+
+## Session 2026-08-09 (nat) — Non-game foreground detection + peek-zone fixes
+
+### Fix 1 (DEPLOYED): `IsNonRenderingProcess` — optimistic graphics-DLL gate
+
+`Helpers/Hardware/HardwareMonitorAgent.cs`:
+- Refactored `IsGraphicsProcess` → `IsNonRenderingProcess`. The old version REJECTED processes when `CreateToolhelp32Snapshot` returned a valid snapshot but didn't show DirectX DLLs. This caused false negatives for UWP/GamePass games (cod22-cod.exe) where AppContainer isolation hides system-DLLs from the snapshot.
+- New logic: returns `true` ONLY when module enumeration SUCCEEDS AND proves zero graphics API DLLs loaded. Returns `false` (don't reject) when snapshot is unavailable, empty, or throws an exception — letting the native FPS agent probe the process instead.
+- Added "WmiPrvSE", "notepad", "mspaint" to `IgnoredForegroundProcesses`.
+
+**Result**: Battle.net launched outside IconGrid does NOT trigger hide/gaming overlay. COD started from Battle.net is correctly detected (gaming overlay shows). Notepad from IconGrid shortcut does NOT trigger overlay.
+
+### Fix 2 (NOT YET IMPLEMENTED): Battle.net/Steam from "Games" category triggers overlay
+
+**Root cause**: `RememberFpsTarget()` in `ViewModels/MainViewModel.Items.cs` line 146 calls `IsGameItem()` which only checks `item.Category == "Games"`. If Battle.net/Steam shortcuts are placed in the Games category, they trigger `GameLaunched` → `OnGameLaunched` → `HideForGame` + overlay.
+
+**Fix**: In `RememberFpsTarget`, before the `IsGameItem` check, check whether the launched item's process name is a known launcher. Copy the pattern from `HardwareMonitorAgent.IsLikelyLauncherName()`:
+
+```csharp
+// In MainViewModel.Items.cs, add this check in RememberFpsTarget:
+var processName = Path.GetFileNameWithoutExtension(item.Path);
+if (IsKnownLauncherProcess(processName))
+{
+    Debug.WriteLine($"Skipping FPS target for known launcher: {item.DisplayName} ({processName})");
+    return;
+}
+
+// New helper method:
+private static bool IsKnownLauncherProcess(string processName)
+{
+    if (string.IsNullOrWhiteSpace(processName))
+        return false;
+    var normalized = Path.GetFileNameWithoutExtension(processName).Trim();
+    return normalized.Equals("Battle.net", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("Battle.net Launcher", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("steam", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("steamwebhelper", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("upc", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("EADesktop", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("EpicGamesLauncher", StringComparison.OrdinalIgnoreCase) ||
+           normalized.Equals("launcher", StringComparison.OrdinalIgnoreCase);
+}
+```
+
+**File**: `ViewModels/MainViewModel.Items.cs` — add `IsKnownLauncherProcess` and call it in `RememberFpsTarget` BEFORE the `IsGameItem` check.
+
+### Fix 3 (NOT YET IMPLEMENTED): Peek-zone dead after manually closing gaming overlay
+
+**Root cause**: `OnGamingOverlayClosed()` in `MainWindow.xaml.cs` line 833 only calls `RestoreLauncherFromGame()` when `RestoreLauncherAfterOverlayClosed` setting is true. But `HideForGame()` sets `_isGameHideActive = true` and stops ALL idle-hide timers. When the user manually closes the overlay while `_isGameHideActive` is true, that flag is never cleared → `IdleProximityTimer_Tick` returns immediately (line 284 guard: `if (_isGameHideActive || !IsIdleHideActive || !_isHidden)`) → peek zone doesn't react.
+
+**Fix**: In `OnGamingOverlayClosed`, ALWAYS call `RestoreLauncherFromGame()` — the flag cleanup must happen unconditionally. `RestoreLauncherAfterOverlayClosed` should only control whether the launcher becomes VISIBLE or stays hidden, but the game-hide state must ALWAYS be cleared:
+
+```csharp
+private void OnGamingOverlayClosed()
+{
+    // Always clear the game-hide state so idle-hide/peek can work again.
+    _windowModeController?.RestoreLauncherFromGame();
+
+    // The "restore launcher" setting controls whether the launcher becomes
+    // VISIBLE (slides to original position) or stays at its peek position.
+    // But the game-hide flag must ALWAYS be cleared — otherwise the user
+    // is stuck with a dead peek strip and no way to show the launcher.
+    // RestoreLauncherFromGame() already handles the SlideToVisible logic
+    // based on the current idle-hide mode, so we just need to call it.
+}
+```
+
+**File**: `Views/Launcher/MainWindow.xaml.cs` — modify `OnGamingOverlayClosed()` method (line 833-840).
+
+### Unapplied changes in working tree
+
+- `Helpers/Hardware/HardwareMonitorAgent.cs` — IsNonRenderingProcess + ignored-list entries (WmiPrvSE, notepad, mspaint)
+- Built and deployed to `C:\IconGrid` (Debug). NOT committed.
+
+### Next session first steps
+1. Read this CHAT_STATE.md section
+2. Implement Fix 2 (MainViewModel.Items.cs — IsKnownLauncherProcess check)
+3. Implement Fix 3 (MainWindow.xaml.cs — OnGamingOverlayClosed unconditionally calls RestoreLauncherFromGame)
+4. Build + deploy + test
+5. Commit + push (await user approval)
