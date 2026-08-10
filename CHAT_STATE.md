@@ -37,6 +37,8 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 - `7ac327a` — feat: live CPU voltage on HardwarePage, fixed Game Resolution dropdown alignment + cards, visible card borders in dark theme (8 files, 279 insertions / 79 deletions) — pushet til GitHub.
 
+- `053bef5` — fix: rename 'Language and region' to 'Language' on the start page (2 files) — pushet til GitHub.
+
 ## Session findings (2026-08-10)
 
 - HardwarePage.xaml: ALLE 4 hero-cards (Motherboard, CPU, GPU, Memory) gjort collapsible med Expander (samme mønster som GamingOverlayPage).
@@ -84,6 +86,10 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - Mørk-tema fix: StartsideSectionCardStyle fik nu default BorderThickness=1 + BorderBrush=#3A3A3A (mørk), så ALLE cards (inkl. de nye Game Resolution cards) har synlig ramme i mørkt tema. Lyst tema skifter stadig til #D1D5DB. Gælder app-wide da stilen er delt. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
 
 - Startside: 'Language and region' → 'Language' (en). DK er allerede 'Sprog'. Lokaliseringsnøgle LanguageSectionTitle ændret i LocalizationHelper.cs. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+
+- Monitor Row Layout: de 3 cards (Element Gaps, Dividers, CPU/GPU bars) er nu collapsible expanders med chevron (samme mønster som GamingOverlay/Hardware): MonitorRowExpanderStyle + MonitorRowExpanderAngleConverter. Titles er 16/SemiBold og indholdet er uændret. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+
+
 
 
 

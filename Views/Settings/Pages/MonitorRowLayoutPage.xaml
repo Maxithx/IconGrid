@@ -48,6 +48,58 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
+            <helpers:BooleanToAngleConverter x:Key="MonitorRowExpanderAngleConverter" />
+
+            <Style x:Key="MonitorRowExpanderToggleButtonStyle" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="MonitorRowExpanderStyle" TargetType="Expander">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Expander">
+                            <StackPanel>
+                                <ToggleButton x:Name="HeaderSite"
+                                              Style="{StaticResource MonitorRowExpanderToggleButtonStyle}"
+                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              HorizontalContentAlignment="Stretch" />
+                                <ContentPresenter x:Name="ExpandSite"
+                                                  Content="{TemplateBinding Content}"
+                                                  Margin="0"
+                                                  Visibility="Collapsed" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger SourceName="HeaderSite" Property="IsChecked" Value="True">
+                                    <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger SourceName="HeaderSite" Property="IsChecked" Value="False">
+                                    <Setter TargetName="ExpandSite" Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
     <ScrollViewer Margin="12"
@@ -74,9 +126,33 @@
                     <!-- Element Gaps -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row element gaps card">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding MonitorRowElementGapsTitle}" />
+                        <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Monitor row element gaps expander">
+                            <Expander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                               Text="{Binding MonitorRowElementGapsTitle}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               Margin="24,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Grid>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
 
                             <!-- Lock value widths (quick toggles) -->
                             <Grid Margin="0,14,0,0">
@@ -343,15 +419,41 @@
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Text="{Binding MonitorUploadValueWidth, StringFormat={}{0:F0} px}" />
                             </Grid>
-                        </StackPanel>
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
                     </Border>
 
                     <!-- Dividers -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row dividers card">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding MonitorRowDividersTitle}" />
+                        <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Monitor row dividers expander">
+                            <Expander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                               Text="{Binding MonitorRowDividersTitle}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               Margin="24,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Grid>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
 
                             <Grid Margin="0,14,0,0">
                                 <Grid.ColumnDefinitions>
@@ -421,9 +523,9 @@
                                               IsChecked="{Binding MonitorDivider3Visible, Mode=TwoWay}" />
                             </Grid>
 
-                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                       Margin="0,14,0,0"
-                                       Text="{Binding MonitorRowDividerGapLabel}" />
+                                <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                           Margin="0,14,0,0"
+                                           Text="{Binding MonitorRowDividerGapLabel}" />
                             <Grid Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -440,15 +542,41 @@
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Text="{Binding MonitorDividerGap, StringFormat={}{0:F0} px}" />
                             </Grid>
-                        </StackPanel>
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
                     </Border>
 
                     <!-- Bar Gaps -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row bar gaps card">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding MonitorRowBarGapsTitle}" />
+                        <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Monitor row bar gaps expander">
+                            <Expander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                               Text="{Binding MonitorRowBarGapsTitle}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               Margin="24,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Grid>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
 
                             <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
@@ -470,7 +598,7 @@
                                            Text="{Binding MonitorCpuBarGap, StringFormat={}{0:F0} px}" />
                             </Grid>
 
-                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
                                        Margin="0,14,0,0"
                                        Text="{Binding MonitorRowGpuBarGapLabel}" />
                             <Grid Margin="0,4,0,0">
@@ -489,7 +617,9 @@
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                            Text="{Binding MonitorGpuBarGap, StringFormat={}{0:F0} px}" />
                             </Grid>
-                        </StackPanel>
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
                     </Border>
 
                     <!-- Reset / Save actions -->
