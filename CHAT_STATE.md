@@ -39,6 +39,8 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 - `053bef5` — fix: rename 'Language and region' to 'Language' on the start page (2 files) — pushet til GitHub.
 
+- `633e84d` — feat: make Element gaps, Dividers and CPU/GPU bars collapsible on Monitor Row Layout page (2 files, 152 insertions / 16 deletions) — pushet til GitHub.
+
 ## Session findings (2026-08-10)
 
 - HardwarePage.xaml: ALLE 4 hero-cards (Motherboard, CPU, GPU, Memory) gjort collapsible med Expander (samme mønster som GamingOverlayPage).
@@ -89,6 +91,7 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 - Monitor Row Layout: de 3 cards (Element Gaps, Dividers, CPU/GPU bars) er nu collapsible expanders med chevron (samme mønster som GamingOverlay/Hardware): MonitorRowExpanderStyle + MonitorRowExpanderAngleConverter. Titles er 16/SemiBold og indholdet er uændret. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
 
+- Deploy 05:29: HardwarePage card-overskrifter 20→16 deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk). IconGrid startet 05:36.
 
 
 
@@ -100,4 +103,35 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 
 
+
+
+
+
+## Næste session — PLAN & PROMPT (overskriftskonsistens + central typografi)
+
+## Status lige nu (gemt 2026-08-10 05:31, session afsluttes)
+- HardwarePage.xaml: alle 4 card-overskrifter (Motherboard, CPU, GPU, Memory) ændret FontSize 20 → 16. Build ✅ 0 fejl. MEN: **ikke deployet til C:\icongrid og ikke committet** (u-committed working tree).
+- Seneste pushede commit: `633e84d`.
+
+## Plan for næste session (en ad gangen, small steps)
+
+### Del 1 — hardware-fix færdiggøres
+1. Deploy til C:\icongrid (`& .\deploy-test.cmd`) + start IconGrid.
+2. Manuel test: Hardware-siden skal nu have card-overskrifter i 16 (samme som GamingOverlay/Startside).
+3. Commit + push når brugeren bekræfter: `git add Views/Settings/Pages/HardwarePage.xaml CHAT_STATE.md` → commit → push.
+
+### Del 2 — Centraliser typografi (brugerens ønske: ændr ét sted → virker alle sider)
+- Skift alle hardcodede FontSize på settings-siderne til de delte styles i `TemplateGuidelines.xaml`:
+  - `TemplateHeroTitleStyle` (20, side-titel) — brugt af side-titler på Startside/GenvejsIkoner/Layout/About/Hjaelp/MonitorRowLayout.
+  - `TemplateCardTitleStyle` (16, card-titel) — GamingOverlay bruger 16 på collapsible headers; Hardware bruger nu 16 (skal også bindes til style).
+  - `TemplateSectionTitleStyle` (14), `TemplateHeroBodyStyle` (13), `TemplateSmallTextStyle` (12).
+- Berørte filer (har stadig hardcodede FontSize): HardwarePage.xaml, StartsidePage.xaml, GenvejsIkonerPage.xaml, AboutPage.xaml, HjaelpPage.xaml, LayoutPage.xaml, TestPage.xaml.
+- Når alle sider bruger styles, kan man ændre fx TemplateCardTitleStyle ét sted → hele appen følger med.
+
+### Del 3 — Verifikation
+- Build + deploy + manuel gennemgang af ALLE sider (overskrifter ens).
+- `run_all_checks` + CHAT_STATE.md opdateres.
+
+## FÆRDIG PROMPT til næste session (kopiér dette)
+"Vi arbejder videre på overskriftskonsistens. Færdiggør Del 1: HardwarePage card-overskrifter er allerede ændret 20→16 i working tree (bygget 0 fejl, men ikke deployet/committet) — deploy, test, commit og push. Fortsæt derefter med Del 2: centraliser al settings-typografi ved at erstatte hardcodede FontSize med Template*Style-styles fra TemplateGuidelines.xaml på alle settings-sider (HardwarePage, StartsidePage, GenvejsIkonerPage, AboutPage, HjaelpPage, LayoutPage, TestPage), så én ændring i en delt style virker på alle sider. Afslut med Del 3: build, deploy, manuel gennemgang + run_all_checks."
 

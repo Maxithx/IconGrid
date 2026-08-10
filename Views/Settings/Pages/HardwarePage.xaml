@@ -226,7 +226,7 @@
                                         <TextBlock Grid.Column="0"
                                                    Text="{Binding HardwareBoardTitleText}"
                                                    VerticalAlignment="Center"
-                                                   FontSize="20"
+                                                   FontSize="16"
                                                    FontWeight="SemiBold"
                                                    Foreground="{Binding TopBarForeground}" />
                                         <Image Grid.Column="1"
@@ -347,7 +347,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="CPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="20"
+                                                       FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}" />
                                             <Grid Grid.Column="1"
@@ -537,7 +537,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="GPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="20"
+                                                       FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}" />
                                             <Grid Grid.Column="1"
@@ -694,7 +694,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="{Binding HardwareMemoryTitleText}"
                                                        VerticalAlignment="Center"
-                                                       FontSize="20"
+                                                       FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}" />
                                             <Border Grid.Column="1"
