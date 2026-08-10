@@ -12,6 +12,7 @@ public sealed class HardwareMonitorSnapshot
     public string? CpuUsage { get; set; }
     public double? CpuUsagePercent { get; set; }
     public string? CpuClock { get; set; }
+    public string? CpuVoltage { get; set; }
     public string? GpuClock { get; set; }
     public string? GpuUsage { get; set; }
     public double? GpuUsagePercent { get; set; }

@@ -36,6 +36,7 @@ namespace IconGrid.Helpers
         private string _cpuUsage = "--%";
         private double _cpuUsagePercent;
         private string _cpuClock = "--";
+        private string _cpuVoltage = "--";
         private string _gpuClock = "--";
         private string _gpuUsage = "--%";
         private double _gpuUsagePercent;
@@ -63,6 +64,7 @@ namespace IconGrid.Helpers
         public string CpuUsage { get => _cpuUsage; private set { _cpuUsage = value; OnPropertyChanged(); } }
         public double CpuUsagePercent { get => _cpuUsagePercent; private set { _cpuUsagePercent = value; OnPropertyChanged(); } }
         public string CpuClock { get => _cpuClock; private set { _cpuClock = value; OnPropertyChanged(); } }
+        public string CpuVoltage { get => _cpuVoltage; private set { _cpuVoltage = value; OnPropertyChanged(); } }
         public string GpuClock { get => _gpuClock; private set { _gpuClock = value; OnPropertyChanged(); } }
         public string GpuUsage { get => _gpuUsage; private set { _gpuUsage = value; OnPropertyChanged(); } }
         public double GpuUsagePercent { get => _gpuUsagePercent; private set { _gpuUsagePercent = value; OnPropertyChanged(); } }
@@ -230,6 +232,11 @@ namespace IconGrid.Helpers
                     if (!string.IsNullOrWhiteSpace(hardware.CpuClock))
                     {
                         CpuClock = hardware.CpuClock;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.CpuVoltage))
+                    {
+                        CpuVoltage = hardware.CpuVoltage;
                     }
 
                     if (!string.IsNullOrWhiteSpace(hardware.GpuClock))

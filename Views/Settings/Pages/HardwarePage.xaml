@@ -499,11 +499,18 @@
                                                                Text="{Binding DataContext.SystemMonitor.CpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
-                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding HardwareBoostLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
                                                     <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
                                                                Text="{Binding Overview.Cpu.BoostClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,10,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.CpuVoltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                         </WrapPanel>

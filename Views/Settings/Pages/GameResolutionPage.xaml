@@ -10,32 +10,21 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../StartsideStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
-        <Style x:Key="GameResComboBoxItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="Black" />
-            <Setter Property="Background" Value="White" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        </Style>
-
-        <Style x:Key="GameResComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Foreground" Value="Black" />
-            <Setter Property="ItemContainerStyle" Value="{StaticResource GameResComboBoxItemStyle}" />
-            <Setter Property="Background" Value="White" />
-            <Setter Property="BorderBrush" Value="#D1D5DB" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="SnapsToDevicePixels" Value="True" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
-                    <Setter Property="Background" Value="White" />
-                    <Setter Property="BorderBrush" Value="#4D4D4D" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
+            <Style x:Key="GameResComboBoxItemStyle" TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="Black" />
+                <Setter Property="Background" Value="White" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel>
+    <Grid Grid.IsSharedSizeScope="True">
+        <StackPanel>
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -72,35 +61,38 @@
                           Style="{StaticResource ToggleSwitchStyle}"
                           IsChecked="{Binding DataContext.RestoreGameResolutionAfterExit, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
         </Grid>
-        <Grid Margin="0,20,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="{Binding CategoryFilterTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                <TextBlock Margin="0,2,16,0"
-                           Text="{Binding CategoryFilterDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
-                           TextWrapping="Wrap"
-                           FontSize="13"
-                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-            </StackPanel>
-            <ComboBox Grid.Column="1"
-                      Width="180"
-                      VerticalAlignment="Center"
-                      Style="{StaticResource GameResComboBoxStyle}"
-                      SelectedItem="{Binding SelectedCategory, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}, Mode=TwoWay}"
-                      ItemsSource="{Binding AvailableCategories, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding DisplayName}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </Grid>
+        <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16" Margin="0,20,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="GameResComboBoxColumn" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="GameResRemoveColumn" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CategoryFilterTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <TextBlock Margin="0,2,16,0"
+                               Text="{Binding CategoryFilterDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </StackPanel>
+                <ComboBox Grid.Column="1"
+                          Margin="12,0,0,0"
+                          VerticalAlignment="Center"
+                          Style="{StaticResource TemplateComboBoxStyle}"
+                          SelectedItem="{Binding SelectedCategory, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}, Mode=TwoWay}"
+                          ItemsSource="{Binding AvailableCategories, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </Border>
         <TextBlock Margin="0,20,0,0"
                    Text="{Binding ResolutionListIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
                    TextWrapping="Wrap"
@@ -113,7 +105,8 @@
                         <Grid Margin="0,6">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="GameResComboBoxColumn" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="GameResRemoveColumn" />
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding DisplayName}"
@@ -126,10 +119,9 @@
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                             </StackPanel>
                             <ComboBox Grid.Column="1"
-                                      Width="160"
                                       Margin="12,0,0,0"
                                       VerticalAlignment="Center"
-                                      Style="{StaticResource GameResComboBoxStyle}"
+                                      Style="{StaticResource TemplateComboBoxStyle}"
                                       SelectedItem="{Binding GameResolution, Mode=TwoWay}"
                                       ItemsSource="{Binding SupportedResolutions, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
                         </Grid>
@@ -143,20 +135,22 @@
              so new users see them immediately without needing the category dropdown. -->
         <StackPanel x:Name="ExternalGamesSection" Margin="0,20,0,0"
                     Visibility="Collapsed">
-            <TextBlock x:Name="ExternalGamesTitle"
-                       Text="External games"
-                       FontSize="14"
-                       FontWeight="SemiBold"
-                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-            <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16" Margin="0,8,0,0">
-                <ItemsControl ItemsSource="{Binding ExternalGames, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
+            <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16">
+                <StackPanel>
+                    <TextBlock x:Name="ExternalGamesTitle"
+                               Text="External games"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <ItemsControl ItemsSource="{Binding ExternalGames, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}"
+                                  Margin="0,8,0,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="0,6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="GameResComboBoxColumn" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="GameResRemoveColumn" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="{Binding DisplayName}"
@@ -169,10 +163,9 @@
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 </StackPanel>
                                 <ComboBox Grid.Column="1"
-                                          Width="160"
                                           Margin="12,0,0,0"
                                           VerticalAlignment="Center"
-                                          Style="{StaticResource GameResComboBoxStyle}"
+                                          Style="{StaticResource TemplateComboBoxStyle}"
                                           SelectedItem="{Binding GameResolution, Mode=TwoWay}"
                                           ItemsSource="{Binding SupportedResolutions, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
                                 <Button Grid.Column="2"
@@ -197,7 +190,9 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </StackPanel>
             </Border>
         </StackPanel>
-    </StackPanel>
+        </StackPanel>
+    </Grid>
 </UserControl>

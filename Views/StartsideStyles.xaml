@@ -1,5 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <SolidColorBrush x:Key="StartsideLightCardFill" Color="#F3F4F7" />
     <SolidColorBrush x:Key="StartsideCardFill" Color="#323232" />
     <SolidColorBrush x:Key="SettingsPageScrollBarTrackDarkBrush" Color="#323232" />
@@ -24,12 +25,11 @@
         <Setter Property="Padding" Value="28" />
         <Setter Property="Margin" Value="0,0,0,5" />
         <Setter Property="Background" Value="{StaticResource StartsideCardFill}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#3A3A3A" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                 <Setter Property="Background" Value="{StaticResource StartsideLightCardFill}" />
-                <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="BorderBrush" Value="#D1D5DB" />
             </DataTrigger>
         </Style.Triggers>
@@ -182,6 +182,35 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- Fixed dropdown width shared by the Game Resolution section dropdowns.
+         The fixed grid contract: every dropdown in that section uses this exact
+         width + height + baseline so they align perfectly with each other. -->
+    <sys:Double x:Key="SettingsDropdownWidth">220</sys:Double>
+
+    <!-- Shared ComboBox style for settings dropdowns. Fixed Width/Height from
+         SettingsDropdownWidth guarantee identical size + baseline. Use with the
+         SharedSizeGroup column pattern in lists/rows. -->
+    <Style x:Key="TemplateComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="Width" Value="{StaticResource SettingsDropdownWidth}" />
+        <Setter Property="MinWidth" Value="{StaticResource SettingsDropdownWidth}" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="Black" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="#D1D5DB" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                <Setter Property="Background" Value="White" />
+                <Setter Property="BorderBrush" Value="#4D4D4D" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">
         <Setter Property="Width" Value="Auto" />
         <Setter Property="Height" Value="24" />

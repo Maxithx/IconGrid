@@ -27,6 +27,17 @@
         Layout:
           - Wrap the page in TemplatePage and place primary actions inside Startside cards
           - Hero elements are separated with Margin 0,16,0,0 (intro after title uses 0,8,0,0)
+        Alignment (SharedSizeGroup — REQUIRED for lists/rows with control columns):
+          - Wrap the page content in <Grid Grid.IsSharedSizeScope="True"> once at the root.
+          - Every list/row/category grid that contains a control column (ComboBox, Slider,
+            ToggleButton, value TextBlock) must use SharedSizeGroup on that column so all
+            columns across the page share the SAME width -> perfect vertical alignment.
+          - Action/remove buttons belong in their OWN shared column (e.g. SharedSizeGroup="...RemoveColumn"),
+            never inside the control column, otherwise the control shifts left.
+          - Use MinWidth (e.g. 160) + HorizontalAlignment="Stretch" on controls inside a shared
+            column instead of a fixed Width so they stretch with the shared column.
+          - Use TemplateComboBoxStyle (StartsideStyles.xaml) for all ComboBoxes; do not copy
+            the style per page. GameResolutionPage is the reference implementation.
         Collapsible sections (Expander cards):
           - When a card is collapsible, the header must use the Card/block title level (16/SemiBold/TopBarForeground)
             regardless of whether it is a hero card or a regular card. All collapsible headers on a page must be
@@ -80,6 +91,6 @@
     </Style>
 
     <sys:String x:Key="TemplateGuidance">
-        Settings page contract: hero title (20/SemiBold/TopBarForeground, or 16 when the hero is a collapsible Expander) -> intro (13/SettingsSubtextForeground/Wrap) -> cards (StartsideSectionCardStyle, 5px gap). Card titles 16, section titles 14, body 13, small labels 12. Collapsible section headers must ALL use 16 so folded/unfolded stays consistent; inner content keeps 14/13/12. Titles use TopBarForeground, body uses SettingsSubtextForeground, emphasis uses AccentBrush. Wrap the page in TemplatePage.
+        Settings page contract: hero title (20/SemiBold/TopBarForeground, or 16 when the hero is a collapsible Expander) -> intro (13/SettingsSubtextForeground/Wrap) -> cards (StartsideSectionCardStyle, 5px gap). Card titles 16, section titles 14, body 13, small labels 12. Collapsible section headers must ALL use 16 so folded/unfolded stays consistent; inner content keeps 14/13/12. Titles use TopBarForeground, body uses SettingsSubtextForeground, emphasis uses AccentBrush. Wrap the page in TemplatePage. Alignment: Grid.IsSharedSizeScope at root + SharedSizeGroup on control columns; action buttons in their own shared column; MinWidth+Stretch instead of fixed Width; use TemplateComboBoxStyle (reference: GameResolutionPage).
     </sys:String>
 </ResourceDictionary>

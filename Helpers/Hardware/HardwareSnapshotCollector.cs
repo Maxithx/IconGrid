@@ -48,6 +48,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
         var gpuUsage = CaptureGpuUsage();
         var cpuClock = CaptureCpuClock();
         var gpuClock = CaptureGpuClock();
+        var cpuVoltage = CaptureCpuVoltage();
         var smoothedCpuUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
         var displayCpuUsage = smoothedCpuUsage.HasValue ? Math.Clamp(smoothedCpuUsage.Value, 1d, 100d) : (double?)null;
         var displayGpuUsage = gpuUsage.HasValue ? Math.Clamp(gpuUsage.Value, 0d, 100d) : (double?)null;
@@ -63,6 +64,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
             GpuUsagePercent = displayGpuUsage.HasValue ? displayGpuUsage.Value : null,
             CpuClock = cpuClock,
             GpuClock = gpuClock,
+            CpuVoltage = cpuVoltage,
             GpuName = _gpuName,
             IsPawnIoAvailable = pawnIoAvailable
         };
@@ -131,6 +133,96 @@ public sealed class HardwareSnapshotCollector : IDisposable
         }
 
         return null;
+    }
+
+    private string? CaptureCpuVoltage()
+    {
+        try
+        {
+            _computer.Accept(_visitor);
+            string? bestCpuNode = null;
+            string? bestBoardNode = null;
+
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (hardware.HardwareType == HardwareType.Cpu)
+                {
+                    bestCpuNode ??= SelectCpuVoltageSensor(hardware.Sensors, requireCpuRelevance: false);
+                }
+                else if (hardware.HardwareType == HardwareType.Motherboard)
+                {
+                    bestBoardNode ??= SelectCpuVoltageSensor(hardware.Sensors, requireCpuRelevance: true);
+                }
+            }
+
+            return bestCpuNode ?? bestBoardNode;
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private static string? SelectCpuVoltageSensor(IEnumerable<ISensor> sensors, bool requireCpuRelevance)
+    {
+        var candidates = sensors.Where(sensor => sensor.SensorType == SensorType.Voltage && sensor.Value.HasValue);
+        if (requireCpuRelevance)
+        {
+            candidates = candidates.Where(sensor => IsCpuVoltageCandidate(sensor.Name));
+        }
+
+        var voltageSensor = candidates
+            .OrderByDescending(sensor => GetCpuVoltagePriority(sensor.Name))
+            .ThenByDescending(sensor => sensor.Value)
+            .FirstOrDefault();
+
+        return FormatVoltage(voltageSensor?.Value);
+    }
+
+    private static bool IsCpuVoltageCandidate(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        return name.Contains("VID", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("Vcore", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("Core Voltage", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("CPU", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int GetCpuVoltagePriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("VID", StringComparison.OrdinalIgnoreCase))
+        {
+            return 4;
+        }
+
+        if (name.Contains("Vcore", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Core Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("CPU", StringComparison.OrdinalIgnoreCase) &&
+            name.Contains("Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private string? CaptureCpuClock()
@@ -431,6 +523,16 @@ public sealed class HardwareSnapshotCollector : IDisposable
         }
 
         return $"{value.Value:F0}°C";
+    }
+
+    private static string? FormatVoltage(float? value)
+    {
+        if (!value.HasValue || value.Value <= 0)
+        {
+            return null;
+        }
+
+        return $"{value.Value:F4} V";
     }
 
     private static string? FormatClock(float? value)
