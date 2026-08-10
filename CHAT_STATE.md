@@ -35,6 +35,8 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - `4c779aa` — feat: monitor row layout localization, save-as-default, MCP server architecture enforcer, and two-part memory structure (15 files)
 - `90dbe81` — fix: persist monitor row layout settings and stabilize download/upload value widths (4 files)
 
+- `7ac327a` — feat: live CPU voltage on HardwarePage, fixed Game Resolution dropdown alignment + cards, visible card borders in dark theme (8 files, 279 insertions / 79 deletions) — pushet til GitHub.
+
 ## Session findings (2026-08-10)
 
 - HardwarePage.xaml: ALLE 4 hero-cards (Motherboard, CPU, GPU, Memory) gjort collapsible med Expander (samme mønster som GamingOverlayPage).
@@ -80,6 +82,10 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - Game Resolution opdelt i egne cards: Category-filter fik eget StartsideSectionCardStyle card (Padding 16, samme som spil/External cards) så Category-dropdownen nu aligner X-mæssigt med spil- og External-dropdowns. External games-titlen flyttet ind i sit eget card (titel + liste i samme Border, Padding 16). Alle tre grids deler stadig GameResComboBoxColumn + GameResRemoveColumn via SharedSizeGroup. Names ExternalGamesSection + ExternalGamesTitle bevaret (code-behind afhænger af dem). Build 0 fejl, deployet C:\icongrid, IconGrid startet.
 
 - Mørk-tema fix: StartsideSectionCardStyle fik nu default BorderThickness=1 + BorderBrush=#3A3A3A (mørk), så ALLE cards (inkl. de nye Game Resolution cards) har synlig ramme i mørkt tema. Lyst tema skifter stadig til #D1D5DB. Gælder app-wide da stilen er delt. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+
+- Startside: 'Language and region' → 'Language' (en). DK er allerede 'Sprog'. Lokaliseringsnøgle LanguageSectionTitle ændret i LocalizationHelper.cs. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+
+
 
 
 

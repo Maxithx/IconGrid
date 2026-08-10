@@ -77,7 +77,7 @@ public static class LocalizationHelper
             ["HomeIntroLine1"] = "Manage general settings and how IconGrid interacts with your system.",
             ["HomeIntroLine2"] = "Configure startup, display, and core behavior from one place.",
             ["SystemAndStartupTitle"] = "System and startup",
-            ["LanguageSectionTitle"] = "Language and region",
+            ["LanguageSectionTitle"] = "Language",
             ["LanguageSectionDescription"] = "Choose which language IconGrid uses across the launcher and settings pages.",
             ["ToggleStatePrefix"] = "",
             ["ToggleStateOn"] = "On",
