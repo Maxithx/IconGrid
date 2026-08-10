@@ -237,14 +237,10 @@
                 <views:TemplatePage.HeroContent>
                     <StackPanel helpers:DevInspector.Metadata="Layout hero card -> Views/LayoutPage.xaml">
                         <TextBlock Text="{Binding LayoutTitleText}"
-                                   FontSize="20"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                   Style="{StaticResource TemplateHeroTitleStyle}" />
                         <TextBlock Text="{Binding LayoutIntroText}"
-                                   FontSize="13"
                                    Margin="0,8,0,0"
-                                   TextWrapping="Wrap"
-                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                     </StackPanel>
                 </views:TemplatePage.HeroContent>
 
@@ -260,14 +256,10 @@
                                 <Expander.Header>
                                     <StackPanel>
                                         <TextBlock Text="{Binding LayoutPresetsTitleText}"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                   Style="{StaticResource TemplateCardTitleStyle}" />
                                         <TextBlock Text="{Binding LayoutPresetsIntroText}"
-                                                   FontSize="13"
                                                    Margin="0,4,0,0"
-                                                   TextWrapping="Wrap"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                                     </StackPanel>
                                 </Expander.Header>
                                 <Expander.Content>
@@ -352,14 +344,10 @@
                                 <Expander.Header>
                                     <StackPanel>
                                         <TextBlock Text="{Binding LayoutReserveSlotTitleText}"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                   Style="{StaticResource TemplateCardTitleStyle}" />
                                         <TextBlock Text="{Binding LayoutReserveSlotIntroText}"
-                                                   FontSize="13"
                                                    Margin="0,4,0,0"
-                                                   TextWrapping="Wrap"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                                     </StackPanel>
                                 </Expander.Header>
                                 <Expander.Content>
@@ -383,9 +371,8 @@
                                             </Grid>
 
                                             <TextBlock Text="{Binding LayoutChooseSlotText}"
-                                                       FontSize="13"
                                                        Margin="0,0,0,12"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                       Style="{StaticResource TemplateHeroBodyStyle}" />
                                             <UniformGrid Columns="2"
                                                          Rows="2"
                                                          HorizontalAlignment="Left"
@@ -439,8 +426,7 @@
                                             </UniformGrid>
                                             <TextBlock Text="{Binding LayoutSlotTipText}"
                                                        Margin="0,12,0,0"
-                                                       FontSize="12"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       Style="{StaticResource TemplateSmallTextStyle}"
                                                        helpers:DevInspector.Metadata="Slot tip -> Views/LayoutPage.xaml" />
                                         </StackPanel>
                                     </Border>

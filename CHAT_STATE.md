@@ -93,6 +93,16 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 - Deploy 05:29: HardwarePage card-overskrifter 20→16 deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk). IconGrid startet 05:36.
 
+- Deploy 05:45: Del 2 typografi-centralisering deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk, 969728 bytes). IconGrid startet 05:45.
+- Del 2 færdig: ALLE 7 settings-sider bruger nu Template*Style-styles fra TemplateGuidelines.xaml:
+  - HardwarePage: card-titler + metrics (TemplateCardTitleStyle), header-subtitler (TemplateSectionTitleStyle), intro (TemplateHeroBodyStyle), labels (TemplateSmallTextStyle). Chevron(18)/white badges beholdt lokalt.
+  - StartsidePage: hero (TemplateHeroTitleStyle), card-titler (TemplateCardTitleStyle), sektions-titler (TemplateSectionTitleStyle), intro (TemplateHeroBodyStyle), små tekster (TemplateSmallTextStyle).
+  - GenvejsIkonerPage: hero + intro + animation card titel/intro centraliseret.
+  - AboutPage, HjaelpPage, LayoutPage, TestPage: hero/card/section/body/small alle centraliseret.
+- KONSISTENS-GEVINST: Én ændring i fx TemplateCardTitleStyle (16) i TemplateGuidelines.xaml → alle settings-sider følger med automatisk.
+- Bevidst bevaret lokalt: Segoe Fluent Icons chevron (18), video-badges med Foreground=White (CPU/GPU/Memory), LAYOUT slot-knap style (16), TestPage buttons (14), ComboBox FontSize=14 (LayoutPage).
+- Build: 0 fejl, 0 advarsler. check_architecture_rules: ingen nye violations (kun de 3 kendte). run_all_checks: alt OK (version 0.7.0-beta.1 konsistent, 168 en/168 da, ingen secrets, 6 pre-existing hardcoded danske linjer uændret).
+
 
 
 
@@ -134,4 +144,5 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 ## FÆRDIG PROMPT til næste session (kopiér dette)
 "Vi arbejder videre på overskriftskonsistens. Færdiggør Del 1: HardwarePage card-overskrifter er allerede ændret 20→16 i working tree (bygget 0 fejl, men ikke deployet/committet) — deploy, test, commit og push. Fortsæt derefter med Del 2: centraliser al settings-typografi ved at erstatte hardcodede FontSize med Template*Style-styles fra TemplateGuidelines.xaml på alle settings-sider (HardwarePage, StartsidePage, GenvejsIkonerPage, AboutPage, HjaelpPage, LayoutPage, TestPage), så én ændring i en delt style virker på alle sider. Afslut med Del 3: build, deploy, manuel gennemgang + run_all_checks."
+
 

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <UserControl x:Class="IconGrid.Views.HardwarePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -226,9 +227,7 @@
                                         <TextBlock Grid.Column="0"
                                                    Text="{Binding HardwareBoardTitleText}"
                                                    VerticalAlignment="Center"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding TopBarForeground}" />
+                                                   Style="{StaticResource TemplateCardTitleStyle}" />
                                         <Image Grid.Column="1"
                                                Width="80" Height="34"
                                                HorizontalAlignment="Center"
@@ -264,9 +263,7 @@
                                         </TextBlock>
                                     </Grid>
                                     <TextBlock Margin="0,8,0,0"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}"
+                                               Style="{StaticResource TemplateSectionTitleStyle}"
                                                Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
@@ -275,9 +272,7 @@
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,16"
                                                Text="{Binding HardwareBoardIntroText}"
-                                               TextWrapping="Wrap"
-                                               FontSize="13"
-                                               Foreground="{Binding SettingsSubtextForeground}" />
+                                               Style="{StaticResource TemplateHeroBodyStyle}" />
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -294,29 +289,23 @@
                                                     <RowDefinition Height="Auto" />
                                                 </Grid.RowDefinitions>
                                                 <TextBlock Text="{Binding HardwareModelLabelText}"
-                                                           FontSize="12"
-                                                           Foreground="{Binding SettingsSubtextForeground}" />
+                                                           Style="{StaticResource TemplateSmallTextStyle}" />
                                                 <Button Grid.Column="1"
                                                         Style="{StaticResource HardwareSearchButtonStyle}"
                                                         Content="{Binding HardwareSearchBoardLabelText}"
                                                         Click="SearchBoardButton_Click" />
                                                 <TextBlock Grid.Row="1"
                                                            Margin="0,4,0,0"
-                                                           FontSize="16"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{Binding TopBarForeground}"
+                                                           Style="{StaticResource TemplateCardTitleStyle}"
                                                            Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                            TextWrapping="Wrap" />
                                             </Grid>
                                         </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <TextBlock Text="{Binding HardwareBiosLabelText}"
-                                                   FontSize="12"
-                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                                   Style="{StaticResource TemplateSmallTextStyle}" />
                                         <TextBlock Margin="0,4,0,0"
-                                                   FontSize="16"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding TopBarForeground}"
+                                                   Style="{StaticResource TemplateCardTitleStyle}"
                                                    Text="{Binding Overview.Board.BiosVersion, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    TextWrapping="Wrap" />
                                     </StackPanel>
@@ -347,9 +336,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="CPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}" />
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
                                             <Grid Grid.Column="1"
                                                   HorizontalAlignment="Right"
                                                   VerticalAlignment="Center">
@@ -427,9 +414,7 @@
                                             </TextBlock>
                                         </Grid>
                                         <TextBlock Margin="0,8,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding TopBarForeground}"
+                                                   Style="{StaticResource TemplateSectionTitleStyle}"
                                                    TextWrapping="Wrap">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0}  @  {1}">
@@ -444,72 +429,67 @@
                                     <StackPanel>
                                         <TextBlock Margin="0,0,0,16"
                                                    Text="{Binding HardwareCpuIntroText}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                                         <Grid Margin="0,0,0,0">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
                                             <TextBlock Text="{Binding HardwareModelLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
+                                                       Style="{StaticResource TemplateSmallTextStyle}" />
                                             <TextBlock Grid.Row="1"
                                                        Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
+                                                       Style="{StaticResource TemplateCardTitleStyle}"
                                                        Text="{Binding Overview.Cpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                        TextWrapping="Wrap" />
                                         </Grid>
                                         <WrapPanel Margin="0,18,0,0">
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareCoresLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareCoresLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Cpu.Cores, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareThreadsLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareThreadsLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Cpu.Threads, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareLiveUsageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareLiveUsageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.CpuUsage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.CpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareBoostLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareBoostLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Cpu.BoostClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,10,0,0">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.CpuVoltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
@@ -537,9 +517,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="GPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}" />
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
                                             <Grid Grid.Column="1"
                                                   HorizontalAlignment="Right"
                                                   VerticalAlignment="Center">
@@ -618,9 +596,7 @@
                                             </TextBlock>
                                         </Grid>
                                         <TextBlock Margin="0,8,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding TopBarForeground}"
+                                                   Style="{StaticResource TemplateSectionTitleStyle}"
                                                    Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    TextWrapping="Wrap" />
                                     </StackPanel>
@@ -629,44 +605,42 @@
                                     <StackPanel>
                                         <TextBlock Margin="0,0,0,16"
                                                    Text="{Binding HardwareGpuIntroText}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                                         <Grid Margin="0,0,0,0">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
-                                            <TextBlock Text="{Binding HardwareModelLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                            <TextBlock Text="{Binding HardwareModelLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                        Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
                                         </Grid>
                                         <WrapPanel Margin="-6,18,0,0">
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareVendorLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareVendorLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding GpuVendorDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding DataContext.SystemMonitor.GpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareVramLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareVramLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Gpu.Vram, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
@@ -694,9 +668,7 @@
                                             <TextBlock Grid.Column="0"
                                                        Text="{Binding HardwareMemoryTitleText}"
                                                        VerticalAlignment="Center"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}" />
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
                                             <Border Grid.Column="1"
                                                     MinWidth="76"
                                                     Padding="12,6"
@@ -722,9 +694,7 @@
                                             </TextBlock>
                                         </Grid>
                                         <TextBlock Margin="0,8,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{Binding TopBarForeground}"
+                                                   Style="{StaticResource TemplateSectionTitleStyle}"
                                                    TextWrapping="Wrap">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0}  {1} @ {2}">
@@ -740,58 +710,56 @@
                                     <StackPanel>
                                         <TextBlock Margin="0,0,0,16"
                                                    Text="{Binding HardwareMemoryIntroText}"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
                                         <Grid Margin="0,0,0,0">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
-                                            <TextBlock Text="{Binding HardwareLayoutLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                            <TextBlock Text="{Binding HardwareLayoutLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                        Text="{Binding Overview.Memory.Layout, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
                                         </Grid>
                                         <WrapPanel Margin="0,18,0,0">
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareTypeLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareTypeLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.Type, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareSpeedLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareSpeedLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.Speed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareTimingLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareTimingLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareModulesLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareModulesLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareSlotsLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareSlotsLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
-                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.Voltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>

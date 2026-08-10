@@ -19,24 +19,19 @@
         <views:TemplatePage Margin="0,0,8,0">
             <views:TemplatePage.HeroContent>
                 <StackPanel helpers:DevInspector.Metadata="Test hero card -> Views/TestPage.xaml">
-                <TextBlock FontSize="20"
-                           FontWeight="SemiBold"
-                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
                            Text="Debug / Test" />
                 <Border Margin="0,10,0,0"
                         Padding="10,8"
                         CornerRadius="8"
                         Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
-                    <TextBlock FontSize="12"
+                    <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                FontFamily="Consolas"
                                TextWrapping="Wrap"
-                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                Text="{Binding SummaryText, RelativeSource={RelativeSource AncestorType={x:Type views:TestPage}}}" />
                 </Border>
                 <TextBlock Margin="0,8,0,0"
-                           FontSize="13"
-                           TextWrapping="Wrap"
-                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                           Style="{StaticResource TemplateHeroBodyStyle}"
                            Text="This page helps compare startup state, elevation, and running instances of IconGrid." />
                 </StackPanel>
             </views:TemplatePage.HeroContent>
@@ -44,9 +39,7 @@
                 <StackPanel>
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
-                        <TextBlock FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
                                    Text="Current instance" />
                         <TextBlock Margin="0,10,0,0"
                                    FontFamily="Consolas"
@@ -58,9 +51,7 @@
 
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
-                        <TextBlock FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
                                    Text="IconGrid process overview" />
                         <TextBlock Margin="0,10,0,0"
                                    FontFamily="Consolas"
@@ -72,9 +63,7 @@
 
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
-                        <TextBlock FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
                                    Text="Startup diagnostics" />
                         <TextBlock Margin="0,10,0,0"
                                    FontFamily="Consolas"
@@ -86,9 +75,7 @@
 
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
-                        <TextBlock FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
                                    Text="UI ETW probe" />
                         <TextBlock Margin="0,10,0,0"
                                    TextWrapping="Wrap"
@@ -177,9 +164,7 @@
 
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
-                        <TextBlock FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
                                    Text="Notes" />
                         <TextBlock Margin="0,10,0,0"
                                    TextWrapping="Wrap"
