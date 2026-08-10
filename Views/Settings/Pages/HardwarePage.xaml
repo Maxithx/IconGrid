@@ -8,6 +8,59 @@
              mc:Ignorable="d"
              Background="Transparent">
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <helpers:BooleanToAngleConverter x:Key="HardwareExpanderAngleConverter" />
+
+        <Style x:Key="HardwareHeroExpanderToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          ContentStringFormat="{TemplateBinding ContentStringFormat}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HardwareHeroExpanderStyle" TargetType="Expander">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <StackPanel>
+                            <ToggleButton x:Name="HeaderSite"
+                                          Style="{StaticResource HardwareHeroExpanderToggleButtonStyle}"
+                                          IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          HorizontalContentAlignment="Stretch" />
+                            <ContentPresenter x:Name="ExpandSite"
+                                              Content="{TemplateBinding Content}"
+                                              Margin="0"
+                                              Visibility="Collapsed" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger SourceName="HeaderSite" Property="IsChecked" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger SourceName="HeaderSite" Property="IsChecked" Value="False">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <SolidColorBrush x:Key="HardwareScrollBarTrackDarkBrush" Color="#323232" />
         <SolidColorBrush x:Key="HardwareScrollBarTrackLightBrush" Color="#F0F2F5" />
         <SolidColorBrush x:Key="HardwareScrollBarThumbDarkBrush" Color="#9CA3AF" />
@@ -144,7 +197,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid Grid.IsSharedSizeScope="True">
         <ScrollViewer Margin="12"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
@@ -155,566 +208,590 @@
             </ScrollViewer.Resources>
             
             <views:TemplatePage Margin="0,0,8,0">
+                <!-- Motherboard hero card -->
                 <views:TemplatePage.HeroContent>
                     <StackPanel helpers:DevInspector.Metadata="Motherboard hero card -> Views/HardwarePage.xaml">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="136" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding HardwareBoardTitleText}"
-                                       VerticalAlignment="Center"
-                                       FontSize="20"
-                                       FontWeight="SemiBold"
-                                       Foreground="{Binding TopBarForeground}" />
-                            <Image Grid.Column="1"
-                                   Width="116"
-                                   Height="24"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   Stretch="Uniform"
-                                   SnapsToDevicePixels="True">
-                                <Image.Style>
-                                    <Style TargetType="Image">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Asuslogo-dark-theme.png" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsAsusMotherboard, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                                <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Asuslogo-light-theme.png" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Image.Style>
-                            </Image>
-                        </Grid>
-                        <TextBlock Margin="0,8,0,0"
-                                   Text="{Binding HardwareBoardIntroText}"
-                                   TextWrapping="Wrap"
-                                   FontSize="13"
-                                   Foreground="{Binding SettingsSubtextForeground}" />
-                        <Grid Margin="0,18,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,18,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="{Binding HardwareModelLabelText}"
-                                               FontSize="12"
-                                               Foreground="{Binding SettingsSubtextForeground}" />
-                                    <Button Grid.Column="1"
-                                            Style="{StaticResource HardwareSearchButtonStyle}"
-                                            Content="{Binding HardwareSearchBoardLabelText}"
-                                            Click="SearchBoardButton_Click" />
-                                    <TextBlock Grid.Row="1"
-                                               Margin="0,4,0,0"
-                                               FontSize="16"
+                        <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Motherboard hero expander -> Views/HardwarePage.xaml">
+                            <Expander.Header>
+                                <StackPanel>
+                                    <!-- 3-column header: Title | Logo | Chevron -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding HardwareBoardTitleText}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="20"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding TopBarForeground}" />
+                                        <Image Grid.Column="1"
+                                               Width="80" Height="34"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Stretch="Uniform"
+                                               SnapsToDevicePixels="True">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Asuslogo-dark-theme.png" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAsusMotherboard, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Asuslogo-light-theme.png" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="&#xE70D;"
+                                                   FontFamily="Segoe Fluent Icons"
+                                                   FontSize="18"
+                                                   Margin="24,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Grid>
+                                    <TextBlock Margin="0,8,0,0"
+                                               FontSize="14"
                                                FontWeight="SemiBold"
                                                Foreground="{Binding TopBarForeground}"
                                                Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,16"
+                                               Text="{Binding HardwareBoardIntroText}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding SettingsSubtextForeground}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,18,0">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Text="{Binding HardwareModelLabelText}"
+                                                           FontSize="12"
+                                                           Foreground="{Binding SettingsSubtextForeground}" />
+                                                <Button Grid.Column="1"
+                                                        Style="{StaticResource HardwareSearchButtonStyle}"
+                                                        Content="{Binding HardwareSearchBoardLabelText}"
+                                                        Click="SearchBoardButton_Click" />
+                                                <TextBlock Grid.Row="1"
+                                                           Margin="0,4,0,0"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{Binding TopBarForeground}"
+                                                           Text="{Binding Overview.Board.Model, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding HardwareBiosLabelText}"
+                                                   FontSize="12"
+                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding TopBarForeground}"
+                                                   Text="{Binding Overview.Board.BiosVersion, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
                                 </Grid>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="{Binding HardwareBiosLabelText}"
-                                           FontSize="12"
-                                           Foreground="{Binding SettingsSubtextForeground}" />
-                                <TextBlock Margin="0,4,0,0"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="{Binding TopBarForeground}"
-                                           Text="{Binding Overview.Board.BiosVersion, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Grid>
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
                     </StackPanel>
                 </views:TemplatePage.HeroContent>
                 
                 <views:TemplatePage.CardsContent>
                     <StackPanel>
+                        <!-- CPU card -->
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
                                 helpers:DevInspector.Metadata="CPU card -> Views/HardwarePage.xaml">
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="136" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="CPU"
-                                               VerticalAlignment="Center"
-                                               FontSize="20"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}" />
-                                    <Grid Grid.Column="1"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Center">
-                                        <Border MinWidth="76"
-                                                Padding="12,6"
-                                                Background="{Binding CpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                CornerRadius="12">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsAmdCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding Overview.Cpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       HorizontalAlignment="Center"
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="CPU card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Logo | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="CPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12"
+                                                       FontSize="20"
                                                        FontWeight="SemiBold"
-                                                       Foreground="White" />
-                                        </Border>
-                                        <Image Width="136"
-                                               Height="34"
-                                               HorizontalAlignment="Right"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/AMDlogo-darktheme.png" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsAmdCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                       Foreground="{Binding TopBarForeground}" />
+                                            <Grid Grid.Column="1"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center">
+                                                <Border MinWidth="76"
+                                                        Padding="12,6"
+                                                        Background="{Binding CpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                        CornerRadius="12">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
                                                             <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/AMDlogo-lighttheme.png" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-
-                                        <Image Width="136"
-                                               Height="34"
-                                               HorizontalAlignment="Right"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-                                    </Grid>
-                                </Grid>
-                                <TextBlock Margin="0,8,0,0"
-                                           Text="{Binding HardwareCpuIntroText}"
-                                           TextWrapping="Wrap"
-                                           FontSize="13"
-                                           Foreground="{Binding SettingsSubtextForeground}" />
-                                <Grid Margin="0,18,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="{Binding HardwareModelLabelText}"
-                                               FontSize="12"
-                                               Foreground="{Binding SettingsSubtextForeground}" />
-                                    <TextBlock Grid.Row="1"
-                                               Margin="0,4,0,0"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}"
-                                               Text="{Binding Overview.Cpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                               TextWrapping="Wrap" />
-                                </Grid>
-                                <WrapPanel Margin="0,18,0,0">
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareCoresLabelText}"
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsAmdCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Overview.Cpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="White" />
+                                                </Border>
+                                                <Image Width="100" Height="34"
+                                                       HorizontalAlignment="Center"
+                                                       Stretch="Uniform"
+                                                       SnapsToDevicePixels="True">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/AMDlogo-darktheme.png" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsAmdCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/AMDlogo-lighttheme.png" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                                <Image Width="100" Height="34"
+                                                       HorizontalAlignment="Center"
+                                                       Stretch="Uniform"
+                                                       SnapsToDevicePixels="True">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsIntelCpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                            </Grid>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock Margin="0,8,0,0"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding TopBarForeground}"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}  @  {1}">
+                                                    <Binding Path="Overview.Cpu.Name" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                    <Binding Path="DataContext.SystemMonitor.CpuClock" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareCpuIntroText}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding HardwareModelLabelText}"
                                                        FontSize="12"
                                                        Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
+                                            <TextBlock Grid.Row="1"
+                                                       Margin="0,4,0,0"
                                                        FontSize="16"
                                                        FontWeight="SemiBold"
                                                        Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding Overview.Cpu.Cores, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareThreadsLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding Overview.Cpu.Threads, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareLiveTempLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareLiveUsageLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding DataContext.SystemMonitor.CpuUsage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareLiveClockLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding DataContext.SystemMonitor.CpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareBoostLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding Overview.Cpu.BoostClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                </WrapPanel>
-                            </StackPanel>
+                                                       Text="{Binding Overview.Cpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       TextWrapping="Wrap" />
+                                        </Grid>
+                                        <WrapPanel Margin="0,18,0,0">
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareCoresLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Cpu.Cores, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareThreadsLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Cpu.Threads, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareLiveUsageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.CpuUsage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.CpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareBoostLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Cpu.BoostClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
                         </Border>
 
+                        <!-- GPU card -->
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
                                 helpers:DevInspector.Metadata="GPU card -> Views/HardwarePage.xaml">
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="136" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="GPU"
-                                               VerticalAlignment="Center"
-                                               FontSize="20"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}" />
-                                    <Grid Grid.Column="1"
-                                          HorizontalAlignment="Right"
-                                          VerticalAlignment="Center">
-                                        <Border MinWidth="76"
-                                                 Padding="12,6"
-                                                 Background="{Binding GpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                 CornerRadius="12">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsNvidiaGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding Overview.Gpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       HorizontalAlignment="Center"
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="GPU card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Logo | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="GPU"
                                                        VerticalAlignment="Center"
-                                                       FontSize="12"
+                                                       FontSize="20"
                                                        FontWeight="SemiBold"
-                                                       Foreground="White" />
-                                        </Border>
-
-                                        <Image Width="136"
-                                               Height="34"
-                                               HorizontalAlignment="Right"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Nvidia-RTX-logo.png" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsNvidiaRtx, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                       Foreground="{Binding TopBarForeground}" />
+                                            <Grid Grid.Column="1"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Center">
+                                                <Border MinWidth="76"
+                                                        Padding="12,6"
+                                                        Background="{Binding GpuBadgeBackground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                        CornerRadius="12">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
                                                             <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-
-                                        <Image Width="136"
-                                               Height="34"
-                                               HorizontalAlignment="Right"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Nvidia-GTX-logo.png" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsNvidiaGtx, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-
-                                        <Image Width="136"
-                                               Height="34"
-                                               HorizontalAlignment="Right"
-                                               Stretch="Uniform"
-                                               SnapsToDevicePixels="True">
-                                            <Image.Style>
-                                                <Style TargetType="Image">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Image.Style>
-                                        </Image>
-                                    </Grid>
-                                </Grid>
-                                <TextBlock Margin="0,8,0,0"
-                                           Text="{Binding HardwareGpuIntroText}"
-                                           TextWrapping="Wrap"
-                                           FontSize="13"
-                                           Foreground="{Binding SettingsSubtextForeground}" />
-                                <Grid Margin="0,18,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                     <TextBlock Text="{Binding HardwareModelLabelText}"
-                                               FontSize="12"
-                                               Foreground="{Binding SettingsSubtextForeground}" />
-                                    <TextBlock Grid.Row="1"
-                                               Margin="0,4,0,0"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}"
-                                               Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                               TextWrapping="Wrap" />
-                                </Grid>
-                                <WrapPanel Margin="-6,18,0,0">
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareVendorLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding GpuVendorDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareLiveTempLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareLiveClockLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding DataContext.SystemMonitor.GpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareVramLabelText}"
-                                                       FontSize="12"
-                                                       Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                       FontSize="16"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{Binding TopBarForeground}"
-                                                       Text="{Binding Overview.Gpu.Vram, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                </WrapPanel>
-                            </StackPanel>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsNvidiaGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding Overview.Gpu.Vendor, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                               FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                                </Border>
+                                                <Image Width="100" Height="34" HorizontalAlignment="Center" Stretch="Uniform" SnapsToDevicePixels="True">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Nvidia-RTX-logo.png" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsNvidiaRtx, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                                <Image Width="100" Height="34" HorizontalAlignment="Center" Stretch="Uniform" SnapsToDevicePixels="True">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Nvidia-GTX-logo.png" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsNvidiaGtx, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                                <Image Width="100" Height="34" HorizontalAlignment="Center" Stretch="Uniform" SnapsToDevicePixels="True">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Source" Value="pack://siteoforigin:,,,/Assets/Hw-logo/Intel-logo.png" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsIntelGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                            </Grid>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock Margin="0,8,0,0"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding TopBarForeground}"
+                                                   Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareGpuIntroText}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding HardwareModelLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <WrapPanel Margin="-6,18,0,0">
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareVendorLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding GpuVendorDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareLiveTempLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareLiveClockLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding DataContext.SystemMonitor.GpuClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareVramLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Gpu.Vram, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
                         </Border>
 
+                        <!-- Memory card -->
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
                                 helpers:DevInspector.Metadata="Memory card -> Views/HardwarePage.xaml">
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="136" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding HardwareMemoryTitleText}"
-                                               VerticalAlignment="Center"
-                                               FontSize="20"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}" />
-                                    <Border Grid.Column="1"
-                                            MinWidth="76"
-                                            Padding="12,6"
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Center"
-                                            Background="{Binding AccentBrush}"
-                                            CornerRadius="12">
-                                        <TextBlock Text="{Binding Overview.Memory.Total, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   FontSize="12"
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="Memory card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Logo | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding HardwareMemoryTitleText}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="20"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding TopBarForeground}" />
+                                            <Border Grid.Column="1"
+                                                    MinWidth="76"
+                                                    Padding="12,6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding AccentBrush}"
+                                                    CornerRadius="12">
+                                                <TextBlock Text="{Binding Overview.Memory.Total, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock Margin="0,8,0,0"
+                                                   FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Foreground="White" />
-                                    </Border>
-                                </Grid>
-                                <TextBlock Margin="0,8,0,0"
-                                           Text="{Binding HardwareMemoryIntroText}"
-                                           TextWrapping="Wrap"
-                                           FontSize="13"
-                                           Foreground="{Binding SettingsSubtextForeground}" />
-                                <Grid Margin="0,18,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Text="{Binding HardwareLayoutLabelText}"
-                                               FontSize="12"
-                                               Foreground="{Binding SettingsSubtextForeground}" />
-                                    <TextBlock Grid.Row="1"
-                                               Margin="0,4,0,0"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding TopBarForeground}"
-                                               Text="{Binding Overview.Memory.Layout, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                               TextWrapping="Wrap" />
-                                </Grid>
-                                <WrapPanel Margin="0,18,0,0">
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareTypeLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.Type, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareSpeedLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.Speed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareTimingLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareModulesLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareSlotsLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding HardwareVoltageLabelText}"
-                                                    FontSize="12"
-                                                    Foreground="{Binding SettingsSubtextForeground}" />
-                                            <TextBlock Margin="0,4,0,0"
-                                                    FontSize="16"
-                                                    FontWeight="SemiBold"
-                                                    Foreground="{Binding TopBarForeground}"
-                                                    Text="{Binding Overview.Memory.Voltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                    </Border>
-                                </WrapPanel>
-                            </StackPanel>
+                                                   Foreground="{Binding TopBarForeground}"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}  {1} @ {2}">
+                                                    <Binding Path="Overview.Memory.Layout" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                    <Binding Path="Overview.Memory.Type" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                    <Binding Path="Overview.Memory.Speed" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareMemoryIntroText}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Foreground="{Binding SettingsSubtextForeground}" />
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding HardwareLayoutLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                       Text="{Binding Overview.Memory.Layout, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <WrapPanel Margin="0,18,0,0">
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareTypeLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.Type, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareSpeedLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.Speed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareTimingLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareModulesLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareSlotsLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" FontSize="12" Foreground="{Binding SettingsSubtextForeground}" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="16" FontWeight="SemiBold" Foreground="{Binding TopBarForeground}"
+                                                               Text="{Binding Overview.Memory.Voltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
                         </Border>
                     </StackPanel>
                 </views:TemplatePage.CardsContent>
