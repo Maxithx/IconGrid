@@ -16,28 +16,39 @@ namespace IconGrid.Views
             if (DataContext is not MainViewModel vm)
                 return;
 
-            // Try saved user defaults first, fall back to hardcoded factory values.
-            if (vm.TryApplySavedMonitorLayoutDefaults())
-                return;
-
-            vm.MonitorPingToNetGap = 2;
-            vm.MonitorNetToDownloadGap = 2;
-            vm.MonitorDownloadToUploadGap = 2;
-            vm.MonitorUploadToCpuGap = 2;
-            vm.MonitorCpuToGpuGap = 2;
+            // "Reset to default" ALWAYS restores the factory defaults —
+            // it cannot be changed by the user's saved default.
+            vm.MonitorPingToNetGap = 4;
+            vm.MonitorNetToDownloadGap = 4;
+            vm.MonitorDownloadToUploadGap = 4;
+            vm.MonitorUploadToCpuGap = 4;
+            vm.MonitorCpuToGpuGap = 4;
             vm.MonitorDivider0Visible = true;
             vm.MonitorDivider1Visible = true;
             vm.MonitorDivider2Visible = true;
             vm.MonitorDivider3Visible = true;
-            vm.MonitorDividerGap = 0;
-            vm.MonitorCpuBarGap = 0;
-            vm.MonitorGpuBarGap = 0;
-            vm.MonitorDownloadLabelToValueGap = 0;
-            vm.MonitorUploadLabelToValueGap = 0;
-            vm.MonitorDownloadValueToUnitGap = 0;
-            vm.MonitorUploadValueToUnitGap = 0;
-            vm.MonitorDownloadValueWidth = 0;
-            vm.MonitorUploadValueWidth = 0;
+            vm.MonitorDividerGap = 16;
+            vm.MonitorCpuBarGap = 8;
+            vm.MonitorGpuBarGap = 8;
+            vm.MonitorDownloadLabelToValueGap = 4;
+            vm.MonitorUploadLabelToValueGap = 4;
+            vm.MonitorDownloadValueToUnitGap = 4;
+            vm.MonitorUploadValueToUnitGap = 4;
+            vm.MonitorDownloadValueWidth = 20;
+            vm.MonitorUploadValueWidth = 20;
+        }
+
+        private void ResetToMyDefaultButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+
+            // "Reset to my default" restores the user's saved default.
+            // If none is saved, it falls back to the factory values.
+            if (vm.TryApplySavedMonitorLayoutDefaults())
+                return;
+
+            ResetDefaultsButton_Click(sender, e);
         }
 
         private void SaveAsDefaultButton_Click(object sender, RoutedEventArgs e)

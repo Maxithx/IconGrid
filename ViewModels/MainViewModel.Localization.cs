@@ -151,6 +151,7 @@ namespace IconGrid.ViewModels
         public string MonitorRowCpuBarGapLabel => _localizationState.Get(Language, "MonitorRowCpuBarGapLabel");
         public string MonitorRowGpuBarGapLabel => _localizationState.Get(Language, "MonitorRowGpuBarGapLabel");
         public string MonitorRowResetButton => _localizationState.Get(Language, "MonitorRowResetButton");
+        public string MonitorRowResetToMyDefaultButton => _localizationState.Get(Language, "MonitorRowResetToMyDefaultButton");
         public string MonitorRowSaveAsDefaultButton => _localizationState.Get(Language, "MonitorRowSaveAsDefaultButton");
         public string MonitorRowSaveAsDefaultDescription => _localizationState.Get(Language, "MonitorRowSaveAsDefaultDescription");
 
@@ -306,6 +307,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(MonitorRowCpuBarGapLabel));
             OnPropertyChanged(nameof(MonitorRowGpuBarGapLabel));
             OnPropertyChanged(nameof(MonitorRowResetButton));
+            OnPropertyChanged(nameof(MonitorRowResetToMyDefaultButton));
             OnPropertyChanged(nameof(MonitorRowSaveAsDefaultButton));
             OnPropertyChanged(nameof(MonitorRowSaveAsDefaultDescription));
         }

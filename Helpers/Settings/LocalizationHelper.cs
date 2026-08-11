@@ -172,9 +172,10 @@ public static class LocalizationHelper
             ["MonitorRowBarGapsTitle"] = "CPU / GPU bars",
             ["MonitorRowCpuBarGapLabel"] = "CPU bar gap",
             ["MonitorRowGpuBarGapLabel"] = "GPU bar gap",
-            ["MonitorRowResetButton"] = "Reset to my default",
-            ["MonitorRowSaveAsDefaultButton"] = "Save current as default",
-            ["MonitorRowSaveAsDefaultDescription"] = "Save your current layout as the new default. 'Reset' will restore it. If no default is saved, Reset uses the hardcoded factory values."
+            ["MonitorRowResetButton"] = "Reset to default",
+            ["MonitorRowResetToMyDefaultButton"] = "Reset to my default",
+            ["MonitorRowSaveAsDefaultButton"] = "Save current to my default",
+            ["MonitorRowSaveAsDefaultDescription"] = "Reset to default always restores the factory layout. Reset to my default restores your saved layout. Save current to my default stores your current layout as your personal default."
         },
         ["da"] = new()
         {
@@ -342,9 +343,10 @@ public static class LocalizationHelper
             ["MonitorRowBarGapsTitle"] = "CPU / GPU bjælker",
             ["MonitorRowCpuBarGapLabel"] = "CPU bar gap",
             ["MonitorRowGpuBarGapLabel"] = "GPU bar gap",
-            ["MonitorRowResetButton"] = "Nulstil til min standard",
-            ["MonitorRowSaveAsDefaultButton"] = "Gem nuværende som standard",
-            ["MonitorRowSaveAsDefaultDescription"] = "Gem dit nuværende layout som den nye standard. 'Nulstil' gendanner den. Hvis ingen standard er gemt, bruges de hardcodede fabriksværdier."
+            ["MonitorRowResetButton"] = "Nulstil til standard",
+            ["MonitorRowResetToMyDefaultButton"] = "Nulstil til min standard",
+            ["MonitorRowSaveAsDefaultButton"] = "Gem nuværende som min standard",
+            ["MonitorRowSaveAsDefaultDescription"] = "Nulstil til standard gendanner altid fabrikslayoutet. Nulstil til min standard gendanner dit gemte layout. Gem nuværende som min standard gemmer dit nuværende layout som din personlige standard."
         }
     };
 

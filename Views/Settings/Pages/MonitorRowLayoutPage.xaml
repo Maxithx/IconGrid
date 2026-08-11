@@ -630,6 +630,10 @@
                                     Click="ResetDefaultsButton_Click" />
                             <Button Style="{StaticResource ResetDefaultsButtonStyle}"
                                     Margin="8,0,0,0"
+                                    Content="{Binding MonitorRowResetToMyDefaultButton}"
+                                    Click="ResetToMyDefaultButton_Click" />
+                            <Button Style="{StaticResource ResetDefaultsButtonStyle}"
+                                    Margin="8,0,0,0"
                                     Content="{Binding MonitorRowSaveAsDefaultButton}"
                                     Click="SaveAsDefaultButton_Click" />
                         </StackPanel>

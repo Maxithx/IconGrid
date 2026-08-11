@@ -64,25 +64,25 @@ public class ConfigModel
     public int WindowAnimationDurationMs { get; set; } = 250;
     public FpsTargetConfig FpsTarget { get; set; } = new();
 
-    // Monitor row layout (persisted) — all default to tight spacing, user can widen via sliders
-    public double MonitorPingToNetGap { get; set; } = 2;
-    public double MonitorNetToDownloadGap { get; set; } = 2;
-    public double MonitorDownloadToUploadGap { get; set; } = 2;
-    public double MonitorUploadToCpuGap { get; set; } = 2;
-    public double MonitorCpuToGpuGap { get; set; } = 2;
+    // Monitor row layout (persisted) — defaults match the tuned "good" look, user can adjust via sliders
+    public double MonitorPingToNetGap { get; set; } = 4;
+    public double MonitorNetToDownloadGap { get; set; } = 4;
+    public double MonitorDownloadToUploadGap { get; set; } = 4;
+    public double MonitorUploadToCpuGap { get; set; } = 4;
+    public double MonitorCpuToGpuGap { get; set; } = 4;
     public bool MonitorDivider0Visible { get; set; } = true;
     public bool MonitorDivider1Visible { get; set; } = true;
     public bool MonitorDivider2Visible { get; set; } = true;
     public bool MonitorDivider3Visible { get; set; } = true;
-    public double MonitorDividerGap { get; set; } = 0;
-    public double MonitorCpuBarGap { get; set; } = 0;
-    public double MonitorGpuBarGap { get; set; } = 0;
-    public double MonitorDownloadLabelToValueGap { get; set; } = 0;
-    public double MonitorUploadLabelToValueGap { get; set; } = 0;
-    public double MonitorDownloadValueToUnitGap { get; set; } = 0;
-    public double MonitorUploadValueToUnitGap { get; set; } = 0;
-    public double MonitorDownloadValueWidth { get; set; } = 0;
-    public double MonitorUploadValueWidth { get; set; } = 0;
+    public double MonitorDividerGap { get; set; } = 16;
+    public double MonitorCpuBarGap { get; set; } = 8;
+    public double MonitorGpuBarGap { get; set; } = 8;
+    public double MonitorDownloadLabelToValueGap { get; set; } = 4;
+    public double MonitorUploadLabelToValueGap { get; set; } = 4;
+    public double MonitorDownloadValueToUnitGap { get; set; } = 4;
+    public double MonitorUploadValueToUnitGap { get; set; } = 4;
+    public double MonitorDownloadValueWidth { get; set; } = 20;
+    public double MonitorUploadValueWidth { get; set; } = 20;
 
     /// <summary>
     /// User-saved monitor layout defaults (JSON blob of 18 properties).

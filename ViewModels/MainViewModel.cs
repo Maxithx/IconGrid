@@ -108,12 +108,12 @@ namespace IconGrid.ViewModels
         private bool _enableContentScroll = true;
         private int _windowAnimationDurationMs = 250;
 
-        // Monitor row layout margins (adjustable via Monitor Layout page)
-        private double _monitorPingToNetGap = 2;
-        private double _monitorNetToDownloadGap = 2;
-        private double _monitorDownloadToUploadGap = 2;
-        private double _monitorUploadToCpuGap = 2;
-        private double _monitorCpuToGpuGap = 2;
+        // Monitor row layout margins (adjustable via Monitor Layout page — defaults match the tuned "good" look)
+        private double _monitorPingToNetGap = 4;
+        private double _monitorNetToDownloadGap = 4;
+        private double _monitorDownloadToUploadGap = 4;
+        private double _monitorUploadToCpuGap = 4;
+        private double _monitorCpuToGpuGap = 4;
 
         // Monitor row divider visibility (Divider0 = before Download, Divider1 = between Down/Up, Divider2 = between Up/CPU, Divider3 = between CPU/GPU)
         private bool _monitorDivider0Visible = true;
@@ -122,17 +122,17 @@ namespace IconGrid.ViewModels
         private bool _monitorDivider3Visible = true;
 
         // Monitor row divider gap (symmetric left+right)
-        private double _monitorDividerGap = 0;
+        private double _monitorDividerGap = 16;
 
         // Monitor row bar gaps (CPU/GPU usage bar left margin)
-        private double _monitorCpuBarGap = 0;
-        private double _monitorGpuBarGap = 0;
-        private double _monitorDownloadLabelToValueGap = 0;
-        private double _monitorUploadLabelToValueGap = 0;
-        private double _monitorDownloadValueToUnitGap = 0;
-        private double _monitorUploadValueToUnitGap = 0;
-        private double _monitorDownloadValueWidth = 0;
-        private double _monitorUploadValueWidth = 0;
+        private double _monitorCpuBarGap = 8;
+        private double _monitorGpuBarGap = 8;
+        private double _monitorDownloadLabelToValueGap = 4;
+        private double _monitorUploadLabelToValueGap = 4;
+        private double _monitorDownloadValueToUnitGap = 4;
+        private double _monitorUploadValueToUnitGap = 4;
+        private double _monitorDownloadValueWidth = 20;
+        private double _monitorUploadValueWidth = 20;
 
         private readonly LauncherLayoutMeasurements _layoutMeasurements = new();
         private readonly LauncherLayoutState _layoutState = new();

@@ -146,3 +146,25 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 "Vi arbejder videre på overskriftskonsistens. Færdiggør Del 1: HardwarePage card-overskrifter er allerede ændret 20→16 i working tree (bygget 0 fejl, men ikke deployet/committet) — deploy, test, commit og push. Fortsæt derefter med Del 2: centraliser al settings-typografi ved at erstatte hardcodede FontSize med Template*Style-styles fra TemplateGuidelines.xaml på alle settings-sider (HardwarePage, StartsidePage, GenvejsIkonerPage, AboutPage, HjaelpPage, LayoutPage, TestPage), så én ændring i en delt style virker på alle sider. Afslut med Del 3: build, deploy, manuel gennemgang + run_all_checks."
 
 
+
+## Session findings (2026-08-11)
+
+- Monitor row layout: de 'gode' justeringer (Ping→Net 4, Net→Download 4, Down→Up 4, Up→CPU 4, CPU→GPU 4, DividerGap 16, CPU/GPU BarGap 8/8, label→value 4×2, value→unit 4×2, value-widths 20/20) er nu de nye fabriksdefaults.
+- Opdateret alle 6 steder med hardcodede defaults: ConfigModel.cs, MonitorLayoutDefaultsSnapshot.cs, MainViewModel.cs (backing fields), MainViewModelConfigState.cs, MainViewModelSettingsState.cs, MonitorRowLayoutPage.xaml.cs (reset-fallback) + MainWindow.xaml.cs (legacy reset, dead code konsistens).
+- Build: 0 fejl, 0 advarsler. Deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk, 969728 bytes, 18:15). IconGrid startet.
+- check_architecture_rules: ingen nye violations (kun de 3 kendte).
+- IKKE committet/pushet — afventer bruger-approval.
+
+- Knap-tekst rettet: 'Reset to my default' → 'Reset to default' (en) og 'Nulstil til min standard' → 'Nulstil til standard' (da) i LocalizationHelper.cs. Build 0 fejl, deployet C:\icongrid (18:23).
+- Bruger overvejer 3 save-profiler for monitor row layout — svaret: foreslået 3 foruddefinerede presets (Kompakt/Normal/Luftig) i stedet for 3 brugerdefinerede lagrede profiler.
+
+- Monitor Row Layout fik nyt 3-knap design efter brugerønske:
+  1. **Reset to default** — ALTID fabriksværdier (kan ikke ændres af brugerens gemte default)
+  2. **Reset to my default** — gendanner brugerens gemte layout (ny knap; falder tilbage til fabriksværdier hvis ingen er gemt)
+  3. **Save current to my default** — gemmer nuværende som brugerens personlige default
+  - Ny lokaliseringsnøgle: MonitorRowResetToMyDefaultButton (en: 'Reset to my default', da: 'Nulstil til min standard')
+  - Opdateret MonitorRowSaveAsDefaultButton (en: 'Save current to my default', da: 'Gem nuværende som min standard') + ny description på begge sprog.
+  - Filer ændret: LocalizationHelper.cs, MainViewModel.Localization.cs, MonitorRowLayoutPage.xaml (3. knap + Click=ResetToMyDefaultButton_Click), MonitorRowLayoutPage.xaml.cs (split reset-logik: ResetDefaultsButton_Click = altid fabrik, ResetToMyDefaultButton_Click = saved-snapshot med fallback).
+  - Build 0 fejl, deployet C:\icongrid (18:29) — afventer bruger-verifikation.
+
+

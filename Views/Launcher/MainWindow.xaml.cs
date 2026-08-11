@@ -757,7 +757,7 @@ namespace IconGrid.Views.Launcher
         private void MonitorLayoutResetButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             _viewModel.MonitorPingToNetGap = 4;
-            _viewModel.MonitorNetToDownloadGap = 6;
+            _viewModel.MonitorNetToDownloadGap = 4;
             _viewModel.MonitorDownloadToUploadGap = 4;
             _viewModel.MonitorUploadToCpuGap = 4;
             _viewModel.MonitorCpuToGpuGap = 4;

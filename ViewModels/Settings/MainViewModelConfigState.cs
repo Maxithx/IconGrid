@@ -39,7 +39,7 @@ namespace IconGrid.ViewModels.Settings
         public int WindowAnimationDurationMs { get; init; }
         public FpsTargetConfig FpsTarget { get; init; } = new();
         public double MonitorPingToNetGap { get; init; } = 4;
-        public double MonitorNetToDownloadGap { get; init; } = 6;
+        public double MonitorNetToDownloadGap { get; init; } = 4;
         public double MonitorDownloadToUploadGap { get; init; } = 4;
         public double MonitorUploadToCpuGap { get; init; } = 4;
         public double MonitorCpuToGpuGap { get; init; } = 4;
@@ -47,15 +47,15 @@ namespace IconGrid.ViewModels.Settings
         public bool MonitorDivider1Visible { get; init; } = true;
         public bool MonitorDivider2Visible { get; init; } = true;
         public bool MonitorDivider3Visible { get; init; } = true;
-        public double MonitorDividerGap { get; init; } = 4;
-        public double MonitorCpuBarGap { get; init; } = 0;
-        public double MonitorGpuBarGap { get; init; } = 0;
-        public double MonitorDownloadLabelToValueGap { get; init; } = 0;
-        public double MonitorUploadLabelToValueGap { get; init; } = 0;
-        public double MonitorDownloadValueToUnitGap { get; init; } = 0;
-        public double MonitorUploadValueToUnitGap { get; init; } = 0;
-        public double MonitorDownloadValueWidth { get; init; } = 0;
-        public double MonitorUploadValueWidth { get; init; } = 0;
+        public double MonitorDividerGap { get; init; } = 16;
+        public double MonitorCpuBarGap { get; init; } = 8;
+        public double MonitorGpuBarGap { get; init; } = 8;
+        public double MonitorDownloadLabelToValueGap { get; init; } = 4;
+        public double MonitorUploadLabelToValueGap { get; init; } = 4;
+        public double MonitorDownloadValueToUnitGap { get; init; } = 4;
+        public double MonitorUploadValueToUnitGap { get; init; } = 4;
+        public double MonitorDownloadValueWidth { get; init; } = 20;
+        public double MonitorUploadValueWidth { get; init; } = 20;
         public string Language { get; init; } = "da";
         public double? WindowLeft { get; init; }
         public double? WindowTop { get; init; }
