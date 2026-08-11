@@ -732,7 +732,7 @@
                                            helpers:DevInspector.Metadata="Icon size label → Views/MainWindow.xaml (Settings controls)" />
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                                             helpers:DevInspector.Metadata="Icon size slider row → Views/MainWindow.xaml (Settings controls)">
-                                    <Slider Minimum="0.8"
+                                    <Slider Minimum="0.82"
                                             Maximum="1.5"
                                             SmallChange="0.05"
                                             LargeChange="0.1"

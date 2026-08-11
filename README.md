@@ -55,10 +55,12 @@ IconGrid features a clean toggle between full and collapsed views. Clicking an a
 
 ### Carousel & Grid view modes
 
-Shortcut icons can be shown in two view modes, controlled by a toggle on the GenvejsIkoner (shortcut icons) settings page:
+Shortcut icons can be shown in two view modes, controlled by a toggle on the GenvejsIkoner (shortcut icons) settings page. The settings page is split into dedicated sections so it is always clear which options apply to which view:
 
-1. **Grid view** — icons laid out in multiple vertical rows with 4 icons per row, scrolled with a thin vertical scrollbar.
-2. **Carousel view** — a single horizontal row with exactly 4 icons visible at a time. Scroll through the rest with the mouse wheel or a thin horizontal scrollbar. Same spacing as the grid.
+1. **Grid view** — icons laid out in multiple vertical rows, scrolled with a thin vertical scrollbar. Grid-only settings: **icons per row**, **icon row spacing**, and **bottom padding (last row)**.
+2. **Carousel view** — a single horizontal row, scrolled with the mouse wheel or a thin horizontal scrollbar. Carousel-only setting: **visible icons** (1–12, default 4) — controls how many icons are visible at once; fewer icons = more space between them. The horizontal spacing in carousel mode is independent of the grid's row settings.
+
+A single shared **icon size** slider (82%–150%) applies to both views. The 82% floor guarantees carousel icons never clip, since the viewport height is derived from the scale.
 
 <!-- TODO: Screenshot — Carousel view with 4 icons visible + horizontal scrollbar -->
 <!-- Replace: Assets/git-img/IconGrid-carousel.png -->
@@ -140,7 +142,7 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | Page | Description |
 |---|---|
 | **Startside** | Startup mode, topmost behavior, UI scale, **hide mode** (Always visible / Manual / Auto), **auto-hide delay** (1–10 sec), **peek activation** (Hover / Click), language (Dansk / English) |
-| **GenvejsIkoner** | Shortcut icon settings: **carousel/grid view toggle**, scrollbar on/off, icon rows & spacing |
+| **GenvejsIkoner** | Shortcut icon settings split by view: **Grid view** (icons per row, row spacing, bottom padding), **Carousel view** (visible icons 1–12), shared **icon size** (82–150%), scrollbar on/off |
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |

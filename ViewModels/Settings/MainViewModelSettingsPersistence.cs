@@ -43,6 +43,7 @@ namespace IconGrid.ViewModels.Settings
                 config.ShowDevOverlay = state.ShowDevOverlay;
                 config.IconRowSpacing = state.IconRowSpacing;
                 config.LastRowPaddingAdjust = state.LastRowPaddingAdjust;
+                config.CarouselVisibleIcons = state.CarouselVisibleIcons;
                 config.TabNames = state.TabNames;
                 config.Language = state.Language;
                 config.WindowLeft = state.WindowLeft;

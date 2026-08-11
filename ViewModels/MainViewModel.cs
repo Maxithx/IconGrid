@@ -372,14 +372,17 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
-        /// Used to scale icon size (0.8 – 1.5 etc.).
+        /// Used to scale icon size (0.82 – 1.5 etc.).
+        /// The floor is 0.82: below that the carousel viewport (96 × scale)
+        /// becomes shorter than the actual tile (~96 px) and icons clip.
         /// </summary>
         public double IconScale
         {
             get => _icon_scale;
             set
             {
-                if (SetField(ref _icon_scale, value))
+                var clamped = Math.Max(0.82, value);
+                if (SetField(ref _icon_scale, clamped))
                 {
                     SaveSettingsToConfig();
                     OnPropertyChanged(nameof(EffectiveIconScale));
@@ -1051,6 +1054,24 @@ namespace IconGrid.ViewModels
             }
         }
 
+        /// <summary>
+        /// Number of icons visible in the carousel viewport (1-12).
+        /// Controls how close/far apart icons sit horizontally in carousel mode.
+        /// </summary>
+        public int CarouselVisibleIcons
+        {
+            get => _layoutMeasurements.CarouselVisibleIcons;
+            set
+            {
+                if (_layoutMeasurements.SetCarouselVisibleIcons(value))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(CarouselVisibleIcons));
+                    OnPropertyChanged(nameof(CarouselCellWidth));
+                }
+            }
+        }
+
         public int WindowAnimationDurationMs
         {
             get => _windowAnimationDurationMs;
@@ -1560,6 +1581,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(EnableContentScroll));
             OnPropertyChanged(nameof(IconViewMode));
             OnPropertyChanged(nameof(IsCarouselViewMode));
+            OnPropertyChanged(nameof(CarouselVisibleIcons));
             OnPropertyChanged(nameof(WindowAnimationDurationMs));
             OnPropertyChanged(nameof(PawnIoMissingMessage));
             OnPropertyChanged(nameof(PawnIoDownloadLink));

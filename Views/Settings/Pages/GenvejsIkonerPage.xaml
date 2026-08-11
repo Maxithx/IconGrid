@@ -7,10 +7,20 @@
              xmlns:views="clr-namespace:IconGrid.Views"
              xmlns:controls="clr-namespace:IconGrid.Controls"
              mc:Ignorable="d"
-             Background="Transparent">
-    <views:TemplatePage Margin="12">
+             Background="Transparent"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <ScrollViewer Margin="12"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+        </ScrollViewer.Resources>
+    <views:TemplatePage Margin="0">
         <views:TemplatePage.HeroContent>
-            <StackPanel helpers:DevInspector.Metadata="Genvejs hero card â†’ Views/GenvejsIkonerPage.xaml">
+            <StackPanel helpers:DevInspector.Metadata="Genvejs hero card → Views/GenvejsIkonerPage.xaml">
                 <StackPanel>
                     <TextBlock Text="{Binding ShortcutsTitle}"
                                Style="{StaticResource TemplateHeroTitleStyle}" />
@@ -20,58 +30,39 @@
                 </StackPanel>
 
                 <StackPanel Margin="0,16,0,0"
-                            helpers:DevInspector.Metadata="Genvejs slider group → Views/GenvejsIkonerPage.xaml">
-                    <controls:SliderRow Label="{Binding IconRowSpacingLabel}"
-                                        Minimum="-50"
-                                        Maximum="50"
-                                        Value="{Binding IconRowSpacing, Mode=TwoWay}"
-                                        ValueFormat="{}{0:F0} px"
-                                        LabelForeground="{Binding SettingsSubtextForeground}"
-                                        helpers:DevInspector.Metadata="Mellemrumm slider → Views/GenvejsIkonerPage.xaml" />
-
-                    <controls:SliderRow Label="{Binding LastRowPaddingLabel}"
-                                        Minimum="-20"
-                                        Maximum="20"
-                                        Value="{Binding LastRowPaddingAdjust, Mode=TwoWay}"
-                                        ValueFormat="{}{0:F0} px"
-                                        LabelForeground="{Binding SettingsSubtextForeground}"
-                                        helpers:DevInspector.Metadata="Luft slider → Views/GenvejsIkonerPage.xaml" />
-
-                    <controls:SliderRow Label="{Binding IconSizeLabel}"
-                                        Minimum="0.5"
-                                        Maximum="1.5"
-                                        Value="{Binding IconScale, Mode=TwoWay}"
-                                        ValueFormat="{}{0:P0}"
-                                        LabelForeground="{Binding SettingsSubtextForeground}"
-                                        helpers:DevInspector.Metadata="Ikonstørrelse slider → Views/GenvejsIkonerPage.xaml" />
-                    <Grid Margin="0,12,0,0"
-                          helpers:DevInspector.Metadata="Scrollbar toggle → Views/GenvejsIkonerPage.xaml">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding EnableIconScrollLabel}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding SettingsSubtextForeground}" />
-                        <ToggleButton Grid.Column="1"
-                                      Style="{StaticResource ToggleSwitchStyle}"
-                                      IsChecked="{Binding EnableContentScroll, Mode=TwoWay}"
-                                      VerticalAlignment="Center"
-                                      Margin="12,0,0,0" />
-                    </Grid>
-
-                    <Grid Margin="0,12,0,0"
+                            helpers:DevInspector.Metadata="Genvejs view toggle group → Views/GenvejsIkonerPage.xaml">
+                    <Grid Margin="0,0,0,12"
                           helpers:DevInspector.Metadata="Carousel toggle → Views/GenvejsIkonerPage.xaml">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding CarouselViewLabel}"
+                        <StackPanel>
+                            <TextBlock Text="{Binding CarouselViewLabel}"
+                                       Style="{StaticResource TemplateSectionTitleStyle}" />
+                            <TextBlock Text="{Binding ShortcutsCarouselDescription}"
+                                       Style="{StaticResource TemplateHeroBodyStyle}"
+                                       Margin="0,4,20,0" />
+                        </StackPanel>
+                        <ToggleButton Grid.Column="1"
+                                      Style="{StaticResource ToggleSwitchStyle}"
+                                      IsChecked="{Binding IsCarouselViewMode, Mode=TwoWay}"
+                                      VerticalAlignment="Center"
+                                      Margin="12,0,0,0" />
+                    </Grid>
+
+                    <Grid helpers:DevInspector.Metadata="Scrollbar toggle → Views/GenvejsIkonerPage.xaml">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding EnableIconScrollLabel}"
+                                   Style="{StaticResource TemplateSectionTitleStyle}"
                                    VerticalAlignment="Center"
                                    Foreground="{Binding SettingsSubtextForeground}" />
                         <ToggleButton Grid.Column="1"
                                       Style="{StaticResource ToggleSwitchStyle}"
-                                      IsChecked="{Binding IsCarouselViewMode, Mode=TwoWay}"
+                                      IsChecked="{Binding EnableContentScroll, Mode=TwoWay}"
                                       VerticalAlignment="Center"
                                       Margin="12,0,0,0" />
                     </Grid>
@@ -81,8 +72,105 @@
 
         <views:TemplatePage.CardsContent>
             <StackPanel>
+
+                <!-- Shared: Icon size -->
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="Genvejs animation card â†’ Views/GenvejsIkonerPage.xaml">
+                        helpers:DevInspector.Metadata="Genvejs shared icon size card → Views/GenvejsIkonerPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding IconSizeLabel}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding ShortcutsIntro}"
+                                   Margin="0,6,0,10"
+                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+                        <controls:SliderRow Label="{Binding IconSizeLabel}"
+                                            Minimum="0.82"
+                                            Maximum="1.5"
+                                            Value="{Binding IconScale, Mode=TwoWay}"
+                                            ValueFormat="{}{0:P0}"
+                                            LabelForeground="{Binding SettingsSubtextForeground}"
+                                            helpers:DevInspector.Metadata="Ikonstørrelse slider → Views/GenvejsIkonerPage.xaml" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Grid view (vertical) -->
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        Margin="0,12,0,0"
+                        helpers:DevInspector.Metadata="Genvejs grid view card → Views/GenvejsIkonerPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ShortcutsGridTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding ShortcutsGridDescription}"
+                                   Margin="0,6,0,10"
+                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+
+                        <controls:SliderRow Label="{Binding IconsPerRowLabel}"
+                                            Minimum="4"
+                                            Maximum="8"
+                                            SmallChange="1"
+                                            LargeChange="1"
+                                            TickFrequency="1"
+                                            Value="{Binding IconsPerRow, Mode=TwoWay}"
+                                            ValueFormat="{}{0:F0}"
+                                            LabelForeground="{Binding SettingsSubtextForeground}"
+                                            helpers:DevInspector.Metadata="Ikoner pr række slider → Views/GenvejsIkonerPage.xaml" />
+
+                        <controls:SliderRow Label="{Binding IconRowSpacingLabel}"
+                                            Minimum="-50"
+                                            Maximum="50"
+                                            Value="{Binding IconRowSpacing, Mode=TwoWay}"
+                                            ValueFormat="{}{0:F0} px"
+                                            LabelForeground="{Binding SettingsSubtextForeground}"
+                                            helpers:DevInspector.Metadata="Mellemrumm slider → Views/GenvejsIkonerPage.xaml" />
+
+                        <controls:SliderRow Label="{Binding LastRowPaddingLabel}"
+                                            Minimum="-20"
+                                            Maximum="20"
+                                            Value="{Binding LastRowPaddingAdjust, Mode=TwoWay}"
+                                            ValueFormat="{}{0:F0} px"
+                                            LabelForeground="{Binding SettingsSubtextForeground}"
+                                            helpers:DevInspector.Metadata="Luft slider → Views/GenvejsIkonerPage.xaml" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Carousel view (horizontal) -->
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        Margin="0,12,0,0"
+                        helpers:DevInspector.Metadata="Genvejs carousel view card → Views/GenvejsIkonerPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding ShortcutsCarouselTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding ShortcutsCarouselDescription}"
+                                   Margin="0,6,0,10"
+                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+
+                        <TextBlock Text="{Binding ShortcutsCarouselVisibleIconsLabel}"
+                                   Style="{StaticResource TemplateSectionTitleStyle}" />
+                        <TextBlock Text="{Binding ShortcutsCarouselVisibleIconsDescription}"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   Margin="0,4,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Slider Minimum="1" Maximum="12" SmallChange="1" LargeChange="1"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"
+                                    Style="{StaticResource ModernSliderStyle}"
+                                    Value="{Binding CarouselVisibleIcons, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="1"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       FontSize="12"
+                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding CarouselVisibleIcons, StringFormat={}{0:F0}}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Animation card -->
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        Margin="0,12,0,0"
+                        helpers:DevInspector.Metadata="Genvejs animation card → Views/GenvejsIkonerPage.xaml">
                     <StackPanel>
                         <TextBlock Text="{Binding ShortcutsAnimationTitle}"
                                    Style="{StaticResource TemplateCardTitleStyle}" />
@@ -116,5 +204,5 @@
             </StackPanel>
         </views:TemplatePage.CardsContent>
     </views:TemplatePage>
+    </ScrollViewer>
 </UserControl>
-

@@ -27,6 +27,7 @@ namespace IconGrid.ViewModels.Settings
         public bool ShowDevOverlay { get; init; }
         public double IconRowSpacing { get; init; }
         public double LastRowPaddingAdjust { get; init; }
+        public int CarouselVisibleIcons { get; init; } = 4;
         public bool EnableSlideUpAnimation { get; init; }
         public bool EnableContentScroll { get; init; }
         public string IconViewMode { get; init; } = "Grid";
@@ -71,7 +72,7 @@ namespace IconGrid.ViewModels.Settings
             return new MainViewModelConfigState
             {
                 IconsPerRow = config.IconsPerRow < 4 ? 4 : config.IconsPerRow,
-                IconScale = config.IconScale,
+                IconScale = Math.Max(0.82, config.IconScale),
                 IsAlwaysOnTop = config.IsAlwaysOnTop,
                 IsFloatingIconTopmost = config.IsFloatingIconTopmost,
                 ShowScrollButtons = config.ShowScrollButtons,
@@ -93,6 +94,7 @@ namespace IconGrid.ViewModels.Settings
                 ShowDevOverlay = config.ShowDevOverlay,
                 IconRowSpacing = config.IconRowSpacing,
                 LastRowPaddingAdjust = Math.Max(-20, Math.Min(20, config.LastRowPaddingAdjust)),
+                CarouselVisibleIcons = Math.Max(1, Math.Min(12, config.CarouselVisibleIcons)),
                 EnableSlideUpAnimation = config.EnableSlideUpAnimation,
                 EnableContentScroll = config.EnableContentScroll,
                 IconViewMode = string.Equals(config.IconViewMode, "Carousel", StringComparison.OrdinalIgnoreCase) ? "Carousel" : "Grid",

@@ -41,6 +41,8 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 
 - `633e84d` — feat: make Element gaps, Dividers and CPU/GPU bars collapsible on Monitor Row Layout page (2 files, 152 insertions / 16 deletions) — pushet til GitHub.
 
+- `18bfaab` — feat: monitor row layout tuned defaults + 3-button reset/save design (11 files, 134 insertions / 93 deletions) — pushet til GitHub.
+
 ## Session findings (2026-08-10)
 
 - HardwarePage.xaml: ALLE 4 hero-cards (Motherboard, CPU, GPU, Memory) gjort collapsible med Expander (samme mønster som GamingOverlayPage).
@@ -166,5 +168,31 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
   - Opdateret MonitorRowSaveAsDefaultButton (en: 'Save current to my default', da: 'Gem nuværende som min standard') + ny description på begge sprog.
   - Filer ændret: LocalizationHelper.cs, MainViewModel.Localization.cs, MonitorRowLayoutPage.xaml (3. knap + Click=ResetToMyDefaultButton_Click), MonitorRowLayoutPage.xaml.cs (split reset-logik: ResetDefaultsButton_Click = altid fabrik, ResetToMyDefaultButton_Click = saved-snapshot med fallback).
   - Build 0 fejl, deployet C:\icongrid (18:29) — afventer bruger-verifikation.
+
+- ✅ BRUGER-VERIFICERET + COMMITTET + PUSHEt (18:36): `18bfaab` — monitor row layout tuned defaults + 3-button reset/save design. 
+- run_all_checks ved session-afslutning: Architecture 3 kendte violations (uændret), version 0.7.0-beta.1 konsistent, localization 169 en/169 da synkroniseret, ingen secrets, XAML 6 kendte hardcodede danske linjer (uændret).
+- Working tree: ren (alt commit + push).
+
+- GenvejsIkonerPage.xaml omstruktureret i tydelige sektioner efter brugerønske (Grid view vs Carousel view indstillinger):
+  - Hero: Carousel-view toggle + Enable icon scroll toggle.
+  - Card 1 'Shared': Icon size slider (fælles for BEGGE views — enig med bruger om at ikonstørrelse skal deles).
+  - Card 2 'Grid view (vertical)': Icons per row, Icon row spacing, Bottom padding (last row) — tydeligt markeret som kun-vertikal. IconsPerRow er nu flyttet ind her (var i MainWindow.xaml settings overlay).
+  - Card 3 'Carousel view (horizontal)': NY indstilling 'Visible icons' (1-12, default 4) — styrer hvor mange ikoner der er synlige i carousel-viewporten (= horisontal afstand).
+  - Card 4: Animation card (uændret).
+- Ny backend: CarouselVisibleIcons (int, default 4, clamp 1-12) gennem hele kæden: ConfigModel → ConfigState → SettingsState → Persistence → MainViewModel → LauncherLayoutMeasurements.CarouselCellWidth() (bruger nu CarouselVisibleIcons i stedet for IconsPerRow som slots i carousel).
+- Nye lokaliseringsnøgler (en+da): ShortcutsGridTitle, ShortcutsGridDescription, ShortcutsCarouselTitle, ShortcutsCarouselDescription, ShortcutsCarouselVisibleIconsLabel, ShortcutsCarouselVisibleIconsDescription.
+- Build 0 fejl, deployet C:\icongrid (18:54, DLL 976384 bytes) — afventer bruger-verifikation.
+
+- IconScale (Icon size) fik nyt gulv: minimum er nu 82% / 0.82 (tidligere 0.5 på GenvejsIkonerPage, 0.8 i MainWindow overlay). Årsag: i carousel bliver viewport-højden beregnet som 96 × scale, mens selve tile altid fylder ~96px → under ~84% klippes ikonerne. 82% er nu det nye laveste punkt (brugerens ønske).
+- Ændringer: GenvejsIkonerPage.xaml slider Minimum 0.5→0.82, MainWindow.xaml settings-overlay Minimum 0.8→0.82, MainViewModel.IconScale setter clamp Math.Max(0.82, value), MainViewModelConfigState.FromConfig clamp Math.Max(0.82, config.IconScale).
+- Build 0 fejl, deployet C:\icongrid (19:06, DLL 976384 bytes) — afventer bruger-verifikation.
+
+- GenvejsIkonerPage.xaml fik det samme ScrollViewer-mønster som GamingOverlayPage (ScrollViewer Margin=12, VerticalScrollBarVisibility=Auto, PanningMode=VerticalOnly, SettingsPageScrollBarStyle i Resources) så siden har scrollbar når indholdet overstiger vinduet. TemplatePage Margin ændret 12→0 (ScrollViewer tager nu margenen).
+- Build 0 fejl, deployet C:\icongrid (19:11, DLL 976896 bytes) — afventer bruger-verifikation.
+
+
+
+
+
 
 

@@ -39,6 +39,7 @@ public class ConfigModel
     public bool ShowDevOverlay { get; set; } = false;
     public double IconRowSpacing { get; set; } = 0;
     public double LastRowPaddingAdjust { get; set; } = 0;
+    public int CarouselVisibleIcons { get; set; } = 4;
     public string Language { get; set; } = "da";
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }

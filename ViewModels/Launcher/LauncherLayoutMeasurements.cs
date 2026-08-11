@@ -36,6 +36,7 @@ namespace IconGrid.ViewModels.Launcher
         private double _lastRowPaddingAdjust = 0;             // fine-tune bottom space under the last visible row
         private bool _isIconPanelExpanded = true;
         private string _iconViewMode = GridViewMode;
+        private int _carouselVisibleIcons = 4;                // icons visible in carousel viewport (controls horizontal spacing)
 
         // ---------- Public measurement state ----------
 
@@ -54,6 +55,12 @@ namespace IconGrid.ViewModels.Launcher
         public double IconRowSpacing => _iconRowSpacing;
 
         public double LastRowPaddingAdjust => _lastRowPaddingAdjust;
+
+        /// <summary>
+        /// Number of icons visible in the carousel viewport.
+        /// Larger values make icons sit closer together; smaller values spread them out.
+        /// </summary>
+        public int CarouselVisibleIcons => _carouselVisibleIcons;
 
         /// <summary>
         /// Current view mode for the shortcut icons: "Grid" or "Carousel".
@@ -95,6 +102,22 @@ namespace IconGrid.ViewModels.Launcher
             _lastRowPaddingAdjust = value;
             OnPropertyChanged(nameof(LastRowPaddingAdjust));
             NotifyContentHeightChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Sets the number of icons visible in the carousel viewport.
+        /// Returns true when the value changed.
+        /// </summary>
+        public bool SetCarouselVisibleIcons(int value)
+        {
+            var clamped = Math.Max(1, Math.Min(12, value));
+            if (_carouselVisibleIcons == clamped)
+                return false;
+
+            _carouselVisibleIcons = clamped;
+            OnPropertyChanged(nameof(CarouselVisibleIcons));
+            OnPropertyChanged(nameof(CarouselCellWidth));
             return true;
         }
 
@@ -150,9 +173,13 @@ public double ContentHostHeight(bool isOverlayOpen, int itemCount, int iconsPerR
         /// </summary>
         public double CarouselCellWidth(int iconsPerRow)
         {
-            var slots = Math.Max(1, iconsPerRow);
+            // The carousel viewport width is based on the grid's content width so
+            // both modes stay consistent. The number of VISIBLE icons is controlled
+            // separately (CarouselVisibleIcons) — not by IconsPerRow — so users can
+            // widen/narrow the horizontal spacing in carousel mode independently.
             var innerWidth = ContentWidth(iconsPerRow) - CarouselHorizontalPadding;
-            return Math.Max(1, innerWidth / slots);
+            var visibleSlots = Math.Max(1, _carouselVisibleIcons);
+            return Math.Max(1, innerWidth / visibleSlots);
         }
 
         public double ContentMaxWidth =>
@@ -251,13 +278,14 @@ public double CalculateContentAreaHeight(int itemCount, int iconsPerRow, double 
         /// Apply persisted measurement state without raising change notifications
         /// (used when config is loaded or defaults are restored).
         /// </summary>
-        public void ApplyMeasurementState(double iconRowSpacing, double lastRowPaddingAdjust, string iconViewMode)
+        public void ApplyMeasurementState(double iconRowSpacing, double lastRowPaddingAdjust, string iconViewMode, int carouselVisibleIcons = 4)
         {
             _iconRowSpacing = iconRowSpacing;
             _lastRowPaddingAdjust = lastRowPaddingAdjust;
             _iconViewMode = string.Equals(iconViewMode, CarouselViewMode, StringComparison.OrdinalIgnoreCase)
                 ? CarouselViewMode
                 : GridViewMode;
+            _carouselVisibleIcons = Math.Max(1, Math.Min(12, carouselVisibleIcons));
         }
 
         public void NotifyWorkAreaChanged()
@@ -274,6 +302,7 @@ public double CalculateContentAreaHeight(int itemCount, int iconsPerRow, double 
             OnPropertyChanged(nameof(ContentMaxWidth));
             OnPropertyChanged(nameof(WindowDesiredWidth));
             OnPropertyChanged(nameof(IconMargin));
+            OnPropertyChanged(nameof(CarouselVisibleIcons));
         }
 
         // ---------- Notifications ----------

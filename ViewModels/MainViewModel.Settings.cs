@@ -37,7 +37,7 @@ namespace IconGrid.ViewModels
             _showDesktopIcon = state.ShowDesktopIcon;
             _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
-            _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust, state.IconViewMode);
+            _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust, state.IconViewMode, state.CarouselVisibleIcons);
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
             _enableContentScroll = state.EnableContentScroll;
             _monitorPingToNetGap = state.MonitorPingToNetGap;
@@ -150,6 +150,7 @@ namespace IconGrid.ViewModels
                 ShowDevOverlay = _showDevOverlay,
                 IconRowSpacing = _layoutMeasurements.IconRowSpacing,
                 LastRowPaddingAdjust = _layoutMeasurements.LastRowPaddingAdjust,
+                CarouselVisibleIcons = _layoutMeasurements.CarouselVisibleIcons,
                 TabNames = Tabs.ToList(),
                 Language = _language,
                 EnableSlideUpAnimation = _enableSlideUpAnimation,

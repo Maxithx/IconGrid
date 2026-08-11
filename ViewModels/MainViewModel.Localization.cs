@@ -66,6 +66,12 @@ namespace IconGrid.ViewModels
         public string LanguageOptionEnglish => _localizationState.Get(Language, "LanguageOptionEnglish");
         public string ShortcutsTitle => _localizationState.Get(Language, "ShortcutsTitle");
         public string ShortcutsIntro => _localizationState.Get(Language, "ShortcutsIntro");
+        public string ShortcutsGridTitle => _localizationState.Get(Language, "ShortcutsGridTitle");
+        public string ShortcutsGridDescription => _localizationState.Get(Language, "ShortcutsGridDescription");
+        public string ShortcutsCarouselTitle => _localizationState.Get(Language, "ShortcutsCarouselTitle");
+        public string ShortcutsCarouselDescription => _localizationState.Get(Language, "ShortcutsCarouselDescription");
+        public string ShortcutsCarouselVisibleIconsLabel => _localizationState.Get(Language, "ShortcutsCarouselVisibleIconsLabel");
+        public string ShortcutsCarouselVisibleIconsDescription => _localizationState.Get(Language, "ShortcutsCarouselVisibleIconsDescription");
         public string ShortcutsAnimationTitle => _localizationState.Get(Language, "ShortcutsAnimationTitle");
         public string ShortcutsAnimationIntro => _localizationState.Get(Language, "ShortcutsAnimationIntro");
         public string ShortcutsAnimationToggle => _localizationState.Get(Language, "ShortcutsAnimationToggle");
@@ -222,6 +228,12 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(LanguageOptionEnglish));
             OnPropertyChanged(nameof(ShortcutsTitle));
             OnPropertyChanged(nameof(ShortcutsIntro));
+            OnPropertyChanged(nameof(ShortcutsGridTitle));
+            OnPropertyChanged(nameof(ShortcutsGridDescription));
+            OnPropertyChanged(nameof(ShortcutsCarouselTitle));
+            OnPropertyChanged(nameof(ShortcutsCarouselDescription));
+            OnPropertyChanged(nameof(ShortcutsCarouselVisibleIconsLabel));
+            OnPropertyChanged(nameof(ShortcutsCarouselVisibleIconsDescription));
             OnPropertyChanged(nameof(ShortcutsAnimationTitle));
             OnPropertyChanged(nameof(ShortcutsAnimationIntro));
             OnPropertyChanged(nameof(ShortcutsAnimationToggle));

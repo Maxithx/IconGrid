@@ -30,6 +30,7 @@ namespace IconGrid.ViewModels.Settings
         public bool ShowDevOverlay { get; set; }
         public double IconRowSpacing { get; set; }
         public double LastRowPaddingAdjust { get; set; }
+        public int CarouselVisibleIcons { get; set; } = 4;
         public List<string> TabNames { get; set; } = new();
         public string Language { get; set; } = "da";
         public double? WindowLeft { get; set; }
