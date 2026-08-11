@@ -5,6 +5,7 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - ENVIRONMENT: You are strictly in a Windows environment. NEVER use Linux commands (ls, grep, sed, awk, cat, head, tail).
 - COMMAND WHITELIST: Prefer the File API for reading/writing. When a shell command is needed, use only: `Get-ChildItem` (or `dir`), `Select-String`, `git`, `dotnet`, `npm`, `node`, `Remove-Item`, `Test-Path`, `Get-Content`. Never use complex pipelines; a single command piped to `Out-File` for diagnostics is acceptable.
 - ERROR HANDLING: If a shell command fails (exit code != 0 or syntax error), NEVER retry it. Do not attempt to fix the shell syntax. Immediately switch to using VS Code File API (read_file, write_to_file) to perform the task.
+- COMMAND CHEATSHEET (REQUIRED): BEFORE running any shell command, consult `E:\IconGrid-GitHub\.local-state\regex-commands-cheatsheet.md` for the verified good/bad command patterns. After every command failure OR whenever a better command pattern is discovered, append the finding to that same file so future sessions avoid the same mistakes. This file is project memory and must be kept up to date continuously.
 - PATHS: Always use absolute Windows paths (e.g., E:\IconGrid-GitHub\...). Never use forward slashes (/) for filesystem paths. The active repository/worktree is `E:\IconGrid-GitHub` only.
 
 ## 2. FILE & TOOLING STRATEGY
@@ -12,6 +13,7 @@ You are an expert Windows software engineer specializing in WPF, C#, and MVVM ar
 - FILE API FIRST: Always prefer VS Code's `read_file` and `write_to_file` over shell commands for reading/writing code.
 - MULTI-FILE OPS: Do not use complex pipelines. If you need to search multiple files, read them one by one using the File API.
 - CONTEXT MANAGEMENT: For large files (>500 lines), never read the whole file. Ask to read specific sections (by line number or method) to keep token usage efficient.
+- DEPLOY AFTER EVERY BUILD (CRITICAL): After EVERY successful build, deploy the fresh output to `C:\IconGrid` using `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` WITHOUT asking the user for approval first. This is a non-destructive, required step (the user tests from `C:\IconGrid`). Deployment is NOT approval to commit/push — commit/push still requires explicit user approval per AGENT.md. After deploy, verify the DLL timestamp matches the freshly built DLL and note the deploy time in `CHAT_STATE.md`.
 
 ## 3. WPF/MVVM ARCHITECTURE RULES
 - SRP (Single Responsibility Principle): Logic belongs in ViewModels or Services, never in code-behind.

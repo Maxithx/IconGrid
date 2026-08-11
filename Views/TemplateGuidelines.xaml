@@ -83,7 +83,8 @@
         <Setter Property="Foreground" Value="{Binding SettingsSubtextForeground}" />
     </Style>
 
-    <Style x:Key="TemplateActionButtonStyle" TargetType="Button" BasedOn="{StaticResource LayoutActionButtonStyle}">
+    <Style x:Key="TemplateActionButtonStyle" TargetType="Button">
+        <Setter Property="Padding" Value="12,6" />
         <Setter Property="Background" Value="{Binding AccentBrush}" />
         <Setter Property="BorderBrush" Value="{Binding AccentBrush}" />
         <Setter Property="Foreground" Value="White" />

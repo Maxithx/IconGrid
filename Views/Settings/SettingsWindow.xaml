@@ -620,6 +620,31 @@
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
+                        <Button x:Name="UsbCopyNavButton"
+                                Style="{StaticResource NavButtonStyle}"
+                                Margin="0,6,0,0"
+                                ToolTip="{Binding UsbCopyNavTitle}"
+                                Click="UsbCopyNavButton_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="28"
+                                        Height="28"
+                                        CornerRadius="6"
+                                        Background="{Binding AccentBrush}">
+                                    <TextBlock Text="UC"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="White" />
+                                </Border>
+                                <TextBlock Margin="12,0,0,0"
+                                           Text="{Binding UsbCopyNavTitle}"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="HelpNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"

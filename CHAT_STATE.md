@@ -31,6 +31,10 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - Opdater ARCHITECTURE_RULES.md "Recent Good Examples" med MonitorRowLayoutPage + MonitorLayoutDefaultsSnapshot (valgfrit polish)
 - Evt. lokaliser de 6 resterende hardcodede XAML-strenge
 
+
+- AFVENTER BRUGER-VERIFIKATION (2026-08-11): Fast USB Copy-siden (settings → 'USB Copy') — test enhedsdetektion + port-type, kopiering og benchmark. Når godkendt: commit + push (spørg brugeren først, jf. AGENT.md).
+- Evt. forbedringer: IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX for eksakt negotiated port-linkspeed (i stedet for controller-heuristic), benchmark-resultat-kurve (buffer vs throughput) i UI.
+
 ## Latest commits (this session)
 - `4c779aa` — feat: monitor row layout localization, save-as-default, MCP server architecture enforcer, and two-part memory structure (15 files)
 - `90dbe81` — fix: persist monitor row layout settings and stabilize download/upload value widths (4 files)
@@ -42,6 +46,8 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - `633e84d` — feat: make Element gaps, Dividers and CPU/GPU bars collapsible on Monitor Row Layout page (2 files, 152 insertions / 16 deletions) — pushet til GitHub.
 
 - `18bfaab` — feat: monitor row layout tuned defaults + 3-button reset/save design (11 files, 134 insertions / 93 deletions) — pushet til GitHub.
+
+- `4814666` — feat: shortcut icons grid/carousel view settings split + visible icons slider + 82% icon floor + page scrollbar (13 files, 250 insertions / 51 deletions) — pushet til GitHub. Inkluderer README.md opdatering.
 
 ## Session findings (2026-08-10)
 
@@ -190,9 +196,53 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - GenvejsIkonerPage.xaml fik det samme ScrollViewer-mønster som GamingOverlayPage (ScrollViewer Margin=12, VerticalScrollBarVisibility=Auto, PanningMode=VerticalOnly, SettingsPageScrollBarStyle i Resources) så siden har scrollbar når indholdet overstiger vinduet. TemplatePage Margin ændret 12→0 (ScrollViewer tager nu margenen).
 - Build 0 fejl, deployet C:\icongrid (19:11, DLL 976896 bytes) — afventer bruger-verifikation.
 
+- ✅ SESSION AFSLUTTET (19:14): Alt commit + push (`4814666`). README.md opdateret med nye GenvejsIkoner beskrivelser.
+- run_all_checks ved session-afslutning: Architecture 3 kendte violations (MainWindow 1062, MainViewModel 1862 — voksede fra 1840 pga. CarouselVisibleIcons + clamp, stadig kun de 3 kendte filer), version 0.7.0-beta.1 konsistent, localization 175 en/175 da synkroniseret, ingen secrets, XAML 6 kendte hardcodede danske linjer (uændret).
+
+
+- NY FEATURE: Fast USB Copy-side implementeret (C#/.NET, WPF). Sidebar-nav 'USB Copy' (UC-badge) efter Monitor Row Layout. Siden bruger GamingOverlayPage-struktur + central lokaliseringsmodel (LocalizationHelper → MainViewModel.Localization → bindings), TemplatePage + TemplateGuidelines.xaml + StartsideSectionCardStyle.
+- Backend: Helpers/UsbCopy/ — UsbDeviceInfo+UsbPortType-enum, UsbDeviceDetector (WMI Win32_DiskDrive/USBControllerDevice, port-type USB 2.0/3.0/3.2/4.0), UsbCopyEngine (buffer-pipeline, SequentialScan+WriteThrough, events), UsbCopyLogger (AppData\Roaming\IconGrid\logs\fastusbcopy\ + benchmark\), UsbBenchmarkRunner (Port/Read/Write/BufferStress 64KB-2MB/Stability 30s), UsbCopyState (INotifyPropertyChanged).
+- ViewModels/Settings/UsbCopyViewModel.cs ejer feature-logik (MainViewModel uberørt, jf. ARCHITECTURE_RULES). Views/Settings/Pages/UsbCopyPage.xaml(.cs) — 5 cards: Enheder, Kopiering, Performance, Log, Benchmark. Lokalisering: 39 nye nøgler (UsbCopy*) = 214 en/214 da.
+- Build: 0 fejl, 0 advarsler. Deployet via deploy-test.cmd til C:\icongrid (DLL verificeret 20:33:18). IconGrid startet — afventer bruger-verifikation af siden + enhedsdetektion + benchmark.
+- check_architecture_rules/run_all_checks: KUN de 3 kendte violations uændret (MainWindow 1062, MainViewModel 1862, HardwareMonitorAgent 1772). Ingen nye violations.
+- IKKE committet/pushet — afventer bruger-approval.
+
+
+- FIX (brugerrapporteret crash): XamlParseException 'LayoutActionButtonStyle could not be found' i UsbCopyPage.InitializeComponent. Årsag: TemplateActionButtonStyle i den DELTE Views/TemplateGuidelines.xaml var BasedOn={StaticResource LayoutActionButtonStyle}, men LayoutActionButtonStyle er KUN defineret lokalt i LayoutPage.xaml — så alle sider der brugte TemplateActionButtonStyle ville crash (ikke kun UsbCopyPage). Fix: gjort TemplateActionButtonStyle selvstændig (Padding 12,6 + AccentBrush-setters direkte, uden BasedOn).
+- Build 0 fejl, deployet via deploy-test.cmd (DLL verificeret 20:37:05), IconGrid kører nu (2 processer: launcher PID + agent).
+- NY PROCES-REGEL: .clinerules + AGENT.md opdateret med 'COMMAND CHEATSHEET (REQUIRED)' — konsulter E:\IconGrid-GitHub\.local-state\regex-commands-cheatsheet.md FØR enhver shell-kommando, og opdater den ved hver fejl/forbedring. Cheatsheetet er oprettet med gode/dårlige mønstre (PowerShell $-variabler i oneliner = forbudt, && ikke gyldigt i PS 5.1, dir med flere stier, pipelines til Select-String).
+
+
+- NYE BENCHMARK-FUNKTIONER (brugerønske: test vs Windows + logge alt): UsbBenchmarkRunner.WindowsBaselineTestAsync (kopierer 32 MiB inkompressibel fil via File.Copy = samme API som Stifinder, markeret BaselineMethod='File.Copy (Explorer)'), UsbCopyLogger.ExportBenchmarkCsv (TestName,BaselineMethod,BufferSize,Bytes,AvgMiBS,PeakMiBS,Stalls,FlushSeconds,ElapsedSeconds), UsbCopyViewModel WindowsBaselineCommand + ExportCsvCommand, 3 nye lokaliseringsnøgler (en+da: UsbCopyWindowsBaselineButton, UsbCopyWindowsBaselineDescription, UsbCopyExportCsvButton), 2 nye knapper i UsbCopyPage benchmark-card. Så man kan sammenligne Fast USB Copy-pipeline vs Windows Stifinder side om side og analysere buffer-kurven i CSV/Excel.
+- Deploy 20:51:47: baseline+CSV-version deployet via deploy-test.cmd (DLL verificeret frisk), IconGrid startet. Build 0 fejl.
+- IKKE committet/pushet — afventer bruger-approval.
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+## Næste session — PLAN & PROMPT (Fast Copy: omdøb + dual-pane + multi-worker)
+
+
+## Status lige nu (gemt 2026-08-11 21:14)
+- 'Fast USB Copy' feature er bygget + deployet (Helpers/UsbCopy, UsbCopyViewModel, UsbCopyPage, sidebar-knap UC, lokalisering 214 en/214 da). TemplateActionButtonStyle-fixet er deployet (var BasedOn=LayoutActionButtonStyle som kun findes i LayoutPage.xaml → crash). WindowsBaseline + ExportCsv knapper tilføjet.
+- IKKE committet/pushet — afventer bruger-approval. FastCopy-repo med teknikker: E:\ExternalTools\FastCopy-master (JAVA-implementering, principper oversættes til C#).
+- FULDE detaljer + godkendt plan + færdig prompt står i `.local-state/fast-copy.md` (læs med read_note 'fast-copy').
+
+## FÆRDIG PROMPT til næste session (kopiér dette)
+'Læs .local-state/fast-copy.md + CHAT_STATE.md først (Fast Copy-plan er godkendt af brugeren 2026-08-11 21:08). Udfør i rækkefølge med build + auto-deploy (deploy-test.cmd) efter hvert trin og verificér DLL-friskhed:
+1. Omdøb 'USB Copy' → 'Fast Copy' (en)/'Hurtig kopiering' (da): sidebar-nav, side-titel 'Fast Copy — HDD · SSD · USB', vis ALLE drevtyper (HDD/SSD/NVMe/USB) via DriveInfo.GetDrives() + Win32_DiskDrive MediaType/InterfaceType (ikke kun Removable). Ændr UsbCopy*-lokaliseringsnøgler til FastCopy* (en+da synkroniseret).
+2. Dual-pane fil-browser (Norton Commander-stil) på Fast Copy-siden — erstatter 'Vælg filer...': venstre 'Fra' + pil + højre 'Til'; begge paneler frit navigable (drev-dropdown, mapper/filer navn/størrelse/dato, dobbeltklik = ind, Op-knap, markering mellemrum/checkbox, status 'X filer · Y MB'); WorkerCount-slider (1–16) + buffer-dropdown her.
+3. Multi-worker engine (FastCopy-teknikker): WorkerCount + 20-fil-tærskel (<20 → sekventiel); små filer (≤20 KB) pakkes i temp-ZIP → én kopi → unzip; store filer (>64 MB) chunk-splittes parallelt (File.SetLength + positioned write). Log fil + worker-id + chunk + pakke-events.
+4. Skalerings-benchmark (1, 2, 4, 8 workers) + WorkerCount i CSV.
+5. Commit/push kun ved eksplicit godkendelse.
+Referencer: .local-state/fast-copy.md, Helpers/UsbCopy/, ViewModels/Settings/UsbCopyViewModel.cs, Views/Settings/Pages/UsbCopyPage.xaml(.cs), command-cheatsheet.'

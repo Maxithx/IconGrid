@@ -146,6 +146,7 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |
+| **Fast USB Copy** | High-performance file copying to/from any drive (USB/HDD/SSD) with an optimized buffer pipeline, live speed/ETA, structured logs and a benchmark suite (port/read/write/buffer/stability/Windows baseline + CSV export) |
 | **Hjælp** | Help and troubleshooting content |
 | **About** | Version info, app description, credits |
 
@@ -171,6 +172,23 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 - The resolution is **sticky** — it only reverts when the game process actually exits (not when you alt-tab away).
 - The overlay's scale and position automatically follow the new resolution.
 - When the game exits, the original resolution is restored along with any desktop window layout.
+
+---
+
+## Fast USB Copy
+
+> Configured from the **Fast USB Copy** settings page (sidebar: "USB Copy").
+
+Fast USB Copy is a high-performance file copy tool that copies to/from any drive (USB, HDD, SSD) using a buffer-optimized pipeline instead of Windows' default path.
+
+- **Buffered pipeline** — buffer 64 KB – 2 MB, with `SequentialScan` on read and `WriteThrough` on write.
+- **Live performance** — live MiB/s, average, peak, ETA, pipeline status (read/flush per file).
+- **Structured logging** — from second 0 with device/port, buffer, throughput, file names/sizes, timestamps, I/O errors, pipeline events. `%APPDATA%\IconGrid\logs\fastusbcopy\` (+ `benchmark\`).
+- **Benchmark suite** — port/read/write/buffer/stability tests + a **Windows baseline test** (copies via `File.Copy`, same API as Explorer) so you can compare against Explorer. Export results to CSV.
+
+### Architecture
+
+Logic lives in `Helpers/UsbCopy/` (engine, detector, logger, benchmark runner, state) with a dedicated view model (`ViewModels/Settings/UsbCopyViewModel.cs`) and settings page (`Views/Settings/Pages/UsbCopyPage.xaml`) — `MainViewModel` stays untouched.
 
 ---
 

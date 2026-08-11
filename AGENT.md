@@ -32,6 +32,12 @@ Before making changes, read these files in this order:
 - Do NOT read the file content and write it back as a backup — that is slow, wasteful, and can alter formatting.
 - Use `copy "source" "destination"` (Windows) for single file backups.
 
+## Command cheatsheet (avoid repeated shell errors)
+
+- Before running any shell command, consult E:\IconGrid-GitHub\.local-state\regex-commands-cheatsheet.md (good/bad command patterns).
+- After every command failure or when a better pattern is found, append the finding to that file. Keep it up to date continuously.
+- Critical rule: never use PowerShell dollar-variables inside a one-line powershell -Command call executed from the tool; the cmd wrapper strips them (ParserError). Use variable-free expressions instead.
+
 ## Working rules
 
 - Treat `CHAT_STATE.md` as the live note for unresolved issues and recent findings.
