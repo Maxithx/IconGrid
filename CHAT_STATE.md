@@ -218,6 +218,11 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 - IKKE committet/pushet — afventer bruger-approval.
 
 
+- ✅ COMMITTET + PUSHEt (21:18): `f3d1e09` — 'feat: Fast USB Copy tool with optimized buffer pipeline, benchmark suite, Windows baseline, and CSV export' (18 filer, 2268 insertions / 3 deletions). Push: 4814666..f3d1e09 main -> main.
+- README.md opdateret i samme commit: Fast USB Copy i Settings-tabellen + dedikeret '## Fast USB Copy'-sektion (pipeline, live performance, logging, benchmark suite, arkitektur).
+- Next: .local-state/fast-copy.md indeholder den bruger-godkendte Fast Copy-plan (omdøb → dual-pane → multi-worker → skalerings-benchmark) + færdig prompt til næste session.
+
+
 
 
 
@@ -246,3 +251,94 @@ Saturday, August 9, 2026 → Sunday, August 10, 2026
 4. Skalerings-benchmark (1, 2, 4, 8 workers) + WorkerCount i CSV.
 5. Commit/push kun ved eksplicit godkendelse.
 Referencer: .local-state/fast-copy.md, Helpers/UsbCopy/, ViewModels/Settings/UsbCopyViewModel.cs, Views/Settings/Pages/UsbCopyPage.xaml(.cs), command-cheatsheet.'
+
+
+## Session findings (2026-08-11) — Fast Copy Trin 1
+
+- Fast Copy Trin 1 færdig + deployet (DLL 21:29:38, matcher build): 'USB Copy' → 'Fast Copy'/'Hurtig kopiering', side-titel 'Fast Copy — HDD · SSD · USB', alle drevtyper (Fixed+Removable) vises med medietype HDD/SSD/NVMe/USB via Win32_DiskDrive InterfaceType+MediaType/Model. Sidebar-badge 'UC'→'FC'. UsbCopy*-nøgler → FastCopy* (en+da, +FastCopyMediaTypeLabel). DriveMediaType-enum tilføjet. Build 0 fejl.
+- LÆRE (deploy): deploy-test.cmd gav 'Sharing violation' første gang fordi IconGrid.exe blev startet af scriptet mens den gamle DLL stadig var låst — C:\icongrid DLL var derfor stale (20:51:47). Fix: verificér at INGEN IconGrid.exe/IconGridFpsAgent.exe kører FØR deploy (tasklist), kør deploy igen, verificér DLL-timestamp matcher build.
+- IKKE committet/pushet — afventer bruger-approval.
+
+## Session findings (2026-08-11) — Fast Copy Trin 2
+
+- Fast Copy Trin 2 (dual-pane fil-browser) færdig + deployet (DLL 21:52:37, matcher build). Nye filer: Helpers/UsbCopy/FileBrowserEntry.cs + FileBrowserPane.cs. UsbCopyState fik WorkerCount (default 8). UsbCopyEngine fik CopyPathsAsync (relativ sti-bevaring + rekursiv mapper). UsbCopyViewModel fik LeftPane/RightPane/ActivePane/TargetPane + SwapSource + ToggleEntry/EnterDirectory/GoUp/SelectAll/ClearSelection kommandoer. UsbCopyPage.xaml fik dual-pane card (Fra | ⇄ | Til) + WorkerCount-slider (1-16) + buffer. 8 nye FastCopy*-nøgler (en+da synkroniseret). Build 0 fejl.
+- Næste: Trin 3 multi-worker engine (WorkerCount + 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes) + Trin 4 skalerings-benchmark (1/2/4/8 workers + WorkerCount i CSV).
+- IKKE committet/pushet — afventer bruger-approval.
+
+## Next steps
+
+Bruger-test er nødvendig før commit/push (spørg eksplicit, jf. AGENT.md).
+
+## Session findings (2026-08-11) — Fast Copy UI-fix: dropdown tekst hvid-på-hvid
+
+- Brugerrapporteret: dropdown-menuer på Fast Copy-siden havde hvid tekst på hvid baggrund (ulæseligt). To fixes bygget + deployet (DLL 22:25:28, matcher build):
+  1) Views/StartsideStyles.xaml → TemplateComboBoxStyle fik eksplicit ItemContainerStyle (ComboBoxItem Foreground=Black, Padding 6,4) så dropdown-listen er sort-på-hvid i begge temaer (gælder ALLE sider der bruger style'en, fx Game Resolution).
+  2) Views/Settings/Pages/UsbCopyPage.xaml → Fra/Til drev-dropdowns fik eksplicit ComboBox.ItemTemplate med TextBlock Foreground=Black, så både det viste felt-indhold og listen er sort.
+- AFVENTER bruger-verifikation. IKKE committet/pushet.
+
+## Session findings (2026-08-12) — Farvepalet/design-tokens + dropdown-fix
+
+- Brugerrapporteret: i Files From/To dropdowns er det IKKE teksten der er hvid, men WPF's DEFAULT ComboBox-popup der hardcoder hvid baggrund → tekst (mørk nok) bliver usynlig på hvid. Løsning:
+  1) DESIGN TOKENS (farvepalet) tilføjet øverst i Views/StartsideStyles.xaml: SurfaceFill*, SurfaceBorder*, Scroll*, ComboBox* (ComboBoxSurface #F3F4F7 (lyst, IKKE hvid), ComboBoxText #1F2937, border/hover/highlight).
+  2) TemplateComboBoxStyle omskrevet til custom ControlTemplate + PART_Popup med Border der bruger ComboBoxSurfaceBrush — så den udvidede liste er lysegå og læsbar i BEGGE temaer (gælder alle sider der bruger style'en). ComboBoxItemContainerStyle m. highlight token.
+  3) Farvepaletten dokumenteret i Views/TemplateGuidelines.xaml (ny 'COLOR PALETTE'-sektion) — én ændring i token-filen propagerer app-wide.
+- Build 0 fejl, deployet via deploy-test.cmd (DLL 01:38:58 verificeret frisk; første deploy gav transient Sharing violation — retry lykkedes).
+- IKKE committet/pushet — afventer bruger-approval.
+
+## Session findings (2026-08-12) — From/To dropdowns virkede ikke (drev lister tomme)
+
+- Brugerrapporteret: Files From/To dropdowns kunne ikke åbne / ingen drev, mens Buffer Size virkede fint. Rodårsager:
+  1) FileBrowserPane.DriveRoots var en {get; private set;}-auto property UDEN PropertyChanged-notification → ComboBox ItemsSource blev aldrig opdateret → tom liste i dropdownen.
+  2) From/To SelectedItem bandt Mode=TwoWay til CurrentDirectory som er getter-only → binding-fejl.
+  3) x:Name på ComboBox under TemplatePage gav namescope-fejl (MC3093) — løst med Tag="Left"/"Right" i stedet.
+- Fiks: DriveRoots fik INotifyPropertyChanged (OnPropertyChanged), SelectedItem→Mode=OneWay (CurrentDirectory er getter-only, opdateres via NavigateTo), fjernet band-aid ItemTemplate, ny DriveComboBox_SelectionChanged handler i code-behind der navigerer korrekt panel via Tag.
+- Build 0 fejl (13.2s), deployet via deploy-test.cmd, DLL verificeret frisk (01:57:53) — IconGrid kører.
+- IKKE committet/pushet — afventer bruger-approval. Farvepalet/design-tokens fra tidligere fix ligger fortsat i StartsideStyles.xaml + TemplateGuidelines.xaml.
+
+## Session findings (2026-08-12) — Dropdown-popup lå bag indhold + viste kun en stribe
+
+- Brugerrapporteret: From/To dropdown-menuer viste kun meget lidt og 'lå ikke et lag over knapperne nedenunder'. Rodårsager i TemplateComboBoxStyle (Views/StartsideStyles.xaml):
+  1) Popup havde AllowsTransparency=True → renderes i et transparent kompositions-lag uden eget HWND → kan ligge BAG andet indhold/knapper.
+  2) Border MaxHeight={TemplateBinding MaxDropDownHeight} → MaxDropDownHeight er NaN som standard → Border måles til ~0 højde → kun en lille stribe af menuen vises.
+- Fiks: fjernet AllowsTransparency (popup får eget HWND → ligger ALTID øverst) + fast MaxHeight=320 på popup-Border.
+- Build 0 fejl (12.0s), deployet via deploy-test.cmd, DLL verificeret frisk (02:11:02) — IconGrid kører. AFVENTER bruger-verifikation.
+- IKKE committet/pushet — afventer bruger-approval.
+
+## Session findings (2026-08-12) — TOMT dropdown fix (IReadOnlyList → ObservableCollection + tidlig init)
+
+- Brugerrapporteret: From/To + Drives dropdowns er TOME (vises korrekt via standard WPF-popup, men ingen items). Buffer-dropdown virker (statiske XAML-items). Ekstern analyse (WPF-binding):
+  1) ItemsSource som IReadOnlyList<T> opdaterer IKKE UI ved indholdsændring — Kræver ObservableCollection<T> eller at hele property-referencen skiftes + OnPropertyChanged.
+  2) Data populert i Loaded-eventen kan nå at være 'for sent' ift. binding-etablering.
+- Fiks (alle 4):
+  1) FileBrowserPane.DriveRoots: IReadOnlyList<string> → ObservableCollection<string> (Clear/Add i LoadDrives).
+  2) UsbCopyState.Devices: IReadOnlyList<UsbDeviceInfo> → ny ObservableDeviceCollection (ObservableCollection<UsbDeviceInfo>).
+  3) UsbCopyViewModel.RefreshDevices(): Clear() + Add() i stedet for hele-listen-assignment + SelectedDevice = Devices[0].
+  4) UsbCopyPage.xaml.cs: RefreshDevices() kaldt i constructoren (tidlig init) + Loaded kører opfriskning igen.
+- ElementName-bindinger bibeholdt (sidens DataContext er MainViewModel; UsbCopyViewModel er child — et fuldt DataContext-skift ville bryde lokaliseringen). ObservableCollection giver UI notifikation uanset ElementName-binding.
+- Build 0 fejl (12.4s), deployet via deploy-test.cmd, DLL verificeret frisk (02:59:46). AFVENTER bruger-verifikation.
+- IKKE committet/pushet — afventer bruger-approval.
+
+## Næste session — PLAN & PROMPT (dropdown-problem ULØST — ingen commit, ingen kodning mere i denne session)
+
+## STATUS (2026-08-12 03:10) — dropdown-problem IKKE løst
+- Sagen: Fast Copy-siden (Files From/To + Drives) viser ikke drev i dropdownsene. Popuppen åbner, men listen er tom (Drives + From/To). Buffer-dropdown virker (statiske XAML-items).
+- Vi HAR lavet mange fixes der IKKE løste det: (1) hvid-tekst fix, (2) light-surface popup, (3) standard WPF popup (fjerne custom ControlTemplate), (4) ObservableCollection for DriveRoots + Devices + tidlig init i constructor + Clear/Add. Build 0 fejl hver gang, deployet via deploy-test.cmd. Intet af dette fik drev til at vises.
+- Vigtig lære: ekstern analyse sagde IReadOnlyList+sen populering, men det løste det ikke. Næste skridt skal DEBUG datakilden: hvad returnerer UsbDeviceDetector.DetectDevices() og DriveInfo.GetDrives() PÅ DENNE MASKINE (evt. skriv count til trace.log), og verificér at ItemsSource-bindingerne faktisk får data (binding-fejl i Output).
+- INGEN commit/push — hele Fast Copy-arbejdet + dropdown-fixene er u-committet i working tree. AFVENTER bruger-approval + løsning.
+
+## FÆRDIG PROMPT til næste session
+'Fast Copy dropdown-problem er ULØST. Debug på data-niveau, ikke UI-styling: (1) Kontrollér hvad UsbDeviceDetector.DetectDevices() faktisk returnerer på systemet (skriv fil-/drev-count til trace.log i AppData/Roaming/IconGrid/trace.log under RefreshDevices() og driv-dropdown LoadDrives()) — er listen tom, eller er det bindingen der fejler? (2) Tjek Output-vinduet for WPF binding-fejl (System.Windows.Data Error) når siden åbnes. (3) Behold standard WPF ComboBox-styling (ingen custom ControlTemplate). (4) Når rodårsagen er fundet: ret, build 0 fejl, deploy via deploy-test.cmd, verificér DLL-timestamp. (5) Commit/push kun ved eksplicit bruger-approval. Referencer: Helpers/UsbCopy/UsbDeviceDetector.cs, Helpers/UsbCopy/FileBrowserPane.cs (DriveRoots ObservableCollection), Helpers/UsbCopy/UsbCopyState.cs (ObservableDeviceCollection), ViewModels/Settings/UsbCopyViewModel.cs (RefreshDevices), Views/Settings/Pages/UsbCopyPage.xaml(.cs), Views/StartsideStyles.xaml (TemplateComboBoxStyle — brug kun style/ItemContainerStyle, ikke custom template).'
+
+## Session findings (2026-08-12) — Ultimo session
+- Dropdown-problem: efter standard WPF-popup + ObservableCollection + tidlig init er dropdownene stadig tomme (brugerrapport 03:08). Problem ULØST. Ingen mere kodning i denne session (bruger-besked). Intet committet/pushet. CHAT_STATE opdateret. Next: se prompt ovenfor.
+
+## Næste session — PLAN & PROMPT (dropdown-problemet LØST 2026-08-12 03:58)
+
+## STATUS (2026-08-12 04:02) — dropdown-problemet er LØST
+- RODÅRSAG (data-niveau debug): trace.log beviste data ER til stede (DetectDevices=5, LoadDrives=5+5). Dropdowns var tomme pga. BINDING-fejl: alle ViewModel.*-bindinger brugte ElementName=Root, som ikke resolver henover TemplatePage (UserControl/namescope-grænse med ContentPresenter). Fix: RelativeSource AncestorType={x:Type views:UsbCopyPage} → drev viste.
+- Yderligere fixes: (2) DriveRootItem(Path,DisplayName) → drevnavne i dropdown; (3) string.Equals(Tag,"Left"/"Right",Ordinal) i stedet for ReferenceEquals → drevskift navigerer; (4) dobbeltklik på mappe: EventSetter sender=ListBoxItem → ItemsControlFromItemContainer + ListBox Tag → mappe-navigation virker; (5) langsommere opstart: global DataBindingSource-listener fjernet; undermappe-dropdown: ny FileBrowserPane.DriveRootPath (drev-roden).
+- ✅ BRUGER-VERIFICERET (03:58): dropdowns viser drevnavne, drevskift viser filer/mapper, mappe-navigation virker, undermappe-dropdown viser aktivt drev, opstart normal igen. Kopi-test OK.
+- NYE ØNSKER (ikke implementeret endnu): (1) UI fryser under kopiering → gør CopyPathsAsync/kopiering async med UI-marsalling; (2) destination pane opdateres dynamisk under kopiering (vis kopierede mapper efterhånden); (3) kopi-status-indikator med tid (samlet størrelse, tid brugt, resterende, filer tilbage) som normale kopiprogrammer.
+- LÆRE (MCP): icongrid-notes append_to_note afviser 'Invalid JSON argument' ved content med \n/specialtegn — brug korte kompakte kald eller File API. Noteret i regex-commands-cheatsheet.md.
+- Build 0 fejl hver gang. Deploy: C:\icongrid (seneste DLL 03:47:26). IKKE committet/pushet — afventer bruger-approval.
+

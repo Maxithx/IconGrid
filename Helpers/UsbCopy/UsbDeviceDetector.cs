@@ -8,12 +8,15 @@ using System.Text.RegularExpressions;
 namespace IconGrid.Helpers.UsbCopy
 {
     /// <summary>
-    /// Detects removable USB drives and best-effort port type (USB 2.0 / 3.0 / 3.2 / 4.0).
+    /// Detects all local drives (HDD, SSD, NVMe, USB) and best-effort media type.
     ///
-    /// v1 heuristic: the port type is derived from the USB controller the drive is
-    /// attached to (via the Win32_USBControllerDevice association). This reports the
-    /// controller capability, not the negotiated link speed. A future upgrade can use
-    /// IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX for the exact negotiated speed.
+    /// v2: enumerates every ready drive via DriveInfo.GetDrives() (not just
+    /// Removable) and maps it to a physical disk via Win32_DiskDrive. The media
+    /// type is derived from the disk's InterfaceType ("USB") + MediaType/Model
+    /// (HDD/SSD/NVMe hints). For USB drives, the port type is still derived
+    /// from the USB controller the drive is attached to (v1 heuristic). A future
+    /// upgrade can use IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX for the exact
+    /// negotiated link speed.
     /// </summary>
     public sealed class UsbDeviceDetector
     {
@@ -24,13 +27,13 @@ namespace IconGrid.Helpers.UsbCopy
         {
             var result = new List<UsbDeviceInfo>();
             var controllerPortMap = BuildControllerPortMap();
-            var usbDisks = GetUsbDisks();
+            var disks = GetDisks();
 
             try
             {
                 foreach (var drive in DriveInfo.GetDrives())
                 {
-                    if (drive.DriveType != DriveType.Removable)
+                    if (drive.DriveType is not (DriveType.Fixed or DriveType.Removable))
                     {
                         continue;
                     }
@@ -53,13 +56,18 @@ namespace IconGrid.Helpers.UsbCopy
                         }
                     }
 
-                    var disk = MatchUsbDisk(usbDisks, total);
+                    var disk = MatchDisk(disks, total);
                     var portType = UsbPortType.Unknown;
+                    var mediaType = DriveMediaType.Unknown;
                     var deviceId = drive.Name;
                     if (disk != null)
                     {
                         deviceId = disk.PnpDeviceId;
-                        portType = ResolvePortType(disk.PnpDeviceId, controllerPortMap);
+                        mediaType = ClassifyMediaType(disk);
+                        if (mediaType == DriveMediaType.Usb)
+                        {
+                            portType = ResolvePortType(disk.PnpDeviceId, controllerPortMap);
+                        }
                     }
 
                     var displayName = volumeLabel ?? string.Empty;
@@ -72,7 +80,8 @@ namespace IconGrid.Helpers.UsbCopy
                         FreeSpaceBytes = free,
                         IsReady = ready,
                         VolumeLabel = volumeLabel,
-                        PortType = portType
+                        PortType = portType,
+                        MediaType = mediaType
                     });
                 }
             }
@@ -89,23 +98,25 @@ namespace IconGrid.Helpers.UsbCopy
             DevicesChanged?.Invoke(devices);
         }
 
-        private sealed record UsbDiskInfo(string PnpDeviceId, string Model, long Size);
+        private sealed record DiskInfo(string PnpDeviceId, string Model, string InterfaceType, string MediaType, long Size);
 
-        private static List<UsbDiskInfo> GetUsbDisks()
+        private static List<DiskInfo> GetDisks()
         {
-            var disks = new List<UsbDiskInfo>();
+            var disks = new List<DiskInfo>();
             try
             {
                 using var searcher = new ManagementObjectSearcher(
-                    "SELECT PNPDeviceID, Model, Size FROM Win32_DiskDrive WHERE InterfaceType = 'USB'");
+                    "SELECT PNPDeviceID, Model, InterfaceType, MediaType, Size FROM Win32_DiskDrive");
                 foreach (ManagementObject disk in searcher.Get())
                 {
                     var pnpDeviceId = disk["PNPDeviceID"]?.ToString();
                     var model = disk["Model"]?.ToString() ?? string.Empty;
+                    var interfaceType = disk["InterfaceType"]?.ToString() ?? string.Empty;
+                    var mediaType = disk["MediaType"]?.ToString() ?? string.Empty;
                     var size = disk["Size"] is ulong s ? (long)s : 0L;
                     if (!string.IsNullOrWhiteSpace(pnpDeviceId))
                     {
-                        disks.Add(new UsbDiskInfo(pnpDeviceId, model, size));
+                        disks.Add(new DiskInfo(pnpDeviceId, model, interfaceType, mediaType, size));
                     }
                 }
             }
@@ -117,16 +128,16 @@ namespace IconGrid.Helpers.UsbCopy
             return disks;
         }
 
-        private static UsbDiskInfo? MatchUsbDisk(List<UsbDiskInfo> disks, long driveSize)
+        private static DiskInfo? MatchDisk(List<DiskInfo> disks, long driveSize)
         {
             if (disks.Count == 0)
             {
                 return null;
             }
 
-            // USB sticks usually expose almost the whole disk as a single volume.
-            // Match by closest size within a 10% tolerance.
-            UsbDiskInfo? best = null;
+            // Match by closest size within a 10% tolerance so the volume maps to
+            // its physical disk (works for full-disk volumes and common partitions).
+            DiskInfo? best = null;
             var bestDelta = long.MaxValue;
             foreach (var disk in disks)
             {
@@ -139,6 +150,39 @@ namespace IconGrid.Helpers.UsbCopy
             }
 
             return best;
+        }
+
+        private static DriveMediaType ClassifyMediaType(DiskInfo disk)
+        {
+            // USB drives are identified by their interface regardless of media type.
+            if (disk.InterfaceType.IndexOf("USB", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return DriveMediaType.Usb;
+            }
+
+            var hint = $"{disk.MediaType} {disk.Model}";
+            if (hint.IndexOf("NVMe", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                hint.IndexOf("NVM Express", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                hint.IndexOf("Solid State Drive", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return DriveMediaType.Nvme;
+            }
+
+            if (hint.IndexOf("SSD", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return DriveMediaType.Ssd;
+            }
+
+            if (hint.IndexOf("HDD", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                hint.IndexOf("Hard Disk", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                hint.IndexOf("Fixed hard disk", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return DriveMediaType.Hdd;
+            }
+
+            // SCSI/SATA/unknown interfaces default to HDD behavior for older firmware
+            // that reports a generic MediaType (e.g. "Fixed hard disk media").
+            return DriveMediaType.Hdd;
         }
 
         private static Dictionary<string, string> BuildControllerPortMap()

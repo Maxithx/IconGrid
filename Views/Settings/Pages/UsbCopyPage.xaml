@@ -15,10 +15,56 @@
                 <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <Style x:Key="UsbCopyActionButtonStyle" TargetType="Button" BasedOn="{StaticResource TemplateActionButtonStyle}">
+            <Style x:Key="FastCopyActionButtonStyle" TargetType="Button" BasedOn="{StaticResource TemplateActionButtonStyle}">
                 <Setter Property="Margin" Value="0,10,0,0" />
                 <Setter Property="HorizontalAlignment" Value="Left" />
             </Style>
+
+            <!-- Pane list row: checkbox + glyph + name + size + date -->
+            <DataTemplate x:Key="BrowserEntryTemplate">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="22" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="90" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="12"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDirectory}" Value="True">
+                                        <Setter Property="Text" Value="&#xE8B7;" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsDirectory}" Value="False">
+                                        <Setter Property="Text" Value="&#xE7C3;" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Name}"
+                               Margin="6,0,0,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding SizeDisplay}"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4"
+                               Text="{Binding ModifiedDisplay}"
+                               Margin="12,0,0,0"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -33,26 +79,211 @@
 
         <views:TemplatePage Margin="0,0,8,0">
             <views:TemplatePage.HeroContent>
-                <StackPanel helpers:DevInspector.Metadata="USB Copy hero card -> Views/UsbCopyPage.xaml" xmlns:helpers="clr-namespace:IconGrid.Helpers">
+                <StackPanel helpers:DevInspector.Metadata="Fast Copy hero card -> Views/UsbCopyPage.xaml" xmlns:helpers="clr-namespace:IconGrid.Helpers">
                     <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
-                               Text="{Binding UsbCopyTitle}" />
+                               Text="{Binding FastCopyTitle}" />
                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                Margin="0,8,0,0"
-                               Text="{Binding UsbCopyIntro}" />
+                               Text="{Binding FastCopyIntro}" />
                 </StackPanel>
             </views:TemplatePage.HeroContent>
 
             <views:TemplatePage.CardsContent>
                 <StackPanel Grid.IsSharedSizeScope="True">
 
-                    <!-- Devices -->
+                    <!-- Files (dual-pane browser) -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding UsbCopyDevicesTitle}" />
+                                       Text="{Binding FastCopyBrowserTitle}" />
                             <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                        Margin="0,4,0,0"
-                                       Text="{Binding UsbCopyDevicesDescription}" />
+                                       Text="{Binding FastCopyBrowserDescription}" />
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- LEFT pane -->
+                                <Border Grid.Column="0" Style="{StaticResource StartsidePanelStyle}" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                                   Text="{Binding FastCopyFromLabel}" />
+                                <ComboBox Tag="Left"
+                                          Margin="0,6,0,0"
+                                          Style="{StaticResource TemplateComboBoxStyle}"
+                                          ItemsSource="{Binding ViewModel.LeftPane.DriveRoots, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                          DisplayMemberPath="DisplayName"
+                                          SelectedValuePath="Path"
+                                          SelectedValue="{Binding ViewModel.LeftPane.DriveRootPath, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, Mode=OneWay}"
+                                          SelectionChanged="DriveComboBox_SelectionChanged" />
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Style="{StaticResource TemplateSmallTextStyle}"
+                                                   Text="{Binding ViewModel.LeftPane.PathDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding ViewModel.GoUpCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopyGoUpButton}" />
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding ViewModel.SelectAllCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopySelectAllButton}" />
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Command="{Binding ViewModel.ClearSelectionCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopyClearSelectionButton}" />
+                                        </StackPanel>
+                                        <ListBox Tag="Left"
+                                                 Margin="0,6,0,0"
+                                                 Height="240"
+                                                 ItemsSource="{Binding ViewModel.LeftPane.Entries, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                 ItemTemplate="{StaticResource BrowserEntryTemplate}"
+                                                 HorizontalContentAlignment="Stretch"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Padding" Value="2" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                    <EventSetter Event="MouseDoubleClick" Handler="BrowserList_MouseDoubleClick" />
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Style="{StaticResource TemplateSmallTextStyle}"
+                                                   Text="{Binding ViewModel.LeftPane.SelectionStatus, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Center: direction + copy -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
+                                    <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                            HorizontalAlignment="Center"
+                                            Command="{Binding ViewModel.SwapSourceCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                            Content="⇄" />
+                                    <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                               Margin="0,6,0,0"
+                                               HorizontalAlignment="Center"
+                                               Text="{Binding FastCopyCopyButton}" />
+                                    <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                            HorizontalAlignment="Center"
+                                            Command="{Binding ViewModel.StartCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                            Content="{Binding FastCopyStartButton}" />
+                                </StackPanel>
+
+                                <!-- RIGHT pane -->
+                                <Border Grid.Column="2" Style="{StaticResource StartsidePanelStyle}" Padding="10">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                                   Text="{Binding FastCopyToLabel}" />
+                                <ComboBox Tag="Right"
+                                          Margin="0,6,0,0"
+                                          Style="{StaticResource TemplateComboBoxStyle}"
+                                          ItemsSource="{Binding ViewModel.RightPane.DriveRoots, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                          DisplayMemberPath="DisplayName"
+                                          SelectedValuePath="Path"
+                                          SelectedValue="{Binding ViewModel.RightPane.DriveRootPath, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, Mode=OneWay}"
+                                          SelectionChanged="DriveComboBox_SelectionChanged" />
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Style="{StaticResource TemplateSmallTextStyle}"
+                                                   Text="{Binding ViewModel.RightPane.PathDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding ViewModel.GoUpCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopyGoUpButton}" />
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Margin="0,0,8,0"
+                                                    Command="{Binding ViewModel.SelectAllCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopySelectAllButton}" />
+                                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                                    Command="{Binding ViewModel.ClearSelectionCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                    Content="{Binding FastCopyClearSelectionButton}" />
+                                        </StackPanel>
+                                        <ListBox Tag="Right"
+                                                 Margin="0,6,0,0"
+                                                 Height="240"
+                                                 ItemsSource="{Binding ViewModel.RightPane.Entries, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                                 ItemTemplate="{StaticResource BrowserEntryTemplate}"
+                                                 HorizontalContentAlignment="Stretch"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Padding" Value="2" />
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                    <EventSetter Event="MouseDoubleClick" Handler="BrowserList_MouseDoubleClick" />
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                        <TextBlock Margin="0,6,0,0"
+                                                   Style="{StaticResource TemplateSmallTextStyle}"
+                                                   Text="{Binding ViewModel.RightPane.SelectionStatus, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Workers + buffer -->
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,16,0,0"
+                                       Text="{Binding FastCopyWorkerCountLabel}" />
+                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                       Margin="0,2,0,0"
+                                       Text="{Binding FastCopyWorkerCountDescription}" />
+                            <Slider Margin="0,6,0,0"
+                                    Minimum="1"
+                                    Maximum="16"
+                                    TickFrequency="1"
+                                    IsSnapToTickEnabled="True"
+                                    Value="{Binding ViewModel.State.WorkerCount, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                       Margin="0,4,0,0"
+                                       Text="{Binding ViewModel.State.WorkerCount, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, StringFormat=WorkerCount: {0}}" />
+
+                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="{Binding FastCopyBufferSizeLabel}" />
+                            <ComboBox Style="{StaticResource TemplateComboBoxStyle}"
+                                      MinWidth="220"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,4,0,0"
+                                      SelectedValuePath="Tag"
+                                      SelectedValue="{Binding ViewModel.State.BufferSize, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, Mode=TwoWay}">
+                                <ComboBoxItem Content="64 KB" Tag="65536" />
+                                <ComboBoxItem Content="128 KB" Tag="131072" />
+                                <ComboBoxItem Content="256 KB" Tag="262144" />
+                                <ComboBoxItem Content="512 KB" Tag="524288" />
+                                <ComboBoxItem Content="1 MB" Tag="1048576" />
+                                <ComboBoxItem Content="2 MB" Tag="2097152" />
+                            </ComboBox>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Margin="0,0,12,0"
+                                        Command="{Binding ViewModel.StartCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyStartButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.CancelCopyCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyCancelButton}" />
+                            </StackPanel>
+
+                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                       Margin="0,10,0,0"
+                                       Text="{Binding ViewModel.State.PipelineStatus, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Drives (benchmark target) -->
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                       Text="{Binding FastCopyDevicesTitle}" />
+                            <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                       Margin="0,4,0,0"
+                                       Text="{Binding FastCopyDevicesDescription}" />
 
                             <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
@@ -64,85 +295,46 @@
                                           Style="{StaticResource TemplateComboBoxStyle}"
                                           MinWidth="220"
                                           HorizontalAlignment="Left"
-                                          ItemsSource="{Binding ViewModel.State.Devices, ElementName=Root}"
-                                          SelectedItem="{Binding ViewModel.State.SelectedDevice, ElementName=Root, Mode=TwoWay}"
+                                          ItemsSource="{Binding ViewModel.State.Devices, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                          SelectedItem="{Binding ViewModel.State.SelectedDevice, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, Mode=TwoWay}"
                                           DisplayMemberPath="Name" />
 
                                 <Button Grid.Column="1"
-                                        Style="{StaticResource UsbCopyActionButtonStyle}"
+                                        Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="12,0,0,0"
-                                        Command="{Binding ViewModel.RefreshDevicesCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyRefreshButton}" />
+                                        Command="{Binding ViewModel.RefreshDevicesCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyRefreshButton}" />
                             </Grid>
 
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
-                                           Text="{Binding UsbCopyPortTypeLabel}" />
+                                           Text="{Binding FastCopyMediaTypeLabel}" />
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="6,0,0,0"
                                            FontWeight="SemiBold"
-                                           Text="{Binding ViewModel.State.SelectedDevice.PortTypeDisplay, ElementName=Root}" />
+                                           Text="{Binding ViewModel.State.SelectedDevice.MediaTypeDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="16,0,0,0"
-                                           Text="{Binding UsbCopyCapacityLabel}" />
+                                           Text="{Binding FastCopyPortTypeLabel}" />
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="6,0,0,0"
                                            FontWeight="SemiBold"
-                                           Text="{Binding ViewModel.State.SelectedDevice.CapacityDisplay, ElementName=Root}" />
+                                           Text="{Binding ViewModel.State.SelectedDevice.PortTypeDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="16,0,0,0"
-                                           Text="{Binding UsbCopyFreeSpaceLabel}" />
+                                           Text="{Binding FastCopyCapacityLabel}" />
                                 <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="6,0,0,0"
                                            FontWeight="SemiBold"
-                                           Text="{Binding ViewModel.State.SelectedDevice.FreeSpaceDisplay, ElementName=Root}" />
+                                           Text="{Binding ViewModel.State.SelectedDevice.CapacityDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
+                                <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                           Margin="16,0,0,0"
+                                           Text="{Binding FastCopyFreeSpaceLabel}" />
+                                <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                           Margin="6,0,0,0"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding ViewModel.State.SelectedDevice.FreeSpaceDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                             </StackPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Copy -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding UsbCopyCopyTitle}" />
-                            <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
-                                       Margin="0,4,0,0"
-                                       Text="{Binding UsbCopyCopyDescription}" />
-
-                            <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                    Command="{Binding ViewModel.ChooseFilesCommand, ElementName=Root}"
-                                    Content="{Binding UsbCopyChooseFilesButton}" />
-
-                            <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
-                                       Margin="0,14,0,0"
-                                       Text="{Binding UsbCopyBufferSizeLabel}" />
-                            <ComboBox Style="{StaticResource TemplateComboBoxStyle}"
-                                      MinWidth="220"
-                                      HorizontalAlignment="Left"
-                                      Margin="0,4,0,0"
-SelectedValuePath="Tag"
-SelectedValue="{Binding ViewModel.State.BufferSize, ElementName=Root, Mode=TwoWay}">
-                                <ComboBoxItem Content="64 KB" Tag="65536" />
-                                <ComboBoxItem Content="128 KB" Tag="131072" />
-                                <ComboBoxItem Content="256 KB" Tag="262144" />
-                                <ComboBoxItem Content="512 KB" Tag="524288" />
-                                <ComboBoxItem Content="1 MB" Tag="1048576" />
-                                <ComboBoxItem Content="2 MB" Tag="2097152" />
-                            </ComboBox>
-
-                            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                        Margin="0,0,12,0"
-                                        Command="{Binding ViewModel.StartCopyCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyStartButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                        Command="{Binding ViewModel.CancelCopyCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyCancelButton}" />
-                            </StackPanel>
-
-                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
-                                       Margin="0,10,0,0"
-                                       Text="{Binding ViewModel.State.PipelineStatus, ElementName=Root}" />
                         </StackPanel>
                     </Border>
 
@@ -150,7 +342,7 @@ SelectedValue="{Binding ViewModel.State.BufferSize, ElementName=Root, Mode=TwoWa
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding UsbCopyPerformanceTitle}" />
+                                       Text="{Binding FastCopyPerformanceTitle}" />
 
                             <Grid Margin="0,12,0,0">
                                 <Grid.ColumnDefinitions>
@@ -166,44 +358,44 @@ SelectedValue="{Binding ViewModel.State.BufferSize, ElementName=Root, Mode=TwoWa
 
                                 <TextBlock Grid.Row="0" Grid.Column="0"
                                            Style="{StaticResource TemplateSmallTextStyle}"
-                                           Text="{Binding UsbCopyLiveSpeedLabel}" />
+                                           Text="{Binding FastCopyLiveSpeedLabel}" />
                                 <TextBlock Grid.Row="0" Grid.Column="1"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="12,0,0,0"
-                                           Text="{Binding ViewModel.State.LiveMiBS, ElementName=Root, StringFormat={}{0:0.00} MiB/s}" />
+                                           Text="{Binding ViewModel.State.LiveMiBS, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, StringFormat={}{0:0.00} MiB/s}" />
 
                                 <TextBlock Grid.Row="1" Grid.Column="0"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="0,8,0,0"
-                                           Text="{Binding UsbCopyAverageLabel}" />
+                                           Text="{Binding FastCopyAverageLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="12,8,0,0"
-                                           Text="{Binding ViewModel.State.AverageMiBS, ElementName=Root, StringFormat={}{0:0.00} MiB/s}" />
+                                           Text="{Binding ViewModel.State.AverageMiBS, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, StringFormat={}{0:0.00} MiB/s}" />
 
                                 <TextBlock Grid.Row="2" Grid.Column="0"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="0,8,0,0"
-                                           Text="{Binding UsbCopyPeakLabel}" />
+                                           Text="{Binding FastCopyPeakLabel}" />
                                 <TextBlock Grid.Row="2" Grid.Column="1"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="12,8,0,0"
-                                           Text="{Binding ViewModel.State.PeakMiBS, ElementName=Root, StringFormat={}{0:0.00} MiB/s}" />
+                                           Text="{Binding ViewModel.State.PeakMiBS, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}, StringFormat={}{0:0.00} MiB/s}" />
 
                                 <TextBlock Grid.Row="0" Grid.Column="2"
                                            Style="{StaticResource TemplateSmallTextStyle}"
-                                           Text="{Binding UsbCopyEtaLabel}" />
+                                           Text="{Binding FastCopyEtaLabel}" />
                                 <TextBlock Grid.Row="1" Grid.Column="2"
                                            Style="{StaticResource TemplateSmallTextStyle}"
                                            Margin="40,8,0,0"
-                                           Text="{Binding ViewModel.State.EtaText, ElementName=Root}" />
+                                           Text="{Binding ViewModel.State.EtaText, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                             </Grid>
 
                             <ProgressBar Margin="0,14,0,0"
                                          Height="8"
                                          Minimum="0"
                                          Maximum="100"
-                                         Value="{Binding ViewModel.State.Progress, ElementName=Root}" />
+                                         Value="{Binding ViewModel.State.Progress, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                         </StackPanel>
                     </Border>
 
@@ -211,26 +403,26 @@ SelectedValue="{Binding ViewModel.State.BufferSize, ElementName=Root, Mode=TwoWa
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding UsbCopyLogTitle}" />
+                                       Text="{Binding FastCopyLogTitle}" />
 
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,0"
-                                        Command="{Binding ViewModel.ViewLogCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyViewLogButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.ViewLogCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyViewLogButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,0"
-                                        Command="{Binding ViewModel.ExportLogCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyExportLogButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                        Command="{Binding ViewModel.ClearLogCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyClearLogButton}" />
+                                        Command="{Binding ViewModel.ExportLogCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyExportLogButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.ClearLogCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyClearLogButton}" />
                             </StackPanel>
 
                             <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                        Margin="0,10,0,0"
                                        TextWrapping="Wrap"
-                                       Text="{Binding ViewModel.State.LogContent, ElementName=Root}" />
+                                       Text="{Binding ViewModel.State.LogContent, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}" />
                         </StackPanel>
                     </Border>
 
@@ -238,52 +430,61 @@ SelectedValue="{Binding ViewModel.State.BufferSize, ElementName=Root, Mode=TwoWa
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                       Text="{Binding UsbCopyBenchmarkTitle}" />
+                                       Text="{Binding FastCopyBenchmarkTitle}" />
                             <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                        Margin="0,4,0,0"
-                                       Text="{Binding UsbCopyBenchmarkDescription}" />
+                                       Text="{Binding FastCopyBenchmarkDescription}" />
 
                             <WrapPanel Margin="0,12,0,0">
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,8"
-                                        Command="{Binding ViewModel.PortSpeedTestCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyPortSpeedTestButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.WorkerScalingCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyWorkerScalingTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,8"
-                                        Command="{Binding ViewModel.ReadTestCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyReadTestButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.PortSpeedTestCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyPortSpeedTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,8"
-                                        Command="{Binding ViewModel.WriteTestCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyWriteTestButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.ReadTestCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyReadTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
                                         Margin="0,0,12,8"
-                                        Command="{Binding ViewModel.BufferStressTestCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyBufferStressTestButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                        Command="{Binding ViewModel.StabilityTestCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyStabilityTestButton}" />
-                                <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                        Command="{Binding ViewModel.WindowsBaselineCommand, ElementName=Root}"
-                                        Content="{Binding UsbCopyWindowsBaselineButton}" />
+                                        Command="{Binding ViewModel.WriteTestCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyWriteTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Margin="0,0,12,8"
+                                        Command="{Binding ViewModel.BufferStressTestCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyBufferStressTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.StabilityTestCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyStabilityTestButton}" />
+                                <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                        Command="{Binding ViewModel.WindowsBaselineCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                        Content="{Binding FastCopyWindowsBaselineButton}" />
                             </WrapPanel>
 
                             <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
                                        Margin="0,10,0,0"
                                        TextWrapping="Wrap"
-                                       Text="{Binding UsbCopyWindowsBaselineDescription}" />
+                                       Text="{Binding FastCopyWindowsBaselineDescription}" />
 
-                            <Button Style="{StaticResource UsbCopyActionButtonStyle}"
-                                    Command="{Binding ViewModel.ExportCsvCommand, ElementName=Root}"
-                                    Content="{Binding UsbCopyExportCsvButton}" />
+                            <Button Style="{StaticResource FastCopyActionButtonStyle}"
+                                    Command="{Binding ViewModel.ExportCsvCommand, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}"
+                                    Content="{Binding FastCopyExportCsvButton}" />
 
                             <ItemsControl Margin="0,12,0,0"
-                                          ItemsSource="{Binding ViewModel.State.BenchmarkResults, ElementName=Root}">
+                                          ItemsSource="{Binding ViewModel.State.BenchmarkResults, RelativeSource={RelativeSource AncestorType={x:Type views:UsbCopyPage}}}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
-                                                   Margin="0,4,0,0"
-Text="{Binding TestName}" />
+                                        <StackPanel Margin="0,4,0,0">
+                                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                                       Text="{Binding TestName}" />
+                                            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                                                       Margin="0,2,0,0"
+                                                       FontWeight="SemiBold"
+                                                       Text="{Binding ResultDisplay}" />
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

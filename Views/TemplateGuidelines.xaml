@@ -7,6 +7,44 @@
     </ResourceDictionary.MergedDictionaries>
 
     <!--
+        COLOR PALETTE — design tokens (single source of truth in StartsideStyles.xaml).
+        All colors are defined as named brushes under "DESIGN TOKENS" at the top of
+        Views/StartsideStyles.xaml. Never hard-code a new color in a page/section —
+        use the token. One change in the token file propagates app-wide.
+
+          Surface / cards:
+            SurfaceFillDarkBrush    #323232  -> card/page fill in dark theme
+            SurfaceFillLightBrush   #F3F4F7  -> card/page fill in light theme
+            SurfaceBorderDarkBrush  #3A3A3A  -> card border in dark theme
+            SurfaceBorderLightBrush #D1D5DB  -> card border in light theme
+
+          Scrollbars:
+            ScrollTrackDarkBrush    #323232
+            ScrollTrackLightBrush   #F0F2F5
+            ScrollThumbDarkBrush    #9CA3AF
+            ScrollThumbLightBrush   #CBD5E1
+
+          Dropdowns (ComboBox) — intentionally LIGHT surface in both themes so dark
+          text is always readable. The WPF default ComboBox popup hard-codes white,
+          so TemplateComboBoxStyle now has a custom ControlTemplate + popup Border
+          that uses the token below.
+            ComboBoxSurfaceBrush       #F3F4F7  -> dropdown field + expanded list surface
+            ComboBoxTextBrush          #1F2937  -> dropdown text (field + list items)
+            ComboBoxBorderBrush        #D1D5DB  -> dropdown border
+            ComboBoxHoverBorderBrush   #9CA3AF  -> dropdown border on hover
+            ComboBoxHighlightBrush     #E5E7EB  -> hovered/highlighted list item
+
+          Text (bound from DataContext, not tokens):
+            TopBarForeground            -> titles (hero 20, card 16, section 14)
+            SettingsSubtextForeground   -> body/intro 13, small labels 12
+            AccentBrush                 -> emphasis / primary actions
+
+        How to use a token in a page style:
+          Background="{StaticResource ComboBoxSurfaceBrush}"
+          Foreground="{StaticResource ComboBoxTextBrush}"
+    -->
+
+    <!--
         Settings page design contract (mirrors how the real pages are built).
 
         Typography scale (all settings pages follow this):

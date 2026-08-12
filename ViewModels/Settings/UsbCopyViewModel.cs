@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,10 +17,11 @@ using WpfSaveFileDialog = Microsoft.Win32.SaveFileDialog;
 namespace IconGrid.ViewModels.Settings
 {
     /// <summary>
-    /// Feature view model for the Fast USB Copy settings page. Keeps all USB
-    /// copy/benchmark logic out of MainViewModel and owns the UsbCopyState.
+    /// Feature view model for the Fast Copy settings page. Owns the two
+    /// browser panes + the UsbCopyState and keeps all copy/benchmark logic
+    /// out of MainViewModel.
     /// </summary>
-    public sealed class UsbCopyViewModel
+    public sealed class UsbCopyViewModel : INotifyPropertyChanged
     {
         private readonly UsbDeviceDetector _detector = new();
         private readonly UsbCopyEngine _engine;
@@ -25,7 +29,7 @@ namespace IconGrid.ViewModels.Settings
         private readonly UsbCopyLogger _logger;
         private readonly List<string> _selectedFiles = new();
         private CancellationTokenSource? _cts;
-
+        private bool _sourceIsLeft = true;
         private DateTime _lastUiUpdateTime = DateTime.UtcNow;
 
         public UsbCopyViewModel()
@@ -48,6 +52,7 @@ namespace IconGrid.ViewModels.Settings
             ExportLogCommand = new RelayCommand(_ => ExportLog());
             ClearLogCommand = new RelayCommand(_ => ClearLog());
             RunBenchmarkCommand = new RelayCommand(_ => _ = RunFullBenchmarkAsync(), _ => CanStartCopy());
+            WorkerScalingCommand = new RelayCommand(_ => _ = RunWorkerScalingAsync(), _ => CanStartCopy());
             PortSpeedTestCommand = new RelayCommand(_ => _ = RunPortSpeedTestAsync(), _ => CanStartCopy());
             ReadTestCommand = new RelayCommand(_ => _ = RunReadTestAsync(), _ => CanStartCopy());
             WriteTestCommand = new RelayCommand(_ => _ = RunWriteTestAsync(), _ => CanStartCopy());
@@ -55,9 +60,50 @@ namespace IconGrid.ViewModels.Settings
             StabilityTestCommand = new RelayCommand(_ => _ = RunStabilityTestAsync(), _ => CanStartCopy());
             WindowsBaselineCommand = new RelayCommand(_ => _ = RunWindowsBaselineAsync(), _ => CanStartCopy());
             ExportCsvCommand = new RelayCommand(_ => ExportCsv());
+
+            // Dual-pane browser commands
+            SwapSourceCommand = new RelayCommand(_ => SwapSource());
+            NavigateToPathCommand = new RelayCommand(path => NavigateToFolder(path as string));
+            GoUpCommand = new RelayCommand(_ => ActivePane.GoUp(), _ => ActivePane.CanGoUp);
+            ToggleEntryCommand = new RelayCommand(entry => ToggleEntry(entry as FileBrowserEntry));
+            EnterDirectoryCommand = new RelayCommand(entry => EnterDirectory(entry as FileBrowserEntry));
+            SelectAllCommand = new RelayCommand(_ => ActivePane.SelectAllFiles());
+            ClearSelectionCommand = new RelayCommand(_ => ActivePane.ClearSelection());
+
+            LeftPane = new FileBrowserPane();
+            RightPane = new FileBrowserPane();
+            LeftPane.Refresh();
+            RightPane.Refresh();
         }
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public UsbCopyState State { get; } = new();
+
+        public FileBrowserPane LeftPane { get; }
+
+        public FileBrowserPane RightPane { get; }
+
+        public bool SourceIsLeft
+        {
+            get => _sourceIsLeft;
+            private set
+            {
+                if (_sourceIsLeft == value)
+                {
+                    return;
+                }
+
+                _sourceIsLeft = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ActivePane));
+                OnPropertyChanged(nameof(TargetPane));
+            }
+        }
+
+        public FileBrowserPane ActivePane => _sourceIsLeft ? LeftPane : RightPane;
+
+        public FileBrowserPane TargetPane => _sourceIsLeft ? RightPane : LeftPane;
 
         public ICommand RefreshDevicesCommand { get; }
 
@@ -75,6 +121,8 @@ namespace IconGrid.ViewModels.Settings
 
         public ICommand RunBenchmarkCommand { get; }
 
+        public ICommand WorkerScalingCommand { get; }
+
         public ICommand PortSpeedTestCommand { get; }
 
         public ICommand ReadTestCommand { get; }
@@ -89,14 +137,38 @@ namespace IconGrid.ViewModels.Settings
 
         public ICommand ExportCsvCommand { get; }
 
+        // Dual-pane browser commands
+        public ICommand SwapSourceCommand { get; }
+
+        public ICommand NavigateToPathCommand { get; }
+
+        public ICommand GoUpCommand { get; }
+
+        public ICommand ToggleEntryCommand { get; }
+
+        public ICommand EnterDirectoryCommand { get; }
+
+        public ICommand SelectAllCommand { get; }
+
+        public ICommand ClearSelectionCommand { get; }
+
         public void RefreshDevices()
         {
             var devices = _detector.DetectDevices();
-            State.Devices = devices;
-            if (State.SelectedDevice == null && devices.Count > 0)
+
+            State.Devices.Clear();
+            foreach (var device in devices)
             {
-                State.SelectedDevice = devices[0];
+                State.Devices.Add(device);
             }
+
+            if (State.SelectedDevice == null && State.Devices.Count > 0)
+            {
+                State.SelectedDevice = State.Devices[0];
+            }
+
+            LeftPane.LoadDrives();
+            RightPane.LoadDrives();
         }
 
         private void ChooseFiles()
@@ -114,6 +186,46 @@ namespace IconGrid.ViewModels.Settings
             }
         }
 
+        private void SwapSource()
+        {
+            SourceIsLeft = !SourceIsLeft;
+        }
+
+        private void NavigateToFolder(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            ActivePane.NavigateTo(path);
+            OnPropertyChanged(nameof(ActivePane));
+            OnPropertyChanged(nameof(TargetPane));
+        }
+
+        private void ToggleEntry(FileBrowserEntry? entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            ActivePane.ToggleEntrySelection(entry);
+            OnPropertyChanged(nameof(ActivePane.SelectionStatus));
+        }
+
+        private void EnterDirectory(FileBrowserEntry? entry)
+        {
+            if (entry == null || !entry.IsDirectory)
+            {
+                return;
+            }
+
+            ActivePane.NavigateTo(entry.FullPath);
+            OnPropertyChanged(nameof(ActivePane));
+            OnPropertyChanged(nameof(TargetPane));
+        }
+
         private bool CanStartCopy()
         {
             var device = State.SelectedDevice;
@@ -122,9 +234,10 @@ namespace IconGrid.ViewModels.Settings
 
         private async Task StartCopyAsync()
         {
-            var device = State.SelectedDevice;
-            if (device == null || !device.IsReady || _selectedFiles.Count == 0)
+            var selected = ActivePane.Entries.Where(e => e.IsSelected).ToList();
+            if (selected.Count == 0)
             {
+                State.PipelineStatus = "No files selected.";
                 return;
             }
 
@@ -139,10 +252,17 @@ namespace IconGrid.ViewModels.Settings
 
             try
             {
-                var target = Path.Combine(device.DriveLetter, "IconGridCopy");
-                Directory.CreateDirectory(target);
-                await _engine.CopyFilesAsync(_selectedFiles, target, State.BufferSize, _cts.Token);
+                var targetRoot = TargetPane.CurrentDirectory;
+                if (string.IsNullOrWhiteSpace(targetRoot))
+                {
+                    State.LastError = "Target pane has no directory.";
+                    State.PipelineStatus = "error";
+                    return;
+                }
+
+                await _engine.CopyPathsAsync(ActivePane.CurrentDirectory, targetRoot, selected, State.BufferSize, State.WorkerCount, _cts.Token);
                 State.PipelineStatus = "done";
+                TargetPane.Refresh();
             }
             catch (OperationCanceledException)
             {
@@ -204,6 +324,37 @@ namespace IconGrid.ViewModels.Settings
             }
         }
 
+        private async Task RunWorkerScalingAsync()
+        {
+            if (!TryPrepareBenchmark(out var device))
+            {
+                return;
+            }
+
+            State.IsBenchmarking = true;
+            try
+            {
+                var results = await _benchmark.WorkerScalingTestAsync(device.DriveLetter, State.BufferSize, 64 * 1024 * 1024, _cts!.Token);
+                foreach (var r in results)
+                {
+                    AddBenchmarkResult(r);
+                }
+
+                State.PipelineStatus = "worker scaling done";
+            }
+            catch (Exception ex)
+            {
+                State.LastError = ex.Message;
+            }
+            finally
+            {
+                State.IsBenchmarking = false;
+                _cts?.Dispose();
+                _cts = null;
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+
         private async Task RunPortSpeedTestAsync()
         {
             if (!TryPrepareBenchmark(out var device))
@@ -241,7 +392,7 @@ namespace IconGrid.ViewModels.Settings
             try
             {
                 var probe = Path.Combine(device.DriveLetter, $".icongrid-readprobe-{Guid.NewGuid():N}.tmp");
-                await File.WriteAllBytesAsync(probe, new byte[8 * 1024 * 1024]);
+                await System.IO.File.WriteAllBytesAsync(probe, new byte[8 * 1024 * 1024]);
                 try
                 {
                     var result = await _benchmark.DeviceReadBenchmarkAsync(probe, State.BufferSize, _cts!.Token);
@@ -251,7 +402,7 @@ namespace IconGrid.ViewModels.Settings
                 {
                     try
                     {
-                        File.Delete(probe);
+                        System.IO.File.Delete(probe);
                     }
                     catch (IOException)
                     {
@@ -406,7 +557,7 @@ namespace IconGrid.ViewModels.Settings
             device = State.SelectedDevice!;
             if (device == null || !device.IsReady)
             {
-                State.LastError = "No ready USB device selected.";
+                State.LastError = "No ready drive selected.";
                 return false;
             }
 
@@ -521,6 +672,11 @@ namespace IconGrid.ViewModels.Settings
             }
 
             dispatcher.BeginInvoke(action);
+        }
+
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

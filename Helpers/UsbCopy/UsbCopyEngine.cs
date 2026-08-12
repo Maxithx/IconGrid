@@ -53,6 +53,15 @@ namespace IconGrid.Helpers.UsbCopy
 
         public event EventHandler<UsbCopyProgressArgs>? Progress;
 
+        /// <summary>
+        /// Allows co-operating services (e.g. MultiWorkerCopyService) to publish
+        /// consolidated throughput through the engine's public Progress event.
+        /// </summary>
+        internal void ReportProgress(UsbCopyProgressArgs args)
+        {
+            Progress?.Invoke(this, args);
+        }
+
         public event EventHandler<string>? PipelineEvent;
 
         public event EventHandler<string>? Error;
@@ -143,7 +152,100 @@ namespace IconGrid.Helpers.UsbCopy
             return totalCopied;
         }
 
-        private async Task CopySingleFileAsync(
+        /// <summary>
+        /// Copies a set of files (or directory trees) into a target root,
+        /// preserving each item's relative path under the source root. This is
+        /// the engine-side counterpart of the dual-pane browser: the active pane
+        /// selects files/directories, and they land in the opposite pane's
+        /// current directory with their relative structure intact.
+        ///
+        /// Returns the number of bytes copied.
+        /// </summary>
+        public Task<long> CopyPathsAsync(
+            string sourceRoot,
+            string targetRoot,
+            IReadOnlyList<FileBrowserEntry> entries,
+            int bufferSize,
+            CancellationToken cancellationToken)
+        {
+            return CopyPathsAsync(sourceRoot, targetRoot, entries, bufferSize, workerCount: 1, cancellationToken);
+        }
+
+        /// <summary>
+        /// Copies a set of files (or directory trees) into a target root,
+        /// preserving each item's relative path under the source root, using the
+        /// FastCopy-inspired MultiWorkerCopyService (20-file threshold, small-file
+        /// ZIP packing, large-file chunk-split, parallel workers).
+        /// </summary>
+        public async Task<long> CopyPathsAsync(
+            string sourceRoot,
+            string targetRoot,
+            IReadOnlyList<FileBrowserEntry> entries,
+            int bufferSize,
+            int workerCount,
+            CancellationToken cancellationToken)
+        {
+            var logPath = _logger.CreateCopyLogFile();
+            var files = ExpandToFiles(entries);
+            var service = new MultiWorkerCopyService(
+                this,
+                msg => _logger.AppendTimestamped(logPath, msg),
+                stage => PipelineEvent?.Invoke(this, stage));
+
+            _logger.AppendTimestamped(logPath, $"PATH COPY START src={sourceRoot} dst={targetRoot} buffer={bufferSize} workers={workerCount} files={files.Count}");
+            var copied = await service.CopyAsync(files, sourceRoot, targetRoot, bufferSize, workerCount, cancellationToken);
+            _logger.AppendTimestamped(logPath, $"PATH COPY DONE bytes={copied}");
+
+            return copied;
+        }
+        private static List<(string Source, long Size)> ExpandToFiles(IReadOnlyList<FileBrowserEntry> entries)
+        {
+            var files = new List<(string, long)>();
+            foreach (var entry in entries)
+            {
+                if (!entry.IsDirectory)
+                {
+                    try
+                    {
+                        files.Add((entry.FullPath, new FileInfo(entry.FullPath).Length));
+                    }
+                    catch (Exception)
+                    {
+                        // Skip unreadable file.
+                    }
+                    continue;
+                }
+
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(entry.FullPath, "*", SearchOption.AllDirectories))
+                    {
+                        try
+                        {
+                            files.Add((file, new FileInfo(file).Length));
+                        }
+                        catch (Exception)
+                        {
+                            // Skip unreadable file.
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Skip unreadable directory tree.
+                }
+            }
+
+            return files;
+        }
+
+        private static bool IsUnder(string root, string path)
+        {
+            var rootFull = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(path).StartsWith(rootFull, StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal async Task CopySingleFileAsync(
             string source,
             string destination,
             long fileLength,

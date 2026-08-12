@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,11 +16,19 @@ namespace IconGrid.Helpers.UsbCopy
 
         public string? BaselineMethod { get; init; }
 
+        public int WorkerCount { get; init; }
+
         public int BufferSize { get; init; }
 
         public long BytesTransferred { get; init; }
 
         public double ThroughputMiBS { get; init; }
+
+        /// <summary>UI string describing the measured throughput (and workers, if any).</summary>
+        public string ResultDisplay =>
+            WorkerCount > 0
+                ? $"Workers {WorkerCount}: {ThroughputMiBS:0.00} MiB/s avg · {Elapsed.TotalSeconds:0.0}s"
+                : $"{ThroughputMiBS:0.00} MiB/s · {Elapsed.TotalSeconds:0.0}s";
 
         public double AverageMiBS { get; init; }
 
@@ -146,6 +155,105 @@ namespace IconGrid.Helpers.UsbCopy
             }
 
             _logger.AppendTimestamped(logPath, "BUFFER STRESS TEST done");
+            return results;
+        }
+
+        /// <summary>
+        /// Worker-scaling benchmark: writes <paramref name="totalBytes"/> split across
+        /// N parallel temp files with 1, 2, 4 and 8 workers, measuring aggregate
+        /// throughput for each. Returns one result per worker count.
+        /// </summary>
+        public async Task<IReadOnlyList<UsbBenchmarkResult>> WorkerScalingTestAsync(
+            string targetRoot,
+            int bufferSize,
+            int totalBytes,
+            CancellationToken cancellationToken)
+        {
+            var logPath = _logger.CreateBenchmarkLogFile();
+            _logger.AppendTimestamped(logPath, $"WORKER SCALING TEST start target={targetRoot} buffer={bufferSize} total={totalBytes}");
+            var results = new List<UsbBenchmarkResult>();
+            var writerCounts = new[] { 1, 2, 4, 8 };
+
+            for (var i = 0; i < writerCounts.Length; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var workers = writerCounts[i];
+                _logger.AppendTimestamped(logPath, $"SCALING TEST workers={workers}");
+
+                var perFile = (int)Math.Max(bufferSize, totalBytes / workers);
+                var start = DateTime.UtcNow;
+                var peak = 0d;
+                var samples = new List<double>();
+                var transferred = 0L;
+                var lockObj = new object();
+                var rngBase = new Random(4321 + workers);
+                var tempFiles = new List<string>();
+                try
+                {
+                    await Parallel.ForEachAsync(Enumerable.Range(0, workers), new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = workers,
+                        CancellationToken = cancellationToken
+                    }, async (w, token) =>
+                    {
+                        var tempFile = Path.Combine(targetRoot, $".icongrid-scale-{workers}w-{w}-{Guid.NewGuid():N}.tmp");
+                        tempFiles.Add(tempFile);
+                        var buffer = new byte[bufferSize];
+                        var localRng = new Random(rngBase.Next());
+                        localRng.NextBytes(buffer);
+
+                        await using var output = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, FileOptions.WriteThrough);
+                        var localTransferred = 0L;
+                        while (localTransferred < perFile)
+                        {
+                            token.ThrowIfCancellationRequested();
+                            await output.WriteAsync(buffer.AsMemory(0, buffer.Length), token).ConfigureAwait(false);
+                            await output.FlushAsync(token).ConfigureAwait(false);
+                            output.Flush(true);
+                            localTransferred += buffer.Length;
+                        }
+
+                        lock (lockObj)
+                        {
+                            transferred += localTransferred;
+                            var elapsed = DateTime.UtcNow - start;
+                            var seconds = Math.Max(elapsed.TotalSeconds, 0.001);
+                            var mibs = transferred / (1024.0 * 1024.0) / seconds;
+                            samples.Add(mibs);
+                            if (mibs > peak)
+                            {
+                                peak = mibs;
+                            }
+                        }
+                    });
+                }
+                finally
+                {
+                    foreach (var f in tempFiles)
+                    {
+                        try { File.Delete(f); } catch (IOException) { }
+                    }
+                }
+
+                var finalElapsed = DateTime.UtcNow - start;
+                var average = samples.Count > 0 ? AverageSamples(samples) : 0d;
+                results.Add(new UsbBenchmarkResult
+                {
+                    TestName = "WorkerScaling",
+                    WorkerCount = workers,
+                    BufferSize = bufferSize,
+                    BytesTransferred = transferred,
+                    ThroughputMiBS = average,
+                    AverageMiBS = average,
+                    PeakMiBS = peak,
+                    StallCount = 0,
+                    FlushSeconds = 0,
+                    Elapsed = finalElapsed
+                });
+                _logger.AppendTimestamped(logPath, $"SCALING TEST done workers={workers} avg_mib_s={average:0.00} peak_mib_s={peak:0.00}");
+            }
+
+            _logger.AppendTimestamped(logPath, "WORKER SCALING TEST done");
             return results;
         }
 

@@ -15,7 +15,19 @@ namespace IconGrid.Helpers.UsbCopy
     }
 
     /// <summary>
-    /// Describes a removable USB drive detected by the system.
+    /// Classifies a drive's physical media type.
+    /// </summary>
+    public enum DriveMediaType
+    {
+        Unknown = 0,
+        Hdd = 1,
+        Ssd = 2,
+        Nvme = 3,
+        Usb = 4
+    }
+
+    /// <summary>
+    /// Describes a drive detected by the system (HDD, SSD, NVMe or USB).
     /// </summary>
     public sealed class UsbDeviceInfo
     {
@@ -34,6 +46,17 @@ namespace IconGrid.Helpers.UsbCopy
         public string? VolumeLabel { get; init; }
 
         public UsbPortType PortType { get; init; }
+
+        public DriveMediaType MediaType { get; init; }
+
+        public string MediaTypeDisplay => MediaType switch
+        {
+            DriveMediaType.Hdd => "HDD",
+            DriveMediaType.Ssd => "SSD",
+            DriveMediaType.Nvme => "NVMe",
+            DriveMediaType.Usb => "USB",
+            _ => "Unknown"
+        };
 
         public string PortTypeDisplay => PortType switch
         {

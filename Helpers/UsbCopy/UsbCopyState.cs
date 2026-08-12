@@ -10,9 +10,10 @@ namespace IconGrid.Helpers.UsbCopy
     /// </summary>
     public sealed class UsbCopyState : INotifyPropertyChanged
     {
-        private IReadOnlyList<UsbDeviceInfo> _devices = new List<UsbDeviceInfo>();
+        private readonly ObservableDeviceCollection _devices = new();
         private UsbDeviceInfo? _selectedDevice;
         private int _bufferSize = 1024 * 1024;
+        private int _workerCount = 8;
         private bool _isCopying;
         private bool _isBenchmarking;
         private double _liveMiBS;
@@ -26,11 +27,13 @@ namespace IconGrid.Helpers.UsbCopy
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public IReadOnlyList<UsbDeviceInfo> Devices
-        {
-            get => _devices;
-            set => SetField(ref _devices, value);
-        }
+        /// <summary>
+        /// Observable device list: WPF ComboBox cannot refresh a plain IReadOnlyList
+        /// unless the whole reference is swapped every time. The observable collection
+        /// notifies the UI as devices are added/cleared, keeping the Drives dropdown
+        /// in sync after RefreshDevices().
+        /// </summary>
+        public ObservableDeviceCollection Devices => _devices;
 
         public UsbDeviceInfo? SelectedDevice
         {
@@ -42,6 +45,12 @@ namespace IconGrid.Helpers.UsbCopy
         {
             get => _bufferSize;
             set => SetField(ref _bufferSize, value);
+        }
+
+        public int WorkerCount
+        {
+            get => _workerCount;
+            set => SetField(ref _workerCount, value);
         }
 
         public bool IsCopying
@@ -123,6 +132,14 @@ namespace IconGrid.Helpers.UsbCopy
     /// without depending on System.Collections.ObjectModel in the state file.
     /// </summary>
     public sealed class ObservableBenchmarkResults : System.Collections.ObjectModel.ObservableCollection<UsbBenchmarkResult>
+    {
+    }
+
+    /// <summary>
+    /// Observable collection of drives so the WPF Drives dropdown updates when
+    /// RefreshDevices() adds/clears entries.
+    /// </summary>
+    public sealed class ObservableDeviceCollection : System.Collections.ObjectModel.ObservableCollection<UsbDeviceInfo>
     {
     }
 }

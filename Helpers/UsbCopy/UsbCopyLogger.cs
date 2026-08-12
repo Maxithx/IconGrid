@@ -89,11 +89,11 @@ namespace IconGrid.Helpers.UsbCopy
         public string ExportBenchmarkCsv(IReadOnlyList<UsbBenchmarkResult> results)
         {
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("TestName,BaselineMethod,BufferSize,Bytes,AvgMiBS,PeakMiBS,Stalls,FlushSeconds,ElapsedSeconds");
+            sb.AppendLine("TestName,BaselineMethod,WorkerCount,BufferSize,Bytes,AvgMiBS,PeakMiBS,Stalls,FlushSeconds,ElapsedSeconds");
             foreach (var r in results)
             {
                 sb.AppendLine(
-                    $"{r.TestName},{r.BaselineMethod ?? ""},{r.BufferSize},{r.BytesTransferred}," +
+                    $"{r.TestName},{r.BaselineMethod ?? ""},{r.WorkerCount},{r.BufferSize},{r.BytesTransferred}," +
                     $"{r.AverageMiBS:0.00},{r.PeakMiBS:0.00},{r.StallCount},{r.FlushSeconds:0.00},{r.Elapsed.TotalSeconds:0.00}");
             }
 
