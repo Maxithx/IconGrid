@@ -33,12 +33,14 @@ namespace IconGrid.Helpers.UsbCopy
         private readonly UsbCopyEngine _engine;
         private readonly Action<string> _log;
         private readonly Action<string> _pipeline;
+        private readonly IOverwriteConflictResolver _conflictResolver;
 
-        public MultiWorkerCopyService(UsbCopyEngine engine, Action<string> log, Action<string> pipeline)
+        public MultiWorkerCopyService(UsbCopyEngine engine, Action<string> log, Action<string> pipeline, IOverwriteConflictResolver? conflictResolver = null)
         {
             _engine = engine;
             _log = log;
             _pipeline = pipeline;
+            _conflictResolver = conflictResolver ?? AlwaysOverwriteResolver.Instance;
         }
 
         public async Task<long> CopyAsync(
@@ -56,6 +58,8 @@ namespace IconGrid.Helpers.UsbCopy
 
             _log($"MULTI COPY START workers={effectiveWorkers} threshold={MultiThreadThreshold} files={files.Count} sequential={sequential} total_bytes={totalBytes}");
 
+            var session = new OverwriteSession(_conflictResolver);
+
             if (sequential)
             {
                 foreach (var file in files)
@@ -69,10 +73,17 @@ namespace IconGrid.Helpers.UsbCopy
                         Directory.CreateDirectory(dir);
                     }
 
+                    if (!await session.ShouldWriteAsync(file.Source, dest, cancellationToken).ConfigureAwait(false))
+                    {
+                        _log($"WORKER 1 FILE SKIP exists {rel}");
+                        state.MarkFileCompleted(rel, file.Size);
+                        continue;
+                    }
+
                     _log($"WORKER 1 FILE START {rel} size={file.Size}");
-                    await _engine.CopySingleFileAsync(file.Source, dest, file.Size, bufferSize, null!, _ => { }, cancellationToken);
+                    await _engine.CopySingleFileAsync(file.Source, dest, file.Size, bufferSize, null!, _ => { }, cancellationToken).ConfigureAwait(false);
                     TryPreserveTime(file.Source, dest);
-                    state.MarkFileCompleted(rel);
+                    state.MarkFileCompleted(rel, file.Size);
                     _log($"WORKER 1 FILE DONE {rel}");
                 }
 
@@ -87,13 +98,13 @@ namespace IconGrid.Helpers.UsbCopy
             // 1) Small files -> one temp ZIP -> single stream copy -> unpack.
             if (small.Count > 0)
             {
-                await CopySmallBatchAsync(small, sourceRoot, targetRoot, bufferSize, state, cancellationToken);
+                await CopySmallBatchAsync(small, sourceRoot, targetRoot, bufferSize, state, session, cancellationToken).ConfigureAwait(false);
             }
 
             // 2) Large files -> parallel chunk-split copies.
             if (large.Count > 0)
             {
-                await CopyLargeFilesAsync(large, sourceRoot, targetRoot, bufferSize, effectiveWorkers, state, cancellationToken);
+                await CopyLargeFilesAsync(large, sourceRoot, targetRoot, bufferSize, effectiveWorkers, state, session, cancellationToken).ConfigureAwait(false);
             }
 
             // 3) Medium files -> parallel per-file copies across the worker pool.
@@ -114,10 +125,17 @@ namespace IconGrid.Helpers.UsbCopy
                     }
 
                     var worker = ThreadId();
+                    if (!await session.ShouldWriteAsync(file.Source, dest, token).ConfigureAwait(false))
+                    {
+                        _log($"WORKER {worker} FILE SKIP exists {rel}");
+                        state.MarkFileCompleted(rel, file.Size);
+                        return;
+                    }
+
                     _log($"WORKER {worker} FILE START {rel} size={file.Size}");
-                    await _engine.CopySingleFileAsync(file.Source, dest, file.Size, bufferSize, null!, _ => { }, token);
+                    await _engine.CopySingleFileAsync(file.Source, dest, file.Size, bufferSize, null!, _ => { }, token).ConfigureAwait(false);
                     TryPreserveTime(file.Source, dest);
-                    state.MarkFileCompleted(rel);
+                    state.MarkFileCompleted(rel, file.Size);
                     _log($"WORKER {worker} FILE DONE {rel}");
                 });
             }
@@ -132,6 +150,7 @@ namespace IconGrid.Helpers.UsbCopy
             string targetRoot,
             int bufferSize,
             CopyProgressState state,
+            OverwriteSession session,
             CancellationToken cancellationToken)
         {
             var zipPath = Path.Combine(Path.GetTempPath(), $"fastcopy-{Guid.NewGuid():N}.zip");
@@ -141,29 +160,48 @@ namespace IconGrid.Helpers.UsbCopy
             try
             {
                 _log($"WORKER 1 PACK START small_files={small.Count} bytes={payloadBytes}");
-                using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                var zipBytes = await Task.Run(() =>
                 {
-                    foreach (var file in small)
+                    // Packing thousands of small files synchronously (ZipFile +
+                    // CreateEntryFromFile) can take 30+ seconds for e.g. 2742 files.
+                    // It must run on a worker thread so the UI thread never freezes
+                    // at copy start while the ZIP is built.
+                    using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var rel = GetRelative(sourceRoot, file.Source).Replace('\\', '/');
-                        archive.CreateEntryFromFile(file.Source, rel, CompressionLevel.Fastest);
+                        foreach (var file in small)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var rel = GetRelative(sourceRoot, file.Source).Replace('\\', '/');
+                            archive.CreateEntryFromFile(file.Source, rel, CompressionLevel.Fastest);
+                            // Report progress per packed file so "Files remaining"
+                            // counts down live while the ZIP is being built (this
+                            // is the long 30+ s phase for thousands of small files).
+                            state.AddSmallBatch(file.Size, 1, rel);
+                        }
                     }
-                }
 
-                var zipInfo = new FileInfo(zipPath);
-                _log($"WORKER 1 PACK ZIP DONE zip_bytes={zipInfo.Length}");
+                    return new FileInfo(zipPath).Length;
+                }, cancellationToken).ConfigureAwait(false);
+
+                _log($"WORKER 1 PACK ZIP DONE zip_bytes={zipBytes}");
 
                 _pipeline("pack:copy");
                 _log("WORKER 1 PACK COPY");
-                await _engine.CopySingleFileAsync(zipPath, destZip, zipInfo.Length, bufferSize, null!, _ => { }, cancellationToken);
+                await _engine.CopySingleFileAsync(zipPath, destZip, zipBytes, bufferSize, null!, _ => { }, cancellationToken).ConfigureAwait(false);
 
                 _pipeline("pack:unpack");
                 _log("WORKER 1 PACK UNPACK");
-                ZipFile.ExtractToDirectory(destZip, targetRoot, overwriteFiles: true);
-
-                state.AddSmallBatch(payloadBytes, small.Count, "pack");
-                _log($"WORKER 1 PACK DONE small_files={small.Count}");
+                if (!await UnpackZipAsync(destZip, targetRoot, session, cancellationToken).ConfigureAwait(false))
+                {
+                    // A single bad/unsupported ZIP entry must never fail the whole
+                    // copy. Fall back to copying the small files individually.
+                    _log("WORKER 1 PACK UNPACK FAILED - falling back to per-file copy");
+                    await CopySmallFallbackAsync(small, sourceRoot, targetRoot, bufferSize, state, session, cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    _log($"WORKER 1 PACK DONE small_files={small.Count}");
+                }
             }
             catch (OperationCanceledException)
             {
@@ -188,6 +226,7 @@ namespace IconGrid.Helpers.UsbCopy
             int bufferSize,
             int workerCount,
             CopyProgressState state,
+            OverwriteSession session,
             CancellationToken cancellationToken)
         {
             await Parallel.ForEachAsync(large, new ParallelOptions
@@ -204,13 +243,19 @@ namespace IconGrid.Helpers.UsbCopy
                     Directory.CreateDirectory(dir);
                 }
 
+                if (!await session.ShouldWriteAsync(file.Source, dest, token).ConfigureAwait(false))
+                {
+                    state.MarkFileCompleted(rel, file.Size);
+                    return;
+                }
+
                 var worker = ThreadId();
                 _log($"WORKER {worker} LARGE START {rel} size={file.Size} mode=chunk");
                 await CopyFileChunkedAsync(file.Source, dest, file.Size, bufferSize, workerCount, rel, state, token);
                 TryPreserveTime(file.Source, dest);
                 state.MarkFileCompleted(rel);
                 _log($"WORKER {worker} LARGE DONE {rel}");
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task CopyFileChunkedAsync(
@@ -263,6 +308,175 @@ namespace IconGrid.Helpers.UsbCopy
                     remaining -= read;
                     state.AddBytes(read, rel);
                 }
+            }).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Session-scoped conflict decisions shared by all workers: once the user
+        /// picks "Yes to all" / "No to all", the remaining conflicts in this copy
+        /// are resolved without further prompts.
+        /// </summary>
+        private sealed class OverwriteSession
+        {
+            private readonly object _lock = new();
+            private readonly IOverwriteConflictResolver _resolver;
+            private bool _overwriteAll;
+            private bool _skipAll;
+
+            public OverwriteSession(IOverwriteConflictResolver resolver)
+            {
+                _resolver = resolver;
+            }
+
+            public async Task<bool> ShouldWriteAsync(string source, string dest, CancellationToken cancellationToken)
+            {
+                if (!File.Exists(dest))
+                {
+                    return true;
+                }
+
+                lock (_lock)
+                {
+                    if (_overwriteAll)
+                    {
+                        return true;
+                    }
+
+                    if (_skipAll)
+                    {
+                        return false;
+                    }
+                }
+
+                // Resolve outside the lock (the resolver shows a modal dialog and
+                // must never block other workers from progressing).
+                var decision = await _resolver.ResolveAsync(source, dest).ConfigureAwait(false);
+
+                lock (_lock)
+                {
+                    if (decision == OverwriteDecision.OverwriteAll)
+                    {
+                        _overwriteAll = true;
+                        return true;
+                    }
+
+                    if (decision == OverwriteDecision.SkipAll)
+                    {
+                        _skipAll = true;
+                        return false;
+                    }
+
+                    // Re-check after the dialog: another worker may have chosen
+                    // "to all" while this one was waiting for the user.
+                    if (_overwriteAll)
+                    {
+                        return true;
+                    }
+
+                    if (_skipAll)
+                    {
+                        return false;
+                    }
+                }
+
+                return decision == OverwriteDecision.Overwrite;
+            }
+        }
+
+        /// <summary>
+        /// Extracts every ZIP entry to the target root in parallel, resolving
+        /// existing destinations through the copy session's overwrite policy
+        /// (per-file prompt, or yes/no-to-all). Returns false when the ZIP
+        /// cannot be unpacked (e.g. an unsupported compression method) so the
+        /// caller can fall back to copying the files individually — a single
+        /// bad entry must never fail the whole copy.
+        ///
+        /// ZipArchive is NOT thread-safe for concurrent reads: multiple threads
+        /// calling ExtractToFile on the same archive corrupt the shared stream.
+        /// Each worker therefore opens its OWN fresh archive handle per entry.
+        /// </summary>
+        private static async Task<bool> UnpackZipAsync(string zipPath, string targetRoot, OverwriteSession session, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var archive = ZipFile.OpenRead(zipPath);
+                var entries = archive.Entries.ToList();
+                await Parallel.ForEachAsync(entries, new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount / 2),
+                    CancellationToken = cancellationToken
+                }, (entry, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    var clean = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                    var dest = Path.Combine(targetRoot, clean);
+                    if (!session.ShouldWriteAsync(zipPath, dest, token).GetAwaiter().GetResult())
+                    {
+                        return ValueTask.CompletedTask;
+                    }
+
+                    var dir = Path.GetDirectoryName(dest);
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+
+                    // Open a fresh archive on THIS thread so concurrent reads
+                    // never share/race on one ZipArchive stream.
+                    using var localArchive = ZipFile.OpenRead(zipPath);
+                    var localEntry = localArchive.GetEntry(entry.FullName);
+                    if (localEntry == null)
+                    {
+                        throw new InvalidDataException($"zip entry missing: {entry.FullName}");
+                    }
+
+                    localEntry.ExtractToFile(dest, overwrite: true);
+                    return ValueTask.CompletedTask;
+                }).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Copies the small files one-by-one (per-file, parallel) when the ZIP
+        /// unpacking failed. Keeps the copy alive instead of aborting it.
+        /// </summary>
+        private async Task CopySmallFallbackAsync(
+            IReadOnlyList<(string Source, long Size)> small,
+            string sourceRoot,
+            string targetRoot,
+            int bufferSize,
+            CopyProgressState state,
+            OverwriteSession session,
+            CancellationToken cancellationToken)
+        {
+            await Parallel.ForEachAsync(small, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount / 2),
+                CancellationToken = cancellationToken
+            }, async (file, token) =>
+            {
+                var rel = GetRelative(sourceRoot, file.Source);
+                var dest = Path.Combine(targetRoot, rel);
+                var dir = Path.GetDirectoryName(dest);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                if (!await session.ShouldWriteAsync(file.Source, dest, token).ConfigureAwait(false))
+                {
+                    state.MarkFileCompleted(rel, file.Size);
+                    return;
+                }
+
+                await _engine.CopySingleFileAsync(file.Source, dest, file.Size, bufferSize, null!, _ => { }, token).ConfigureAwait(false);
+                TryPreserveTime(file.Source, dest);
+                state.MarkFileCompleted(rel, file.Size);
             });
         }
 
@@ -354,10 +568,11 @@ namespace IconGrid.Helpers.UsbCopy
                 }
             }
 
-            public void MarkFileCompleted(string fileName)
+            public void MarkFileCompleted(string fileName, long bytes = 0)
             {
                 lock (_lock)
                 {
+                    _totalCopied += bytes;
                     _filesCompleted++;
                     EmitLocked(fileName);
                 }

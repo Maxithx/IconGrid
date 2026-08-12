@@ -432,13 +432,29 @@ namespace IconGrid.Helpers.UsbCopy
             string logPath,
             CancellationToken cancellationToken)
         {
+            // Source file size — must be a multiple of the sector size so the
+            // NoBuffering reads below are valid.
+            var fileLength = new FileInfo(testFilePath).Length;
             var buffer = new byte[bufferSize];
             var transferred = 0L;
             var peak = 0d;
             var samples = new List<double>();
             var start = DateTime.UtcNow;
 
-            await using (var input = new FileStream(testFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan))
+            // FILE_FLAG_NO_BUFFERING (0x20000000) bypasses the Windows page cache.
+            // Without it, a freshly created 8 MB probe file is served from RAM and
+            // the "USB read speed" reports RAM speed (e.g. 1169 MB/s) instead of
+            // the actual device speed. With NoBuffering, every read goes straight
+            // to the device. bufferSize (1 MB) and the 8 MB probe are multiples of
+            // 512-byte sectors, which is required by this flag.
+            var rawOptions = FileOptions.SequentialScan | (FileOptions)0x20000000;
+            _logger.AppendTimestamped(logPath, $"READ TEST file_bytes={fileLength}");
+
+            await using (var input = new FileStream(
+                File.OpenHandle(testFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, rawOptions),
+                FileAccess.Read,
+                bufferSize,
+                isAsync: true))
             {
                 int read;
                 while ((read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)

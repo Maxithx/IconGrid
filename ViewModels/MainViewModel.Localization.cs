@@ -191,6 +191,7 @@ namespace IconGrid.ViewModels
         public string FastCopyExportLogButton => _localizationState.Get(Language, "FastCopyExportLogButton");
         public string FastCopyClearLogButton => _localizationState.Get(Language, "FastCopyClearLogButton");
         public string FastCopyLogEmpty => _localizationState.Get(Language, "FastCopyLogEmpty");
+        public string FastCopyBenchmarkPreparing => _localizationState.Get(Language, "FastCopyBenchmarkPreparing");
         public string FastCopyBenchmarkTitle => _localizationState.Get(Language, "FastCopyBenchmarkTitle");
         public string FastCopyBenchmarkDescription => _localizationState.Get(Language, "FastCopyBenchmarkDescription");
         public string FastCopyRunBenchmarkButton => _localizationState.Get(Language, "FastCopyRunBenchmarkButton");
@@ -214,6 +215,28 @@ namespace IconGrid.ViewModels
         public string FastCopyWorkerCountLabel => _localizationState.Get(Language, "FastCopyWorkerCountLabel");
         public string FastCopyWorkerCountDescription => _localizationState.Get(Language, "FastCopyWorkerCountDescription");
         public string FastCopyCopyButton => _localizationState.Get(Language, "FastCopyCopyButton");
+        public string FastCopyElapsedLabel => _localizationState.Get(Language, "FastCopyElapsedLabel");
+        public string FastCopyTotalSizeLabel => _localizationState.Get(Language, "FastCopyTotalSizeLabel");
+        public string FastCopyFilesRemainingLabel => _localizationState.Get(Language, "FastCopyFilesRemainingLabel");
+        public string FastCopyProgressTitle => _localizationState.Get(Language, "FastCopyProgressTitle");
+        public string FastCopyCloseButton => _localizationState.Get(Language, "FastCopyCloseButton");
+        public string FastCopyOverwriteTitle => _localizationState.Get(Language, "FastCopyOverwriteTitle");
+        public string FastCopyOverwriteQuestion => _localizationState.Get(Language, "FastCopyOverwriteQuestion");
+        public string FastCopyOverwriteYesButton => _localizationState.Get(Language, "FastCopyOverwriteYesButton");
+        public string FastCopyOverwriteYesAllButton => _localizationState.Get(Language, "FastCopyOverwriteYesAllButton");
+        public string FastCopyOverwriteNoButton => _localizationState.Get(Language, "FastCopyOverwriteNoButton");
+        public string FastCopyOverwriteNoAllButton => _localizationState.Get(Language, "FastCopyOverwriteNoAllButton");
+        public string FastCopyNewFolderButton => _localizationState.Get(Language, "FastCopyNewFolderButton");
+        public string FastCopyNewFolderDialogTitle => _localizationState.Get(Language, "FastCopyNewFolderDialogTitle");
+        public string FastCopyNewFolderPrompt => _localizationState.Get(Language, "FastCopyNewFolderPrompt");
+        public string FastCopyNewFolderOkButton => _localizationState.Get(Language, "FastCopyNewFolderOkButton");
+        public string FastCopyDeleteButton => _localizationState.Get(Language, "FastCopyDeleteButton");
+        public string FastCopyDeleteConfirmTitle => _localizationState.Get(Language, "FastCopyDeleteConfirmTitle");
+        public string FastCopyDeleteConfirmMessage => _localizationState.Get(Language, "FastCopyDeleteConfirmMessage");
+        public string FastCopyDeleteYesButton => _localizationState.Get(Language, "FastCopyDeleteYesButton");
+        public string FastCopyDeleteNoButton => _localizationState.Get(Language, "FastCopyDeleteNoButton");
+        public string FastCopyInvalidName => _localizationState.Get(Language, "FastCopyInvalidName");
+        public string FastCopyFolderExists => _localizationState.Get(Language, "FastCopyFolderExists");
 
         public string PawnIoMissingMessage => _localizationState.PawnIoMissingMessage;
 
@@ -407,6 +430,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(FastCopyExportLogButton));
             OnPropertyChanged(nameof(FastCopyClearLogButton));
             OnPropertyChanged(nameof(FastCopyLogEmpty));
+            OnPropertyChanged(nameof(FastCopyBenchmarkPreparing));
             OnPropertyChanged(nameof(FastCopyBenchmarkTitle));
             OnPropertyChanged(nameof(FastCopyBenchmarkDescription));
             OnPropertyChanged(nameof(FastCopyRunBenchmarkButton));
@@ -430,6 +454,28 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(FastCopyWorkerCountLabel));
             OnPropertyChanged(nameof(FastCopyWorkerCountDescription));
             OnPropertyChanged(nameof(FastCopyCopyButton));
+            OnPropertyChanged(nameof(FastCopyElapsedLabel));
+            OnPropertyChanged(nameof(FastCopyTotalSizeLabel));
+            OnPropertyChanged(nameof(FastCopyFilesRemainingLabel));
+            OnPropertyChanged(nameof(FastCopyProgressTitle));
+            OnPropertyChanged(nameof(FastCopyCloseButton));
+            OnPropertyChanged(nameof(FastCopyOverwriteTitle));
+            OnPropertyChanged(nameof(FastCopyOverwriteQuestion));
+            OnPropertyChanged(nameof(FastCopyOverwriteYesButton));
+            OnPropertyChanged(nameof(FastCopyOverwriteYesAllButton));
+            OnPropertyChanged(nameof(FastCopyOverwriteNoButton));
+            OnPropertyChanged(nameof(FastCopyOverwriteNoAllButton));
+            OnPropertyChanged(nameof(FastCopyNewFolderButton));
+            OnPropertyChanged(nameof(FastCopyNewFolderDialogTitle));
+            OnPropertyChanged(nameof(FastCopyNewFolderPrompt));
+            OnPropertyChanged(nameof(FastCopyNewFolderOkButton));
+            OnPropertyChanged(nameof(FastCopyDeleteButton));
+            OnPropertyChanged(nameof(FastCopyDeleteConfirmTitle));
+            OnPropertyChanged(nameof(FastCopyDeleteConfirmMessage));
+            OnPropertyChanged(nameof(FastCopyDeleteYesButton));
+            OnPropertyChanged(nameof(FastCopyDeleteNoButton));
+            OnPropertyChanged(nameof(FastCopyInvalidName));
+            OnPropertyChanged(nameof(FastCopyFolderExists));
         }
 
         private void ApplyLocalizationState()

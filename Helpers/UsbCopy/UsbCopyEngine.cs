@@ -185,15 +185,46 @@ namespace IconGrid.Helpers.UsbCopy
             int workerCount,
             CancellationToken cancellationToken)
         {
+            return await CopyPathsAsync(sourceRoot, targetRoot, entries, bufferSize, workerCount, null, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Copies a set of files (or directory trees) into a target root,
+        /// preserving each item's relative path under the source root, using the
+        /// FastCopy-inspired MultiWorkerCopyService (20-file threshold, small-file
+        /// ZIP packing, large-file chunk-split, parallel workers).
+        /// The optional conflict resolver is consulted when a destination file
+        /// already exists (Overwrite / OverwriteAll / Skip / SkipAll).
+        /// </summary>
+        public async Task<long> CopyPathsAsync(
+            string sourceRoot,
+            string targetRoot,
+            IReadOnlyList<FileBrowserEntry> entries,
+            int bufferSize,
+            int workerCount,
+            IOverwriteConflictResolver? conflictResolver,
+            CancellationToken cancellationToken)
+        {
             var logPath = _logger.CreateCopyLogFile();
-            var files = ExpandToFiles(entries);
+
+            // Scan the source tree on a background thread so a large folder
+            // (e.g. thousands of small web files) does not freeze the UI before
+            // the first byte is copied.
+            var files = await Task.Run(() => ExpandToFiles(entries), cancellationToken).ConfigureAwait(false);
+
             var service = new MultiWorkerCopyService(
                 this,
                 msg => _logger.AppendTimestamped(logPath, msg),
-                stage => PipelineEvent?.Invoke(this, stage));
+                stage => PipelineEvent?.Invoke(this, stage),
+                conflictResolver);
 
+            // The ENTIRE copy pipeline (ZIP packing, unpacking, chunk splitting,
+            // per-file IO) runs on the thread pool so copy work never captures the
+            // UI SynchronizationContext and freezes the page at copy start.
             _logger.AppendTimestamped(logPath, $"PATH COPY START src={sourceRoot} dst={targetRoot} buffer={bufferSize} workers={workerCount} files={files.Count}");
-            var copied = await service.CopyAsync(files, sourceRoot, targetRoot, bufferSize, workerCount, cancellationToken);
+            var copied = await Task.Run(
+                () => service.CopyAsync(files, sourceRoot, targetRoot, bufferSize, workerCount, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
             _logger.AppendTimestamped(logPath, $"PATH COPY DONE bytes={copied}");
 
             return copied;

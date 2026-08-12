@@ -1,0 +1,57 @@
+<Window x:Class="IconGrid.Views.OverwritePromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding FastCopyOverwriteTitle}"
+        Height="260"
+        Width="540"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Background="#F2F3F6"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="OverwriteButtonStyle" TargetType="Button" BasedOn="{StaticResource TemplateActionButtonStyle}">
+                <Setter Property="MinWidth" Value="88" />
+                <Setter Property="Margin" Value="8,0,0,0" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16">
+        <StackPanel>
+            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                       Text="{Binding FastCopyOverwriteTitle}" />
+            <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                       Margin="0,8,0,0"
+                       Text="{Binding FastCopyOverwriteQuestion}" />
+            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                       Margin="0,10,0,0"
+                       Text="{Binding FileName, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                       TextWrapping="Wrap"
+                       TextTrimming="CharacterEllipsis" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Style="{StaticResource OverwriteButtonStyle}"
+                        Margin="0"
+                        Content="{Binding FastCopyOverwriteYesButton}"
+                        Click="Yes_Click" />
+                <Button Style="{StaticResource OverwriteButtonStyle}"
+                        Content="{Binding FastCopyOverwriteYesAllButton}"
+                        Click="YesAll_Click" />
+                <Button Style="{StaticResource OverwriteButtonStyle}"
+                        Content="{Binding FastCopyOverwriteNoButton}"
+                        Click="No_Click" />
+                <Button Style="{StaticResource OverwriteButtonStyle}"
+                        Content="{Binding FastCopyOverwriteNoAllButton}"
+                        Click="NoAll_Click" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

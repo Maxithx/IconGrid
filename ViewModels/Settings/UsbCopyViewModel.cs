@@ -27,16 +27,19 @@ namespace IconGrid.ViewModels.Settings
         private readonly UsbCopyEngine _engine;
         private readonly UsbBenchmarkRunner _benchmark;
         private readonly UsbCopyLogger _logger;
+        private readonly IOverwriteConflictResolver? _overwriteResolver;
         private readonly List<string> _selectedFiles = new();
         private CancellationTokenSource? _cts;
         private bool _sourceIsLeft = true;
         private DateTime _lastUiUpdateTime = DateTime.UtcNow;
+        private DateTime _lastTargetPaneRefreshTime = DateTime.MinValue;
 
-        public UsbCopyViewModel()
+        public UsbCopyViewModel(IOverwriteConflictResolver? overwriteResolver = null)
         {
             _logger = new UsbCopyLogger();
             _engine = new UsbCopyEngine(_logger);
             _benchmark = new UsbBenchmarkRunner(_logger);
+            _overwriteResolver = overwriteResolver;
 
             _engine.Progress += OnEngineProgress;
             _engine.PipelineEvent += OnPipelineEvent;
@@ -60,20 +63,41 @@ namespace IconGrid.ViewModels.Settings
             StabilityTestCommand = new RelayCommand(_ => _ = RunStabilityTestAsync(), _ => CanStartCopy());
             WindowsBaselineCommand = new RelayCommand(_ => _ = RunWindowsBaselineAsync(), _ => CanStartCopy());
             ExportCsvCommand = new RelayCommand(_ => ExportCsv());
+            RunSyntheticBenchmarkCommand = new RelayCommand(sizeMb => RunSyntheticBenchmarkRequested?.Invoke(Number(sizeMb)), _ => !State.IsCopying && !State.IsBenchmarking);
 
-            // Dual-pane browser commands
+            // Dual-pane browser commands. The pane buttons pass a tag
+            // ("Left" / "Right") as CommandParameter so a button in a pane
+            // always acts on THAT pane, Explorer-style, not on the active pane.
             SwapSourceCommand = new RelayCommand(_ => SwapSource());
             NavigateToPathCommand = new RelayCommand(path => NavigateToFolder(path as string));
             GoUpCommand = new RelayCommand(_ => ActivePane.GoUp(), _ => ActivePane.CanGoUp);
             ToggleEntryCommand = new RelayCommand(entry => ToggleEntry(entry as FileBrowserEntry));
             EnterDirectoryCommand = new RelayCommand(entry => EnterDirectory(entry as FileBrowserEntry));
-            SelectAllCommand = new RelayCommand(_ => ActivePane.SelectAllFiles());
-            ClearSelectionCommand = new RelayCommand(_ => ActivePane.ClearSelection());
+            SelectAllCommand = new RelayCommand(parameter => ResolvePane(parameter as string).SelectAllFiles());
+            ClearSelectionCommand = new RelayCommand(parameter => ResolvePane(parameter as string).ClearSelection());
+            NewFolderCommand = new RelayCommand(parameter => NewFolderRequested?.Invoke(parameter as string));
+            DeleteCommand = new RelayCommand(parameter => DeleteRequested?.Invoke(parameter as string), parameter => ResolvePane(parameter as string).Entries.Any(e => e.IsSelected));
 
             LeftPane = new FileBrowserPane();
             RightPane = new FileBrowserPane();
             LeftPane.Refresh();
             RightPane.Refresh();
+
+            // Keep the per-pane drive info in sync when a pane switches drive.
+            LeftPane.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(FileBrowserPane.DriveRootPath))
+                {
+                    OnPropertyChanged(nameof(LeftPaneDevice));
+                }
+            };
+            RightPane.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(FileBrowserPane.DriveRootPath))
+                {
+                    OnPropertyChanged(nameof(RightPaneDevice));
+                }
+            };
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -83,6 +107,18 @@ namespace IconGrid.ViewModels.Settings
         public FileBrowserPane LeftPane { get; }
 
         public FileBrowserPane RightPane { get; }
+
+        /// <summary>
+        /// Drive info (media type, port type, capacity, free space) for the drive
+        /// currently active in the From (left) pane — drives belong to the file
+        /// manager, not a separate Drives section.
+        /// </summary>
+        public UsbDeviceInfo? LeftPaneDevice => GetDeviceForDrive(LeftPane.DriveRootPath);
+
+        /// <summary>
+        /// Drive info for the drive currently active in the To (right) pane.
+        /// </summary>
+        public UsbDeviceInfo? RightPaneDevice => GetDeviceForDrive(RightPane.DriveRootPath);
 
         public bool SourceIsLeft
         {
@@ -137,6 +173,8 @@ namespace IconGrid.ViewModels.Settings
 
         public ICommand ExportCsvCommand { get; }
 
+        public ICommand RunSyntheticBenchmarkCommand { get; }
+
         // Dual-pane browser commands
         public ICommand SwapSourceCommand { get; }
 
@@ -151,6 +189,59 @@ namespace IconGrid.ViewModels.Settings
         public ICommand SelectAllCommand { get; }
 
         public ICommand ClearSelectionCommand { get; }
+
+        public ICommand NewFolderCommand { get; }
+
+        public ICommand DeleteCommand { get; }
+
+        /// <summary>
+        /// Raised when the user requests a new folder in a pane. The parameter
+        /// is the pane tag ("Left" / "Right"). The UI layer shows the name-input
+        /// dialog and calls CreateDirectory on the resolved pane.
+        /// </summary>
+        public event Action<string?>? NewFolderRequested;
+
+        /// <summary>
+        /// Raised when the user requests deletion of the selected entries in a
+        /// pane. The parameter is the pane tag ("Left" / "Right"). The UI layer
+        /// shows the confirmation dialog before anything is deleted.
+        /// </summary>
+        public event Action<string?>? DeleteRequested;
+
+        /// <summary>
+        /// Raised when the user requests a synthetic copy benchmark (100/300/500/1000 MB).
+        /// The UI layer runs BenchmarkRunner.exe and shows live progress in a window.
+        /// </summary>
+        public event Action<int>? RunSyntheticBenchmarkRequested;
+
+        /// <summary>
+        /// Resolves a pane-tag ("Left"/"Right") to its pane; null or unknown
+        /// tags fall back to the active pane.
+        /// </summary>
+        private static int Number(object? value)
+        {
+            if (value == null)
+            {
+                return 100;
+            }
+
+            return Convert.ToInt32(value);
+        }
+
+        private FileBrowserPane ResolvePane(string? tag)
+        {
+            if (string.Equals(tag, "Left", StringComparison.Ordinal))
+            {
+                return LeftPane;
+            }
+
+            if (string.Equals(tag, "Right", StringComparison.Ordinal))
+            {
+                return RightPane;
+            }
+
+            return ActivePane;
+        }
 
         public void RefreshDevices()
         {
@@ -169,6 +260,20 @@ namespace IconGrid.ViewModels.Settings
 
             LeftPane.LoadDrives();
             RightPane.LoadDrives();
+            OnPropertyChanged(nameof(LeftPaneDevice));
+            OnPropertyChanged(nameof(RightPaneDevice));
+        }
+
+        private UsbDeviceInfo? GetDeviceForDrive(string driveRoot)
+        {
+            if (string.IsNullOrEmpty(driveRoot))
+            {
+                return null;
+            }
+
+            return State.Devices.FirstOrDefault(d =>
+                d.IsReady &&
+                string.Equals(d.DriveLetter, driveRoot, StringComparison.OrdinalIgnoreCase));
         }
 
         private void ChooseFiles()
@@ -260,9 +365,11 @@ namespace IconGrid.ViewModels.Settings
                     return;
                 }
 
-                await _engine.CopyPathsAsync(ActivePane.CurrentDirectory, targetRoot, selected, State.BufferSize, State.WorkerCount, _cts.Token);
+                await _engine.CopyPathsAsync(ActivePane.CurrentDirectory, targetRoot, selected, State.BufferSize, State.WorkerCount, _overwriteResolver, _cts.Token);
                 State.PipelineStatus = "done";
-                TargetPane.Refresh();
+                // Refresh the destination pane without blocking the UI thread
+                // (enumeration runs on a background thread).
+                await TargetPane.RefreshAsync();
             }
             catch (OperationCanceledException)
             {
@@ -639,7 +746,43 @@ namespace IconGrid.ViewModels.Settings
                     var eta = TimeSpan.FromSeconds(remaining / e.AverageBytesPerSecond);
                     State.EtaText = eta.ToString(@"hh\:mm\:ss");
                 }
+
+                // Copy status indicator (total size, elapsed time, files remaining).
+                State.ElapsedText = e.Elapsed.ToString(@"hh\:mm\:ss");
+                State.TotalSizeLabel = $"{FormatBytes(e.TotalBytesCopied)} / {FormatBytes(e.TotalBytes)}";
+                var filesRemaining = Math.Max(0, e.FilesTotal - e.FilesCompleted);
+                State.FilesRemainingLabel = filesRemaining.ToString();
+
+                // Refresh the destination pane so newly copied folders/files
+                // appear while the copy is still running (throttled to ~1 s).
+                // The enumeration itself runs on a background thread so the
+                // UI never freezes while the copy writes files.
+                if (State.IsCopying && e.FilesCompleted > 0 &&
+                    (now - _lastTargetPaneRefreshTime).TotalSeconds >= 1)
+                {
+                    _lastTargetPaneRefreshTime = now;
+                    _ = RefreshTargetPaneAsync();
+                }
             });
+        }
+
+        /// <summary>
+        /// Refreshes the destination pane's entry list on a background thread
+        /// (FileBrowserPane.RefreshAsync) so a large target directory never
+        /// freezes the UI while the copy is running. Fire-and-forget; failures
+        /// are swallowed because the pane refresh is only best-effort during a
+        /// copy.
+        /// </summary>
+        private async Task RefreshTargetPaneAsync()
+        {
+            try
+            {
+                await TargetPane.RefreshAsync();
+            }
+            catch (Exception)
+            {
+                // Best-effort destination pane refresh during a copy.
+            }
         }
 
         private void OnPipelineEvent(object? sender, string stage)
@@ -660,6 +803,20 @@ namespace IconGrid.ViewModels.Settings
         private void OnBenchmarkError(object? sender, string message)
         {
             RunOnUi(() => State.LastError = message);
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            double value = bytes;
+            int unitIndex = 0;
+            while (value >= 1024 && unitIndex < units.Length - 1)
+            {
+                value /= 1024;
+                unitIndex++;
+            }
+
+            return $"{value:0.##} {units[unitIndex]}";
         }
 
         private static void RunOnUi(Action action)

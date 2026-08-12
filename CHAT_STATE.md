@@ -3,342 +3,113 @@
 > **Full session history:** `.local-state/session-history.md` (gitignored, searchable via `search_notes`)
 
 ## Current date
-Saturday, August 9, 2026 → Sunday, August 10, 2026
+Wednesday, August 12, 2026
 
 ## Current status
-- Monitor Row Layout-siden er færdig: alle 18 slider/toggle-properties justerbare med full persistence.
-- CPU/GPU bar gaps defaults sænket til 0, hardcoded Widths fjernet, value-width lock TextAlignment fixet.
-- "Save current as default" / "Reset to my default" knapper implementeret.
-- Alle tekster på MonitorRowLayoutPage er nu da/en-lokaliserede (første fuldt centraliserede lokaliserede side).
-- MCP-server opgraderet til 12 værktøjer inkl. `run_all_checks`, `check_localization_completeness`, `check_git_security`, `check_xaml_hardcoded_danish`.
-- AGENT.md opdateret med localization design pattern (4-step guide) + architecture rules link.
-- `.clinerules` opdateret: kræver `run_all_checks` ved session-afslutning.
-- Memory: CHAT_STATE.md = korttidshukommelse. `.local-state/session-history.md` = index. `.local-state/sessions/*.md` = per-date logs (max ~500 linjer).
+- Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
+- Dropdown-problemet er LØST (root cause: ElementName=Root resolverede ikke henover TemplatePage → RelativeSource AncestorType). Bruger-verificeret 03:58.
+- ✅ BRUGERENS 3 ØNSKER IMPLEMENTERET (04:16): (1) UI-fryser fixet — `ExpandToFiles()` kører nu via `Task.Run` (baggrundstråd); (2) destination-pane opdateres dynamisk under kopiering (throttlet `TargetPane.Refresh()` ~1 sek i OnEngineProgress); (3) kopi-status-indikator — Performance-card viser nu Tid brugt (Elapsed), Samlet størrelse (TotalSizeLabel "kopieret/total") og Filer tilbage (FilesRemainingLabel). 3 nye lokaliseringsnøgler (en+da): FastCopyElapsedLabel/FastCopyTotalSizeLabel/FastCopyFilesRemainingLabel.
+- ✅ FILE COPY PROGRESS DIALOG IMPLEMENTERET (04:34): Nyt `Views/FileCopyProgressWindow.xaml(.cs)` — selvstændigt, ikke-modal, topmost, frit flytbart via DragMove på titel (Windows-file-kopi-stil). Vises automatisk når `IsCopying=true` (abonneret i UsbCopyPage.xaml.cs `OnCopyStatePropertyChanged`) og lukkes når kopieringen slutter. Binder lokaliserede labels til MainViewModel DataContext + live-tal til `UsbCopyState` via DependencyProperty `State` (RelativeSource). Annullér-knap → `CancelCopyCommand`. Ny lok nøgle FastCopyProgressTitle (en+da). Lokalisering: 233 en/233 da.
+- ✅ FIX (04:39): From/To-drevfelterne var TOMT ved siden-åbning (C:\ ikke vist), selvom dropdown-listen havde alle drev. Rodårsag: WPF re-evaluerer ikke SelectedValue når ObservableCollection genopbygges (Clear+Add) med uændret værdi. Fix: `LoadDrives()` kalder nu `OnPropertyChanged(nameof(DriveRootPath))` efter gen-populering → ComboBox'erne re-selecter aktivt drev. Deployet (DLL 04:38:45 matcher build).
+- ✅ FRYSER-FIX PARTIEL (05:04): `TargetPane.Refresh()` → `FileBrowserPane.RefreshAsync()` (enum i `Task.Run` + serial-guard `_refreshSerial`) + `RefreshTargetPaneAsync()` fire-and-forget. Hjalp under selve kopieringen, men **LØSTE IKKE fryseren ved START** (se ULØST nedenfor).
+- ✅ FIX 1 FULDT IMPLEMENTERET (16:01, næste session): UI-fryser LØST i hele kopi-kæden — `.ConfigureAwait(false)` i HELE `MultiWorkerCopyService` (sequential + medium + large + CopyFileChunkedAsync), ZIP-pakning og -udpakning kører i `Task.Run`, og `UsbCopyEngine.CopyPathsAsync` kører HELE MultiWorkerCopyService via `Task.Run` så kopi-IO aldrig fanger UI SynchronizationContext. `StartCopyAsync` overgik til `TargetPane.RefreshAsync()` efter kopi.
+- ✅ FIX 2 (16:01, næste session): OVERSKRIV-VALG implementeret — `OverwritePolicy.cs` (OverwriteDecision: Overwrite/OverwriteAll/Skip/SkipAll + `IOverwriteConflictResolver`), `MultiWorkerCopyService` bruger session-scoped OverwriteSession (Yes-to-all/No-to-all huskes pr. kopi) på ALLE stier (sequential, medium, large, ZIP-unpack), `OverwritePromptResolver` + `OverwritePromptWindow` (modal Ja/Ja alle/Nej/Nej alle, lokaliseret) vises via Dispatcher.Invoke fra worker-tråde.
+- ✅ FIX 3 (16:01, næste session): OPRET MAPPE + SLET (Stifinder-stil) implementeret — `FileBrowserPane.CreateDirectory(name)` + `DeleteSelectedEntries()` (Directory.Delete recursive / File.Delete), `NewFolderDialogWindow` (navn-input) + `DeleteConfirmWindow` (bekræftelse med lokaliseret "Slet '{0}'?"), knapper "Ny mappe"/"Slet" i BEGGE paneler, kommandoer via `UsbCopyViewModel.NewFolderCommand`/`DeleteCommand` + events.
+- ✅ LOKALISERING: 18 nye nøgler (en+da) — Overwrite-titel/spørgsmål/Ja/Ja alle/Nej/Nej alle, Ny mappe (knap/titel/prompt/Opret), Slet (knap/titel/bekræftelse/Slet/Annullér), ugyldigt navn, mappe findes. 250 en / 250 da (synkroniseret via run_all_checks 16:02).
+- ✅ UI-OMLÆGNING (05:09, brugerens ønske): "Drives"-card SLETTET — drev-info (Medietype/Porttype/Kapacitet/Ledig plads) vises nu som From/To-paneler under fil-browseren (`LeftPaneDevice`/`RightPaneDevice` i UsbCopyViewModel, synkroniseret via PropertyChanged). Performance (Live/Gen/Peak/ETA + Tid/Samlet/Filer + ProgressBar) er flyttet IND i Files-cardet under Start/Cancel-knapperne. Benchmark-card har fået egen kompakt mål-enhed-vælger (ComboBox SelectedDevice + Opdater). Deployet (DLL 05:09:48 matcher build).
+- ⚠️ IKKE COMMITTET/PUSHET — HELE Fast Copy-arbejdet (ugeværk siden 08-11) ligger u-committet i working tree. Seneste commit er stadig `79ff8f6`.
 
 ## Architecture status
-- `run_all_checks`: 3 pre-existing VIOLATIONs — MainWindow 1062, MainViewModel 1840, HardwareMonitorAgent 1772. Alle dokumenterede tolerancer.
+- `run_all_checks` (sidste kørsel ved 79ff8f6): 3 pre-existing VIOLATIONs — MainWindow 1062, MainViewModel 1862, HardwareMonitorAgent 1772. Alle dokumenterede tolerancer.
 - Version: 0.7.0-beta.1 (konsistent)
-- Localization: 168 en / 168 da — synkroniseret
+- Localization: 233 en / 233 da — synkroniseret (run_all_checks 04:34)
 - Security: ingen staged secrets
 - XAML: 6 pre-existing hardcoded Danish linjer
 
 ## Working tree status
-- **Alt committed og pushet** (2 commits: `4c779aa` + `90dbe81`)
-- Build: 0 fejl, 0 advarsler
-- Deploy: C:\IconGrid
+- **Seneste commit:** `79ff8f6` — "feat: Fast Copy dual-pane fixes - drive dropdown names, navigation, folder navigation, DriveRootPath + async copy UI groundwork" — pushet til GitHub.
+- Nuværende session (18:50): FIX 1-14 implementeret (FIX 14 = trådsikker ZIP-udpakning + fallback + låst OverwriteSession) + BENCHMARK-SYSTEM (CLI BenchmarkRunner + MCP-tool run_copy_benchmark + live-vindue med 100/300/500/1GB-knapper) — IKKE committet/pushet endnu. Alt Fast Copy-arbejde siden 08-11 ligger u-committet (seneste commit stadig `79ff8f6`). (seneste: Select all markerer ALT + Shift/Ctrl-klik Stifinder-stil; FIX 13 = parallel ZIP-udpakning fjerner ~7,5 s break midt i kopieringen) — IKKE committet/pushet endnu. Alt Fast Copy-arbejde siden 08-11 ligger u-committet (seneste commit stadig `79ff8f6`).
+- Build: 0 fejl, 0 advarsler (18:11:40).
+- Deploy: C:\IconGrid (18:11:40, DLL-timestamp matcher build — verificeret).
 
-## Good next steps
-- Opdater ARCHITECTURE_RULES.md "Recent Good Examples" med MonitorRowLayoutPage + MonitorLayoutDefaultsSnapshot (valgfrit polish)
-- Evt. lokaliser de 6 resterende hardcodede XAML-strenge
+## ULØSTE ISSUES fra bruger-test (05:11) — PRIORITERET til næste session
+1. **UI fryser i STARTEN under kopiering + kopieringen går i stå ved KOPIERING AF FLERE MAPPER.**
+   - **ROOT CAUSE (analyseret, høj sikkerhed):** `MultiWorkerCopyService` await'er **UDEN `ConfigureAwait(false)`** (CopyAsync, CopySmallBatchAsync, CopyLargeFilesAsync, CopyFileChunkedAsync). Da `StartCopyAsync` await'er `CopyPathsAsync`, fortsætter koden efter hvert await på **UI-tråden** (SynchronizationContext).
+   - **`CopySmallBatchAsync` pakker tusindvis af små filer i en ZIP med `ZipFile.Open` + `CreateEntryFromFile` (Fx 2742 filer ≈ 30+ sek) PÅ UI-TRÅDEN** → UI fryser ved start. Samtidig bliver progress-events (`RunOnUi` → `Dispatcher.BeginInvoke`) sat i kø bagved → hele siden "går i stå" indtil pack er færdig. Ved flere store mapper bliver dette ekstremt tydeligt.
+   - **FIX (næste session):** Tilføj `.ConfigureAwait(false)` i HELE `MultiWorkerCopyService` (CopyAsync, CopySmallBatchAsync, CopyLargeFilesAsync, CopyFileChunkedAsync) så AL kopi-IO + ZIP-pakning kører på worker-tråde. Alternativt/derudover: kør `await Task.Run(() => service.CopyAsync(...), ct)` i `UsbCopyEngine.CopyPathsAsync`. Også: `StartCopyAsync`'s endelige `TargetPane.Refresh()` → overgå til `RefreshAsync()`.
+2. **Manglende OVERSKRIV-valg:** Hvis filen allerede eksisterer på destinationen, kan man i dag IKKE vælge at overskrive. **Næste session:** Tilføj overwrite-politik (OverwriteAll / SkipAll / Ask pr. fil) i UsbCopyEngine/MultiWorkerCopyService + en lille bruger-dialog eller inline-valg "Overskriv? [Ja] [Ja alle] [Nej] [Nej alle]" (da/en lokaliseret), før kopieringen skriver til eksisterende filer.
+3. **Manglende FIL/OPSÆTNINGS-OPERATIONER (Stifinder-stil, brugerens ønske 15:40):** Kunne **oprette ny mappe** og **slette filer og mapper** direkte i de to paneler. **Næste session:** tilføj kommandoer/knapper i hvert panel — Ny mappe (prompt navn via lille input-dialog), Slet fil/mappe (bekræftelse + `Directory.Delete(recursive:true)` / `File.Delete`, bevæg til papirkurv evt.) — da/en lokaliseret. Integrer i FileBrowserPane (enumerate → opdater) + UsbCopyPage-knapper pr. panel.
 
+1. ✅ LØST (16:01): UI fryser i starten + kopiering går i stå ved flere mapper — se FIX 1 ovenfor.
+2. ✅ LØST (16:01): Manglende overskriv-valg — se FIX 2 ovenfor.
+3. ✅ LØST (16:01): Opret mappe + slet filer/mapper (Stifinder-stil) — se FIX 3 ovenfor.
 
-- AFVENTER BRUGER-VERIFIKATION (2026-08-11): Fast USB Copy-siden (settings → 'USB Copy') — test enhedsdetektion + port-type, kopiering og benchmark. Når godkendt: commit + push (spørg brugeren først, jf. AGENT.md).
-- Evt. forbedringer: IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX for eksakt negotiated port-linkspeed (i stedet for controller-heuristic), benchmark-resultat-kurve (buffer vs throughput) i UI.
+## Good next steps (næste session)
+- **Afventer bruger-verifikation** (17:12): test i C:\IconGrid at (1) kopiering starter hurtigere (default Workers nu 4 — benchmark-log viste at 8 workers var ~9× langsommere på H:\), (2) Files remaining/Tid/Filer tæller nu live ned allerede under ZIP-pakningen, (3) benchmark-udskrift er hvid/læsbar, (4) ingen dublet Start/Cancel-knapper under Buffer Size, (5) layout: File manager // Copy setup (Workers+Buffer) // Performance // Log // Benchmark i 5 adskilte cards.
+- Buffer til hjemmeside-filer: **512 KB eller 1 MB** anbefales (small-fil ZIP-pakning kører uanset; Workers 4 er ny default — se "FIX 8"-note).
+- Efter bruger-verifikation: spørg om commit + push (jf. AGENT.md) — HELE Fast Copy-arbejdet siden 08-11 ligger u-committet.
+- Referencer: `.local-state/fast-copy.md`, `Helpers/UsbCopy/MultiWorkerCopyService.cs`, `Helpers/UsbCopy/UsbCopyEngine.cs`, `Helpers/UsbCopy/OverwritePolicy.cs`, `Helpers/UsbCopy/FileBrowserPane.cs`, `ViewModels/Settings/UsbCopyViewModel.cs`, `Views/Settings/Pages/UsbCopyPage.xaml(.cs)`, `Views/OverwritePromptWindow.xaml(.cs)`, `Views/NewFolderDialogWindow.xaml(.cs)`, `Views/DeleteConfirmWindow.xaml(.cs)`, `Helpers/Settings/LocalizationHelper.cs`, `ViewModels/MainViewModel.Localization.cs`.
+- Session-log: `.local-state/sessions/2026-08-12.md` skal udvides med denne session (FIX 1-3 + rodårsager + bruger-verifikation).
 
-## Latest commits (this session)
-- `4c779aa` — feat: monitor row layout localization, save-as-default, MCP server architecture enforcer, and two-part memory structure (15 files)
-- `90dbe81` — fix: persist monitor row layout settings and stabilize download/upload value widths (4 files)
 
-- `7ac327a` — feat: live CPU voltage on HardwarePage, fixed Game Resolution dropdown alignment + cards, visible card borders in dark theme (8 files, 279 insertions / 79 deletions) — pushet til GitHub.
+## FIX 4-5 (16:27, brugerrapport 16:20)
 
-- `053bef5` — fix: rename 'Language and region' to 'Language' on the start page (2 files) — pushet til GitHub.
+- ✅ FIX 4 (16:27): SELECT ALL virkede ikke i det ikke-aktive panel (og Slet/Ny mappe ramte forkert panel). Rodårsag: pane-knapperne bandt til `ActivePane`-kommandoer uden pane-tag. Fix: `UsbCopyViewModel` kommandoer tager nu `CommandParameter` ("Left"/"Right") → `ResolvePane(tag)`, `UsbCopyPage.xaml` sender tag fra hver panel-knap, `UsbCopyPage.xaml.cs` handlerne (`OnNewFolderRequested`/`OnDeleteRequested`) modtager tag. Hver panel-knappe betjener nu DET panel (Explorer-stil).
+- ✅ FIX 5 (16:27): SLET crashede IconGrid + monitor-blink ved åbning af siden. Ændring: fjernede `AllowsTransparency="True"` fra alle 3 nye modal-dialoger (OverwritePromptWindow, NewFolderDialogWindow, DeleteConfirmWindow) og gav dem solid `Background="#F2F3F6"` — `AllowsTransparency` + `ToolWindow` + modal `ShowDialog()` er en kendt ustabil WPF-kombination (kan give DWM/blink og endda procescrash). Visuelt uændret (StartsideSectionCardStyle på Border). Logger evt. eventuelle crash-dumps i Event Viewer.
+- ⚠️ MONITOR-BLINK: forsvandt efter genstart af IconGrid — men årsage mistænkes at være AllowsTransparency-dialogerne (FIX 5 adresserer det proaktivt). Hvis det vender tilbage: tjek Windows Event Viewer → Application → .NET Runtime / Application Error efter `IconGrid.exe`.
+- ✅ Build 0 fejl/0 advarsler (16:27:51) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering: 250 en/250 da (run_all_checks 16:28).
 
-- `633e84d` — feat: make Element gaps, Dividers and CPU/GPU bars collapsible on Monitor Row Layout page (2 files, 152 insertions / 16 deletions) — pushet til GitHub.
+## FIX 6 (16:36, brugerrapport 16:34)
 
-- `18bfaab` — feat: monitor row layout tuned defaults + 3-button reset/save design (11 files, 134 insertions / 93 deletions) — pushet til GitHub.
+- ✅ FIX 6 (16:36): FILE COPY PROGRESS DIALOG gik i stå under kopiering — men filerne blev kopieret korrekt. Rodårsag: `FileCopyProgressWindow` brugte `AllowsTransparency="True"` (samme ustabile WPF-kombination som FIX 5). Fix: `AllowsTransparency` fjernet + solid `Background="#F2F3F6"` — Topmost/ToolWindow/drag-bevarret. Deployet C:\IconGrid (DLL 16:36:14 matcher build).
+- ℹ️ BUFFER-ANBEFALING (16:36, hjemmeside-filer): web-filer består typisk af MASSER af små filer (CSS/JS/HTML/billeder ≤20 KB) + få store. MultiWorkerCopyService pakker allerede al ≤20 KB i én ZIP (én stream), så buffer-størrelsen betyder LIDT for små filer — 64–256 KB er fint. For billeder/medier >64 MB bruges chunk-split uanset buffer. **Anbefaling: 512 KB eller 1 MB** som god generel balance. VIGTIGST: hold Workers ≥4–8 så ZIP-pakning + medium-filer parallelliseres; sænk IKKE Workers til 1 (så bliver det sekventielt). Hvis højest gennemstrømning til store filer: 2 MB. Benchmark-kortet (Worker scaling / Buffer stress test) kan bekræfte kurven på dit drev.
 
-- `4814666` — feat: shortcut icons grid/carousel view settings split + visible icons slider + 82% icon floor + page scrollbar (13 files, 250 insertions / 51 deletions) — pushet til GitHub. Inkluderer README.md opdatering.
+## FIX 7a-7b (16:45, brugerrapport 16:43)
 
-## Session findings (2026-08-10)
+- ✅ FIX 7a (16:45): CANCEL-KNAPPEN i FileCopyProgressWindow blev KILPET i bunden (vinduehøjde 300 var for lav til 6-rækket grid + knap + ToolWindow-titlebar). Fix: højden øget til 360.
+- ✅ FIX 7b (16:45): OVERWRITE-VINDUET lå UNDER "Copying"-vinduet (Copying er Topmost, Overwrite var ikke). Fix: `Topmost="True"` på OverwritePromptWindow + højden justeret til 260 så knaprækken ikke klippes.
+- Deployet C:\IconGrid (DLL 16:45:15 matcher build).
 
-- HardwarePage.xaml: ALLE 4 hero-cards (Motherboard, CPU, GPU, Memory) gjort collapsible med Expander (samme mønster som GamingOverlayPage).
-  - 3-kolonne header: Title (*) | Logo (Auto, SharedSizeGroup) | Chevron (Auto)
-  - `Grid.IsSharedSizeScope="True"` + `SharedSizeGroup="HardwareLogoColumn"` — perfekt vertikal logo-alignment
-  - Nøgle-info synlig i header ved foldet tilstand:
-    - Motherboard: Board model
-    - CPU: Modelnavn @ Live clock (MultiBinding)
-    - GPU: Modelnavn
-    - Memory: Layout Type @ Speed (MultiBinding)
-  - Intro-tekst flyttet fra header til Content (kun synlig når ekspanderet)
-  - Logo-størrelser: ASUS 80×34, AMD/Intel/NVIDIA 100×34, alle `Stretch=Uniform` + `HorizontalAlignment=Center`
-  - Styles: `HardwareHeroExpanderStyle`, `HardwareHeroExpanderToggleButtonStyle`. Bruger eksisterende `BooleanToAngleConverter`.
-- Build: 0 fejl, 0 advarsler. Deploy: C:\IconGrid.
-- Commit: `9087441` — pushed til GitHub.
+## FIX 8 (17:11, brugerrapport 16:59 — 6 punkter)
 
-- CPU card på HardwarePage: tilføjet live Voltage tile (Spænding). Vises via DataContext.SystemMonitor.CpuVoltage (fx "1.181 V" for undervoltet CPU).
-- Ny data-flow: HardwareSnapshotCollector.CaptureCpuVoltage() → HardwareMonitorSnapshot.CpuVoltage → monitor-state.json → SystemMonitor.CpuVoltage → HardwarePage.xaml.
-- Sensor-prioritet i CaptureCpuVoltage: VID > Vcore/Core Voltage > "CPU ... Voltage" > "Voltage". Formateret F3 + " V".
-- Genbrugte eksisterende lokaliseringsnøgle HardwareVoltageLabel (en: Voltage, da: Spænding) — ingen nye nøgler nødvendigt.
-- Build: 0 fejl. check_architecture_rules: ingen nye violations (kun de 3 kendte).
+- ✅ #1 LANGSOMMELIG START: Benchmark-loggens Worker Scaling på H:\ viste at FLERE workers = MEGET langsommere (1: 21,58 MiB/s | 2: 6,62 | 4: 4,04 | 8: 2,36) — typisk for HDD/USB (disk-thrashing ved parallel skrivning). Fix: default WorkerCount 8 → 4.
+- ✅ #2 BENCHMARK-UDSTRIKT SORT: rodårsag — `TemplateSmallTextStyle` bruger `{Binding SettingsSubtextForeground}` som fejler inde i benchmark-DataTemplate (DataContext = benchmark-resultat, ikke MainViewModel) → sort standardfarve. Fix: eksplicit `Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource=AncestorType=UsbCopyPage}"` på de 2 benchmark-TextBlocks.
+- ✅ #3 DUBLET-KNAPPER: de 2 ekstra "Start copy"+"Cancel"-knapper under Buffer Size FJERNET (kun Start/Cancel i midterste kolonne mellem panelerne + dialog-vindue).
+- ✅ #4+#5 LAYOUT: siden er nu opdelt i egne hero-cards — (1) Files/File manager (paneler + drev-info), (2) Copy setup (Workers + Buffer + PipelineStatus), (3) Performance (kun live-tal + ProgressBar), (4) Log, (5) Benchmark. Workers ligger ikke længere direkte under file manager.
+- ✅ #6 FILES REMAINING GÅR I STÅ: ZIP-pakningen af tusindvis af små filer rapporterede først fremdrift NÅR hele pakningen var færdig. Fix: `state.AddSmallBatch(file.Size, 1, rel)` pr. pakket fil inde i pakke-loopen → Files remaining tæller nu ned live under hele pakningen.
+- Build 0 fejl/0 advarsler (17:11:57) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering stadig 250 en/250 da.
 
-- CPU voltage: CaptureCpuVoltage hærdet med motherboard-fallback — Vcore på AMD ligger typisk på Motherboard-noden (Super I/O), ikke CPU-noden. Prioritet: VID > Vcore/Core Voltage > "CPU ... Voltage" > "Voltage" (kun CPU-relevante navne filtreres på board-node).
-- FormatVoltage øget til F4 (fx "1.1813 V") for at vise undervolt-præcision.
-- Deployet via deploy-test.cmd til C:\icongrid + IconGrid genstartet — afventer bruger-verifikation af Spænding-tile på CPU-kortet.
+## FIX 9 (17:23, brugerrapport 17:20)
 
-- ✅ BRUGER-VERIFICERET (03:32): CPU-volten vises nu korrekt på HardwarePage CPU-kort (“Spænding”-tile). Løsning: motherboard-fallback + F4-præcision + deploy til C:\icongrid.
+- ✅ FIX 9 (17:23): PROGRESS-BAREN FRØS PÅ ~5%. Rodårsag: `MarkFileCompleted()` tællede kun fil-antallet (`_filesCompleted++`), men tilføjede ALDRIG filstørrelsen til `_totalCopied`. Billeder er typisk >20 KB (medium-filer) → de kopieres med no-op onProgress, så `TotalBytesCopied` kun steg under ZIP-pakningen (~5% af totalen). Fix: `MarkFileCompleted(fileName, bytes)` tilføjer nu `_totalCopied += bytes` på ALLE stier (sequential, medium, large-skip). Store filer (>64 MB) tæller allerede live via chunk-bytes. Progress-baren løber nu til 100% i takt med kopieringen.
+- Build 0 fejl/0 advarsler (17:23:38) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering stadig 250 en/250 da.
 
-- Margin-fix: Spænding-tilen på CPU-kortet fik `Margin="0,10,0,0"` for luft over den på sin egen WrapPanel-række. Build + deploy + restart udført.
+## FIX 10 + LOG-ANALYSE (17:32, brugerrapport 17:28)
 
-- Alignment-fix: GameResolutionPage (Game resolution i GamingOverlayPage) — Category/spil/External games dropdowns deler nu SharedSizeGroup="GameResComboBoxColumn" via Grid.IsSharedSizeScope=True på roden. External games' slet-knap fik egen delt kolonne (GameResRemoveColumn). Dropdowns: MinWidth=160 + HorizontalAlignment=Stretch i stedet for hardcodede Width=180/160.
-- Ny TemplateComboBoxStyle i StartsideStyles.xaml (erstatning for GamerResComboBoxStyle-duplikatet).
-- TemplateGuidelines.xaml opdateret med Alignment-kontrakt: Grid.IsSharedSizeScope ved roden, SharedSizeGroup på kontrol-kolonner, action-knapper i egen delt kolonne, MinWidth+Stretch i stedet for fixed Width, TemplateComboBoxStyle. Reference: GameResolutionPage.
-- Review: GenvejsIkonerPage/MonitorRowLayoutPage/LayoutPage bruger allerede konsistente mønstre (SliderRow, ToggleSwitchStyle, TemplatePage).
-- Build 0 fejl, deployet til C:\icongrid + IconGrid startet — afventer bruger-verifikation af alignment.
+- 📊 LOG-BEKRÆFTET HASTIGHED (copy-20260812-172507.log): 13.958 filer / 599.672.875 bytes (~572 MB) kopieret på ~20 s (17:25:08→17:25:28) USB→SSD med workers=4, buffer=1 MB. ZIP-pakning af 6.818 små filer tog kun 1,5 s (var 30+ s før). `MULTI COPY DONE bytes=599672875` = 100% korrekt. Kæmpe forbedring ✅.
+- ✅ FIX 10 (17:32): PERFORMANCE-SEKTIONEN viste "Files remaining 41" + status ~98% selvom alt var kopieret. Rodårsag: progress-events er throttlet ~100 ms + sendt via Dispatcher.BeginInvoke; kopien slutter lynhurtigt → IsCopying=false lukker vinduet før de sidste events rappes. Fix: efter `CopyPathsAsync` returnerer, sætter StartCopyAsync eksplicit `State.Progress = 100` og `State.FilesRemainingLabel = "0"` FØR vinduet lukkes.
+- Build 0 fejl/0 advarsler (17:32:29) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering stadig 250 en/250 da.
 
-- Game Resolution dropdowns (KUN den sektion, per bruger-besked): nu fast fælles grid. TemplateComboBoxStyle fik fast Width=MinWidth=220 (SettingsDropdownWidth), Height=MinHeight=32, VerticalContentAlignment=Center. Alle 3 dropdowns (Category, spil, External games) bruger TemplateComboBoxStyle + samme Margin=12,0,0,0 + SharedSizeGroup=GameResComboBoxColumn. Slet-knap i egen delte kolonne — dropdowns kan aldrig flytte sig.
-- KUN GameResolutionPage + StartsideStyles ændret (LayoutPage/GamingOverlayPage/StartsidePage dropdowns rørt IKKE).
-- Build 0 fejl, deployet C:\icongrid, IconGrid startet — afventer bruger-verifikation.
+## FIX 11 (17:46, brugerrapport 17:44)
 
-- X-knap alignment fikset: ALLE tre grids (Category, spil-liste, External games) har nu samme 3-kolonne-struktur med GameResRemoveColumn (tom i Category/spil) — SharedSizeGroup tvinger tom kolonne til X-knappens bredde (12px margin + 28px knap = 40px). Dropdowns uden X-knap får dermed præcis samme højre-plads som dem med, og ingen dropdown skubbes. Deployet C:\icongrid, IconGrid startet.
+- ✅ FIX 11 (17:46): READ TEST viste 1169 MB/s på USB — umuligt. Rodårsag: `RunReadTestAsync` læste med almindeligt FileStream, så Windows' PAGE CACHE (RAM) serverede den frisklavede 8 MB probe-fil → målte RAM-hastighed, ikke USB. Fix: `FILE_FLAG_NO_BUFFERING` (0x20000000) via `File.OpenHandle` + FileStream — alle reads går nu direkte til enheden (buffer 1 MB + 8 MB probe er multipla af 512-sektor, så flaget er gyldigt). Loggen logger nu også `READ TEST file_bytes=`.
+- ⚠️ DEPLOY-TRIVIA (17:46): `deploy-test.cmd` gav "Sharing violation" x2 første gang (filer låst). Fix ses i session: `taskkill /f /im IconGrid.exe` + `IconGridFpsAgent.exe` (begge "not found" trods lås — deployet skal bare køres IGEN) → andet kørs resultat vellykket. DLL-timestamp 17:46:03 matcher build. Noter: kør deployet en ekstra gang hvis det melder Sharing violation.
+- Brugerrapport: kopiering nu PÅ NIVEAU med Windows-kopiering (H:\ USB → E:\ SSD), statuslinje slutter 100%/0 korrekt.
 
-- Game Resolution opdelt i egne cards: Category-filter fik eget StartsideSectionCardStyle card (Padding 16, samme som spil/External cards) så Category-dropdownen nu aligner X-mæssigt med spil- og External-dropdowns. External games-titlen flyttet ind i sit eget card (titel + liste i samme Border, Padding 16). Alle tre grids deler stadig GameResComboBoxColumn + GameResRemoveColumn via SharedSizeGroup. Names ExternalGamesSection + ExternalGamesTitle bevaret (code-behind afhænger af dem). Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+## FIX 12 (17:56, brugerrapport 17:50)
 
-- Mørk-tema fix: StartsideSectionCardStyle fik nu default BorderThickness=1 + BorderBrush=#3A3A3A (mørk), så ALLE cards (inkl. de nye Game Resolution cards) har synlig ramme i mørkt tema. Lyst tema skifter stadig til #D1D5DB. Gælder app-wide da stilen er delt. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+- ✅ FIX 12 (17:56): SELECT ALL virkede ikke + ønske om Stifinder-markering. Rodårsag: `SelectAllFiles()` markerede kun FILER, ikke mapper (og almindelige klik opdaterede ikke status). Fix: (1) `SelectAllFiles()` markerer nu ALT (filer+mapper) som Windows Ctrl+A; (2) `FileBrowserPane` har nu `AnchorEntry` + `SetAnchor` + `SelectRange` (interval) + `RefreshSelectionStatus`; (3) `UsbCopyPage`'s ListBox'er har `PreviewMouseLeftButtonDown` → almindelig klik = enkelt-markering + nyt anker, Ctrl+klik = toggle, Shift+klik = interval fra anker. CheckBox-klik er beskyttet mod dobbelt-håndtering.
+- Build 0 fejl/0 advarsler (17:56:19) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering stadig 250 en/250 da.
 
-- Startside: 'Language and region' → 'Language' (en). DK er allerede 'Sprog'. Lokaliseringsnøgle LanguageSectionTitle ændret i LocalizationHelper.cs. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+## FIX 13 + BREAK-ANALYSE (18:11, brugerrapport 18:03)
 
-- Monitor Row Layout: de 3 cards (Element Gaps, Dividers, CPU/GPU bars) er nu collapsible expanders med chevron (samme mønster som GamingOverlay/Hardware): MonitorRowExpanderStyle + MonitorRowExpanderAngleConverter. Titles er 16/SemiBold og indholdet er uændret. Build 0 fejl, deployet C:\icongrid, IconGrid startet.
+- 📊 BREAK-ANALYSE (copy-20260812-180011.log): 18.490 filer / 1.177 MB, workers=4. ZIP-pakningen af 8.936 små filer tog kun ~2 s (18:00:11.5→18:00:13.6), men UNPACK-fasen tog ~7,5 s (PACK UNPACK 18:00:13.9 → PACK DONE 18:00:21.4) — det er brugerens "break"/stoppet.
+- ✅ FIX 13 (18:11): UNPACK var SEKVENTIEL (`ExtractToFile` én ad gangen for 8.936 filer = tusindvis af små random-writes = samme bottleneck som ZIP-pakningen undgår). Fix: `UnpackZipAsync` bruger nu `Parallel.ForEachAsync` (MaxDegreeOfParallelism = max(2, ProcessorCount/2)) med samme OverwriteSession-politik. ~7,5 s breaket forventes fjernet.
+- Build 0 fejl/0 advarsler (18:11:40) — deployet C:\IconGrid (DLL-timestamp matcher).
 
-- Deploy 05:29: HardwarePage card-overskrifter 20→16 deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk). IconGrid startet 05:36.
+## FIX 14 + BENCHMARK-SYSTEM (18:50, brugerønsker 18:27-18:34)
 
-- Deploy 05:45: Del 2 typografi-centralisering deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk, 969728 bytes). IconGrid startet 05:45.
-- Del 2 færdig: ALLE 7 settings-sider bruger nu Template*Style-styles fra TemplateGuidelines.xaml:
-  - HardwarePage: card-titler + metrics (TemplateCardTitleStyle), header-subtitler (TemplateSectionTitleStyle), intro (TemplateHeroBodyStyle), labels (TemplateSmallTextStyle). Chevron(18)/white badges beholdt lokalt.
-  - StartsidePage: hero (TemplateHeroTitleStyle), card-titler (TemplateCardTitleStyle), sektions-titler (TemplateSectionTitleStyle), intro (TemplateHeroBodyStyle), små tekster (TemplateSmallTextStyle).
-  - GenvejsIkonerPage: hero + intro + animation card titel/intro centraliseret.
-  - AboutPage, HjaelpPage, LayoutPage, TestPage: hero/card/section/body/small alle centraliseret.
-- KONSISTENS-GEVINST: Én ændring i fx TemplateCardTitleStyle (16) i TemplateGuidelines.xaml → alle settings-sider følger med automatisk.
-- Bevidst bevaret lokalt: Segoe Fluent Icons chevron (18), video-badges med Foreground=White (CPU/GPU/Memory), LAYOUT slot-knap style (16), TestPage buttons (14), ComboBox FontSize=14 (LayoutPage).
-- Build: 0 fejl, 0 advarsler. check_architecture_rules: ingen nye violations (kun de 3 kendte). run_all_checks: alt OK (version 0.7.0-beta.1 konsistent, 168 en/168 da, ingen secrets, 6 pre-existing hardcoded danske linjer uændret).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Næste session — PLAN & PROMPT (overskriftskonsistens + central typografi)
-
-## Status lige nu (gemt 2026-08-10 05:31, session afsluttes)
-- HardwarePage.xaml: alle 4 card-overskrifter (Motherboard, CPU, GPU, Memory) ændret FontSize 20 → 16. Build ✅ 0 fejl. MEN: **ikke deployet til C:\icongrid og ikke committet** (u-committed working tree).
-- Seneste pushede commit: `633e84d`.
-
-## Plan for næste session (en ad gangen, small steps)
-
-### Del 1 — hardware-fix færdiggøres
-1. Deploy til C:\icongrid (`& .\deploy-test.cmd`) + start IconGrid.
-2. Manuel test: Hardware-siden skal nu have card-overskrifter i 16 (samme som GamingOverlay/Startside).
-3. Commit + push når brugeren bekræfter: `git add Views/Settings/Pages/HardwarePage.xaml CHAT_STATE.md` → commit → push.
-
-### Del 2 — Centraliser typografi (brugerens ønske: ændr ét sted → virker alle sider)
-- Skift alle hardcodede FontSize på settings-siderne til de delte styles i `TemplateGuidelines.xaml`:
-  - `TemplateHeroTitleStyle` (20, side-titel) — brugt af side-titler på Startside/GenvejsIkoner/Layout/About/Hjaelp/MonitorRowLayout.
-  - `TemplateCardTitleStyle` (16, card-titel) — GamingOverlay bruger 16 på collapsible headers; Hardware bruger nu 16 (skal også bindes til style).
-  - `TemplateSectionTitleStyle` (14), `TemplateHeroBodyStyle` (13), `TemplateSmallTextStyle` (12).
-- Berørte filer (har stadig hardcodede FontSize): HardwarePage.xaml, StartsidePage.xaml, GenvejsIkonerPage.xaml, AboutPage.xaml, HjaelpPage.xaml, LayoutPage.xaml, TestPage.xaml.
-- Når alle sider bruger styles, kan man ændre fx TemplateCardTitleStyle ét sted → hele appen følger med.
-
-### Del 3 — Verifikation
-- Build + deploy + manuel gennemgang af ALLE sider (overskrifter ens).
-- `run_all_checks` + CHAT_STATE.md opdateres.
-
-## FÆRDIG PROMPT til næste session (kopiér dette)
-"Vi arbejder videre på overskriftskonsistens. Færdiggør Del 1: HardwarePage card-overskrifter er allerede ændret 20→16 i working tree (bygget 0 fejl, men ikke deployet/committet) — deploy, test, commit og push. Fortsæt derefter med Del 2: centraliser al settings-typografi ved at erstatte hardcodede FontSize med Template*Style-styles fra TemplateGuidelines.xaml på alle settings-sider (HardwarePage, StartsidePage, GenvejsIkonerPage, AboutPage, HjaelpPage, LayoutPage, TestPage), så én ændring i en delt style virker på alle sider. Afslut med Del 3: build, deploy, manuel gennemgang + run_all_checks."
-
-
-
-## Session findings (2026-08-11)
-
-- Monitor row layout: de 'gode' justeringer (Ping→Net 4, Net→Download 4, Down→Up 4, Up→CPU 4, CPU→GPU 4, DividerGap 16, CPU/GPU BarGap 8/8, label→value 4×2, value→unit 4×2, value-widths 20/20) er nu de nye fabriksdefaults.
-- Opdateret alle 6 steder med hardcodede defaults: ConfigModel.cs, MonitorLayoutDefaultsSnapshot.cs, MainViewModel.cs (backing fields), MainViewModelConfigState.cs, MainViewModelSettingsState.cs, MonitorRowLayoutPage.xaml.cs (reset-fallback) + MainWindow.xaml.cs (legacy reset, dead code konsistens).
-- Build: 0 fejl, 0 advarsler. Deployet via deploy-test.cmd til C:\icongrid (DLL verificeret frisk, 969728 bytes, 18:15). IconGrid startet.
-- check_architecture_rules: ingen nye violations (kun de 3 kendte).
-- IKKE committet/pushet — afventer bruger-approval.
-
-- Knap-tekst rettet: 'Reset to my default' → 'Reset to default' (en) og 'Nulstil til min standard' → 'Nulstil til standard' (da) i LocalizationHelper.cs. Build 0 fejl, deployet C:\icongrid (18:23).
-- Bruger overvejer 3 save-profiler for monitor row layout — svaret: foreslået 3 foruddefinerede presets (Kompakt/Normal/Luftig) i stedet for 3 brugerdefinerede lagrede profiler.
-
-- Monitor Row Layout fik nyt 3-knap design efter brugerønske:
-  1. **Reset to default** — ALTID fabriksværdier (kan ikke ændres af brugerens gemte default)
-  2. **Reset to my default** — gendanner brugerens gemte layout (ny knap; falder tilbage til fabriksværdier hvis ingen er gemt)
-  3. **Save current to my default** — gemmer nuværende som brugerens personlige default
-  - Ny lokaliseringsnøgle: MonitorRowResetToMyDefaultButton (en: 'Reset to my default', da: 'Nulstil til min standard')
-  - Opdateret MonitorRowSaveAsDefaultButton (en: 'Save current to my default', da: 'Gem nuværende som min standard') + ny description på begge sprog.
-  - Filer ændret: LocalizationHelper.cs, MainViewModel.Localization.cs, MonitorRowLayoutPage.xaml (3. knap + Click=ResetToMyDefaultButton_Click), MonitorRowLayoutPage.xaml.cs (split reset-logik: ResetDefaultsButton_Click = altid fabrik, ResetToMyDefaultButton_Click = saved-snapshot med fallback).
-  - Build 0 fejl, deployet C:\icongrid (18:29) — afventer bruger-verifikation.
-
-- ✅ BRUGER-VERIFICERET + COMMITTET + PUSHEt (18:36): `18bfaab` — monitor row layout tuned defaults + 3-button reset/save design. 
-- run_all_checks ved session-afslutning: Architecture 3 kendte violations (uændret), version 0.7.0-beta.1 konsistent, localization 169 en/169 da synkroniseret, ingen secrets, XAML 6 kendte hardcodede danske linjer (uændret).
-- Working tree: ren (alt commit + push).
-
-- GenvejsIkonerPage.xaml omstruktureret i tydelige sektioner efter brugerønske (Grid view vs Carousel view indstillinger):
-  - Hero: Carousel-view toggle + Enable icon scroll toggle.
-  - Card 1 'Shared': Icon size slider (fælles for BEGGE views — enig med bruger om at ikonstørrelse skal deles).
-  - Card 2 'Grid view (vertical)': Icons per row, Icon row spacing, Bottom padding (last row) — tydeligt markeret som kun-vertikal. IconsPerRow er nu flyttet ind her (var i MainWindow.xaml settings overlay).
-  - Card 3 'Carousel view (horizontal)': NY indstilling 'Visible icons' (1-12, default 4) — styrer hvor mange ikoner der er synlige i carousel-viewporten (= horisontal afstand).
-  - Card 4: Animation card (uændret).
-- Ny backend: CarouselVisibleIcons (int, default 4, clamp 1-12) gennem hele kæden: ConfigModel → ConfigState → SettingsState → Persistence → MainViewModel → LauncherLayoutMeasurements.CarouselCellWidth() (bruger nu CarouselVisibleIcons i stedet for IconsPerRow som slots i carousel).
-- Nye lokaliseringsnøgler (en+da): ShortcutsGridTitle, ShortcutsGridDescription, ShortcutsCarouselTitle, ShortcutsCarouselDescription, ShortcutsCarouselVisibleIconsLabel, ShortcutsCarouselVisibleIconsDescription.
-- Build 0 fejl, deployet C:\icongrid (18:54, DLL 976384 bytes) — afventer bruger-verifikation.
-
-- IconScale (Icon size) fik nyt gulv: minimum er nu 82% / 0.82 (tidligere 0.5 på GenvejsIkonerPage, 0.8 i MainWindow overlay). Årsag: i carousel bliver viewport-højden beregnet som 96 × scale, mens selve tile altid fylder ~96px → under ~84% klippes ikonerne. 82% er nu det nye laveste punkt (brugerens ønske).
-- Ændringer: GenvejsIkonerPage.xaml slider Minimum 0.5→0.82, MainWindow.xaml settings-overlay Minimum 0.8→0.82, MainViewModel.IconScale setter clamp Math.Max(0.82, value), MainViewModelConfigState.FromConfig clamp Math.Max(0.82, config.IconScale).
-- Build 0 fejl, deployet C:\icongrid (19:06, DLL 976384 bytes) — afventer bruger-verifikation.
-
-- GenvejsIkonerPage.xaml fik det samme ScrollViewer-mønster som GamingOverlayPage (ScrollViewer Margin=12, VerticalScrollBarVisibility=Auto, PanningMode=VerticalOnly, SettingsPageScrollBarStyle i Resources) så siden har scrollbar når indholdet overstiger vinduet. TemplatePage Margin ændret 12→0 (ScrollViewer tager nu margenen).
-- Build 0 fejl, deployet C:\icongrid (19:11, DLL 976896 bytes) — afventer bruger-verifikation.
-
-- ✅ SESSION AFSLUTTET (19:14): Alt commit + push (`4814666`). README.md opdateret med nye GenvejsIkoner beskrivelser.
-- run_all_checks ved session-afslutning: Architecture 3 kendte violations (MainWindow 1062, MainViewModel 1862 — voksede fra 1840 pga. CarouselVisibleIcons + clamp, stadig kun de 3 kendte filer), version 0.7.0-beta.1 konsistent, localization 175 en/175 da synkroniseret, ingen secrets, XAML 6 kendte hardcodede danske linjer (uændret).
-
-
-- NY FEATURE: Fast USB Copy-side implementeret (C#/.NET, WPF). Sidebar-nav 'USB Copy' (UC-badge) efter Monitor Row Layout. Siden bruger GamingOverlayPage-struktur + central lokaliseringsmodel (LocalizationHelper → MainViewModel.Localization → bindings), TemplatePage + TemplateGuidelines.xaml + StartsideSectionCardStyle.
-- Backend: Helpers/UsbCopy/ — UsbDeviceInfo+UsbPortType-enum, UsbDeviceDetector (WMI Win32_DiskDrive/USBControllerDevice, port-type USB 2.0/3.0/3.2/4.0), UsbCopyEngine (buffer-pipeline, SequentialScan+WriteThrough, events), UsbCopyLogger (AppData\Roaming\IconGrid\logs\fastusbcopy\ + benchmark\), UsbBenchmarkRunner (Port/Read/Write/BufferStress 64KB-2MB/Stability 30s), UsbCopyState (INotifyPropertyChanged).
-- ViewModels/Settings/UsbCopyViewModel.cs ejer feature-logik (MainViewModel uberørt, jf. ARCHITECTURE_RULES). Views/Settings/Pages/UsbCopyPage.xaml(.cs) — 5 cards: Enheder, Kopiering, Performance, Log, Benchmark. Lokalisering: 39 nye nøgler (UsbCopy*) = 214 en/214 da.
-- Build: 0 fejl, 0 advarsler. Deployet via deploy-test.cmd til C:\icongrid (DLL verificeret 20:33:18). IconGrid startet — afventer bruger-verifikation af siden + enhedsdetektion + benchmark.
-- check_architecture_rules/run_all_checks: KUN de 3 kendte violations uændret (MainWindow 1062, MainViewModel 1862, HardwareMonitorAgent 1772). Ingen nye violations.
-- IKKE committet/pushet — afventer bruger-approval.
-
-
-- FIX (brugerrapporteret crash): XamlParseException 'LayoutActionButtonStyle could not be found' i UsbCopyPage.InitializeComponent. Årsag: TemplateActionButtonStyle i den DELTE Views/TemplateGuidelines.xaml var BasedOn={StaticResource LayoutActionButtonStyle}, men LayoutActionButtonStyle er KUN defineret lokalt i LayoutPage.xaml — så alle sider der brugte TemplateActionButtonStyle ville crash (ikke kun UsbCopyPage). Fix: gjort TemplateActionButtonStyle selvstændig (Padding 12,6 + AccentBrush-setters direkte, uden BasedOn).
-- Build 0 fejl, deployet via deploy-test.cmd (DLL verificeret 20:37:05), IconGrid kører nu (2 processer: launcher PID + agent).
-- NY PROCES-REGEL: .clinerules + AGENT.md opdateret med 'COMMAND CHEATSHEET (REQUIRED)' — konsulter E:\IconGrid-GitHub\.local-state\regex-commands-cheatsheet.md FØR enhver shell-kommando, og opdater den ved hver fejl/forbedring. Cheatsheetet er oprettet med gode/dårlige mønstre (PowerShell $-variabler i oneliner = forbudt, && ikke gyldigt i PS 5.1, dir med flere stier, pipelines til Select-String).
-
-
-- NYE BENCHMARK-FUNKTIONER (brugerønske: test vs Windows + logge alt): UsbBenchmarkRunner.WindowsBaselineTestAsync (kopierer 32 MiB inkompressibel fil via File.Copy = samme API som Stifinder, markeret BaselineMethod='File.Copy (Explorer)'), UsbCopyLogger.ExportBenchmarkCsv (TestName,BaselineMethod,BufferSize,Bytes,AvgMiBS,PeakMiBS,Stalls,FlushSeconds,ElapsedSeconds), UsbCopyViewModel WindowsBaselineCommand + ExportCsvCommand, 3 nye lokaliseringsnøgler (en+da: UsbCopyWindowsBaselineButton, UsbCopyWindowsBaselineDescription, UsbCopyExportCsvButton), 2 nye knapper i UsbCopyPage benchmark-card. Så man kan sammenligne Fast USB Copy-pipeline vs Windows Stifinder side om side og analysere buffer-kurven i CSV/Excel.
-- Deploy 20:51:47: baseline+CSV-version deployet via deploy-test.cmd (DLL verificeret frisk), IconGrid startet. Build 0 fejl.
-- IKKE committet/pushet — afventer bruger-approval.
-
-
-- ✅ COMMITTET + PUSHEt (21:18): `f3d1e09` — 'feat: Fast USB Copy tool with optimized buffer pipeline, benchmark suite, Windows baseline, and CSV export' (18 filer, 2268 insertions / 3 deletions). Push: 4814666..f3d1e09 main -> main.
-- README.md opdateret i samme commit: Fast USB Copy i Settings-tabellen + dedikeret '## Fast USB Copy'-sektion (pipeline, live performance, logging, benchmark suite, arkitektur).
-- Next: .local-state/fast-copy.md indeholder den bruger-godkendte Fast Copy-plan (omdøb → dual-pane → multi-worker → skalerings-benchmark) + færdig prompt til næste session.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Næste session — PLAN & PROMPT (Fast Copy: omdøb + dual-pane + multi-worker)
-
-
-## Status lige nu (gemt 2026-08-11 21:14)
-- 'Fast USB Copy' feature er bygget + deployet (Helpers/UsbCopy, UsbCopyViewModel, UsbCopyPage, sidebar-knap UC, lokalisering 214 en/214 da). TemplateActionButtonStyle-fixet er deployet (var BasedOn=LayoutActionButtonStyle som kun findes i LayoutPage.xaml → crash). WindowsBaseline + ExportCsv knapper tilføjet.
-- IKKE committet/pushet — afventer bruger-approval. FastCopy-repo med teknikker: E:\ExternalTools\FastCopy-master (JAVA-implementering, principper oversættes til C#).
-- FULDE detaljer + godkendt plan + færdig prompt står i `.local-state/fast-copy.md` (læs med read_note 'fast-copy').
-
-## FÆRDIG PROMPT til næste session (kopiér dette)
-'Læs .local-state/fast-copy.md + CHAT_STATE.md først (Fast Copy-plan er godkendt af brugeren 2026-08-11 21:08). Udfør i rækkefølge med build + auto-deploy (deploy-test.cmd) efter hvert trin og verificér DLL-friskhed:
-1. Omdøb 'USB Copy' → 'Fast Copy' (en)/'Hurtig kopiering' (da): sidebar-nav, side-titel 'Fast Copy — HDD · SSD · USB', vis ALLE drevtyper (HDD/SSD/NVMe/USB) via DriveInfo.GetDrives() + Win32_DiskDrive MediaType/InterfaceType (ikke kun Removable). Ændr UsbCopy*-lokaliseringsnøgler til FastCopy* (en+da synkroniseret).
-2. Dual-pane fil-browser (Norton Commander-stil) på Fast Copy-siden — erstatter 'Vælg filer...': venstre 'Fra' + pil + højre 'Til'; begge paneler frit navigable (drev-dropdown, mapper/filer navn/størrelse/dato, dobbeltklik = ind, Op-knap, markering mellemrum/checkbox, status 'X filer · Y MB'); WorkerCount-slider (1–16) + buffer-dropdown her.
-3. Multi-worker engine (FastCopy-teknikker): WorkerCount + 20-fil-tærskel (<20 → sekventiel); små filer (≤20 KB) pakkes i temp-ZIP → én kopi → unzip; store filer (>64 MB) chunk-splittes parallelt (File.SetLength + positioned write). Log fil + worker-id + chunk + pakke-events.
-4. Skalerings-benchmark (1, 2, 4, 8 workers) + WorkerCount i CSV.
-5. Commit/push kun ved eksplicit godkendelse.
-Referencer: .local-state/fast-copy.md, Helpers/UsbCopy/, ViewModels/Settings/UsbCopyViewModel.cs, Views/Settings/Pages/UsbCopyPage.xaml(.cs), command-cheatsheet.'
-
-
-## Session findings (2026-08-11) — Fast Copy Trin 1
-
-- Fast Copy Trin 1 færdig + deployet (DLL 21:29:38, matcher build): 'USB Copy' → 'Fast Copy'/'Hurtig kopiering', side-titel 'Fast Copy — HDD · SSD · USB', alle drevtyper (Fixed+Removable) vises med medietype HDD/SSD/NVMe/USB via Win32_DiskDrive InterfaceType+MediaType/Model. Sidebar-badge 'UC'→'FC'. UsbCopy*-nøgler → FastCopy* (en+da, +FastCopyMediaTypeLabel). DriveMediaType-enum tilføjet. Build 0 fejl.
-- LÆRE (deploy): deploy-test.cmd gav 'Sharing violation' første gang fordi IconGrid.exe blev startet af scriptet mens den gamle DLL stadig var låst — C:\icongrid DLL var derfor stale (20:51:47). Fix: verificér at INGEN IconGrid.exe/IconGridFpsAgent.exe kører FØR deploy (tasklist), kør deploy igen, verificér DLL-timestamp matcher build.
-- IKKE committet/pushet — afventer bruger-approval.
-
-## Session findings (2026-08-11) — Fast Copy Trin 2
-
-- Fast Copy Trin 2 (dual-pane fil-browser) færdig + deployet (DLL 21:52:37, matcher build). Nye filer: Helpers/UsbCopy/FileBrowserEntry.cs + FileBrowserPane.cs. UsbCopyState fik WorkerCount (default 8). UsbCopyEngine fik CopyPathsAsync (relativ sti-bevaring + rekursiv mapper). UsbCopyViewModel fik LeftPane/RightPane/ActivePane/TargetPane + SwapSource + ToggleEntry/EnterDirectory/GoUp/SelectAll/ClearSelection kommandoer. UsbCopyPage.xaml fik dual-pane card (Fra | ⇄ | Til) + WorkerCount-slider (1-16) + buffer. 8 nye FastCopy*-nøgler (en+da synkroniseret). Build 0 fejl.
-- Næste: Trin 3 multi-worker engine (WorkerCount + 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes) + Trin 4 skalerings-benchmark (1/2/4/8 workers + WorkerCount i CSV).
-- IKKE committet/pushet — afventer bruger-approval.
-
-## Next steps
-
-Bruger-test er nødvendig før commit/push (spørg eksplicit, jf. AGENT.md).
-
-## Session findings (2026-08-11) — Fast Copy UI-fix: dropdown tekst hvid-på-hvid
-
-- Brugerrapporteret: dropdown-menuer på Fast Copy-siden havde hvid tekst på hvid baggrund (ulæseligt). To fixes bygget + deployet (DLL 22:25:28, matcher build):
-  1) Views/StartsideStyles.xaml → TemplateComboBoxStyle fik eksplicit ItemContainerStyle (ComboBoxItem Foreground=Black, Padding 6,4) så dropdown-listen er sort-på-hvid i begge temaer (gælder ALLE sider der bruger style'en, fx Game Resolution).
-  2) Views/Settings/Pages/UsbCopyPage.xaml → Fra/Til drev-dropdowns fik eksplicit ComboBox.ItemTemplate med TextBlock Foreground=Black, så både det viste felt-indhold og listen er sort.
-- AFVENTER bruger-verifikation. IKKE committet/pushet.
-
-## Session findings (2026-08-12) — Farvepalet/design-tokens + dropdown-fix
-
-- Brugerrapporteret: i Files From/To dropdowns er det IKKE teksten der er hvid, men WPF's DEFAULT ComboBox-popup der hardcoder hvid baggrund → tekst (mørk nok) bliver usynlig på hvid. Løsning:
-  1) DESIGN TOKENS (farvepalet) tilføjet øverst i Views/StartsideStyles.xaml: SurfaceFill*, SurfaceBorder*, Scroll*, ComboBox* (ComboBoxSurface #F3F4F7 (lyst, IKKE hvid), ComboBoxText #1F2937, border/hover/highlight).
-  2) TemplateComboBoxStyle omskrevet til custom ControlTemplate + PART_Popup med Border der bruger ComboBoxSurfaceBrush — så den udvidede liste er lysegå og læsbar i BEGGE temaer (gælder alle sider der bruger style'en). ComboBoxItemContainerStyle m. highlight token.
-  3) Farvepaletten dokumenteret i Views/TemplateGuidelines.xaml (ny 'COLOR PALETTE'-sektion) — én ændring i token-filen propagerer app-wide.
-- Build 0 fejl, deployet via deploy-test.cmd (DLL 01:38:58 verificeret frisk; første deploy gav transient Sharing violation — retry lykkedes).
-- IKKE committet/pushet — afventer bruger-approval.
-
-## Session findings (2026-08-12) — From/To dropdowns virkede ikke (drev lister tomme)
-
-- Brugerrapporteret: Files From/To dropdowns kunne ikke åbne / ingen drev, mens Buffer Size virkede fint. Rodårsager:
-  1) FileBrowserPane.DriveRoots var en {get; private set;}-auto property UDEN PropertyChanged-notification → ComboBox ItemsSource blev aldrig opdateret → tom liste i dropdownen.
-  2) From/To SelectedItem bandt Mode=TwoWay til CurrentDirectory som er getter-only → binding-fejl.
-  3) x:Name på ComboBox under TemplatePage gav namescope-fejl (MC3093) — løst med Tag="Left"/"Right" i stedet.
-- Fiks: DriveRoots fik INotifyPropertyChanged (OnPropertyChanged), SelectedItem→Mode=OneWay (CurrentDirectory er getter-only, opdateres via NavigateTo), fjernet band-aid ItemTemplate, ny DriveComboBox_SelectionChanged handler i code-behind der navigerer korrekt panel via Tag.
-- Build 0 fejl (13.2s), deployet via deploy-test.cmd, DLL verificeret frisk (01:57:53) — IconGrid kører.
-- IKKE committet/pushet — afventer bruger-approval. Farvepalet/design-tokens fra tidligere fix ligger fortsat i StartsideStyles.xaml + TemplateGuidelines.xaml.
-
-## Session findings (2026-08-12) — Dropdown-popup lå bag indhold + viste kun en stribe
-
-- Brugerrapporteret: From/To dropdown-menuer viste kun meget lidt og 'lå ikke et lag over knapperne nedenunder'. Rodårsager i TemplateComboBoxStyle (Views/StartsideStyles.xaml):
-  1) Popup havde AllowsTransparency=True → renderes i et transparent kompositions-lag uden eget HWND → kan ligge BAG andet indhold/knapper.
-  2) Border MaxHeight={TemplateBinding MaxDropDownHeight} → MaxDropDownHeight er NaN som standard → Border måles til ~0 højde → kun en lille stribe af menuen vises.
-- Fiks: fjernet AllowsTransparency (popup får eget HWND → ligger ALTID øverst) + fast MaxHeight=320 på popup-Border.
-- Build 0 fejl (12.0s), deployet via deploy-test.cmd, DLL verificeret frisk (02:11:02) — IconGrid kører. AFVENTER bruger-verifikation.
-- IKKE committet/pushet — afventer bruger-approval.
-
-## Session findings (2026-08-12) — TOMT dropdown fix (IReadOnlyList → ObservableCollection + tidlig init)
-
-- Brugerrapporteret: From/To + Drives dropdowns er TOME (vises korrekt via standard WPF-popup, men ingen items). Buffer-dropdown virker (statiske XAML-items). Ekstern analyse (WPF-binding):
-  1) ItemsSource som IReadOnlyList<T> opdaterer IKKE UI ved indholdsændring — Kræver ObservableCollection<T> eller at hele property-referencen skiftes + OnPropertyChanged.
-  2) Data populert i Loaded-eventen kan nå at være 'for sent' ift. binding-etablering.
-- Fiks (alle 4):
-  1) FileBrowserPane.DriveRoots: IReadOnlyList<string> → ObservableCollection<string> (Clear/Add i LoadDrives).
-  2) UsbCopyState.Devices: IReadOnlyList<UsbDeviceInfo> → ny ObservableDeviceCollection (ObservableCollection<UsbDeviceInfo>).
-  3) UsbCopyViewModel.RefreshDevices(): Clear() + Add() i stedet for hele-listen-assignment + SelectedDevice = Devices[0].
-  4) UsbCopyPage.xaml.cs: RefreshDevices() kaldt i constructoren (tidlig init) + Loaded kører opfriskning igen.
-- ElementName-bindinger bibeholdt (sidens DataContext er MainViewModel; UsbCopyViewModel er child — et fuldt DataContext-skift ville bryde lokaliseringen). ObservableCollection giver UI notifikation uanset ElementName-binding.
-- Build 0 fejl (12.4s), deployet via deploy-test.cmd, DLL verificeret frisk (02:59:46). AFVENTER bruger-verifikation.
-- IKKE committet/pushet — afventer bruger-approval.
-
-## Næste session — PLAN & PROMPT (dropdown-problem ULØST — ingen commit, ingen kodning mere i denne session)
-
-## STATUS (2026-08-12 03:10) — dropdown-problem IKKE løst
-- Sagen: Fast Copy-siden (Files From/To + Drives) viser ikke drev i dropdownsene. Popuppen åbner, men listen er tom (Drives + From/To). Buffer-dropdown virker (statiske XAML-items).
-- Vi HAR lavet mange fixes der IKKE løste det: (1) hvid-tekst fix, (2) light-surface popup, (3) standard WPF popup (fjerne custom ControlTemplate), (4) ObservableCollection for DriveRoots + Devices + tidlig init i constructor + Clear/Add. Build 0 fejl hver gang, deployet via deploy-test.cmd. Intet af dette fik drev til at vises.
-- Vigtig lære: ekstern analyse sagde IReadOnlyList+sen populering, men det løste det ikke. Næste skridt skal DEBUG datakilden: hvad returnerer UsbDeviceDetector.DetectDevices() og DriveInfo.GetDrives() PÅ DENNE MASKINE (evt. skriv count til trace.log), og verificér at ItemsSource-bindingerne faktisk får data (binding-fejl i Output).
-- INGEN commit/push — hele Fast Copy-arbejdet + dropdown-fixene er u-committet i working tree. AFVENTER bruger-approval + løsning.
-
-## FÆRDIG PROMPT til næste session
-'Fast Copy dropdown-problem er ULØST. Debug på data-niveau, ikke UI-styling: (1) Kontrollér hvad UsbDeviceDetector.DetectDevices() faktisk returnerer på systemet (skriv fil-/drev-count til trace.log i AppData/Roaming/IconGrid/trace.log under RefreshDevices() og driv-dropdown LoadDrives()) — er listen tom, eller er det bindingen der fejler? (2) Tjek Output-vinduet for WPF binding-fejl (System.Windows.Data Error) når siden åbnes. (3) Behold standard WPF ComboBox-styling (ingen custom ControlTemplate). (4) Når rodårsagen er fundet: ret, build 0 fejl, deploy via deploy-test.cmd, verificér DLL-timestamp. (5) Commit/push kun ved eksplicit bruger-approval. Referencer: Helpers/UsbCopy/UsbDeviceDetector.cs, Helpers/UsbCopy/FileBrowserPane.cs (DriveRoots ObservableCollection), Helpers/UsbCopy/UsbCopyState.cs (ObservableDeviceCollection), ViewModels/Settings/UsbCopyViewModel.cs (RefreshDevices), Views/Settings/Pages/UsbCopyPage.xaml(.cs), Views/StartsideStyles.xaml (TemplateComboBoxStyle — brug kun style/ItemContainerStyle, ikke custom template).'
-
-## Session findings (2026-08-12) — Ultimo session
-- Dropdown-problem: efter standard WPF-popup + ObservableCollection + tidlig init er dropdownene stadig tomme (brugerrapport 03:08). Problem ULØST. Ingen mere kodning i denne session (bruger-besked). Intet committet/pushet. CHAT_STATE opdateret. Next: se prompt ovenfor.
-
-## Næste session — PLAN & PROMPT (dropdown-problemet LØST 2026-08-12 03:58)
-
-## STATUS (2026-08-12 04:02) — dropdown-problemet er LØST
-- RODÅRSAG (data-niveau debug): trace.log beviste data ER til stede (DetectDevices=5, LoadDrives=5+5). Dropdowns var tomme pga. BINDING-fejl: alle ViewModel.*-bindinger brugte ElementName=Root, som ikke resolver henover TemplatePage (UserControl/namescope-grænse med ContentPresenter). Fix: RelativeSource AncestorType={x:Type views:UsbCopyPage} → drev viste.
-- Yderligere fixes: (2) DriveRootItem(Path,DisplayName) → drevnavne i dropdown; (3) string.Equals(Tag,"Left"/"Right",Ordinal) i stedet for ReferenceEquals → drevskift navigerer; (4) dobbeltklik på mappe: EventSetter sender=ListBoxItem → ItemsControlFromItemContainer + ListBox Tag → mappe-navigation virker; (5) langsommere opstart: global DataBindingSource-listener fjernet; undermappe-dropdown: ny FileBrowserPane.DriveRootPath (drev-roden).
-- ✅ BRUGER-VERIFICERET (03:58): dropdowns viser drevnavne, drevskift viser filer/mapper, mappe-navigation virker, undermappe-dropdown viser aktivt drev, opstart normal igen. Kopi-test OK.
-- NYE ØNSKER (ikke implementeret endnu): (1) UI fryser under kopiering → gør CopyPathsAsync/kopiering async med UI-marsalling; (2) destination pane opdateres dynamisk under kopiering (vis kopierede mapper efterhånden); (3) kopi-status-indikator med tid (samlet størrelse, tid brugt, resterende, filer tilbage) som normale kopiprogrammer.
-- LÆRE (MCP): icongrid-notes append_to_note afviser 'Invalid JSON argument' ved content med \n/specialtegn — brug korte kompakte kald eller File API. Noteret i regex-commands-cheatsheet.md.
-- Build 0 fejl hver gang. Deploy: C:\icongrid (seneste DLL 03:47:26). IKKE committet/pushet — afventer bruger-approval.
-
+- ✅ FIX 14 (17:46→18:21): ZIP-UDPAKNING trådsikker. Rodårsag til "kopi fejl" i log (PACK ERROR unsupported compression method): parallel ExtractToFile delte ÉN ZipArchive-stream (ikke trådsikker). Fix: hver worker åbner sit EGET arkiv pr. entry (ZipFile.OpenRead); UnpackZipAsync returnerer bool + `CopySmallFallbackAsync` kopierer små filer enkeltvis hvis ZIP fejler (kopien går ALDRIG ned pga. én dårlig entry). OverwriteSession er nu låst (lock) så "Overskriv alle" ikke spørger igen (race fixed).
+- ✅ BENCHMARK-SYSTEM (Del 1-3, 18:50): (1) `tools/benchmark-runner/BenchmarkRunner.csproj` — CLI der skaber incompressible web-lignende payload (70% små filer) + kører ægte CopyPathsAsync-pipeline, skriver benchmark-live.log + benchmark-summary.json. 100MB-test kørte: 180 filer, 4,28 MiB/s, 23,4s på H:\. (2) MCP-tool `run_copy_benchmark` i icongrid-notes-serveren — kan kaldes af MIG og af lokal AI i LM Studio (via OpenAI-compatibel API): `--size 100|300|500|1000`, optional drive/workers/buffer, returnerer stdout + JSON-summary. (3) Appen: `RunSyntheticBenchmarkCommand` + `BenchmarkRunWindow` (live-log + progress + Stop/Close) + knapper 100MB/300MB/500MB/1GB på Benchmark-card. Ny lok: FastCopyBenchmarkPreparing, FastCopyCloseButton. IconGrid.csproj ekskluderer nu tools/ + Native/ fra compile-globs.
+- ℹ️ LM Studio-ide: IKKE dum — det er en rigtig god idé. LLM'en kan selv kalde run_copy_benchmark (100/300/500/1000), læse benchmark-summary.json og optimere workers/buffer, og skrive konklusioner til CHAT_STATE.md som jeg læser næste session. Kræver: LM Studio server + OpenAI-kompatibelt function calling + MCP-serveren kørende.
+- Build 0 fejl/0 advarsler (18:50:05) — deployet C:\IconGrid (DLL-timestamp matcher). Lokalisering 252 en/252 da; XAML hardcoded dansk tilbage på 6 pre-existing.

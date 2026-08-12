@@ -1,0 +1,51 @@
+<Window x:Class="IconGrid.Views.NewFolderDialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding FastCopyNewFolderDialogTitle}"
+        Height="200"
+        Width="440"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="ToolWindow"
+        ShowInTaskbar="False"
+        Background="#F2F3F6"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="NewFolderActionButtonStyle" TargetType="Button" BasedOn="{StaticResource TemplateActionButtonStyle}">
+                <Setter Property="MinWidth" Value="88" />
+                <Setter Property="Margin" Value="8,0,0,0" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16">
+        <StackPanel>
+            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                       Text="{Binding FastCopyNewFolderDialogTitle}" />
+
+            <TextBlock Style="{StaticResource TemplateSmallTextStyle}"
+                       Margin="0,12,0,0"
+                       Text="{Binding FastCopyNewFolderPrompt}" />
+
+            <TextBox x:Name="FolderNameBox"
+                     Margin="0,8,0,0"
+                     Padding="6,4"
+                     VerticalContentAlignment="Center"
+                     KeyDown="FolderNameBox_KeyDown" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Style="{StaticResource NewFolderActionButtonStyle}"
+                        Content="{Binding FastCopyNewFolderOkButton}"
+                        Click="Ok_Click" />
+                <Button Style="{StaticResource NewFolderActionButtonStyle}"
+                        Content="{Binding FastCopyDeleteNoButton}"
+                        Click="Cancel_Click" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

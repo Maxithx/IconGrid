@@ -25,6 +25,7 @@ namespace IconGrid.Helpers.UsbCopy
     public sealed class FileBrowserPane : INotifyPropertyChanged
     {
         private string _currentDirectory = string.Empty;
+        private int _refreshSerial;
 
         public ObservableCollection<FileBrowserEntry> Entries { get; } = new();
 
@@ -132,6 +133,12 @@ namespace IconGrid.Helpers.UsbCopy
                 CurrentDirectory = string.IsNullOrEmpty(first?.Path) ? string.Empty : first.Path;
             }
 
+            // Re-assert the active drive root after the observable collection was
+            // rebuilt (Clear + Add). WPF does NOT re-evaluate the SelectedValue
+            // binding when the value is unchanged, so the From/To ComboBox would
+            // otherwise stay blank even though the dropdown list has all drives.
+            OnPropertyChanged(nameof(DriveRootPath));
+
             Refresh();
         }
 
@@ -170,19 +177,116 @@ namespace IconGrid.Helpers.UsbCopy
 
         public void Refresh()
         {
-            Entries.Clear();
-            if (string.IsNullOrEmpty(CurrentDirectory) || !Directory.Exists(CurrentDirectory))
+            ApplyEntries(EnumerateEntries(CurrentDirectory));
+        }
+
+        /// <summary>
+        /// Creates a new directory in the current directory and refreshes the
+        /// pane. Returns false (without deleting anything) when the name is
+        /// invalid or the folder already exists.
+        /// </summary>
+        public bool CreateDirectory(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
             {
-                OnPropertyChanged(nameof(SelectionStatus));
-                return;
+                return false;
+            }
+
+            var invalid = Path.GetInvalidFileNameChars();
+            if (name.IndexOfAny(invalid) >= 0 || string.Equals(name, ".", StringComparison.Ordinal) || string.Equals(name, "..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            try
+            {
+                var path = Path.Combine(CurrentDirectory, name);
+                if (Directory.Exists(path))
+                {
+                    return false;
+                }
+
+                Directory.CreateDirectory(path);
+                Refresh();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Deletes the selected files/directories in this pane (recursive for
+        /// directories). Returns false when nothing was deleted or deletion
+        /// failed at any point.
+        /// </summary>
+        public bool DeleteSelectedEntries()
+        {
+            var selected = Entries.Where(e => e.IsSelected).ToList();
+            if (selected.Count == 0)
+            {
+                return false;
+            }
+
+            var ok = true;
+            try
+            {
+                foreach (var entry in selected)
+                {
+                    if (entry.IsDirectory)
+                    {
+                        Directory.Delete(entry.FullPath, recursive: true);
+                    }
+                    else
+                    {
+                        File.Delete(entry.FullPath);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                ok = false;
+            }
+
+            Refresh();
+            return ok;
+        }
+
+        /// <summary>
+        /// Refreshes the entry list without blocking the UI thread: the directory
+        /// enumeration + FileInfo calls run on a background thread, then the
+        /// resulting list is applied on the caller's (UI) thread. Used while a
+        /// copy is writing to the destination pane so the page never freezes.
+        /// A serial guard drops stale results when a newer refresh started.
+        /// </summary>
+        public async Task RefreshAsync()
+        {
+            var dir = CurrentDirectory;
+            var serial = ++_refreshSerial;
+            var list = await Task.Run(() => EnumerateEntries(dir));
+
+            if (serial != _refreshSerial || !string.Equals(dir, CurrentDirectory, StringComparison.Ordinal))
+            {
+                return; // A newer refresh or a navigation happened meanwhile.
+            }
+
+            ApplyEntries(list);
+        }
+
+        private List<FileBrowserEntry> EnumerateEntries(string dir)
+        {
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+            {
+                return new List<FileBrowserEntry>();
             }
 
             var entries = new List<FileBrowserEntry>();
             try
             {
-                foreach (var dir in Directory.EnumerateDirectories(CurrentDirectory))
+                foreach (var d in Directory.EnumerateDirectories(dir))
                 {
-                    var info = new DirectoryInfo(dir);
+                    var info = new DirectoryInfo(d);
                     entries.Add(new FileBrowserEntry
                     {
                         Name = info.Name,
@@ -192,7 +296,7 @@ namespace IconGrid.Helpers.UsbCopy
                     });
                 }
 
-                foreach (var file in Directory.EnumerateFiles(CurrentDirectory))
+                foreach (var file in Directory.EnumerateFiles(dir))
                 {
                     var info = new FileInfo(file);
                     entries.Add(new FileBrowserEntry
@@ -210,7 +314,16 @@ namespace IconGrid.Helpers.UsbCopy
                 // Unreadable directory — show whatever we managed to enumerate.
             }
 
-            foreach (var entry in entries.OrderBy(e => !e.IsDirectory).ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase))
+            return entries
+                .OrderBy(e => !e.IsDirectory)
+                .ThenBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+
+        private void ApplyEntries(List<FileBrowserEntry> entries)
+        {
+            Entries.Clear();
+            foreach (var entry in entries)
             {
                 Entries.Add(entry);
             }
@@ -231,9 +344,53 @@ namespace IconGrid.Helpers.UsbCopy
 
         public void SelectAllFiles()
         {
-            foreach (var entry in Entries.Where(e => !e.IsDirectory))
+            // Explorer-style Ctrl+A: select EVERYTHING (files AND folders).
+            foreach (var entry in Entries)
             {
                 entry.IsSelected = true;
+            }
+
+            OnPropertyChanged(nameof(SelectionStatus));
+        }
+
+        /// <summary>
+        /// Anchor entry used for Explorer-style Shift+click range selection
+        /// (set on ordinary clicks without Shift/Ctrl).
+        /// </summary>
+        public FileBrowserEntry? AnchorEntry { get; private set; }
+
+        public void SetAnchor(FileBrowserEntry entry)
+        {
+            AnchorEntry = entry;
+        }
+
+        /// <summary>
+        /// Re-raises SelectionStatus so the status line updates after manual
+        /// selection changes made outside the pane's own commands.
+        /// </summary>
+        public void RefreshSelectionStatus() => OnPropertyChanged(nameof(SelectionStatus));
+
+        /// <summary>
+        /// Selects every entry between the anchor and the clicked entry
+        /// (Explorer Shift+click). Existing selections outside the range are kept.
+        /// </summary>
+        public void SelectRange(FileBrowserEntry from, FileBrowserEntry to)
+        {
+            var start = Entries.IndexOf(from);
+            var end = Entries.IndexOf(to);
+            if (start < 0 || end < 0)
+            {
+                return;
+            }
+
+            if (start > end)
+            {
+                (start, end) = (end, start);
+            }
+
+            for (var i = start; i <= end; i++)
+            {
+                Entries[i].IsSelected = true;
             }
 
             OnPropertyChanged(nameof(SelectionStatus));

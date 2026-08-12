@@ -721,6 +721,34 @@ class NotesServer {
           },
         },
         {
+          name: 'run_copy_benchmark',
+          description:
+            'Run a synthetic copy benchmark through the exact Fast Copy production pipeline (BenchmarkRunner.exe -> UsbCopyEngine.CopyPathsAsync). Creates an incompressible web-like payload (70% small files) on the target drive, copies it via the pipeline, and writes both a live log and a JSON summary. Suitable for tuning workers/buffer and for letting the local AI issue tests and read results.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              size: {
+                type: 'integer',
+                description: 'Payload size in MB. Typical: 100, 300, 500, 1000.',
+              },
+              drive: {
+                type: 'string',
+                description:
+                  'Optional drive root (e.g. "H:\\") to run the test on. Defaults to the smallest non-system fixed/removable drive.',
+              },
+              workers: {
+                type: 'integer',
+                description: 'Optional worker count (default 4).',
+              },
+              buffer: {
+                type: 'integer',
+                description: 'Optional buffer size in bytes (default 1048576 = 1 MB).',
+              },
+            },
+            required: ['size'],
+          },
+        },
+        {
           name: 'run_all_checks',
           description:
             'Run ALL architecture, version, localization, security, and XAML checks at once. Use this at session end for a complete project health report.',
@@ -849,6 +877,71 @@ class NotesServer {
           return {
             content: [{ type: 'text', text: report }],
           };
+        }
+
+        case 'run_copy_benchmark': {
+          const { execFile } = await import('node:child_process');
+          if (!args || typeof args.size !== 'number' && !(typeof args.size === 'string' && !isNaN(Number(args.size)))) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              'size (MB) is required for run_copy_benchmark. Typical: 100, 300, 500, 1000.'
+            );
+          }
+          const sizeMb = Number(args.size);
+          const exe = path.join(
+            WORKSPACE_ROOT,
+            'tools',
+            'benchmark-runner',
+            'bin',
+            process.platform === 'win32' ? 'Debug' : 'Release',
+            'net10.0-windows10.0.22621.0',
+            process.platform === 'win32' ? 'BenchmarkRunner.exe' : 'BenchmarkRunner'
+          );
+          if (!(await fileExists(exe))) {
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `BenchmarkRunner.exe not found at ${exe}. Build it first: dotnet build tools/benchmark-runner/BenchmarkRunner.csproj`
+            );
+          }
+
+          const runnerArgs = ['--size', String(sizeMb)];
+          if (typeof args.drive === 'string' && args.drive.trim()) runnerArgs.push('--drive', args.drive.trim());
+          if (typeof args.workers === 'number' || (typeof args.workers === 'string' && !isNaN(Number(args.workers)))) runnerArgs.push('--workers', String(Number(args.workers)));
+          if (typeof args.buffer === 'number' || (typeof args.buffer === 'string' && !isNaN(Number(args.buffer)))) runnerArgs.push('--buffer', String(Number(args.buffer)));
+
+          const result = await new Promise((resolve) => {
+            execFile(exe, runnerArgs, { timeout: 60 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 }, (error, stdout, stderr) => {
+              resolve({ error, stdout, stderr });
+            });
+          });
+
+          // Read the JSON summary written by the runner.
+          const summaryPath = path.join(
+            process.env.APPDATA || '',
+            'IconGrid', 'logs', 'fastusbcopy', 'benchmark-summary.json'
+          );
+          let summaryText = '';
+          try {
+            if (await fileExists(summaryPath)) {
+              summaryText = await fs.readFile(summaryPath, 'utf8');
+            }
+          } catch {
+            summaryText = '';
+          }
+
+          const parts = [];
+          parts.push('=== run_copy_benchmark ===');
+          if (result.error) {
+            parts.push(`Benchmark runner exit/error: ${result.error.message}`);
+          }
+          if (result.stdout && result.stdout.trim()) parts.push(result.stdout.trim());
+          if (result.stderr && result.stderr.trim()) parts.push(`stderr: ${result.stderr.trim()}`);
+          if (summaryText.trim()) {
+            parts.push('');
+            parts.push('--- benchmark-summary.json ---');
+            parts.push(summaryText.trim());
+          }
+          return { content: [{ type: 'text', text: parts.join('\n') }] };
         }
 
         case 'run_all_checks': {

@@ -13,7 +13,7 @@ namespace IconGrid.Helpers.UsbCopy
         private readonly ObservableDeviceCollection _devices = new();
         private UsbDeviceInfo? _selectedDevice;
         private int _bufferSize = 1024 * 1024;
-        private int _workerCount = 8;
+        private int _workerCount = 4;
         private bool _isCopying;
         private bool _isBenchmarking;
         private double _liveMiBS;
@@ -24,6 +24,9 @@ namespace IconGrid.Helpers.UsbCopy
         private string _pipelineStatus = string.Empty;
         private string _logContent = string.Empty;
         private string _lastError = string.Empty;
+        private string _elapsedText = string.Empty;
+        private string _totalSizeLabel = string.Empty;
+        private string _filesRemainingLabel = string.Empty;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -111,6 +114,24 @@ namespace IconGrid.Helpers.UsbCopy
         {
             get => _lastError;
             set => SetField(ref _lastError, value);
+        }
+
+        public string ElapsedText
+        {
+            get => _elapsedText;
+            set => SetField(ref _elapsedText, value);
+        }
+
+        public string TotalSizeLabel
+        {
+            get => _totalSizeLabel;
+            set => SetField(ref _totalSizeLabel, value);
+        }
+
+        public string FilesRemainingLabel
+        {
+            get => _filesRemainingLabel;
+            set => SetField(ref _filesRemainingLabel, value);
         }
 
         public ObservableBenchmarkResults BenchmarkResults { get; } = new();

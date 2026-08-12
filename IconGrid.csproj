@@ -27,6 +27,14 @@
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 
+  <!-- Exclude standalone tool projects from the WPF app's default compile globs -->
+  <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
+    <Compile Remove="Native\**\*.cs" />
+    <None Remove="tools\**\*.cs" />
+    <None Remove="Native\**\*.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
