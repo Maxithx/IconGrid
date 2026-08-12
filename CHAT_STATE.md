@@ -17,7 +17,7 @@ Wednesday, August 12, 2026
 - ✅ FIX 3 (16:01, næste session): OPRET MAPPE + SLET (Stifinder-stil) implementeret — `FileBrowserPane.CreateDirectory(name)` + `DeleteSelectedEntries()` (Directory.Delete recursive / File.Delete), `NewFolderDialogWindow` (navn-input) + `DeleteConfirmWindow` (bekræftelse med lokaliseret "Slet '{0}'?"), knapper "Ny mappe"/"Slet" i BEGGE paneler, kommandoer via `UsbCopyViewModel.NewFolderCommand`/`DeleteCommand` + events.
 - ✅ LOKALISERING: 18 nye nøgler (en+da) — Overwrite-titel/spørgsmål/Ja/Ja alle/Nej/Nej alle, Ny mappe (knap/titel/prompt/Opret), Slet (knap/titel/bekræftelse/Slet/Annullér), ugyldigt navn, mappe findes. 250 en / 250 da (synkroniseret via run_all_checks 16:02).
 - ✅ UI-OMLÆGNING (05:09, brugerens ønske): "Drives"-card SLETTET — drev-info (Medietype/Porttype/Kapacitet/Ledig plads) vises nu som From/To-paneler under fil-browseren (`LeftPaneDevice`/`RightPaneDevice` i UsbCopyViewModel, synkroniseret via PropertyChanged). Performance (Live/Gen/Peak/ETA + Tid/Samlet/Filer + ProgressBar) er flyttet IND i Files-cardet under Start/Cancel-knapperne. Benchmark-card har fået egen kompakt mål-enhed-vælger (ComboBox SelectedDevice + Opdater). Deployet (DLL 05:09:48 matcher build).
-- ⚠️ IKKE COMMITTET/PUSHET — HELE Fast Copy-arbejdet (ugeværk siden 08-11) ligger u-committet i working tree. Seneste commit er stadig `79ff8f6`.
+- ✅ ALLE Fast Copy-fixes siden 08-11 er COMMITTET + PUSHET (19:47) som `dbf7f83` — "feat: Fast Copy - stabil kopi-pipeline, overskriv-dialog, fil-manager, benchmark-system + robuste dialoger".
 
 ## Architecture status
 - `run_all_checks` (sidste kørsel ved 79ff8f6): 3 pre-existing VIOLATIONs — MainWindow 1062, MainViewModel 1862, HardwareMonitorAgent 1772. Alle dokumenterede tolerancer.
@@ -27,10 +27,10 @@ Wednesday, August 12, 2026
 - XAML: 6 pre-existing hardcoded Danish linjer
 
 ## Working tree status
-- **Seneste commit:** `79ff8f6` — "feat: Fast Copy dual-pane fixes - drive dropdown names, navigation, folder navigation, DriveRootPath + async copy UI groundwork" — pushet til GitHub.
-- Nuværende session (18:50): FIX 1-14 implementeret (FIX 14 = trådsikker ZIP-udpakning + fallback + låst OverwriteSession) + BENCHMARK-SYSTEM (CLI BenchmarkRunner + MCP-tool run_copy_benchmark + live-vindue med 100/300/500/1GB-knapper) — IKKE committet/pushet endnu. Alt Fast Copy-arbejde siden 08-11 ligger u-committet (seneste commit stadig `79ff8f6`). (seneste: Select all markerer ALT + Shift/Ctrl-klik Stifinder-stil; FIX 13 = parallel ZIP-udpakning fjerner ~7,5 s break midt i kopieringen) — IKKE committet/pushet endnu. Alt Fast Copy-arbejde siden 08-11 ligger u-committet (seneste commit stadig `79ff8f6`).
-- Build: 0 fejl, 0 advarsler (18:11:40).
-- Deploy: C:\IconGrid (18:11:40, DLL-timestamp matcher build — verificeret).
+- **Seneste commit:** `dbf7f83` — "feat: Fast Copy - stabil kopi-pipeline, overskriv-dialog, fil-manager, benchmark-system + robuste dialoger" (27 filer, +2460/−428) — ✅ pushet til origin/main (19:47).
+- ✅ ALLE Fast Copy-fixes siden 08-11 er nu committet + pushet: FIX 1-14 + benchmark-system (CLI runner, MCP-tool run_copy_benchmark, live-vindue 100/300/500/1GB).
+- Build: 0 fejl, 0 advarsler (18:50:05).
+- Deploy: C:\IconGrid (18:50:05, DLL-timestamp matcher build — verificeret).
 
 ## ULØSTE ISSUES fra bruger-test (05:11) — PRIORITERET til næste session
 1. **UI fryser i STARTEN under kopiering + kopieringen går i stå ved KOPIERING AF FLERE MAPPER.**
@@ -47,7 +47,8 @@ Wednesday, August 12, 2026
 ## Good next steps (næste session)
 - **Afventer bruger-verifikation** (17:12): test i C:\IconGrid at (1) kopiering starter hurtigere (default Workers nu 4 — benchmark-log viste at 8 workers var ~9× langsommere på H:\), (2) Files remaining/Tid/Filer tæller nu live ned allerede under ZIP-pakningen, (3) benchmark-udskrift er hvid/læsbar, (4) ingen dublet Start/Cancel-knapper under Buffer Size, (5) layout: File manager // Copy setup (Workers+Buffer) // Performance // Log // Benchmark i 5 adskilte cards.
 - Buffer til hjemmeside-filer: **512 KB eller 1 MB** anbefales (small-fil ZIP-pakning kører uanset; Workers 4 er ny default — se "FIX 8"-note).
-- Efter bruger-verifikation: spørg om commit + push (jf. AGENT.md) — HELE Fast Copy-arbejdet siden 08-11 ligger u-committet.
+- ✅ Commit + push GENNEMFØRT (19:47) som `dbf7f83` — intet ligger u-committet længere.
+- **Næste session (brugerønsker):** (1) LM Studio-forbindelse — tilføj "Vælg AI model / tilslut LM Studio"-UI på Fast Copy-siden (brugeren gør dette i sit andet program `E:\Maxithx projekter\AI-wordpress-scanner` og vil have det integreret); (2) kør benchmark-serien 100/300/500/1000 MB via nye knapper + optimér yderligere.
 - Referencer: `.local-state/fast-copy.md`, `Helpers/UsbCopy/MultiWorkerCopyService.cs`, `Helpers/UsbCopy/UsbCopyEngine.cs`, `Helpers/UsbCopy/OverwritePolicy.cs`, `Helpers/UsbCopy/FileBrowserPane.cs`, `ViewModels/Settings/UsbCopyViewModel.cs`, `Views/Settings/Pages/UsbCopyPage.xaml(.cs)`, `Views/OverwritePromptWindow.xaml(.cs)`, `Views/NewFolderDialogWindow.xaml(.cs)`, `Views/DeleteConfirmWindow.xaml(.cs)`, `Helpers/Settings/LocalizationHelper.cs`, `ViewModels/MainViewModel.Localization.cs`.
 - Session-log: `.local-state/sessions/2026-08-12.md` skal udvides med denne session (FIX 1-3 + rodårsager + bruger-verifikation).
 
