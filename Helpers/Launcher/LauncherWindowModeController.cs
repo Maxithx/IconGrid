@@ -554,14 +554,33 @@ namespace IconGrid.Helpers
 
         public void RestoreLauncherFromGame()
         {
-            // Only restore if the launcher was actually hidden for a game.
-            // When a game is started externally (e.g. COD from Battle.net),
-            // HideForGame is never called — so the launcher is still visible
-            // and in the user's chosen idle-hide mode. Running ApplyIdleHideMode
-            // here would restart the auto-hide delay timer in auto-hide mode
-            // and the launcher would disappear after X seconds for no reason.
-            if (!_isGameHideActive)
+            // If the launcher was not hidden for a game AND it is not hidden at
+            // all, there is nothing to do. This covers externally started games
+            // (e.g. COD from Battle.net) where the launcher stayed visible —
+            // running ApplyIdleHideMode would restart the auto-hide delay timer
+            // and hide the launcher for no reason.
+            //
+            // HOWEVER: the game-hide flag can be cleared EARLY while the window
+            // is still hidden in the game position. This happens when the user
+            // closes the gaming overlay manually during a game — the OverlayClosed
+            // handler calls this method, which resets _isGameHideActive, but the
+            // launcher remains in the hidden game-hide position. When the game
+            // later exits, the flag is already false, so the launcher would stay
+            // hidden forever (and the peek strip would be dead because
+            // ApplyIdleHideMode never re-armed it). Detect that stale case by
+            // checking _isHidden and restore the window anyway.
+            if (!_isGameHideActive && !_isHidden)
+            {
                 return;
+            }
+
+            // If the user MANUALLY hid the launcher, respect that — do not force
+            // it back into view just because a game exited. Only the true
+            // game-hide path (or a stale game-hide) auto-restores.
+            if (!_isGameHideActive && _isManuallyHidden)
+            {
+                return;
+            }
 
             _isGameHideActive = false;
 

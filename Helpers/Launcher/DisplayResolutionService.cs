@@ -69,12 +69,84 @@ namespace IconGrid.Helpers.Launcher
 
         private const string PrimaryDeviceName = null; // null => primary display
 
+        /// <summary>
+        /// Absolute safety valve (NOT a grace period): if a launch session never
+        /// produces a real game window (update check, launcher chain, aborted
+        /// launch), hold the resolution lock for at most this long before restoring
+        /// it, so the user is never stuck on the wrong resolution forever. Any path
+        /// where the game actually ran and exited restores immediately.
+        /// </summary>
+        private static readonly TimeSpan AbsoluteResolutionHoldLimit = TimeSpan.FromMinutes(30);
+
         private readonly object _lock = new();
         private readonly Dictionary<int, DEVMODE> _savedDevModes = new();
         private DEVMODE? _pendingOriginalMode;
         private CancellationTokenSource? _watchdogCts;
         private bool _disposed;
         private WindowTrackingService? _trackingService;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        // Shell/system processes that must NEVER be treated as a game window or
+        // as a handoff target. Without this filter, SystemSettings,
+        // XboxGameBarWidgets, SearchApp etc. get marked "game confirmed" by the
+        // watchdog, which restores the resolution too early when the shell
+        // window closes while the real game is still starting.
+        private static readonly string[] NonGameProcessNames =
+        {
+            "explorer",
+            "ApplicationFrameHost",
+            "SearchApp",
+            "StartMenuExperienceHost",
+            "SystemSettings",
+            "mscopilot",
+            "WmiPrvSE",
+            "XboxGameBar",
+            "XboxGameBarWidgets",
+            "GameBar",
+            "GameBarPresenceWriter",
+            "TextInputHost",
+            "ShellExperienceHost",
+            "Widgets",
+            "Code",
+            "brave",
+            "chrome",
+            "msedge",
+            "firefox",
+            "notepad",
+            "mspaint",
+            "Battle.net",
+            "steam",
+            "steamwebhelper",
+            "upc",
+            "EADesktop",
+            "EpicGamesLauncher",
+            "launcher"
+        };
+
+        // Per launch-session resolution-lock state. The lock follows the launch
+        // session, not a single PID: as long as a process with the game's
+        // executable name is alive (or is expected to appear, e.g. during an
+        // update check), the resolution stays locked.
+        // Both fields are only accessed from the watchdog task (single-threaded)
+        // and reset under _lock before the task starts, so no volatile is needed.
+        private bool _hasSeenGameRunning;
+        private DateTime _sessionStartedAtUtc;
 
         public event Action? ResolutionRestored;
 
@@ -238,49 +310,112 @@ namespace IconGrid.Helpers.Launcher
         public void WatchProcess(int rootProcessId)
         {
             var identity = ResolveProcessIdentity(rootProcessId);
+            var executableName = identity?.ExecutableName;
+            var startFileTimeUtc = identity?.StartFileTimeUtc ?? 0L;
+            WatchProcess(rootProcessId, executableName, startFileTimeUtc);
+        }
+
+        /// <summary>
+        /// Holds the resolution lock for the lifetime of a launch session, not a
+        /// single PID. The lock follows any process with the game's executable
+        /// name: while such a process is alive (or is expected to appear — e.g.
+        /// during an update check where the game exits and restarts itself), the
+        /// resolution stays locked.
+        ///
+        /// The resolution is restored in exactly two cases:
+        ///   1. The game was observed running (a visible game-sized window) and
+        ///      then all processes with its executable name exited — a real game
+        ///      session ended. This restores IMMEDIATELY.
+        ///   2. The game was NEVER observed running (update check / launcher
+        ///      chain / aborted launch) and the absolute safety limit expires.
+        ///      This is a safety valve only, not a fixed grace period, so
+        ///      arbitrarily long update checks never restore too early.
+        /// </summary>
+        public void WatchProcess(int rootProcessId, string? executableName, long startFileTimeUtc = 0L)
+        {
+            var identity = rootProcessId > 0 ? ResolveProcessIdentity(rootProcessId) : null;
+            if (identity != null)
+            {
+                executableName ??= identity.Value.ExecutableName;
+                startFileTimeUtc = identity.Value.StartFileTimeUtc;
+            }
 
             lock (_lock)
             {
                 _watchdogCts?.Cancel();
                 _watchdogCts?.Dispose();
                 _watchdogCts = new CancellationTokenSource();
+                _hasSeenGameRunning = false;
+                _sessionStartedAtUtc = DateTime.UtcNow;
             }
 
             var token = _watchdogCts.Token;
+            var watchPid = identity?.Pid ?? rootProcessId;
+            var watchStartFileTimeUtc = identity?.StartFileTimeUtc ?? startFileTimeUtc;
 
-            WriteTrace(identity != null
-                ? $"[DisplayResolutionService] WatchProcess started for PID {identity.Value.Pid} (root {rootProcessId}, StartTime {identity.Value.StartFileTimeUtc}). Resolution lock held until the game process exits."
-                : $"[DisplayResolutionService] WatchProcess started for PID {rootProcessId} but the process could not be resolved; holding lock until the process exits.");
+            WriteTrace($"[DisplayResolutionService] WatchProcess started for PID {watchPid} (root {rootProcessId}, exe {executableName ?? "unknown"}). Resolution lock held until the launch session ends.");
 
             Task.Run(async () =>
             {
-                var watchPid = identity?.Pid ?? rootProcessId;
-                var watchStartFileTimeUtc = identity?.StartFileTimeUtc ?? 0L;
-                var executableName = identity?.ExecutableName;
-
                 while (!token.IsCancellationRequested)
                 {
-                    if (!IsProcessAlive(watchPid, watchStartFileTimeUtc))
+                    if (watchPid > 0 && IsProcessAlive(watchPid, watchStartFileTimeUtc))
                     {
-                        // The watched process exited. If it was a short-lived root (e.g. a
-                        // launcher) that handed off to the real game process with the same
-                        // executable name, keep the lock and follow the handoff instead of
-                        // restoring the original resolution.
-                        var handoffPid = FindHandoffProcess(watchPid, executableName);
-                        if (handoffPid > 0)
+                        // The watched process is alive. When we see it with a real
+                        // game-sized visible window, the game is confirmed running —
+                        // a later exit of all processes with this exe is a REAL game
+                        // close, and the resolution must be restored immediately.
+                        if (!_hasSeenGameRunning && HasVisibleGameWindow(watchPid))
                         {
-                            WriteTrace($"[DisplayResolutionService] Root process {watchPid} exited but a game process with the same executable is still running (PID {handoffPid}); keeping the resolution locked.");
-                            var handoffIdentity = ResolveProcessIdentity(handoffPid);
-                            if (handoffIdentity != null)
-                            {
-                                watchPid = handoffIdentity.Value.Pid;
-                                watchStartFileTimeUtc = handoffIdentity.Value.StartFileTimeUtc;
-                                executableName = handoffIdentity.Value.ExecutableName;
-                            }
-                            continue;
+                            _hasSeenGameRunning = true;
+                            WriteTrace($"[DisplayResolutionService] Game window confirmed for PID {watchPid}; marking session as game-running.");
                         }
 
-                        WriteTrace($"[DisplayResolutionService] Process {watchPid} exited; restoring resolution.");
+                        try
+                        {
+                            await Task.Delay(1000, token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return;
+                        }
+
+                        continue;
+                    }
+
+                    // The watched process is gone. Re-target to any process with the
+                    // same executable name — the game may be an updater/launcher
+                    // chain that restarts itself (PathOfExile, Division 2, COD).
+                    var sessionPid = FindHandoffProcess(watchPid, executableName);
+                    if (sessionPid > 0)
+                    {
+                        var sessionIdentity = ResolveProcessIdentity(sessionPid);
+                        if (sessionIdentity != null)
+                        {
+                            watchPid = sessionIdentity.Value.Pid;
+                            watchStartFileTimeUtc = sessionIdentity.Value.StartFileTimeUtc;
+                            WriteTrace($"[DisplayResolutionService] Launch session continued by process PID {watchPid} (same executable); keeping the resolution locked.");
+                            continue;
+                        }
+                    }
+
+                    // No process with the game's executable name is alive.
+                    if (_hasSeenGameRunning)
+                    {
+                        // The game actually ran and has now fully exited — restore
+                        // the original resolution immediately (normal close).
+                        WriteTrace($"[DisplayResolutionService] Game session confirmed running and exited; restoring resolution.");
+                        RestoreResolution(rootProcessId);
+                        return;
+                    }
+
+                    // The game was never observed running (update check / launcher
+                    // chain / aborted launch). Keep the lock until the game appears
+                    // or the absolute safety limit expires. This is NOT a grace
+                    // period — a real game start + exit restores immediately.
+                    if (DateTime.UtcNow - _sessionStartedAtUtc > AbsoluteResolutionHoldLimit)
+                    {
+                        WriteTrace($"[DisplayResolutionService] No game window appeared within {AbsoluteResolutionHoldLimit.TotalMinutes:F0} min of launch; restoring resolution.");
                         RestoreResolution(rootProcessId);
                         return;
                     }
@@ -402,10 +537,37 @@ namespace IconGrid.Helpers.Launcher
             }
         }
 
+        private static bool HasVisibleGameWindow(int pid)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                if (IsNonGameProcess(process.ProcessName))
+                    return false;
+
+                var hwnd = process.MainWindowHandle;
+                if (hwnd == IntPtr.Zero)
+                    return false;
+
+                if (!GetWindowRect(hwnd, out var rect))
+                    return false;
+
+                var width = Math.Max(0, rect.Right - rect.Left);
+                var height = Math.Max(0, rect.Bottom - rect.Top);
+                return width >= 960 && height >= 540;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static int FindHandoffProcess(int deadPid, string? executableName)
         {
             if (string.IsNullOrWhiteSpace(executableName))
                 return 0;
+
+            var expectedProcessName = Path.GetFileNameWithoutExtension(executableName);
 
             var bestPid = 0;
             var bestStartTime = DateTime.MinValue;
@@ -419,9 +581,25 @@ namespace IconGrid.Helpers.Launcher
                         if (process.Id == deadPid || process.HasExited)
                             continue;
 
+                        // Never treat shell/system processes as the game handoff.
+                        if (IsNonGameProcess(process.ProcessName))
+                            continue;
+
                         var fileName = process.MainModule?.FileName;
-                        if (fileName == null ||
-                            !string.Equals(Path.GetFileName(fileName), executableName, StringComparison.OrdinalIgnoreCase))
+                        var matches = false;
+                        if (fileName != null)
+                        {
+                            matches = string.Equals(Path.GetFileName(fileName), executableName, StringComparison.OrdinalIgnoreCase);
+                        }
+                        else
+                        {
+                            // MainModule is unavailable for anti-cheat protected processes
+                            // (Path of Exile, The Division 2, COD...) — fall back to the
+                            // process name so the handoff/restart can still be detected.
+                            matches = string.Equals(process.ProcessName, expectedProcessName, StringComparison.OrdinalIgnoreCase);
+                        }
+
+                        if (!matches)
                         {
                             continue;
                         }
@@ -450,6 +628,17 @@ namespace IconGrid.Helpers.Launcher
             }
 
             return bestPid;
+        }
+
+        private static bool IsNonGameProcess(string processName)
+        {
+            foreach (var ignored in NonGameProcessNames)
+            {
+                if (string.Equals(processName, ignored, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private static void WriteTrace(string message)

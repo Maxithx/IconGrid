@@ -13,6 +13,43 @@ namespace IconGrid.ViewModels.Launcher
 {
     public class LauncherItemLaunchManager
     {
+        // Processes that must NEVER be treated as a game, even if they have a
+        // game-sized visible window. Without this filter, shell/system windows
+        // (SystemSettings, XboxGameBarWidgets, SearchApp...) get re-targeted as
+        // "the game" by FindAnyGameProcess, which breaks the resolution lock
+        // (it restores too early when the shell window closes).
+        private static readonly string[] NonGameProcessNames =
+        {
+            "explorer",
+            "ApplicationFrameHost",
+            "SearchApp",
+            "StartMenuExperienceHost",
+            "SystemSettings",
+            "mscopilot",
+            "WmiPrvSE",
+            "XboxGameBar",
+            "XboxGameBarWidgets",
+            "GameBar",
+            "GameBarPresenceWriter",
+            "TextInputHost",
+            "ShellExperienceHost",
+            "Widgets",
+            "Code",
+            "brave",
+            "chrome",
+            "msedge",
+            "firefox",
+            "notepad",
+            "mspaint",
+            "Battle.net",
+            "steam",
+            "steamwebhelper",
+            "upc",
+            "EADesktop",
+            "EpicGamesLauncher",
+            "launcher"
+        };
+
         // Win32 for FindAnyGameProcess — enumerates visible windows to find
         // a game's real process regardless of launcher/anti-cheat wrapper name.
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -118,7 +155,7 @@ namespace IconGrid.ViewModels.Launcher
                     if (rootProcessId > 0)
                     {
                         _displayResolutionService.AttachPendingResolution(rootProcessId);
-                        _displayResolutionService.WatchProcess(rootProcessId);
+                        _displayResolutionService.WatchProcess(rootProcessId, Path.GetFileName(item.Path));
                     }
 
                     // Always scan for the real game process. Launcher chains (EACLaunch ->
@@ -155,7 +192,7 @@ namespace IconGrid.ViewModels.Launcher
                                         // process directly with the pending original mode if any.
                                         WriteTrace($"[LauncherItemLaunchManager] Re-target failed (no saved lock for PID {currentLockedPid}); binding PID {foundPid} directly.");
                                         svc.AttachPendingResolution(foundPid);
-                                        svc.WatchProcess(foundPid);
+                                        svc.WatchProcess(foundPid, Path.GetFileName(item.Path));
                                     }
                                 }
                                 else
@@ -165,7 +202,7 @@ namespace IconGrid.ViewModels.Launcher
                                     if (parsed != null)
                                         svc.TrySetResolution(parsed.Value.Width, parsed.Value.Height);
                                     svc.AttachPendingResolution(foundPid);
-                                    svc.WatchProcess(foundPid);
+                                    svc.WatchProcess(foundPid, Path.GetFileName(item.Path));
                                 }
                                 currentLockedPid = foundPid;
                             }
@@ -230,6 +267,10 @@ namespace IconGrid.ViewModels.Launcher
                     if (hwnd == IntPtr.Zero)
                         continue;
 
+                    var processName = process.ProcessName;
+                    if (IsNonGameProcess(processName))
+                        continue;
+
                     if (!GetWindowRect(hwnd, out var rect))
                         continue;
 
@@ -285,6 +326,9 @@ namespace IconGrid.ViewModels.Launcher
                     if (process.HasExited)
                         return true;
 
+                    if (IsNonGameProcess(process.ProcessName))
+                        return true;
+
                     var startTime = process.StartTime;
                     if (startTime < now - recencyWindow)
                         return true;
@@ -312,6 +356,17 @@ namespace IconGrid.ViewModels.Launcher
             }
 
             return bestPid;
+        }
+
+        private static bool IsNonGameProcess(string processName)
+        {
+            foreach (var ignored in NonGameProcessNames)
+            {
+                if (string.Equals(processName, ignored, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool TrySwitchResolution(LauncherItem item)

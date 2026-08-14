@@ -156,8 +156,29 @@ public static class HardwareMonitorAgent
         using var mutex = new Mutex(true, AgentMutexName, out var createdNew);
         if (!createdNew)
         {
-            log?.Invoke("Hardware monitor agent is already running.");
-            return 0;
+            // Another agent instance may still be shutting down (e.g. its parent
+            // launcher was force-killed by deploy-test.cmd's taskkill, and it is
+            // waiting out OrphanGracePeriod). If we give up immediately here, NO
+            // agent remains running until the launcher restarts: the gaming overlay
+            // stops showing FPS and the in-game state never updates when a game is
+            // launched or closed. Wait for the previous instance to release the
+            // mutex instead.
+            log?.Invoke("Hardware monitor agent is already running. Waiting for the previous instance to exit...");
+            try
+            {
+                if (!mutex.WaitOne(TimeSpan.FromSeconds(15)))
+                {
+                    log?.Invoke("Timed out waiting for the previous hardware monitor agent to release the mutex.");
+                    return 0;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                // Previous instance crashed without releasing the mutex; we now
+                // own it and can continue as the active agent.
+            }
+
+            log?.Invoke("Previous hardware monitor agent exited; this instance is now the active agent.");
         }
 
         var parentPid = TryReadParentPid(args);
@@ -1052,10 +1073,11 @@ exit:
             overrideExpiresAtUtc = DateTime.UtcNow.AddSeconds(30);
             log?.Invoke($"Foreground override activated for PID {newForegroundPid.Value} until {overrideExpiresAtUtc.Value:HH:mm:ss}.");
 
-            // Auto-register external games (not already in IconGrid shortcuts)
-            // so GameResolutionPage can show them and the user can configure
-            // resolution switching for games launched from Battle.net/Steam/etc.
-            TryAutoRegisterExternalGame(newForegroundPid.Value, log);
+            // Do NOT auto-register here: at this point the native FPS agent has
+            // not yet been restarted on this PID, so there is no ETW evidence.
+            // Registration happens via AttemptExternalGameRegistration in the
+            // snapshot loop once the agent confirms GPU present events — this is
+            // the permanent anti-false-positive guard.
 
             // Check if this external game has a saved resolution — if so,
             // switch to it now so the player doesn't need to open the settings
@@ -1197,14 +1219,14 @@ exit:
         // Fall back to foreground PID only when the agent has no target.
         if (nativeState?.TargetPid > 0)
         {
-            TryAutoRegisterExternalGame(nativeState.TargetPid, log);
+            TryAutoRegisterExternalGame(nativeState.TargetPid, nativeState, log);
         }
         else
         {
             var foregroundPid = TryGetForegroundProcessPid();
             if (foregroundPid.HasValue)
             {
-                TryAutoRegisterExternalGame(foregroundPid.Value, log);
+                TryAutoRegisterExternalGame(foregroundPid.Value, nativeState, log);
             }
         }
     }
@@ -1213,9 +1235,30 @@ exit:
     /// Auto-registers an external game (started outside IconGrid) so
     /// GameResolutionPage can show it. Only called when foreground detection
     /// discovers a new game PID that is NOT already in the user's shortcut list.
+    ///
+    /// PERMANENT anti-false-positive guard: a process is only registered once the
+    /// native FPS agent has observed GPU present events (DXGI/D3D9/DXGKRNL) for
+    /// this PID. Shell/system apps (Discord, WindowsTerminal, taskmgr, Outlook,
+    /// SnippingTool, KeePassXC, qBittorrent...) load graphics DLLs and may have
+    /// game-sized windows, but they never present frames to our ETW session — so
+    /// they are never recorded as games. This replaces the old heuristic that only
+    /// checked window size + recency, which registered taskmgr, dwm, LockApp,
+    /// Outlook etc. as "games" and made the launcher hide for non-games.
     /// </summary>
-    private static void TryAutoRegisterExternalGame(int pid, Action<string>? log)
+    private static void TryAutoRegisterExternalGame(int pid, NativeFpsAgentState? nativeState, Action<string>? log)
     {
+        if (nativeState == null || nativeState.TargetPid != pid)
+            return;
+
+        var hasMatchedGpuEvents = nativeState.MatchedDxgiEventCount > 0 ||
+                                  nativeState.MatchedD3D9EventCount > 0 ||
+                                  nativeState.MatchedDxgKrnlEventCount > 0;
+        if (!hasMatchedGpuEvents)
+        {
+            log?.Invoke($"Skipping external game registration for PID {pid}: no ETW GPU present events observed (anti-false-positive guard).");
+            return;
+        }
+
         try
         {
             using var process = Process.GetProcessById(pid);
@@ -1611,6 +1654,14 @@ exit:
         }
     }
 
+    private static void TryClearStaleFpsTargetConfig(
+        Models.ConfigModel config,
+        Action<string>? log)
+    {
+        var dummySignature = string.Empty;
+        TryClearStaleFpsTargetConfig(config, ref dummySignature, log);
+    }
+
     private static void TryClearStaleFpsTargetRuntimeMetadata(
         Models.ConfigModel config,
         Action<string>? log)
@@ -1648,20 +1699,85 @@ exit:
             return;
         }
 
-        fpsTarget.RootProcessId = null;
-        fpsTarget.RootProcessStartFileTimeUtc = null;
-        fpsTarget.LaunchCapturedFileTimeUtc = null;
+        // The registered root process no longer matches. If ANOTHER process with
+        // the same executable name is still running (re-spawned game process,
+        // launcher handoff), keep the target identity but drop the stale runtime
+        // metadata so the FPS agent can re-lock by executable name.
+        if (AnyProcessMatchesConfigTarget(fpsTarget))
+        {
+            fpsTarget.RootProcessId = null;
+            fpsTarget.RootProcessStartFileTimeUtc = null;
+            fpsTarget.LaunchCapturedFileTimeUtc = null;
+
+            try
+            {
+                var configManager = new Helpers.Settings.ConfigManager();
+                configManager.SaveConfig(config);
+                log?.Invoke("Cleared stale FpsTarget runtime metadata from config.json.");
+            }
+            catch (Exception ex)
+            {
+                log?.Invoke($"Failed to clear stale FpsTarget runtime metadata from config.json: {ex.Message}");
+            }
+
+            return;
+        }
+
+        // No process matches the configured executable — the game has fully
+        // exited. Clear the ENTIRE FpsTarget so the next startup goes into
+        // foreground-first mode instead of keeping a stale authoritative target.
+        // A stale target caused the repeated "Configured FPS target changed or
+        // does not own the native agent" restart loop (every ~10s) and no FPS
+        // in the gaming overlay for Path of Exile after the game was closed.
+        TryClearStaleFpsTargetConfig(config, log);
+    }
+
+    private static bool AnyProcessMatchesConfigTarget(Models.FpsTargetConfig configTarget)
+    {
+        var expectedProcessName = Path.GetFileNameWithoutExtension(configTarget.ExecutableName ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(expectedProcessName))
+        {
+            return false;
+        }
 
         try
         {
-            var configManager = new Helpers.Settings.ConfigManager();
-            configManager.SaveConfig(config);
-            log?.Invoke("Cleared stale FpsTarget runtime metadata from config.json.");
+            foreach (var process in Process.GetProcessesByName(expectedProcessName))
+            {
+                try
+                {
+                    if (process.HasExited)
+                    {
+                        continue;
+                    }
+
+                    // A live process with the configured executable name means the
+                    // game session is still active. Avoid strict module-path matching
+                    // here: anti-cheat protected games (Path of Exile, COD, Division 2)
+                    // deny MainModule access (Win32Exception) even to elevated callers.
+                    return true;
+                }
+                catch
+                {
+                    // Access denied on process properties still means the process
+                    // exists and is running — treat as a match (same rule as
+                    // ProcessIsAlive).
+                    return true;
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
         }
-        catch (Exception ex)
+        catch
         {
-            log?.Invoke($"Failed to clear stale FpsTarget runtime metadata from config.json: {ex.Message}");
+            // Process enumeration failed; treat as no match so stale targets are
+            // cleared. If the game is actually running, the next launch re-creates
+            // the FpsTarget.
         }
+
+        return false;
     }
 
     private static bool ProcessIsAlive(int pid)

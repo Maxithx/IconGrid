@@ -842,6 +842,15 @@ namespace IconGrid.Views.Launcher
             {
                 _gamingOverlayWindowCoordinator.Close();
             }
+
+            // ALWAYS restore the launcher when the game exits. Previously this
+            // only happened via OnGamingOverlayClosed, so if the overlay was not
+            // open at exit time (already closed manually, auto-close timing, etc.)
+            // the launcher stayed in hide mode — a periodic "launcher never comes
+            // back" bug. RestoreLauncherFromGame is safe to call unconditionally:
+            // it clears the game-hide flag, un-minimizes, slides to visible if
+            // hidden, and re-applies the configured idle-hide mode.
+            _windowModeController?.RestoreLauncherFromGame();
         }
 
         private void OnGamingOverlayClosed()
