@@ -133,6 +133,8 @@ namespace IconGrid.ViewModels
         private double _monitorUploadValueToUnitGap = 4;
         private double _monitorDownloadValueWidth = 20;
         private double _monitorUploadValueWidth = 20;
+        private string _monitorPingTargetMode = "Auto";
+        private string _monitorPingCustomTarget = "";
 
         private readonly LauncherLayoutMeasurements _layoutMeasurements = new();
         private readonly LauncherLayoutState _layoutState = new();
@@ -952,6 +954,88 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Selected ping target mode for the launcher monitor row.
+        /// Valid values: "Auto" (gateway -> Cloudflare -> Google), "Gateway",
+        /// "Cloudflare" (1.1.1.1), "Google" (8.8.8.8), "Custom".
+        /// </summary>
+        public string MonitorPingTargetMode
+        {
+            get => _monitorPingTargetMode;
+            set
+            {
+                var normalized = NormalizePingTargetMode(value);
+                if (SetField(ref _monitorPingTargetMode, normalized))
+                {
+                    _systemMonitor.ConfigurePingTarget(ParsePingTargetMode(normalized), _monitorPingCustomTarget);
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// User-defined ping target (IP or hostname) used when MonitorPingTargetMode == "Custom".
+        /// Empty string is allowed; in that case the custom target yields nothing and ping falls back
+        /// to the cached EMA display value or "--".
+        /// </summary>
+        public string MonitorPingCustomTarget
+        {
+            get => _monitorPingCustomTarget;
+            set
+            {
+                var trimmed = (value ?? "").Trim();
+                if (SetField(ref _monitorPingCustomTarget, trimmed))
+                {
+                    _systemMonitor.ConfigurePingTarget(ParsePingTargetMode(_monitorPingTargetMode), trimmed);
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        private static string NormalizePingTargetMode(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "Auto";
+            return raw switch
+            {
+                "Auto" => "Auto",
+                "Gateway" => "Gateway",
+                "Cloudflare" => "Cloudflare",
+                "Google" => "Google",
+                "Custom" => "Custom",
+                _ => "Auto"
+            };
+        }
+
+        private static PingTargetMode ParsePingTargetMode(string s) => s switch
+        {
+            "Gateway" => PingTargetMode.Gateway,
+            "Cloudflare" => PingTargetMode.Cloudflare,
+            "Google" => PingTargetMode.Google,
+            "Custom" => PingTargetMode.Custom,
+            _ => PingTargetMode.Auto
+        };
+
+        /// <summary>
+        /// ComboBox source for MonitorPingPage. Key = config value, Value = localized label.
+        /// Built on-demand so it follows the active language without needing explicit OnPropertyChanged.
+        /// </summary>
+        public IEnumerable<KeyValuePair<string, string>> MonitorPingTargetItems
+        {
+            get
+            {
+                var lang = _language ?? "da";
+                var loc = _localizationState;
+                return new[]
+                {
+                    new KeyValuePair<string, string>("Auto", loc.Get(lang, "MonitorPingTargetAuto")),
+                    new KeyValuePair<string, string>("Gateway", loc.Get(lang, "MonitorPingTargetGateway")),
+                    new KeyValuePair<string, string>("Cloudflare", loc.Get(lang, "MonitorPingTargetCloudflare")),
+                    new KeyValuePair<string, string>("Google", loc.Get(lang, "MonitorPingTargetGoogle")),
+                    new KeyValuePair<string, string>("Custom", loc.Get(lang, "MonitorPingTargetCustom")),
+                };
+            }
+        }
+
+        /// <summary>
         /// Indicates any overlay (settings or layouts) is active.
         /// </summary>
         public bool IsOverlayOpen => _overlayState.IsOverlayOpen;
@@ -1133,6 +1217,81 @@ namespace IconGrid.ViewModels
         {
             _windowStateStore.SaveFloatingIconPosition(left, top);
             SaveSettingsToConfig();
+        }
+
+        /// <summary>
+        /// Resets the native FPS agent so it rescans for a running game on the next tick.
+        /// This is useful when IconGrid started after a game was already running, or when the
+        /// agent is stuck on a stale target. Performs three actions:
+        ///   1. Kills any running IconGridFpsAgent.exe processes.
+        ///   2. Deletes fps-state.json so the agent has no cached target info to fall back on.
+        ///   3. Clears FpsTarget in config.json so the next agent start has no locked target.
+        /// HardwareMonitorAgent (separate elevated process) will pick up the cleared state on
+        /// its next tick and relaunch the native agent cleanly.
+        /// </summary>
+        /// <returns>True if a running agent was found and killed; false if the agent was already idle.</returns>
+        public bool ResetFpsAgent()
+        {
+            bool killedAgent = false;
+
+            // 1) Kill any running native FPS agent processes.
+            try
+            {
+                var agents = System.Diagnostics.Process.GetProcessesByName("IconGridFpsAgent");
+                foreach (var proc in agents)
+                {
+                    try
+                    {
+                        using (proc)
+                        {
+                            if (!proc.HasExited)
+                            {
+                                proc.Kill(entireProcessTree: true);
+                                proc.WaitForExit(1000);
+                                killedAgent = true;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Process may have exited between GetProcessesByName and our check; ignore.
+                    }
+                }
+            }
+            catch
+            {
+                // GetProcessesByName failure is non-fatal — we'll still clear the file/config.
+            }
+
+            // 2) Delete the native agent state file. The agent writes it under ConfigManager.BaseDirectory.
+            try
+            {
+                var configManager = new IconGrid.Helpers.Settings.ConfigManager();
+                var fpsStatePath = System.IO.Path.Combine(configManager.BaseDirectory, "fps-state.json");
+                if (System.IO.File.Exists(fpsStatePath))
+                {
+                    System.IO.File.Delete(fpsStatePath);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup.
+            }
+
+            // 3) Clear the locked FpsTarget in config so the agent starts in foreground-first mode.
+            try
+            {
+                _config.FpsTarget = new FpsTargetConfig();
+                // Persist via the existing save path so config.json is written atomically.
+                SaveSettingsToConfig();
+            }
+            catch
+            {
+                // Best-effort — even if save fails, the running agent is already killed and will
+                // pick up the cleared config on next HardwareMonitorAgent tick.
+            }
+
+            return killedAgent;
         }
 
         /// <summary>

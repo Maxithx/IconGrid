@@ -93,6 +93,8 @@ namespace IconGrid.ViewModels.Settings
                 config.MonitorUploadValueToUnitGap = state.MonitorUploadValueToUnitGap;
                 config.MonitorDownloadValueWidth = state.MonitorDownloadValueWidth;
                 config.MonitorUploadValueWidth = state.MonitorUploadValueWidth;
+                config.MonitorPingTargetMode = state.MonitorPingTargetMode;
+                config.MonitorPingCustomTarget = state.MonitorPingCustomTarget;
 
                 _configManager.SaveConfig(config);
             }

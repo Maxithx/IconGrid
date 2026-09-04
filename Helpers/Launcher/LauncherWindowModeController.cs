@@ -510,14 +510,26 @@ namespace IconGrid.Helpers
             // slides the window to the peek position. If a game starts while
             // the window is already at its peek position, _originalTop has been
             // overwritten — so we store the pre-game position separately.
+            //
+            // IMPORTANT: if the launcher is PHYSICALLY hidden (rendered off-screen)
+            // even though _isHidden is false (a stale SlideToVisible left it at the
+            // peek position), DO NOT use that off-screen position as the restore
+            // target. Otherwise the launcher would restore to -205 instead of the
+            // visible desktop position when the game exits — the "launcher never
+            // comes out of hide mode" bug.
             var dpiScale = GetWindowDpiScale();
+            var isPhysicallyOffScreen = IsPhysicallyHidden();
             if (TryGetWindowRect(out var currentRect))
             {
-                _preGameTop = _isHidden ? _originalTop : currentRect.Top / dpiScale;
+                _preGameTop = _isHidden
+                    ? _originalTop
+                    : (isPhysicallyOffScreen ? null : currentRect.Top / dpiScale);
             }
             else
             {
-                _preGameTop = _isHidden ? _originalTop : _window.Top;
+                _preGameTop = _isHidden
+                    ? _originalTop
+                    : (isPhysicallyOffScreen ? null : _window.Top);
             }
 
             _isGameHideActive = true;
@@ -545,9 +557,17 @@ namespace IconGrid.Helpers
             _isHidden = false;
             _isPeekAtBottom = false;
             _isManuallyHidden = false;
-            var restoreTop = _preGameTop ?? _originalTop ?? _window.Top;
-            TraceSlideToVisible(restoreTop);
-            SlideTo(restoreTop);
+            var restoreTop = _preGameTop ?? _originalTop;
+            if (!restoreTop.HasValue)
+            {
+                // No valid pre-game position saved (e.g. the launcher was already
+                // off-screen due to a stale peek, or GetWindowRect failed). Fall
+                // back to the desktop work-area so we NEVER leave the launcher
+                // off-screen.
+                restoreTop = SystemParameters.WorkArea.Top;
+            }
+            TraceSlideToVisible(restoreTop.Value);
+            SlideTo(restoreTop.Value);
             _originalTop = null;
             _preGameTop = null;
         }
@@ -569,7 +589,16 @@ namespace IconGrid.Helpers
             // hidden forever (and the peek strip would be dead because
             // ApplyIdleHideMode never re-armed it). Detect that stale case by
             // checking _isHidden and restore the window anyway.
-            if (!_isGameHideActive && !_isHidden)
+            //
+            // Additionally detect a PHYSICALLY hidden launcher even when the
+            // logical flags say otherwise. A stale SlideToVisible() can set
+            // _isHidden=false while the window is still rendered off-screen
+            // (e.g. _originalTop contained the peek position -205 instead of
+            // the visible one), leaving _isGameHideActive=false and _isHidden=false
+            // but the window stuck at Top=-205. The window is then invisible and
+            // no further event restores it — the "launcher locked in hide mode"
+            // bug the user reports.
+            if (!_isGameHideActive && !_isHidden && !IsPhysicallyHidden())
             {
                 return;
             }
@@ -577,10 +606,16 @@ namespace IconGrid.Helpers
             // If the user MANUALLY hid the launcher, respect that — do not force
             // it back into view just because a game exited. Only the true
             // game-hide path (or a stale game-hide) auto-restores.
-            if (!_isGameHideActive && _isManuallyHidden)
+            if (!_isGameHideActive && _isManuallyHidden && !IsPhysicallyHidden())
             {
                 return;
             }
+
+            // Restore the launcher even if the "logical" hide flag is false, as
+            // long as the window is physically off-screen. This covers the stale
+            // case described above where _isHidden was reset but the window never
+            // actually slid back into view.
+            var restoreBecausePhysicallyHidden = !_isGameHideActive && !_isHidden && IsPhysicallyHidden();
 
             _isGameHideActive = false;
 
@@ -590,7 +625,11 @@ namespace IconGrid.Helpers
                 _window.Activate();
             }
 
-            if (_isHidden)
+            // Restore the saved pre-game position. If the game never set a valid
+            // pre-game position (e.g. the launcher was already off-screen due to a
+            // stale peek), fall back to _originalTop and finally to the desktop
+            // work-area center so we NEVER leave the launcher off-screen.
+            if (_isHidden || restoreBecausePhysicallyHidden)
             {
                 // Use the saved pre-game position, NOT _originalTop.
                 // _originalTop may have been overwritten by auto-hide's
@@ -602,6 +641,34 @@ namespace IconGrid.Helpers
             if (_viewModel.IsFullWindowVisible)
             {
                 ApplyIdleHideMode();
+            }
+        }
+
+        /// <summary>
+        /// True when the launcher's actual rendered top is fully off the visible
+        /// work area (i.e. above the screen top or below the bottom edge).
+        /// Uses Win32 GetWindowRect so it reflects the REAL rendered position,
+        /// not the logical WPF Top property which can be stale during animations.
+        /// </summary>
+        private bool IsPhysicallyHidden()
+        {
+            try
+            {
+                var dpiScale = GetWindowDpiScale();
+                if (TryGetWindowRect(out var rect))
+                {
+                    var topDip = rect.Top / dpiScale;
+                    var area = SystemParameters.WorkArea;
+                    // The peek strip keeps ~10px visible; anything fully outside
+                    // the work area (more than a few px above/below) is "hidden".
+                    return topDip < area.Top - 20 || topDip > area.Bottom + 20;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
             }
         }
 

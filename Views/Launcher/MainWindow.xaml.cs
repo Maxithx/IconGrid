@@ -799,6 +799,46 @@ namespace IconGrid.Views.Launcher
             if (sender is not System.Windows.Controls.ContextMenu menu) return;
             _layoutMenuController?.PopulateLayoutMenu(menu.Items);
             _layoutMenuController?.UpdateLayoutMenuChecks(menu.Items);
+
+            // Append the FPS agent reset entry to the IconGrid-logo context menu.
+            // This menu opens from LauncherLogoArea.xaml — the small IconGrid logo button in the
+            // top bar, just before the monitor row. The reset is useful when IconGrid started after
+            // a game was already running (agent didn't see the launch) or when the agent is stuck
+            // on a stale target.
+            menu.Items.Add(new System.Windows.Controls.Separator());
+            var resetFps = new System.Windows.Controls.MenuItem
+            {
+                Header = _viewModel.ResetFpsAgentMenuLabel
+            };
+            DevInspector.SetMetadata(resetFps, "Reset FPS agent menu item → Views/MainWindow.xaml (LogoMenuResetFpsAgent_Click)");
+            resetFps.Click += LogoMenuResetFpsAgent_Click;
+            menu.Items.Add(resetFps);
+        }
+
+        private void LogoMenuResetFpsAgent_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var killedAgent = _viewModel.ResetFpsAgent();
+                var message = killedAgent
+                    ? _viewModel.ResetFpsAgentSuccessMessage
+                    : _viewModel.ResetFpsAgentNoAgentMessage;
+                System.Windows.MessageBox.Show(
+                    this,
+                    message,
+                    "IconGrid",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    this,
+                    $"FPS agent reset failed: {ex.Message}",
+                    "IconGrid",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
         }
 
         private void LayoutsPageMenu_Opened(object sender, RoutedEventArgs e)

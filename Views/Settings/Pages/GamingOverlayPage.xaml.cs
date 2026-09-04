@@ -563,6 +563,17 @@ namespace IconGrid.Views
             {
                 _mainViewModel.PropertyChanged += MainViewModel_PropertyChanged;
             }
+
+            // The VM may have been null when the XAML initially read these properties,
+            // so they returned fallback values ("TopRight", "0", false...). Now that the
+            // VM is attached, push the REAL persisted values to the UI — otherwise the
+            // page shows stale fallbacks (e.g. "TopRight") while the overlay correctly
+            // uses the actual config (e.g. "TopCenter").
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedGameLauncherBehavior)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoShowGamingOverlayOnGameStart)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoCloseGamingOverlayOnGameEnd)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RestoreLauncherAfterOverlayClosed)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedOverlayPositionPreset)));
         }
 
         private void MainViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -570,6 +581,31 @@ namespace IconGrid.Views
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), System.StringComparison.Ordinal))
             {
                 RefreshLocalizedText();
+            }
+
+            // Keep the page's bound properties in sync when the VIEW MODEL changes the
+            // value (e.g. the overlay settings change from another dialog/session).
+            // Without this, the settings page would keep showing a stale selection while
+            // the overlay window uses the new (different) placement.
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayPositionPreset), System.StringComparison.Ordinal))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedOverlayPositionPreset)));
+            }
+            else if (string.Equals(e.PropertyName, nameof(MainViewModel.GameLauncherAutoBehavior), System.StringComparison.Ordinal))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedGameLauncherBehavior)));
+            }
+            else if (string.Equals(e.PropertyName, nameof(MainViewModel.AutoShowGamingOverlayOnGameStart), System.StringComparison.Ordinal))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoShowGamingOverlayOnGameStart)));
+            }
+            else if (string.Equals(e.PropertyName, nameof(MainViewModel.AutoCloseGamingOverlayOnGameEnd), System.StringComparison.Ordinal))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoCloseGamingOverlayOnGameEnd)));
+            }
+            else if (string.Equals(e.PropertyName, nameof(MainViewModel.RestoreLauncherAfterOverlayClosed), System.StringComparison.Ordinal))
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RestoreLauncherAfterOverlayClosed)));
             }
         }
 

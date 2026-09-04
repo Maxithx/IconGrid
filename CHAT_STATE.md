@@ -3,7 +3,7 @@
 > **Full session history:** `.local-state/session-history.md` (gitignored, searchable via `search_notes`)
 
 ## Current date
-Wednesday, August 12, 2026
+Wednesday, September 4, 2026
 
 ## Current status
 - Fast Copy-siden (Settings â†’ 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tÃ¦rskel, smÃ¥ filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -142,3 +142,105 @@ FIX 5 deployet 23:31 (DLL 23:31:01): MainWindow.OnGameExited() kalder nu ALTID R
 ## Session findings (2026-08-14) - FIX 7 false-positive external games + session klar
 
 FIX 7 deployet 23:53 (DLL 23:53:36): PERMANENT anti-false-positive lÃ¸sning i TryAutoRegisterExternalGame â€” en proces registreres kun som external game nÃ¥r native FPS agent har set ETW GPU present events (DXGI/D3D9/DXGKRNL > 0) for PID'en. Discord/WindowsTerminal/taskmgr/Outlook/KeePassXC/qBittorrent/dwm/LockApp/SnippingTool prÃ¦senterer ALDRIG frames til vores ETW-session â†’ de registreres aldrig. TryAutoRegisterExternalGame kaldes nu KUN via AttemptExternalGameRegistration (med nativeState med events), ikke direkte i TryUpdateForegroundGameTarget. run_all_checks: 3 pre-existing violations (MainWindow 1071, MainViewModel 1862, HardwareMonitorAgent 1888), version/lokalisering/security GRÃ˜N, XAML 6 pre-existing danske linjer. Build 0 fejl 23:53. Alle 7 fixes beskrevet i .local-state/fps-etw.md. Klar til commit+push.
+
+## Session findings (2026-08-18) - Gaming overlay position fix
+
+BUG RAPPORT: Brugeren sagde at gaming overlay var sat til 'TopRight' pÃ¥ siden, men viste 'TopCenter' nÃ¥r spillet startede. RODÃ…RSAG: config.json indeholdt faktisk 'GamingOverlayPositionPreset': 'TopCenter' (ikke 'TopRight' som brugeren troede). GamingOverlayPage.xaml.cs SelectedOverlayPositionPreset getter returnerede 'TopRight' som FALLBACK nÃ¥r _mainViewModel var null. AttachMainViewModel() udlÃ¸ste IKKE PropertyChanged efter viewmodel-tilknytning â†’ ComboBox'en viste stale 'TopRight' mens overlayet korrekt brugte 'TopCenter'. FIX: (1) AttachMainViewModel() udlÃ¸ser nu PropertyChanged for SelectedGameLauncherBehavior, AutoShowGamingOverlayOnGameStart, AutoCloseGamingOverlayOnGameEnd, RestoreLauncherAfterOverlayClosed + SelectedOverlayPositionPreset; (2) MainViewModel_PropertyChanged reagerer nu ogsÃ¥ pÃ¥ Ã¦ndringer i disse VM-properties â†’ siden holdes synkroniseret. Build 0 fejl 19:50, deploy C:\IconGrid DLL 19:50:15 matcher. Brugeren skal selv vÃ¦lge 'TopRight' pÃ¥ siden hvis det Ã¸nskes â€” siden viser nu KORREKT den faktiske config-vÃ¦rdi.
+
+## Session findings (2026-08-18) - Launcher hide-mode fix
+
+BUG RAPPORT 2: Efter spil-lukning kom main-launcheren ikke ud af hide mode (efter gaming overlay var lukket). RODÃ…RSAG (trace.log-analyse): RestoreLauncherFromGame() returnerede tidligt fordi _isGameHideActive OG _isHidden begge var false, selvom launcher var FYSISK skjult (Top=-205). Sekvens: (1) auto-hide/peek skjuler launcher â†’ _isHidden=true, _originalTop=-205; (2) SlideToVisible() kaldes â†’ _isHidden=false men _originalTop er stadig -205 â†’ launcher forbliver fysisk skjult; (3) spil starter â†’ HideForGame(1) â†’ _isHidden=false â†’ _preGameTop=-204.8 (skjult position!); (4) spil lukker â†’ RestoreLauncherFromGame â†’ _isGameHideActive && _isHidden false â†’ RETURNER TIDLIGT â†’ launcher forbliver skjult for evigt. FIX (LauncherWindowModeController.cs): (1) Ny IsPhysicallyHidden() - tjekker faktisk rentderet position via GetWindowRect mod WorkArea; (2) RestoreLauncherFromGame returnerer nu KUN tidligt hvis launcher IKKE er fysisk skjult; (3) HideForGame gemmer nu null i _preGameTop hvis launcher allerede er off-screen (undgÃ¥r at gemme -205 som restore-target); (4) SlideToPreGameTop falder tilbage til WorkArea.Top hvis ingen gyldig position er gemt. Build 0 fejl 20:12, deploy C:\IconGrid DLL 20:12:58 matcher. AFVENTER BRUGER-VERIFIKATION: start POE1, luk spil + overlay â†’ launcher skal glider tilbage.
+
+## Session findings (2026-09-04) - Robust ping + Monitor Ping settings page
+
+BRUGER-RAPPORT: Monitor row viste "Net: 33ms" og ind imellem "ingen data". Brugerens faktiske ping (målt via online speedtest): ~2ms. Dansk Kabel TV internet.
+
+RODÅRSAG (3 problemer i gammel SystemMonitor.CaptureNetworkSnapshot):
+1. **Hardcoded 8.8.8.8** — Google anycast er langt væk fra danske kabelnet-brugere, derfor 33ms i stedet for det brugeren faktisk oplever.
+2. **`new Ping().Send(...)` per tick** — lækker ICMP sockets, ingen instans-cache.
+3. **Ingen retry/fallback** — hvis ét target fejler vises "--ms" med det samme, ingen EMA-smoothing.
+
+FIX (7 filer ændret + 2 nye):
+- **Helpers/Launcher/SystemMonitor.cs** — ny robust ping-arkitektur:
+  - `PingTargetMode` enum (Auto/Gateway/Cloudflare/Google/Custom)
+  - Cached `Ping`-instans med `_pingLock` (ingen socket-lækage)
+  - `ResolvePingTargets()` med prioriteret fallback-liste (gateway ? 1.1.1.1 ? 8.8.8.8)
+  - `GetActiveGatewayAddress()` auto-detekterer brugerens router (IPv4 foretrækkes, IPv6 fallback)
+  - EMA-smoothing (`PingEmaAlpha = 0.3`) så spikes ikke viser 33ms når sandheden er 2ms
+  - Stale-markering (10 sek): viser `--ms (NN)` hvis alle targets fejler men vi har en nylig god værdi
+  - `PingTargetLabel` og `IsPingStale` properties til tooltip
+  - `ConfigurePingTarget(mode, custom)` public API
+  - `Dispose()` opdateret til at dispose den shared Ping
+- **Models/ConfigModel.cs** — nye properties `MonitorPingTargetMode` (string "Auto"/"Gateway"/"Cloudflare"/"Google"/"Custom") + `MonitorPingCustomTarget`
+- **ViewModels/Settings/MainViewModelConfigState.cs** — samme + `NormalizePingMode()` whitelist
+- **ViewModels/Settings/MainViewModelSettingsState.cs** — samme
+- **ViewModels/Settings/MainViewModelSettingsPersistence.cs** — save-mapping
+- **ViewModels/MainViewModel.cs** — backing fields, public properties, `MonitorPingTargetItems` ComboBox-kilde (KeyValuePair), kalder `ConfigurePingTarget` på settings-apply
+- **ViewModels/MainViewModel.Settings.cs** — kalder `ConfigurePingTarget` fra `ApplyConfig()` så settings tager effekt med det samme
+- **Helpers/Converters/StringEqualsToVisibilityConverter.cs** (NY) — Visible/Collapsed baseret på string-match
+- **Views/Settings/Pages/MonitorPingPage.xaml + .cs** (NY underside) — TemplatePage med hero + card med ComboBox + TextBox (kun synlig når "Custom" valgt)
+- **Helpers/Settings/LocalizationHelper.cs** — 12 nye nøkler en+da
+- **ViewModels/MainViewModel.Localization.cs** — 12 nye properties + OnPropertyChanged for Items ved sprogskift
+- **Controls/Launcher/LauncherMonitorRow.xaml** — KUN en enkelt ToolTip-binding tilføjet på net-teksten (viser aktivt target). **INGEN layoutændring, INGEN ny visuel styling.**
+- **Views/Settings/SettingsWindow.xaml + .xaml.cs** — ny sidebar-knap "MP" mellem Monitor Layout og Usb Copy.
+
+FORVENTET OUTPUT EFTER FIX:
+- Default "Auto" ? pinger gateway først ? brugeren ser ~1-5ms (grøn)
+- Hvis gateway fejler ? fallback til 1.1.1.1 (~5-15ms)
+- Hvis ALT fejler i >10s ? viser `--ms (NN)` (sidste kendte værdi, markeret stale)
+- Spike til 80ms ? EMA udjævner til næsten ingenting
+- Tooltip på net-teksten viser aktivt target (f.eks. "192.168.1.1" eller "1.1.1.1")
+
+BYGGESTATUS:
+- Første build: 5 fejl (alle i SystemMonitor.cs) — `HasValue`/`Value` på `IPAddress?` (Nullable reference type) + type-mismatch `double?` vs `long?`. Fixet: brugt `!= null` på IPAddress (det er Nullable Reference Type, ikke Nullable<T>) + cast `displayMs` til `long?` med `Math.Max(0, Math.Round(...))`.
+- Andet build: SUCCESS (12,9s).
+- Deploy: SUCCESS (DLL 04-09-2026 21:01:29, 1196032 bytes matcher build).
+
+HVAD BRUGEREN SKAL TESTE:
+1. Åbn IconGrid fra C:\IconGrid — Net-tallet bør vise ~1-5ms (grøn) i stedet for 33ms.
+2. Hover over "Net: NNms" ? tooltip viser aktivt target (f.eks. "192.168.1.1").
+3. Åbn Settings ? ny "Monitor Ping"-side (mellem Monitor Layout og Fast Copy). ComboBox bør vise "Auto (router ? Cloudflare ? Google)" som default.
+4. Skift til "Router only" / "Cloudflare" / "Google" / "Custom" — ændring tager effekt med det samme (næste tick).
+5. Vælg "Custom" ? TextBox vises ? indtast IP eller hostname.
+6. Skift sprog da/en ? alle labels opdateres (12 nye nøkler).
+
+LØST/UFÆRDIGT:
+- ? Robust ping-logik med fallback + EMA + stale-markering.
+- ? Settings-side + persistence + lokalisering.
+- ? Build + deploy verificeret.
+- ? Afventer bruger-verifikation (ping skal vise ~1-5ms i stedet for 33ms).
+- ? Ikke commitet/pushet endnu (kræver separat godkendelse per AGENT.md).
+
+REFERENCER:
+- `.local-state/regex-commands-cheatsheet.md` — `dotnet build IconGrid.csproj --nologo -v m` (ingen pipe).
+- `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` — non-destructive deploy.
+- `AGENT.md` linje 25: deploy ? approval til commit/push.
+- `AGENT.md` linje 110-118: lokalisering-pattern (key ? property ? OnPropertyChanged ? XAML binding).
+
+## Session findings (2026-09-04) - FPS agent reset + ping minimum 1ms
+
+To follow-ups pa ping-session:
+
+1. **Min ping 1ms clamp** — Windows kan rapportere 0ms pa grund af clock-tick resolution (~15.6ms). 0ms er fysisk umuligt. `Helpers/Launcher/SystemMonitor.cs`: ny `MinPingMs = 1.0` konstant, clampes pa raw sample + EMA + display. Severity threshold uendret (1ms <= 30ms = Good).
+
+2. **FPS agent reset i IconGrid-logo-menu** — bruger rapporterede at gaming overlay ikke altid ser et spil der allerede korer naar IconGrid starter. Fix: ny menu-item "Nulstil FPS-agent" i `LauncherLogoArea` context menu (ikke floating-ikonet). Klik ? `MainViewModel.ResetFpsAgent()`:
+   - Dræber alle kørende `IconGridFpsAgent.exe` processer (`Process.GetProcessesByName`)
+   - Sletter `fps-state.json`
+   - Rydder `FpsTarget` i config.json via eksisterende `SaveSettingsToConfig()`
+   - MessageBox viser resultat (success / no-agent-running / failed)
+   - HardwareMonitorAgent (separat elevated process) genstarter agenten naeste tick
+
+Filer aendret (kun dem der er nye i denne session, ekskl. ping):
+- `Controls/Floating/FloatingIconButton.xaml` + `.cs` + `Views/Launcher/MainWindow.xaml` + `MainWindow.xaml.cs` — INGEN aendringer (fjernet FPS-reset igen efter bruger-feedback at den skulle vaere i launcher-logo-menuen, ikke floating)
+- `Views/Launcher/MainWindow.xaml.cs` — `LayoutContextMenu_Opened` tilfoejer separator + "Nulstil FPS-agent" menu-item EFTER layout-menuen er udfyldt; ny `LogoMenuResetFpsAgent_Click` handler
+- `ViewModels/MainViewModel.cs` — `ResetFpsAgent()` public metode
+- `ViewModels/MainViewModel.Localization.cs` — 3 nye properties (ResetFpsAgentMenuLabel, ResetFpsAgentSuccessMessage, ResetFpsAgentNoAgentMessage)
+- `Helpers/Settings/LocalizationHelper.cs` — 3 nye noekler en + da
+
+Build 0 fejl, deploy C:\IconGrid DLL 22:45:57 matcher build. Afventer bruger-verifikation: start IconGrid ? højreklik pa IconGrid-logo ? "Nulstil FPS-agent" ? start spil ? FPS vises.
+
+Ekstra filer aendret i working copy (ikke fra denne session, med i commit):
+- `Helpers/Launcher/LauncherWindowModeController.cs`
+- `Views/Settings/Pages/GamingOverlayPage.xaml.cs`
+
+Klar til commit + push (bruger har givet eksplicit godkendelse).

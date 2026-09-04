@@ -57,6 +57,8 @@ namespace IconGrid.ViewModels.Settings
         public double MonitorUploadValueToUnitGap { get; init; } = 4;
         public double MonitorDownloadValueWidth { get; init; } = 20;
         public double MonitorUploadValueWidth { get; init; } = 20;
+        public string MonitorPingTargetMode { get; init; } = "Auto";
+        public string MonitorPingCustomTarget { get; init; } = "";
         public string Language { get; init; } = "da";
         public double? WindowLeft { get; init; }
         public double? WindowTop { get; init; }
@@ -132,7 +134,24 @@ namespace IconGrid.ViewModels.Settings
                 MonitorDownloadValueToUnitGap = config.MonitorDownloadValueToUnitGap,
                 MonitorUploadValueToUnitGap = config.MonitorUploadValueToUnitGap,
                 MonitorDownloadValueWidth = config.MonitorDownloadValueWidth,
-                MonitorUploadValueWidth = config.MonitorUploadValueWidth
+                MonitorUploadValueWidth = config.MonitorUploadValueWidth,
+                // Ping target: whitelist to known values. Unknown / missing -> "Auto".
+                MonitorPingTargetMode = NormalizePingMode(config.MonitorPingTargetMode),
+                MonitorPingCustomTarget = config.MonitorPingCustomTarget ?? ""
+            };
+        }
+
+        private static string NormalizePingMode(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "Auto";
+            return raw switch
+            {
+                "Auto" => "Auto",
+                "Gateway" => "Gateway",
+                "Cloudflare" => "Cloudflare",
+                "Google" => "Google",
+                "Custom" => "Custom",
+                _ => "Auto"
             };
         }
     }

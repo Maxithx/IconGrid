@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -19,16 +22,49 @@ namespace IconGrid.Helpers
         Critical
     }
 
+    /// <summary>
+    /// User-selectable ping target for the launcher monitor row.
+    /// Stored as string in config for forward-compat (new targets can be added without breaking older configs).
+    /// </summary>
+    public enum PingTargetMode
+    {
+        Auto,        // gateway (auto-detected) -> Cloudflare -> Google
+        Gateway,     // user's local router/gateway only
+        Cloudflare,  // 1.1.1.1
+        Google,      // 8.8.8.8
+        Custom       // user-defined IP/hostname from config
+    }
+
     public class SystemMonitor : INotifyPropertyChanged, IDisposable
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan FpsStateMaxAge = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan PingStaleAfter = TimeSpan.FromSeconds(10);
+        private const int PingTimeoutMs = 200;
+        // EMA smoothing factor (0 = no new info, 1 = no smoothing). 0.3 dampens single spikes well.
+        private const double PingEmaAlpha = 0.3;
+        // Minimum displayed ping. Windows can report 0ms because the OS clock-tick (~15.6ms) is too
+        // coarse to measure sub-millisecond round-trips. 0ms is physically impossible (round-trip is
+        // always >= ~0.1ms even on LAN), so we clamp to 1ms for display + EMA smoothing.
+        private const double MinPingMs = 1.0;
+
+        // Hardcoded fallback targets after the auto-detected gateway.
+        private static readonly IPAddress[] FallbackPingTargets =
+        {
+            IPAddress.Parse("1.1.1.1"),  // Cloudflare
+            IPAddress.Parse("8.8.8.8"),  // Google
+        };
+
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
         private readonly string _fpsStatePath;
         private readonly DispatcherTimer _fpsTimer;
         private int _fpsUiPollIntervalMs = 1;
+
+        // Reusable Ping instance. Not thread-safe — guarded by _pingLock when calling Send/SendAsync.
+        private readonly Ping _sharedPing = new();
+        private readonly object _pingLock = new();
 
         private string _networkStatus = "--";
         private string _cpuTemp = "--";
@@ -56,9 +92,21 @@ namespace IconGrid.Helpers
         private double _fpsDisplayResponsiveness = 1.0;
         private bool _inGame;
 
+        // EMA-smoothed ping state (independent from raw sample so we always have a sensible display value)
+        private double? _pingEmaMs;
+        private DateTime _lastSuccessfulPingUtc = DateTime.MinValue;
+        private string _activePingTargetLabel = "—";
+        private bool _isPingStale;
+
+        // User-configurable ping target. Defaults to Auto (gateway -> Cloudflare -> Google).
+        private PingTargetMode _pingTargetMode = PingTargetMode.Auto;
+        private string _customPingTarget = "";
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public string NetworkStatus { get => _networkStatus; private set { _networkStatus = value; OnPropertyChanged(); } }
+        public string PingTargetLabel { get => _activePingTargetLabel; private set { _activePingTargetLabel = value; OnPropertyChanged(); } }
+        public bool IsPingStale { get => _isPingStale; private set { if (_isPingStale != value) { _isPingStale = value; OnPropertyChanged(); } } }
         public string CpuTemp { get => _cpuTemp; private set { _cpuTemp = value; OnPropertyChanged(); } }
         public string GpuTemp { get => _gpuTemp; private set { _gpuTemp = value; OnPropertyChanged(); } }
         public string CpuUsage { get => _cpuUsage; private set { _cpuUsage = value; OnPropertyChanged(); } }
@@ -259,6 +307,8 @@ namespace IconGrid.Helpers
                 }
 
                 NetworkStatus = network.NetworkStatus;
+                PingTargetLabel = network.PingTargetLabel;
+                IsPingStale = network.IsPingStale;
                 DownloadStatus = network.DownloadStatus;
                 UploadStatus = network.UploadStatus;
                 PingSeverityLevel = network.Severity;
@@ -267,6 +317,35 @@ namespace IconGrid.Helpers
                 _lastUploadBytes = network.NewUpload;
                 _lastUpdateTime = network.NewUpdateTime;
             }));
+        }
+
+        /// <summary>
+        /// Apply user-configurable ping target. Safe to call multiple times; takes effect on the next Update() tick.
+        /// </summary>
+        public void ConfigurePingTarget(PingTargetMode mode, string? customTarget)
+        {
+            _pingTargetMode = mode;
+            _customPingTarget = customTarget ?? "";
+            // Reset EMA so a target switch doesn't carry stale smoothed value from the old target.
+            _pingEmaMs = null;
+        }
+
+        /// <summary>
+        /// Returns a localized, human-readable label for a ping target, used in tooltips.
+        /// </summary>
+        private static string LabelForTarget(IPAddress? addr, string? hostname)
+        {
+            if (addr == null && string.IsNullOrWhiteSpace(hostname))
+            {
+                return "—";
+            }
+
+            var text = hostname ?? addr!.ToString();
+            // Strip zone IDs (e.g. fe80::1%12) and trailing dots
+            var pct = text.IndexOf('%');
+            if (pct >= 0) text = text.Substring(0, pct);
+            text = text.TrimEnd('.');
+            return text;
         }
 
         private HardwareMonitorSnapshot? ReadHardwareSnapshot()
@@ -310,13 +389,99 @@ namespace IconGrid.Helpers
             long newUpload = _lastUploadBytes;
             var newUpdateTime = _lastUpdateTime;
 
+            // Ping: try targets in priority order. First success wins.
+            string targetLabel = "—";
+            bool gotSample = false;
+            long rawMs = -1;
             try
             {
-                var reply = new Ping().Send("8.8.8.8", 300);
-                networkStatus = (reply?.Status == IPStatus.Success) ? $"{reply.RoundtripTime}ms" : "--ms";
-                severity = DeterminePingSeverity(reply?.RoundtripTime);
-                highPing = severity == PingSeverity.Critical;
+                foreach (var target in ResolvePingTargets())
+                {
+                    targetLabel = LabelForTarget(target.Address, target.Hostname);
+                    try
+                    {
+                        PingReply reply;
+                        lock (_pingLock)
+                        {
+                            // Ping.Send accepts an IPAddress OR a hostname string.
+                            if (target.Hostname != null)
+                            {
+                                reply = _sharedPing.Send(target.Hostname, PingTimeoutMs);
+                            }
+                            else
+                            {
+                                reply = _sharedPing.Send(target.Address, PingTimeoutMs);
+                            }
+                        }
+                        if (reply != null && reply.Status == IPStatus.Success)
+                        {
+                            rawMs = reply.RoundtripTime;
+                            gotSample = true;
+                            break;
+                        }
+                    }
+                    catch
+                    {
+                        // Try next target on this one's failure (e.g. unknown host, permission denied).
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through — leave networkStatus at last good value or "--".
+            }
 
+            var nowUtc = DateTime.UtcNow;
+            if (gotSample)
+            {
+                // Clamp raw sample to MinPingMs so we never EMA-smooth toward 0 (Windows can report
+                // 0ms because its clock-tick resolution is ~15.6ms — sub-ms round-trips round down).
+                var clampedRaw = Math.Max(MinPingMs, (double)rawMs);
+                if (!_pingEmaMs.HasValue)
+                {
+                    // First sample — initialize EMA directly to avoid warm-up skew.
+                    _pingEmaMs = clampedRaw;
+                }
+                else
+                {
+                    var ema = (PingEmaAlpha * clampedRaw) + ((1.0 - PingEmaAlpha) * _pingEmaMs.Value);
+                    _pingEmaMs = Math.Max(MinPingMs, ema);
+                }
+                _lastSuccessfulPingUtc = nowUtc;
+            }
+
+            // Decide what to display: prefer EMA-smoothed value, fall back to last good value
+            // if all targets currently fail but we have a recent successful sample (within PingStaleAfter).
+            var displayMs = (double?)null;
+            var isStale = false;
+            if (_pingEmaMs.HasValue)
+            {
+                var ageSinceSuccess = nowUtc - _lastSuccessfulPingUtc;
+                if (gotSample || ageSinceSuccess <= PingStaleAfter)
+                {
+                    displayMs = Math.Max(MinPingMs, _pingEmaMs.Value);
+                    isStale = !gotSample;
+                }
+                // else: completely stale — drop to "--" so user sees something is wrong.
+            }
+
+            if (displayMs.HasValue)
+            {
+                networkStatus = isStale
+                    ? $"--ms ({displayMs.Value:F0})"
+                    : $"{displayMs.Value:F0}ms";
+                severity = DeterminePingSeverity((long)Math.Round(displayMs.Value));
+                highPing = severity == PingSeverity.Critical;
+            }
+            else
+            {
+                networkStatus = "--ms";
+                severity = PingSeverity.Critical;
+                highPing = false;
+            }
+
+            try
+            {
                 var stats = GetNetAdapterStatistics();
                 var now = DateTime.UtcNow;
                 var diff = (now - _lastUpdateTime).TotalSeconds;
@@ -340,11 +505,114 @@ namespace IconGrid.Helpers
             }
             catch
             {
-                severity = PingSeverity.Critical;
-                highPing = false;
+                // Keep last good values rather than nuking the display.
             }
 
-            return new NetworkSnapshot(networkStatus, downloadStatus, uploadStatus, severity, highPing, newDownload, newUpload, newUpdateTime);
+            return new NetworkSnapshot(networkStatus, downloadStatus, uploadStatus, severity, highPing, newDownload, newUpload, newUpdateTime, targetLabel, isStale);
+        }
+
+        /// <summary>
+        /// Resolves the list of ping targets to try this tick, in priority order.
+        /// Honors user-selected mode (Auto / Gateway / Cloudflare / Google / Custom).
+        /// </summary>
+        private IEnumerable<(IPAddress Address, string? Hostname)> ResolvePingTargets()
+        {
+            switch (_pingTargetMode)
+            {
+                case PingTargetMode.Gateway:
+                    {
+                        var gw = GetActiveGatewayAddress();
+                        if (gw != null) yield return (gw, null);
+                        yield break;
+                    }
+                case PingTargetMode.Cloudflare:
+                    yield return (IPAddress.Parse("1.1.1.1"), null);
+                    yield break;
+                case PingTargetMode.Google:
+                    yield return (IPAddress.Parse("8.8.8.8"), null);
+                    yield break;
+                case PingTargetMode.Custom:
+                    {
+                        if (!string.IsNullOrWhiteSpace(_customPingTarget))
+                        {
+                            // Ping.Send accepts IPAddress OR hostname string. Use hostname string so
+                            // DNS-based custom hostnames (e.g. "speedtest.example.com") work too.
+                            yield return (IPAddress.Loopback, _customPingTarget.Trim());
+                        }
+                        yield break;
+                    }
+                case PingTargetMode.Auto:
+                default:
+                    {
+                        var gw = GetActiveGatewayAddress();
+                        if (gw != null) yield return (gw, null);
+                        foreach (var fb in FallbackPingTargets)
+                        {
+                            yield return (fb, null);
+                        }
+                        yield break;
+                    }
+            }
+        }
+
+        /// <summary>
+        /// Returns the IPv4 gateway address of the first active, non-loopback, gateway-bearing adapter.
+        /// Returns null when no usable gateway is found (e.g. disconnected).
+        /// </summary>
+        private static IPAddress? GetActiveGatewayAddress()
+        {
+            try
+            {
+                var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(x => x.NetworkInterfaceType != NetworkInterfaceType.Loopback
+                             && x.OperationalStatus == OperationalStatus.Up
+                             && x.GetIPProperties().GatewayAddresses.Count > 0
+                             && x.GetIPProperties().GatewayAddresses.Any(g => g.Address.ToString() != "0.0.0.0"));
+
+                // Prefer IPv4 (typical home/cable routers).
+                foreach (var adapter in interfaces)
+                {
+                    foreach (var gw in adapter.GetIPProperties().GatewayAddresses)
+                    {
+                        var addr = gw.Address;
+                        if (addr == null) continue;
+                        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            var text = addr.ToString();
+                            if (text != "0.0.0.0")
+                            {
+                                return addr;
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: accept IPv6 gateway if no IPv4 found.
+                foreach (var adapter in interfaces)
+                {
+                    foreach (var gw in adapter.GetIPProperties().GatewayAddresses)
+                    {
+                        var addr = gw.Address;
+                        if (addr == null) continue;
+                        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+                        {
+                            var text = addr.ToString();
+                            var pct = text.IndexOf('%');
+                            if (pct >= 0) text = text.Substring(0, pct);
+                            if (text != "::")
+                            {
+                                return addr;
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Swallow — we'll just have no gateway target this tick.
+            }
+
+            return null;
         }
 
         private (long r, long s) GetNetAdapterStatistics()
@@ -543,7 +811,9 @@ namespace IconGrid.Helpers
             bool IsHighPing,
             long NewDownload,
             long NewUpload,
-            DateTime NewUpdateTime);
+            DateTime NewUpdateTime,
+            string PingTargetLabel,
+            bool IsPingStale);
 
         protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
@@ -575,6 +845,14 @@ namespace IconGrid.Helpers
         {
             _fpsTimer.Stop();
             _fpsTimer.Tick -= FpsTimer_Tick;
+            try
+            {
+                _sharedPing.Dispose();
+            }
+            catch
+            {
+                // Ignore — best-effort cleanup on shutdown.
+            }
         }
     }
 }

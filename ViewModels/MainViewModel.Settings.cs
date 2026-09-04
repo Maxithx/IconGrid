@@ -58,6 +58,10 @@ namespace IconGrid.ViewModels
             _monitorUploadValueToUnitGap = state.MonitorUploadValueToUnitGap;
             _monitorDownloadValueWidth = state.MonitorDownloadValueWidth;
             _monitorUploadValueWidth = state.MonitorUploadValueWidth;
+            _monitorPingTargetMode = NormalizePingTargetMode(state.MonitorPingTargetMode);
+            _monitorPingCustomTarget = state.MonitorPingCustomTarget ?? "";
+            // Apply ping target to SystemMonitor so it takes effect immediately on next Update().
+            _systemMonitor.ConfigurePingTarget(ParsePingTargetMode(_monitorPingTargetMode), _monitorPingCustomTarget);
             _windowAnimationDurationMs = state.WindowAnimationDurationMs;
             _language = state.Language;
             _windowStateStore.ApplyConfig(
@@ -182,6 +186,8 @@ namespace IconGrid.ViewModels
                 MonitorUploadValueToUnitGap = _monitorUploadValueToUnitGap,
                 MonitorDownloadValueWidth = _monitorDownloadValueWidth,
                 MonitorUploadValueWidth = _monitorUploadValueWidth,
+                MonitorPingTargetMode = _monitorPingTargetMode,
+                MonitorPingCustomTarget = _monitorPingCustomTarget,
             };
 
             _layoutState.ApplyToSettingsState(state);

@@ -47,7 +47,8 @@
         <TextBlock Style="{StaticResource NetworkMonitorTextStyle}"
                    Width="64"
                    Margin="{Binding MonitorPingToNetGap, Converter={StaticResource DoubleToLeftMarginConverter}}"
-                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}"
+                   ToolTip="{Binding SystemMonitor.PingTargetLabel}">
             <Run Text="{Binding MonitorNetworkLabel, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding SystemMonitor.NetworkStatus, Mode=OneWay}" />
         </TextBlock>
         <!-- Divider 0 -->

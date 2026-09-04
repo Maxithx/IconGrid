@@ -85,6 +85,13 @@ public class ConfigModel
     public double MonitorDownloadValueWidth { get; set; } = 20;
     public double MonitorUploadValueWidth { get; set; } = 20;
 
+    // Ping target selection. Stored as string for forward-compat (new targets can be added
+    // without breaking older configs that simply default to "Auto"). Valid values:
+    // "Auto" (default — gateway -> Cloudflare -> Google), "Gateway", "Cloudflare", "Google", "Custom".
+    public string MonitorPingTargetMode { get; set; } = "Auto";
+    // Used when MonitorPingTargetMode == "Custom". Accepts IP or hostname.
+    public string MonitorPingCustomTarget { get; set; } = "";
+
     /// <summary>
     /// User-saved monitor layout defaults (JSON blob of 18 properties).
     /// When set, the "Reset defaults" button uses these instead of the hardcoded factory defaults.

@@ -81,5 +81,7 @@ namespace IconGrid.ViewModels.Settings
         public double MonitorUploadValueToUnitGap { get; set; } = 4;
         public double MonitorDownloadValueWidth { get; set; } = 20;
         public double MonitorUploadValueWidth { get; set; } = 20;
+        public string MonitorPingTargetMode { get; set; } = "Auto";
+        public string MonitorPingCustomTarget { get; set; } = "";
     }
 }
