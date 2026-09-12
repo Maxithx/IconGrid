@@ -153,67 +153,67 @@ BUG RAPPORT 2: Efter spil-lukning kom main-launcheren ikke ud af hide mode (efte
 
 ## Session findings (2026-09-04) - Robust ping + Monitor Ping settings page
 
-BRUGER-RAPPORT: Monitor row viste "Net: 33ms" og ind imellem "ingen data". Brugerens faktiske ping (målt via online speedtest): ~2ms. Dansk Kabel TV internet.
+BRUGER-RAPPORT: Monitor row viste "Net: 33ms" og ind imellem "ingen data". Brugerens faktiske ping (mï¿½lt via online speedtest): ~2ms. Dansk Kabel TV internet.
 
-RODÅRSAG (3 problemer i gammel SystemMonitor.CaptureNetworkSnapshot):
-1. **Hardcoded 8.8.8.8** — Google anycast er langt væk fra danske kabelnet-brugere, derfor 33ms i stedet for det brugeren faktisk oplever.
-2. **`new Ping().Send(...)` per tick** — lækker ICMP sockets, ingen instans-cache.
-3. **Ingen retry/fallback** — hvis ét target fejler vises "--ms" med det samme, ingen EMA-smoothing.
+RODï¿½RSAG (3 problemer i gammel SystemMonitor.CaptureNetworkSnapshot):
+1. **Hardcoded 8.8.8.8** ï¿½ Google anycast er langt vï¿½k fra danske kabelnet-brugere, derfor 33ms i stedet for det brugeren faktisk oplever.
+2. **`new Ping().Send(...)` per tick** ï¿½ lï¿½kker ICMP sockets, ingen instans-cache.
+3. **Ingen retry/fallback** ï¿½ hvis ï¿½t target fejler vises "--ms" med det samme, ingen EMA-smoothing.
 
-FIX (7 filer ændret + 2 nye):
-- **Helpers/Launcher/SystemMonitor.cs** — ny robust ping-arkitektur:
+FIX (7 filer ï¿½ndret + 2 nye):
+- **Helpers/Launcher/SystemMonitor.cs** ï¿½ ny robust ping-arkitektur:
   - `PingTargetMode` enum (Auto/Gateway/Cloudflare/Google/Custom)
-  - Cached `Ping`-instans med `_pingLock` (ingen socket-lækage)
+  - Cached `Ping`-instans med `_pingLock` (ingen socket-lï¿½kage)
   - `ResolvePingTargets()` med prioriteret fallback-liste (gateway ? 1.1.1.1 ? 8.8.8.8)
-  - `GetActiveGatewayAddress()` auto-detekterer brugerens router (IPv4 foretrækkes, IPv6 fallback)
-  - EMA-smoothing (`PingEmaAlpha = 0.3`) så spikes ikke viser 33ms når sandheden er 2ms
-  - Stale-markering (10 sek): viser `--ms (NN)` hvis alle targets fejler men vi har en nylig god værdi
+  - `GetActiveGatewayAddress()` auto-detekterer brugerens router (IPv4 foretrï¿½kkes, IPv6 fallback)
+  - EMA-smoothing (`PingEmaAlpha = 0.3`) sï¿½ spikes ikke viser 33ms nï¿½r sandheden er 2ms
+  - Stale-markering (10 sek): viser `--ms (NN)` hvis alle targets fejler men vi har en nylig god vï¿½rdi
   - `PingTargetLabel` og `IsPingStale` properties til tooltip
   - `ConfigurePingTarget(mode, custom)` public API
   - `Dispose()` opdateret til at dispose den shared Ping
-- **Models/ConfigModel.cs** — nye properties `MonitorPingTargetMode` (string "Auto"/"Gateway"/"Cloudflare"/"Google"/"Custom") + `MonitorPingCustomTarget`
-- **ViewModels/Settings/MainViewModelConfigState.cs** — samme + `NormalizePingMode()` whitelist
-- **ViewModels/Settings/MainViewModelSettingsState.cs** — samme
-- **ViewModels/Settings/MainViewModelSettingsPersistence.cs** — save-mapping
-- **ViewModels/MainViewModel.cs** — backing fields, public properties, `MonitorPingTargetItems` ComboBox-kilde (KeyValuePair), kalder `ConfigurePingTarget` på settings-apply
-- **ViewModels/MainViewModel.Settings.cs** — kalder `ConfigurePingTarget` fra `ApplyConfig()` så settings tager effekt med det samme
-- **Helpers/Converters/StringEqualsToVisibilityConverter.cs** (NY) — Visible/Collapsed baseret på string-match
-- **Views/Settings/Pages/MonitorPingPage.xaml + .cs** (NY underside) — TemplatePage med hero + card med ComboBox + TextBox (kun synlig når "Custom" valgt)
-- **Helpers/Settings/LocalizationHelper.cs** — 12 nye nøkler en+da
-- **ViewModels/MainViewModel.Localization.cs** — 12 nye properties + OnPropertyChanged for Items ved sprogskift
-- **Controls/Launcher/LauncherMonitorRow.xaml** — KUN en enkelt ToolTip-binding tilføjet på net-teksten (viser aktivt target). **INGEN layoutændring, INGEN ny visuel styling.**
-- **Views/Settings/SettingsWindow.xaml + .xaml.cs** — ny sidebar-knap "MP" mellem Monitor Layout og Usb Copy.
+- **Models/ConfigModel.cs** ï¿½ nye properties `MonitorPingTargetMode` (string "Auto"/"Gateway"/"Cloudflare"/"Google"/"Custom") + `MonitorPingCustomTarget`
+- **ViewModels/Settings/MainViewModelConfigState.cs** ï¿½ samme + `NormalizePingMode()` whitelist
+- **ViewModels/Settings/MainViewModelSettingsState.cs** ï¿½ samme
+- **ViewModels/Settings/MainViewModelSettingsPersistence.cs** ï¿½ save-mapping
+- **ViewModels/MainViewModel.cs** ï¿½ backing fields, public properties, `MonitorPingTargetItems` ComboBox-kilde (KeyValuePair), kalder `ConfigurePingTarget` pï¿½ settings-apply
+- **ViewModels/MainViewModel.Settings.cs** ï¿½ kalder `ConfigurePingTarget` fra `ApplyConfig()` sï¿½ settings tager effekt med det samme
+- **Helpers/Converters/StringEqualsToVisibilityConverter.cs** (NY) ï¿½ Visible/Collapsed baseret pï¿½ string-match
+- **Views/Settings/Pages/MonitorPingPage.xaml + .cs** (NY underside) ï¿½ TemplatePage med hero + card med ComboBox + TextBox (kun synlig nï¿½r "Custom" valgt)
+- **Helpers/Settings/LocalizationHelper.cs** ï¿½ 12 nye nï¿½kler en+da
+- **ViewModels/MainViewModel.Localization.cs** ï¿½ 12 nye properties + OnPropertyChanged for Items ved sprogskift
+- **Controls/Launcher/LauncherMonitorRow.xaml** ï¿½ KUN en enkelt ToolTip-binding tilfï¿½jet pï¿½ net-teksten (viser aktivt target). **INGEN layoutï¿½ndring, INGEN ny visuel styling.**
+- **Views/Settings/SettingsWindow.xaml + .xaml.cs** ï¿½ ny sidebar-knap "MP" mellem Monitor Layout og Usb Copy.
 
 FORVENTET OUTPUT EFTER FIX:
-- Default "Auto" ? pinger gateway først ? brugeren ser ~1-5ms (grøn)
+- Default "Auto" ? pinger gateway fï¿½rst ? brugeren ser ~1-5ms (grï¿½n)
 - Hvis gateway fejler ? fallback til 1.1.1.1 (~5-15ms)
-- Hvis ALT fejler i >10s ? viser `--ms (NN)` (sidste kendte værdi, markeret stale)
-- Spike til 80ms ? EMA udjævner til næsten ingenting
-- Tooltip på net-teksten viser aktivt target (f.eks. "192.168.1.1" eller "1.1.1.1")
+- Hvis ALT fejler i >10s ? viser `--ms (NN)` (sidste kendte vï¿½rdi, markeret stale)
+- Spike til 80ms ? EMA udjï¿½vner til nï¿½sten ingenting
+- Tooltip pï¿½ net-teksten viser aktivt target (f.eks. "192.168.1.1" eller "1.1.1.1")
 
 BYGGESTATUS:
-- Første build: 5 fejl (alle i SystemMonitor.cs) — `HasValue`/`Value` på `IPAddress?` (Nullable reference type) + type-mismatch `double?` vs `long?`. Fixet: brugt `!= null` på IPAddress (det er Nullable Reference Type, ikke Nullable<T>) + cast `displayMs` til `long?` med `Math.Max(0, Math.Round(...))`.
+- Fï¿½rste build: 5 fejl (alle i SystemMonitor.cs) ï¿½ `HasValue`/`Value` pï¿½ `IPAddress?` (Nullable reference type) + type-mismatch `double?` vs `long?`. Fixet: brugt `!= null` pï¿½ IPAddress (det er Nullable Reference Type, ikke Nullable<T>) + cast `displayMs` til `long?` med `Math.Max(0, Math.Round(...))`.
 - Andet build: SUCCESS (12,9s).
 - Deploy: SUCCESS (DLL 04-09-2026 21:01:29, 1196032 bytes matcher build).
 
 HVAD BRUGEREN SKAL TESTE:
-1. Åbn IconGrid fra C:\IconGrid — Net-tallet bør vise ~1-5ms (grøn) i stedet for 33ms.
+1. ï¿½bn IconGrid fra C:\IconGrid ï¿½ Net-tallet bï¿½r vise ~1-5ms (grï¿½n) i stedet for 33ms.
 2. Hover over "Net: NNms" ? tooltip viser aktivt target (f.eks. "192.168.1.1").
-3. Åbn Settings ? ny "Monitor Ping"-side (mellem Monitor Layout og Fast Copy). ComboBox bør vise "Auto (router ? Cloudflare ? Google)" som default.
-4. Skift til "Router only" / "Cloudflare" / "Google" / "Custom" — ændring tager effekt med det samme (næste tick).
-5. Vælg "Custom" ? TextBox vises ? indtast IP eller hostname.
-6. Skift sprog da/en ? alle labels opdateres (12 nye nøkler).
+3. ï¿½bn Settings ? ny "Monitor Ping"-side (mellem Monitor Layout og Fast Copy). ComboBox bï¿½r vise "Auto (router ? Cloudflare ? Google)" som default.
+4. Skift til "Router only" / "Cloudflare" / "Google" / "Custom" ï¿½ ï¿½ndring tager effekt med det samme (nï¿½ste tick).
+5. Vï¿½lg "Custom" ? TextBox vises ? indtast IP eller hostname.
+6. Skift sprog da/en ? alle labels opdateres (12 nye nï¿½kler).
 
-LØST/UFÆRDIGT:
+Lï¿½ST/UFï¿½RDIGT:
 - ? Robust ping-logik med fallback + EMA + stale-markering.
 - ? Settings-side + persistence + lokalisering.
 - ? Build + deploy verificeret.
 - ? Afventer bruger-verifikation (ping skal vise ~1-5ms i stedet for 33ms).
-- ? Ikke commitet/pushet endnu (kræver separat godkendelse per AGENT.md).
+- ? Ikke commitet/pushet endnu (krï¿½ver separat godkendelse per AGENT.md).
 
 REFERENCER:
-- `.local-state/regex-commands-cheatsheet.md` — `dotnet build IconGrid.csproj --nologo -v m` (ingen pipe).
-- `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` — non-destructive deploy.
+- `.local-state/regex-commands-cheatsheet.md` ï¿½ `dotnet build IconGrid.csproj --nologo -v m` (ingen pipe).
+- `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` ï¿½ non-destructive deploy.
 - `AGENT.md` linje 25: deploy ? approval til commit/push.
 - `AGENT.md` linje 110-118: lokalisering-pattern (key ? property ? OnPropertyChanged ? XAML binding).
 
@@ -221,26 +221,87 @@ REFERENCER:
 
 To follow-ups pa ping-session:
 
-1. **Min ping 1ms clamp** — Windows kan rapportere 0ms pa grund af clock-tick resolution (~15.6ms). 0ms er fysisk umuligt. `Helpers/Launcher/SystemMonitor.cs`: ny `MinPingMs = 1.0` konstant, clampes pa raw sample + EMA + display. Severity threshold uendret (1ms <= 30ms = Good).
+1. **Min ping 1ms clamp** ï¿½ Windows kan rapportere 0ms pa grund af clock-tick resolution (~15.6ms). 0ms er fysisk umuligt. `Helpers/Launcher/SystemMonitor.cs`: ny `MinPingMs = 1.0` konstant, clampes pa raw sample + EMA + display. Severity threshold uendret (1ms <= 30ms = Good).
 
-2. **FPS agent reset i IconGrid-logo-menu** — bruger rapporterede at gaming overlay ikke altid ser et spil der allerede korer naar IconGrid starter. Fix: ny menu-item "Nulstil FPS-agent" i `LauncherLogoArea` context menu (ikke floating-ikonet). Klik ? `MainViewModel.ResetFpsAgent()`:
-   - Dræber alle kørende `IconGridFpsAgent.exe` processer (`Process.GetProcessesByName`)
+2. **FPS agent reset i IconGrid-logo-menu** ï¿½ bruger rapporterede at gaming overlay ikke altid ser et spil der allerede korer naar IconGrid starter. Fix: ny menu-item "Nulstil FPS-agent" i `LauncherLogoArea` context menu (ikke floating-ikonet). Klik ? `MainViewModel.ResetFpsAgent()`:
+   - Drï¿½ber alle kï¿½rende `IconGridFpsAgent.exe` processer (`Process.GetProcessesByName`)
    - Sletter `fps-state.json`
    - Rydder `FpsTarget` i config.json via eksisterende `SaveSettingsToConfig()`
    - MessageBox viser resultat (success / no-agent-running / failed)
    - HardwareMonitorAgent (separat elevated process) genstarter agenten naeste tick
 
 Filer aendret (kun dem der er nye i denne session, ekskl. ping):
-- `Controls/Floating/FloatingIconButton.xaml` + `.cs` + `Views/Launcher/MainWindow.xaml` + `MainWindow.xaml.cs` — INGEN aendringer (fjernet FPS-reset igen efter bruger-feedback at den skulle vaere i launcher-logo-menuen, ikke floating)
-- `Views/Launcher/MainWindow.xaml.cs` — `LayoutContextMenu_Opened` tilfoejer separator + "Nulstil FPS-agent" menu-item EFTER layout-menuen er udfyldt; ny `LogoMenuResetFpsAgent_Click` handler
-- `ViewModels/MainViewModel.cs` — `ResetFpsAgent()` public metode
-- `ViewModels/MainViewModel.Localization.cs` — 3 nye properties (ResetFpsAgentMenuLabel, ResetFpsAgentSuccessMessage, ResetFpsAgentNoAgentMessage)
-- `Helpers/Settings/LocalizationHelper.cs` — 3 nye noekler en + da
+- `Controls/Floating/FloatingIconButton.xaml` + `.cs` + `Views/Launcher/MainWindow.xaml` + `MainWindow.xaml.cs` ï¿½ INGEN aendringer (fjernet FPS-reset igen efter bruger-feedback at den skulle vaere i launcher-logo-menuen, ikke floating)
+- `Views/Launcher/MainWindow.xaml.cs` ï¿½ `LayoutContextMenu_Opened` tilfoejer separator + "Nulstil FPS-agent" menu-item EFTER layout-menuen er udfyldt; ny `LogoMenuResetFpsAgent_Click` handler
+- `ViewModels/MainViewModel.cs` ï¿½ `ResetFpsAgent()` public metode
+- `ViewModels/MainViewModel.Localization.cs` ï¿½ 3 nye properties (ResetFpsAgentMenuLabel, ResetFpsAgentSuccessMessage, ResetFpsAgentNoAgentMessage)
+- `Helpers/Settings/LocalizationHelper.cs` ï¿½ 3 nye noekler en + da
 
-Build 0 fejl, deploy C:\IconGrid DLL 22:45:57 matcher build. Afventer bruger-verifikation: start IconGrid ? højreklik pa IconGrid-logo ? "Nulstil FPS-agent" ? start spil ? FPS vises.
+Build 0 fejl, deploy C:\IconGrid DLL 22:45:57 matcher build. Afventer bruger-verifikation: start IconGrid ? hï¿½jreklik pa IconGrid-logo ? "Nulstil FPS-agent" ? start spil ? FPS vises.
 
 Ekstra filer aendret i working copy (ikke fra denne session, med i commit):
 - `Helpers/Launcher/LauncherWindowModeController.cs`
 - `Views/Settings/Pages/GamingOverlayPage.xaml.cs`
 
 Klar til commit + push (bruger har givet eksplicit godkendelse).
+
+## Session findings (2026-09-12) â€” Gaming overlay: spil vs. program-detektion hÃ¦rdet
+
+BRUGERPROBLEM: Gaming overlay starter ikke ved COD MW; falske positiver aktiverer overlayet for programmer.
+
+RODARSAG (trace.log): Agentens "sticky game target" lÃ¥ste forkert pÃ¥ `TextInputHost.exe` (PID 19080) via DxgKrnl-fallback FPS (2026-09-11T13:54:02, linje 423382-423393). SÃ¥ lÃ¦nge den levende shell-proces var target, ignorerede agenten COD: "Ignoring foreground PID 7216 because sticky game target PID 19080 is still alive." (linje 439500 ff. + 443015-443024 + 444074). Da IsInGame = native TargetPid>0 og allerede stod pÃ¥ "sand" (forkert target), skete der ingen false->true-overgang da COD startede -> GameLaunched fyrede ikke -> overlayet auto-vistes ikke. POE virker fordi den startes direkte og bliver target. external-games.json var fyldt med falske positiver (TextInputHost, LockApp, taskmgr, SearchHost, XboxGameBarWidgets, SnippingTool, WindowsTerminal, Photos, MediaPlayer, Photoshop m.fl.).
+
+FIX (bygget 0 fejl + DEPLOYET 2026-09-12 21:19 til C:\IconGrid â€” DLL 1.200.640 bytes matcher build 1:1):
+1. NY `Helpers/Hardware/GameProcessClassifier.cs` â€” central "spil vs. program"-politik: navne-blocklist (shell/system/launchers/browsers/editors/media/utility) + Windows-systemstier (SystemApps/system32/SysWOW64) + evidens (DXGI/D3D9 = stÃ¦rk; DxgKrnl = svag).
+2. `HardwareMonitorAgent.cs`: system-proces-filter (navn+sti) i forgrundsdetektion; sticky-bekrÃ¦ftelse + game-signal afviser shell-processer (TargetProcessName); `HasUsableFrameSignal` -> classifier; registrerings-guard krÃ¦ver nu trovÃ¦rdig evidens + ikke-system-proces.
+3. Sticky escape-hatch: `StickyChallengerOverrideDelay` (20s) â€” en stabil ny forgrunds-kandidat frigiver et forkert sticky-target og retargeter. Et dÃ¥rligt target kan aldrig blokere det rigtige spil for evigt.
+4. Unificeret: `DisplayResolutionService` + `LauncherItemLaunchManager` bruger nu GameProcessClassifier.NonGameProcessNames (Ã©n kilde).
+
+HVAD BRUGEREN SKAL TESTE (efter deploy):
+1. Start COD MW -> overlay skal komme frem (og FPS vises hvis native agenten fÃ¥r DXGI-events).
+2. Start POE -> skal stadig virke.
+3. Ã…bn taskmgr/TextInputHost/fullscreen-browser -> overlay mÃ¥ IKKE aktivere; external-games.json mÃ¥ ikke fÃ¥ nye falske positiver.
+4. VerificÃ©r at `%APPDATA%\IconGrid\external-games.json` ikke vokser med system-processer.
+
+UFARDIGT:
+- Gammel forurening i external-games.json (fra fÃ¸r fixet) er ikke ryddet â€” kandidat til oprydning.
+- Ikke committet/pushet (krÃ¦ver separat godkendelse).
+- Afventer bruger-verifikation (COD-overlay + ingen falske positiver for programmer).
+
+DEPLOY-NOTE: FÃ¸rste deploy-forsÃ¸g fejlede med 'Sharing violation' fordi IconGrid kÃ¸rte forhÃ¸jet (Adgang nÃ¦gtet pÃ¥ taskkill). Efter brugeren lukkede IconGrid kÃ¸rte deploy-test.cmd rent, og `cmd /c dir` viste C:\icongrid\IconGrid.dll = 12-09-2026 21:19 (1.200.640 bytes) = build. (PowerShell Get-Item viste fejlagtigt en cachet/gammel timestamp â€” brug `cmd /c dir` til deploy-verifikation.)
+- VIGTIGT: KÃ¸r deploy og `dir`-verifikation i SEPARATE tool-kald â€” flere kommandoer i samme kald kÃ¸rer parallelt, sÃ¥ `dir` kan nÃ¥ at lÃ¦se FÃ˜R kopien er fÃ¦rdig (gav falsk "stale DLL").
+
+## Session findings (2026-09-12, fortsat) â€” Trace-log auto-clean + UI pÃ¥ TestPage
+
+BRUGERÃ˜NSKE: Ryd trace.log (var 112 MB) + UI til manuel clean + automatisk oprydning sÃ¥ den ikke vokser, vist i UI.
+
+FIX (bygget 0 fejl + DEPLOYET 12-09-2026 21:29 til C:\IconGrid â€” DLL 1.205.248 bytes matcher build):
+1. NY `Helpers/Logging/AppTrace.cs` â€” central trace-writer. Fast loft `MaxBytes = 10 MB`; ved overskridelse trimmes Ã¦ldste halvdel automatisk (linje-justeret) pÃ¥ hver Write + Ã©n gang ved App-start (`AppTrace.EnforceSizeLimit()` i OnStartup). `Clear()` til manuel rydning; `GetSizeBytes/GetSizeText/FormatSize/GetLastWriteTime` til UI. Cross-process-robust (retry ved IOException, da launcher + forhÃ¸jet monitor-agent skriver samtidigt).
+2. `App.xaml.cs` WriteTrace + `DisplayResolutionService.cs` WriteTrace bruger nu AppTrace.Write (Ã©n kilde, capped). HardwareMonitorAgent/FpsEtwProbeAgent logger via App.WriteTrace â†’ ogsÃ¥ capped.
+3. `Views/Settings/Pages/TestPage.xaml(.cs)` â€” nyt "Trace log"-kort: viser sti, stÃ¸rrelse/cap og sidste skrivning + knapperne "Refresh" og "Clean trace log" (statustekst).
+4. NuvÃ¦rende `%APPDATA%\IconGrid\trace.log` (112 MB) er SLETTET manuelt.
+
+AFVIGELSE: TestPage er en debug-side og bruger (som resten af siden) hardcoded engelsk tekst, ikke det centraliserede da/en-system. Dokumenteret tolerance â€” hvis TestPage skal lokaliseres, tag hele siden i Ã©t hug.
+
+HVAD BRUGEREN SKAL TESTE:
+1. Ã…bn Settings -> Debug/Test -> "Trace log"-kortet viser stÃ¸rrelse og cap.
+2. Klik "Clean trace log" -> stÃ¸rrelse bliver 0 B.
+3. Lad IconGrid kÃ¸re -> trace.log mÃ¥ aldrig overstige 10 MB (trimmes automatisk).
+
+UFARDIGT / NÃ†STE:
+- Ikke committet/pushet (krÃ¦ver separat godkendelse).
+- Overvej at gÃ¸re cap konfigurerbar (persisteret) hvis Ã¸nsket.
+- Gammel forurening i external-games.json (fra fÃ¸r game-detektion-fixet) er ikke ryddet.
+
+## VERIFIKATION (2026-09-12, bruger-test POE + COD MW2) â€” GRÃ˜N
+
+trace.log (24 KB, capped) 21:30-21:33 bekrÃ¦fter at spil/program-pipelinen virker:
+- POE (PID 28360): native agent lÃ¥ste `Target=PathOfExile.exe`, `DXGI=3`, FPS 58-59, `Source=PrimaryApi`. "Locked config target is active ... Suppressing foreground retarget." (korrekt sticky). Overlay vist.
+- COD MW2 (cod22-cod, PID 22072): COD HQ-vinduet (843x480) blev korrekt AFVIST ("window is too small"); derefter `Foreground candidate detected: PID=22072 Name=cod22-cod` -> agenten lÃ¥ste `Target=cod22-cod.exe`, `DXGI=5`, FPS 93-128, `Source=PrimaryApi`. Stale POE FpsTarget ryddet. Overlay vist.
+- INGEN falske positiver: ingen TextInputHost/LockApp/taskmgr-lÃ¥sninger; `external-games.json` uÃ¦ndret (sidst Ã¦ndret 11-09 13:54 â€” ingen nye registreringer).
+- INGEN "Ignoring foreground ... because sticky ... still alive"-blokering lÃ¦ngere.
+
+MINDRE OBSERVATIONER (ikke blokerende):
+1. `LauncherItemLaunchManager` mÃ¦rkede COD-PID 22072 som `PathOfExile.exe` under resolution-lock-handoff (linje 100-109), fordi POE-sessionen stadig var aktiv da COD kom. HarmlÃ¸st (rigtig oplÃ¸sning anvendt), men log-stÃ¸j + konceptuelt mismatch. Kandidat til oprydning.
+2. Efter COD-luk viste monitor-rÃ¦kken `FPS=105 Source=FpsMeter` (hold-last) i ~1 min. Formodentlig bevidst hold-last; bÃ¸r bekrÃ¦ftes at det er Ã¸nsket.
+3. "FindAnyGameProcess gave up after 60s for PathOfExile" (linje 136) â€” harmlÃ¸s stÃ¸j fra POE-sessionen der reelt blev aflÃ¸st af COD.

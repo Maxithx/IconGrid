@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using IconGrid.Helpers.Hardware;
 
 namespace IconGrid.Helpers.Launcher
 {
@@ -107,37 +108,10 @@ namespace IconGrid.Helpers.Launcher
         // XboxGameBarWidgets, SearchApp etc. get marked "game confirmed" by the
         // watchdog, which restores the resolution too early when the shell
         // window closes while the real game is still starting.
-        private static readonly string[] NonGameProcessNames =
-        {
-            "explorer",
-            "ApplicationFrameHost",
-            "SearchApp",
-            "StartMenuExperienceHost",
-            "SystemSettings",
-            "mscopilot",
-            "WmiPrvSE",
-            "XboxGameBar",
-            "XboxGameBarWidgets",
-            "GameBar",
-            "GameBarPresenceWriter",
-            "TextInputHost",
-            "ShellExperienceHost",
-            "Widgets",
-            "Code",
-            "brave",
-            "chrome",
-            "msedge",
-            "firefox",
-            "notepad",
-            "mspaint",
-            "Battle.net",
-            "steam",
-            "steamwebhelper",
-            "upc",
-            "EADesktop",
-            "EpicGamesLauncher",
-            "launcher"
-        };
+        // Shared, single-source non-game process list (name + system path policy
+        // lives in GameProcessClassifier so the FPS pipeline and the resolution
+        // lock can never disagree about what a game is).
+        private static readonly string[] NonGameProcessNames = GameProcessClassifier.NonGameProcessNames;
 
         // Per launch-session resolution-lock state. The lock follows the launch
         // session, not a single PID: as long as a process with the game's
@@ -643,18 +617,9 @@ namespace IconGrid.Helpers.Launcher
 
         private static void WriteTrace(string message)
         {
-            try
-            {
-                var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var folder = System.IO.Path.Combine(appData, "IconGrid");
-                System.IO.Directory.CreateDirectory(folder);
-                var logPath = System.IO.Path.Combine(folder, "trace.log");
-                System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:O}] {message}{Environment.NewLine}");
-            }
-            catch
-            {
-                // logging must never break resolution handling
-            }
+            // logging must never break resolution handling; the shared writer is
+            // size-capped and swallows its own failures.
+            Helpers.Logging.AppTrace.Write(message);
         }
 
         public void Dispose()

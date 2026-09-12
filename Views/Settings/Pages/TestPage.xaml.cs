@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Management;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
 
 namespace IconGrid.Views;
@@ -30,6 +31,8 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
     private string _elevatedEtwProbeResultText = "Not run yet.";
     private string _nativeUiProbeStatusText = "Idle";
     private string _nativeUiProbeResultText = "Not run yet.";
+    private string _traceLogInfo = string.Empty;
+    private string _traceLogStatusText = string.Empty;
     private bool _isProbeRunning;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -94,6 +97,18 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         private set => SetField(ref _nativeUiProbeResultText, value);
     }
 
+    public string TraceLogInfo
+    {
+        get => _traceLogInfo;
+        private set => SetField(ref _traceLogInfo, value);
+    }
+
+    public string TraceLogStatusText
+    {
+        get => _traceLogStatusText;
+        private set => SetField(ref _traceLogStatusText, value);
+    }
+
     public TestPage()
     {
         InitializeComponent();
@@ -107,6 +122,7 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         ProcessInfo = BuildProcessInfo();
         StartupDiagnosticsInfo = BuildStartupDiagnosticsInfo();
         SummaryText = BuildSummaryText();
+        RefreshTraceLogInfo();
     }
 
     private async void RunEtwProbeButton_Click(object sender, RoutedEventArgs e)
@@ -666,6 +682,29 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
                 _handle = IntPtr.Zero;
             }
         }
+    }
+
+    private void RefreshTraceLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshTraceLogInfo();
+        TraceLogStatusText = "Refreshed.";
+    }
+
+    private void CleanTraceLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        var cleared = AppTrace.Clear();
+        RefreshTraceLogInfo();
+        TraceLogStatusText = cleared ? "Trace log cleared." : "Could not clear the trace log.";
+    }
+
+    private void RefreshTraceLogInfo()
+    {
+        var lastWrite = AppTrace.GetLastWriteTime();
+        var lastWriteText = lastWrite.HasValue ? lastWrite.Value.ToString("yyyy-MM-dd HH:mm:ss") : "--";
+        TraceLogInfo =
+            $"Path:  {AppTrace.LogPath}\n" +
+            $"Size:  {AppTrace.GetSizeText()}  (auto-clean cap {AppTrace.FormatSize(AppTrace.MaxBytes)})\n" +
+            $"Last write:  {lastWriteText}";
     }
 
     private void SetField(ref string field, string value, [CallerMemberName] string? propertyName = null)

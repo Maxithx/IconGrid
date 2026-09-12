@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Models;
 
@@ -18,37 +19,8 @@ namespace IconGrid.ViewModels.Launcher
         // (SystemSettings, XboxGameBarWidgets, SearchApp...) get re-targeted as
         // "the game" by FindAnyGameProcess, which breaks the resolution lock
         // (it restores too early when the shell window closes).
-        private static readonly string[] NonGameProcessNames =
-        {
-            "explorer",
-            "ApplicationFrameHost",
-            "SearchApp",
-            "StartMenuExperienceHost",
-            "SystemSettings",
-            "mscopilot",
-            "WmiPrvSE",
-            "XboxGameBar",
-            "XboxGameBarWidgets",
-            "GameBar",
-            "GameBarPresenceWriter",
-            "TextInputHost",
-            "ShellExperienceHost",
-            "Widgets",
-            "Code",
-            "brave",
-            "chrome",
-            "msedge",
-            "firefox",
-            "notepad",
-            "mspaint",
-            "Battle.net",
-            "steam",
-            "steamwebhelper",
-            "upc",
-            "EADesktop",
-            "EpicGamesLauncher",
-            "launcher"
-        };
+        // Shared, single-source non-game process list (see GameProcessClassifier).
+        private static readonly string[] NonGameProcessNames = GameProcessClassifier.NonGameProcessNames;
 
         // Win32 for FindAnyGameProcess — enumerates visible windows to find
         // a game's real process regardless of launcher/anti-cheat wrapper name.

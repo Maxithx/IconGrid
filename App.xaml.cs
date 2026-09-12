@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Threading;
 using IconGrid.Helpers;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
 using WinForms = System.Windows.Forms;
 using IconGrid.Views;
@@ -24,6 +25,10 @@ public partial class App : System.Windows.Application
         TryEnablePerMonitorDpiAwareness();
         WinForms.Application.SetHighDpiMode(WinForms.HighDpiMode.PerMonitorV2);
         base.OnStartup(e);
+
+        // Ensure an already-oversized trace.log (from an older build) is trimmed
+        // even before the first write of this session.
+        AppTrace.EnforceSizeLimit();
 
         if (e.Args.Any(arg => string.Equals(arg, "--install-startup-task", StringComparison.OrdinalIgnoreCase)))
         {
@@ -228,18 +233,7 @@ public partial class App : System.Windows.Application
 
     private void WriteTrace(string message)
     {
-        try
-        {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var folder = System.IO.Path.Combine(appData, "IconGrid");
-            System.IO.Directory.CreateDirectory(folder);
-            var logPath = System.IO.Path.Combine(folder, "trace.log");
-            var line = $"[{DateTime.Now:O}] {message}{Environment.NewLine}";
-            System.IO.File.AppendAllText(logPath, line);
-        }
-        catch
-        {
-            // ignore
-        }
+        // Delegated to the shared, size-capped trace writer.
+        AppTrace.Write(message);
     }
 }

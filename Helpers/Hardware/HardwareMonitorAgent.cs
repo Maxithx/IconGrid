@@ -25,31 +25,15 @@ public static class HardwareMonitorAgent
     private static readonly TimeSpan NonGameProbeTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan NonGameCooldown = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromSeconds(5);
-    private static readonly string[] IgnoredForegroundProcesses =
-    {
-        "explorer",
-        "IconGrid",
-        "ApplicationFrameHost",
-        "SearchApp",
-        "StartMenuExperienceHost",
-        "SystemSettings",
-        "mscopilot",
-        "WmiPrvSE",
-        "Battle.net",
-        "steam",
-        "steamwebhelper",
-        "upc",
-        "EADesktop",
-        "EpicGamesLauncher",
-        "launcher",
-        "Code",
-        "brave",
-        "chrome",
-        "msedge",
-        "firefox",
-        "notepad",
-        "mspaint"
-    };
+
+    // A sticky game target is held while it is alive (so alt-tab does not retarget).
+    // If a DIFFERENT valid foreground game candidate stays stable this long, the
+    // sticky target is released — a bad target (e.g. a shell process confirmed
+    // through the weak DxgKrnl fallback) must never block the real game forever.
+    private static readonly TimeSpan StickyChallengerOverrideDelay = TimeSpan.FromSeconds(20);
+
+    // Single source of truth for "this process is never a game" (name + system path).
+    private static readonly string[] IgnoredForegroundProcesses = GameProcessClassifier.NonGameProcessNames;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly FpsNormalizerState FpsNormalizer = new();
 
@@ -239,6 +223,8 @@ public static class HardwareMonitorAgent
             var currentForegroundPidObservedAtUtc = default(DateTime?);
             var rejectedForegroundPid = default(int?);
             var rejectedForegroundPidCooldownUntilUtc = default(DateTime?);
+            var stickyChallengerPid = default(int?);
+            var stickyChallengerSinceUtc = default(DateTime?);
             var lastTargetWasForegroundWindow = default(bool?);
             var lastTargetBecameForegroundAtUtc = DateTime.MinValue;
 
@@ -287,6 +273,8 @@ public static class HardwareMonitorAgent
                         ref currentForegroundPidObservedAtUtc,
                         ref rejectedForegroundPid,
                         ref rejectedForegroundPidCooldownUntilUtc,
+                        ref stickyChallengerPid,
+                        ref stickyChallengerSinceUtc,
                         parentPid,
                         log);
                 }
@@ -527,6 +515,12 @@ exit:
                     {
                         return null;
                     }
+                }
+
+                if (GameProcessClassifier.IsNonGameProcessPath(GameProcessClassifier.TryGetProcessPath((int)pid)))
+                {
+                    log?.Invoke($"Skipping foreground PID {(int)pid} ({processName}) — process lives in a Windows system directory.");
+                    return null;
                 }
 
                 if (!IsLikelyGameForegroundWindow(foregroundHwnd, processName, log))
@@ -907,6 +901,8 @@ exit:
         ref DateTime? currentForegroundPidObservedAtUtc,
         ref int? rejectedForegroundPid,
         ref DateTime? rejectedForegroundPidCooldownUntilUtc,
+        ref int? stickyChallengerPid,
+        ref DateTime? stickyChallengerSinceUtc,
         int? parentPid,
         Action<string>? log)
     {
@@ -1019,9 +1015,39 @@ exit:
             var observedForegroundPid = TryGetForegroundGamePid(log);
             if (stickyTargetConfirmed && observedForegroundPid.HasValue && observedForegroundPid.Value != currentForegroundGamePid.Value)
             {
+                // Track how long the challenger has been the stable foreground
+                // candidate. A confirmed sticky target is normally held while
+                // alive, but a wrong target must never block the real game for
+                // good — so after the override delay we release it and retarget.
+                if (stickyChallengerPid != observedForegroundPid.Value)
+                {
+                    stickyChallengerPid = observedForegroundPid.Value;
+                    stickyChallengerSinceUtc = DateTime.UtcNow;
+                }
+
+                var challengerStableFor = stickyChallengerSinceUtc.HasValue
+                    ? DateTime.UtcNow - stickyChallengerSinceUtc.Value
+                    : TimeSpan.Zero;
+
+                if (challengerStableFor < StickyChallengerOverrideDelay)
+                {
+                    log?.Invoke(
+                        $"Ignoring foreground PID {observedForegroundPid.Value} because sticky game target PID {currentForegroundGamePid.Value} is still alive.");
+                    return;
+                }
+
                 log?.Invoke(
-                    $"Ignoring foreground PID {observedForegroundPid.Value} because sticky game target PID {currentForegroundGamePid.Value} is still alive.");
-                return;
+                    $"Releasing sticky game target PID {currentForegroundGamePid.Value} after {challengerStableFor.TotalSeconds:F0}s: foreground PID {observedForegroundPid.Value} is a stable challenger. Retargeting.");
+                currentForegroundGamePid = null;
+                confirmedForegroundGamePid = null;
+                stickyChallengerPid = null;
+                stickyChallengerSinceUtc = null;
+                nativeFpsStarted = false;
+            }
+            else
+            {
+                stickyChallengerPid = null;
+                stickyChallengerSinceUtc = null;
             }
         }
 
@@ -1108,9 +1134,45 @@ exit:
         hadConfirmedGameSession = true;
     }
 
+    /// <summary>
+    /// True when the native FPS agent reports USABLE frame-render evidence for a
+    /// target — i.e. the process is genuinely rendering through a graphics API,
+    /// not just producing the occasional system/kernel present event.
+    ///
+    /// A single DXGKRNL present event is deliberately NOT treated as a game signal.
+    /// Non-rendering foreground processes (Windows Search's SearchHost, shell
+    /// overlays, etc.) can occasionally emit one coarse kernel present event while
+    /// producing zero usable frames. Confirming those as "games" let them become
+    /// sticky targets that then blocked the real game from ever being acquired
+    /// (the launcher stayed in-game on SearchHost.exe for hours, so the gaming
+    /// overlay never appeared for the actual game when it started later).
+    ///
+    /// We confirm only on real, sustained render evidence:
+    ///   - a usable FPS value, or
+    ///   - at least two app-present (DXGI/D3D9) events in the rolling window, or
+    ///   - at least two DXGKRNL present events (the native DxgKrnl fallback only
+    ///     reports a frame rate once it has >=2 samples at >=20fps).
+    /// This makes detection evidence-based and independent of any process-name
+    /// blacklist.
+    /// </summary>
+    private static bool HasUsableFrameSignal(NativeFpsAgentState? nativeState)
+    {
+        // Delegated to the shared classifier so the "what counts as a game
+        // signal" rule is defined in exactly one place.
+        return GameProcessClassifier.IsGameEvidence(nativeState);
+    }
+
     private static bool IsStickyTargetConfirmed(int? currentForegroundGamePid, NativeFpsAgentState? nativeState)
     {
         if (!currentForegroundGamePid.HasValue || nativeState == null)
+        {
+            return false;
+        }
+
+        // Never confirm a shell/system process as the game target, even if the
+        // weak DxgKrnl fallback produced a frame count for it. A confirmed shell
+        // target is what previously blocked the real game from being acquired.
+        if (GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName))
         {
             return false;
         }
@@ -1120,14 +1182,7 @@ exit:
             return false;
         }
 
-        if (nativeState.FpsValue.HasValue && nativeState.FpsValue.Value > 0)
-        {
-            return true;
-        }
-
-        return nativeState.MatchedDxgiEventCount > 0 ||
-               nativeState.MatchedD3D9EventCount > 0 ||
-               nativeState.MatchedDxgKrnlEventCount > 0;
+        return HasUsableFrameSignal(nativeState);
     }
 
     private static bool IsCurrentTargetStillOwned(
@@ -1145,18 +1200,14 @@ exit:
             return false;
         }
 
-        if (nativeState.FpsValue.HasValue && nativeState.FpsValue.Value > 0)
+        if (HasUsableFrameSignal(nativeState))
         {
             return true;
         }
 
-        if (nativeState.MatchedDxgiEventCount > 0 ||
-            nativeState.MatchedD3D9EventCount > 0 ||
-            nativeState.MatchedDxgKrnlEventCount > 0)
-        {
-            return true;
-        }
-
+        // A previously-confirmed target that is merely paused (brief render stop)
+        // stays owned as long as ETW is still running, so the overlay does not flap
+        // during menu/cutscene dips.
         return confirmedForegroundGamePid.HasValue &&
                confirmedForegroundGamePid.Value == currentForegroundGamePid.Value &&
                nativeState.EtwRunning;
@@ -1169,19 +1220,18 @@ exit:
             return false;
         }
 
+        // A shell/system process has no game signal regardless of frame counts.
+        if (GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName))
+        {
+            return false;
+        }
+
         if (nativeState.TargetPid != currentForegroundGamePid.Value)
         {
             return false;
         }
 
-        if (nativeState.FpsValue.HasValue && nativeState.FpsValue.Value > 0)
-        {
-            return true;
-        }
-
-        return nativeState.MatchedDxgiEventCount > 0 ||
-               nativeState.MatchedD3D9EventCount > 0 ||
-               nativeState.MatchedDxgKrnlEventCount > 0;
+        return HasUsableFrameSignal(nativeState);
     }
 
     private static bool HasNativeGameSignal(NativeFpsAgentState? nativeState)
@@ -1196,14 +1246,7 @@ exit:
             return true;
         }
 
-        if (nativeState.FpsValue.HasValue && nativeState.FpsValue.Value > 0)
-        {
-            return true;
-        }
-
-        return nativeState.MatchedDxgiEventCount > 0 ||
-               nativeState.MatchedD3D9EventCount > 0 ||
-               nativeState.MatchedDxgKrnlEventCount > 0;
+        return HasUsableFrameSignal(nativeState);
     }
 
     /// <summary>
@@ -1236,26 +1279,26 @@ exit:
     /// GameResolutionPage can show it. Only called when foreground detection
     /// discovers a new game PID that is NOT already in the user's shortcut list.
     ///
-    /// PERMANENT anti-false-positive guard: a process is only registered once the
-    /// native FPS agent has observed GPU present events (DXGI/D3D9/DXGKRNL) for
-    /// this PID. Shell/system apps (Discord, WindowsTerminal, taskmgr, Outlook,
-    /// SnippingTool, KeePassXC, qBittorrent...) load graphics DLLs and may have
-    /// game-sized windows, but they never present frames to our ETW session — so
-    /// they are never recorded as games. This replaces the old heuristic that only
-    /// checked window size + recency, which registered taskmgr, dwm, LockApp,
-    /// Outlook etc. as "games" and made the launcher hide for non-games.
+    /// PERMANENT anti-false-positive guard: a process is only registered when
+    /// the native FPS agent observed trustworthy game evidence for this PID AND
+    /// the process is not a Windows system/shell program. DXGI/D3D9 application
+    /// presents are strong evidence; the coarse DxgKrnl kernel fallback is weak
+    /// (shell apps can emit a stray kernel present), so it is only accepted for
+    /// processes that are not Windows system programs. This keeps taskmgr,
+    /// TextInputHost, LockApp, SearchHost, Discord, WindowsTerminal etc. out of
+    /// the external-games list while still registering real games.
     /// </summary>
     private static void TryAutoRegisterExternalGame(int pid, NativeFpsAgentState? nativeState, Action<string>? log)
     {
         if (nativeState == null || nativeState.TargetPid != pid)
             return;
 
-        var hasMatchedGpuEvents = nativeState.MatchedDxgiEventCount > 0 ||
-                                  nativeState.MatchedD3D9EventCount > 0 ||
-                                  nativeState.MatchedDxgKrnlEventCount > 0;
-        if (!hasMatchedGpuEvents)
+        var hasTrustworthyEvidence = GameProcessClassifier.IsGameEvidence(nativeState);
+        var isNonGameProcess = GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName) ||
+                               GameProcessClassifier.IsNonGameProcessPath(GameProcessClassifier.TryGetProcessPath(pid));
+        if (!hasTrustworthyEvidence || isNonGameProcess)
         {
-            log?.Invoke($"Skipping external game registration for PID {pid}: no ETW GPU present events observed (anti-false-positive guard).");
+            log?.Invoke($"Skipping external game registration for PID {pid}: no trustworthy game evidence (anti-false-positive guard).");
             return;
         }
 
