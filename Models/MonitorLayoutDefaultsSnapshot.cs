@@ -1,7 +1,8 @@
 namespace IconGrid.Models;
 
 /// <summary>
-/// JSON-serializable snapshot of all 18 monitor layout properties.
+/// JSON-serializable snapshot of the monitor layout properties (18 monitor row values
+/// plus the gaming overlay background height).
 /// Used by the "Save current as default" / "Reset defaults" buttons on MonitorRowLayoutPage.
 /// </summary>
 public class MonitorLayoutDefaultsSnapshot
@@ -33,4 +34,9 @@ public class MonitorLayoutDefaultsSnapshot
     // ── Value widths ──
     public double MonitorDownloadValueWidth { get; set; } = 20;
     public double MonitorUploadValueWidth { get; set; } = 20;
+
+    // ── Gaming overlay bar background height (px) ──
+    // Nullable so snapshots saved before this property existed leave the user's
+    // current overlay height untouched when "Reset to my default" is used.
+    public double? GamingOverlayBackgroundHeight { get; set; }
 }

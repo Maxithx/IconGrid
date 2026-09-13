@@ -86,6 +86,7 @@ namespace IconGrid.ViewModels
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
         private double _gamingOverlayUiScale = 1.0;
+        private double _gamingOverlayBackgroundHeight = 44;
         private double _gamingOverlayFpsResponsiveness = 1.0;
         private bool _gamingOverlayTransparentBackground = false;
         private bool _gamingOverlayAutoTransparentBackground = false;
@@ -102,7 +103,11 @@ namespace IconGrid.ViewModels
         private bool _allowMultiMonitorDrag = false;
         private Dictionary<string, double> _gamingOverlayResolutionScales = new();
         private const double GamingOverlayBaseWidth = 720;
-        private const double GamingOverlayBaseHeight = 44;
+        // Gaming overlay bar background height (px) — user adjustable on the Monitor Row
+        // Layout page. 44 px is the factory default / design size (before overlay scale).
+        public const double GamingOverlayMinBackgroundHeight = 20;
+        public const double GamingOverlayMaxBackgroundHeight = 120;
+        public const double GamingOverlayDefaultBackgroundHeight = 44;
         private bool _isFullWindowVisible = false;
         private bool _enableSlideUpAnimation = true;
         private bool _enableContentScroll = true;
@@ -436,6 +441,27 @@ namespace IconGrid.ViewModels
             }
         }
 
+        /// <summary>
+        /// Height in pixels of the gaming overlay's bar background (the design size,
+        /// before <see cref="GamingOverlayUiScale"/> is applied). Adjustable on the
+        /// Monitor Row Layout settings page. Persisted in config; the factory default
+        /// is 44 px. Raising it makes the overlay bar taller without scaling the text.
+        /// </summary>
+        public double GamingOverlayBackgroundHeight
+        {
+            get => _gamingOverlayBackgroundHeight;
+            set
+            {
+                var clamped = Math.Max(GamingOverlayMinBackgroundHeight, Math.Min(GamingOverlayMaxBackgroundHeight, value));
+                if (SetField(ref _gamingOverlayBackgroundHeight, clamped))
+                {
+                    SaveSettingsToConfig();
+                    OnPropertyChanged(nameof(GamingOverlayBackgroundHeight));
+                    OnPropertyChanged(nameof(GamingOverlayWindowHeight));
+                }
+            }
+        }
+
         public double GamingOverlayFpsResponsiveness
         {
             get => _gamingOverlayFpsResponsiveness;
@@ -640,7 +666,7 @@ namespace IconGrid.ViewModels
         }
 
         public double GamingOverlayWindowWidth => GamingOverlayBaseWidth * _gamingOverlayUiScale;
-        public double GamingOverlayWindowHeight => GamingOverlayBaseHeight * _gamingOverlayUiScale;
+        public double GamingOverlayWindowHeight => _gamingOverlayBackgroundHeight * _gamingOverlayUiScale;
 
         public double EffectiveIconScale => _icon_scale;
 
@@ -1321,6 +1347,7 @@ namespace IconGrid.ViewModels
                 MonitorUploadValueToUnitGap = _monitorUploadValueToUnitGap,
                 MonitorDownloadValueWidth = _monitorDownloadValueWidth,
                 MonitorUploadValueWidth = _monitorUploadValueWidth,
+                GamingOverlayBackgroundHeight = _gamingOverlayBackgroundHeight,
             };
 
             _config.MonitorLayoutDefaults = System.Text.Json.JsonSerializer.Serialize(defaults);
@@ -1361,6 +1388,15 @@ namespace IconGrid.ViewModels
                 _monitorDownloadValueWidth = defaults.MonitorDownloadValueWidth;
                 _monitorUploadValueWidth = defaults.MonitorUploadValueWidth;
 
+                // Only applied when the saved snapshot contains it, so older snapshots do
+                // not overwrite the user's current overlay background height.
+                if (defaults.GamingOverlayBackgroundHeight.HasValue)
+                {
+                    _gamingOverlayBackgroundHeight = Math.Max(
+                        GamingOverlayMinBackgroundHeight,
+                        Math.Min(GamingOverlayMaxBackgroundHeight, defaults.GamingOverlayBackgroundHeight.Value));
+                }
+
                 SaveSettingsToConfig();
                 NotifyAllMonitorLayoutPropertiesChanged();
                 return true;
@@ -1393,6 +1429,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(MonitorUploadValueWidth));
             OnPropertyChanged(nameof(MonitorDownloadValueLocked));
             OnPropertyChanged(nameof(MonitorUploadValueLocked));
+            OnPropertyChanged(nameof(GamingOverlayBackgroundHeight));
+            OnPropertyChanged(nameof(GamingOverlayWindowHeight));
         }
 
         /// <summary>

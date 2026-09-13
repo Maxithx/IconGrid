@@ -28,7 +28,7 @@ namespace IconGrid.Helpers
     /// </summary>
     public enum PingTargetMode
     {
-        Auto,        // gateway (auto-detected) -> Cloudflare -> Google
+        Auto,        // internet-first: Cloudflare -> Google -> router (last resort)
         Gateway,     // user's local router/gateway only
         Cloudflare,  // 1.1.1.1
         Google,      // 8.8.8.8
@@ -44,9 +44,10 @@ namespace IconGrid.Helpers
         private const int PingTimeoutMs = 200;
         // EMA smoothing factor (0 = no new info, 1 = no smoothing). 0.3 dampens single spikes well.
         private const double PingEmaAlpha = 0.3;
-        // Minimum displayed ping. Windows can report 0ms because the OS clock-tick (~15.6ms) is too
-        // coarse to measure sub-millisecond round-trips. 0ms is physically impossible (round-trip is
-        // always >= ~0.1ms even on LAN), so we clamp to 1ms for display + EMA smoothing.
+        // Numeric floor for the ping value. Windows' ICMP timing resolution is 1 ms, so a
+        // sub-millisecond round-trip — typically the local router on a LAN — is reported as 0 ms.
+        // The display shows that as "<1ms" (see CaptureNetworkSnapshot); this floor only keeps the
+        // numeric EMA from decaying to 0.
         private const double MinPingMs = 1.0;
 
         // Hardcoded fallback targets after the auto-detected gateway.
@@ -98,9 +99,14 @@ namespace IconGrid.Helpers
         private string _activePingTargetLabel = "—";
         private bool _isPingStale;
 
-        // User-configurable ping target. Defaults to Auto (gateway -> Cloudflare -> Google).
+        // User-configurable ping target. Defaults to Auto (Cloudflare -> Google -> router).
         private PingTargetMode _pingTargetMode = PingTargetMode.Auto;
         private string _customPingTarget = "";
+
+        // True when the most recent successful raw sample was sub-millisecond. Windows' ICMP
+        // timing resolution is 1 ms, so a LAN round-trip to the local router reports 0 ms —
+        // used to display "<1ms" instead of a misleading, never-changing "1ms".
+        private bool _lastSampleSubMillisecond;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -434,6 +440,11 @@ namespace IconGrid.Helpers
             var nowUtc = DateTime.UtcNow;
             if (gotSample)
             {
+                // Windows' ICMP timing resolution is 1 ms, so a sub-millisecond round-trip
+                // (typically the local router) reports 0. Remember that so the display can
+                // show "<1ms" instead of a constant "1ms".
+                _lastSampleSubMillisecond = rawMs <= 0;
+
                 // Clamp raw sample to MinPingMs so we never EMA-smooth toward 0 (Windows can report
                 // 0ms because its clock-tick resolution is ~15.6ms — sub-ms round-trips round down).
                 var clampedRaw = Math.Max(MinPingMs, (double)rawMs);
@@ -467,10 +478,16 @@ namespace IconGrid.Helpers
 
             if (displayMs.HasValue)
             {
+                // A sub-millisecond LAN round-trip (local router) reports 0 ms because of
+                // Windows' 1 ms ICMP timing resolution. Show "<1ms" rather than a constant,
+                // never-changing "1ms" that would look like a broken measurement.
+                var subMillisecond = _lastSampleSubMillisecond && displayMs.Value <= MinPingMs;
+                var valueText = subMillisecond ? "<1" : $"{displayMs.Value:F0}";
+
                 networkStatus = isStale
-                    ? $"--ms ({displayMs.Value:F0})"
-                    : $"{displayMs.Value:F0}ms";
-                severity = DeterminePingSeverity((long)Math.Round(displayMs.Value));
+                    ? $"--ms ({valueText})"
+                    : $"{valueText}ms";
+                severity = DeterminePingSeverity(subMillisecond ? 1 : (long)Math.Round(displayMs.Value));
                 highPing = severity == PingSeverity.Critical;
             }
             else
@@ -544,12 +561,17 @@ namespace IconGrid.Helpers
                 case PingTargetMode.Auto:
                 default:
                     {
-                        var gw = GetActiveGatewayAddress();
-                        if (gw != null) yield return (gw, null);
+                        // Internet-first: the launcher's "Net" value must reflect the real
+                        // internet latency so it moves when the line degrades. The local router
+                        // answers in under 1 ms (always "1ms"), so it is only used as a last
+                        // resort when no internet target responds at all.
                         foreach (var fb in FallbackPingTargets)
                         {
                             yield return (fb, null);
                         }
+
+                        var gw = GetActiveGatewayAddress();
+                        if (gw != null) yield return (gw, null);
                         yield break;
                     }
             }

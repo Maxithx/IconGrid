@@ -13,6 +13,7 @@ namespace IconGrid.ViewModels.Settings
         public StartupLaunchMode StartupLaunchMode { get; init; }
         public double UiScale { get; init; }
         public double GamingOverlayUiScale { get; init; }
+        public double GamingOverlayBackgroundHeight { get; init; } = 44;
         public double GamingOverlayFpsResponsiveness { get; init; }
         public bool GamingOverlayTransparentBackground { get; init; }
         public bool GamingOverlayAutoTransparentBackground { get; init; }
@@ -82,6 +83,7 @@ namespace IconGrid.ViewModels.Settings
                 StartupLaunchMode = config.StartupLaunchMode,
                 UiScale = config.UiScale <= 0 ? 1.0 : Math.Max(0.8, Math.Min(1.0, config.UiScale)),
                 GamingOverlayUiScale = config.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(1.0, Math.Min(1.5, config.GamingOverlayUiScale)),
+                GamingOverlayBackgroundHeight = NormalizeOverlayBackgroundHeight(config.GamingOverlayBackgroundHeight),
                 GamingOverlayFpsResponsiveness = config.GamingOverlayFpsResponsiveness <= 0 ? 0.78 : Math.Max(0.15, Math.Min(0.95, config.GamingOverlayFpsResponsiveness)),
                 GamingOverlayTransparentBackground = config.GamingOverlayTransparentBackground,
                 GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,
@@ -139,6 +141,16 @@ namespace IconGrid.ViewModels.Settings
                 MonitorPingTargetMode = NormalizePingMode(config.MonitorPingTargetMode),
                 MonitorPingCustomTarget = config.MonitorPingCustomTarget ?? ""
             };
+        }
+
+        /// <summary>
+        /// Guards the persisted gaming overlay background height. 44 px is the design
+        /// default; values outside 20-120 px (0 from an old/hand-edited config, or
+        /// absurd values) fall back to the default so the overlay bar stays visible.
+        /// </summary>
+        private static double NormalizeOverlayBackgroundHeight(double raw)
+        {
+            return raw < 20 || raw > 120 ? 44 : raw;
         }
 
         private static string NormalizePingMode(string? raw)

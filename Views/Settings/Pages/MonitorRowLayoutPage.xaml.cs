@@ -36,6 +36,7 @@ namespace IconGrid.Views
             vm.MonitorUploadValueToUnitGap = 4;
             vm.MonitorDownloadValueWidth = 20;
             vm.MonitorUploadValueWidth = 20;
+            vm.GamingOverlayBackgroundHeight = MainViewModel.GamingOverlayDefaultBackgroundHeight;
         }
 
         private void ResetToMyDefaultButton_Click(object sender, RoutedEventArgs e)

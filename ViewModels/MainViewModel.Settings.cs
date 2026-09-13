@@ -20,6 +20,7 @@ namespace IconGrid.ViewModels
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _uiScale = state.UiScale;
             _gamingOverlayUiScale = state.GamingOverlayUiScale <= 0 ? 1.0 : Math.Max(1.0, Math.Min(1.5, state.GamingOverlayUiScale));
+            _gamingOverlayBackgroundHeight = state.GamingOverlayBackgroundHeight <= 0 ? GamingOverlayDefaultBackgroundHeight : state.GamingOverlayBackgroundHeight;
             _gamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness <= 0 ? 1.0 : Math.Max(0.15, Math.Min(1.0, state.GamingOverlayFpsResponsiveness));
             _gamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
             _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
@@ -85,6 +86,7 @@ namespace IconGrid.ViewModels
             _icon_scale = 1.0;
             _uiScale = 1.0;
             _gamingOverlayUiScale = 1.0;
+            _gamingOverlayBackgroundHeight = GamingOverlayDefaultBackgroundHeight;
             _gamingOverlayFpsResponsiveness = 1.0;
             _gamingOverlayTransparentBackground = false;
             _gamingOverlayAutoTransparentBackground = false;
@@ -134,6 +136,7 @@ namespace IconGrid.ViewModels
                 IconScale = _icon_scale,
                 UiScale = _uiScale,
                 GamingOverlayUiScale = _gamingOverlayUiScale,
+                GamingOverlayBackgroundHeight = _gamingOverlayBackgroundHeight,
                 GamingOverlayFpsResponsiveness = _gamingOverlayFpsResponsiveness,
                 GamingOverlayTransparentBackground = _gamingOverlayTransparentBackground,
                 GamingOverlayAutoTransparentBackground = _gamingOverlayAutoTransparentBackground,

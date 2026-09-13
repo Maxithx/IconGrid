@@ -13,6 +13,9 @@ public class ConfigModel
     public double IconScale { get; set; } = 1.0;           // 100%
     public double UiScale { get; set; } = 1.0;             // 100% UI scaling
     public double GamingOverlayUiScale { get; set; } = 1.0; // 100% gaming overlay scaling
+    // Gaming overlay bar background height in px (design size, before GamingOverlayUiScale is
+    // applied). Adjustable on the Monitor Row Layout settings page. 44 px is the factory default.
+    public double GamingOverlayBackgroundHeight { get; set; } = 44;
     public double GamingOverlayFpsResponsiveness { get; set; } = 1.0;
     public bool GamingOverlayTransparentBackground { get; set; } = false;
     public bool GamingOverlayAutoTransparentBackground { get; set; } = false;

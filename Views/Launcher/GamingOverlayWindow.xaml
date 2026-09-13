@@ -214,7 +214,7 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid Height="44">
+                <Grid Height="{Binding GamingOverlayBackgroundHeight}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />

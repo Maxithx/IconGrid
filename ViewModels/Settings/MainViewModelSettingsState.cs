@@ -10,6 +10,7 @@ namespace IconGrid.ViewModels.Settings
         public double IconScale { get; set; }
         public double UiScale { get; set; }
         public double GamingOverlayUiScale { get; set; }
+        public double GamingOverlayBackgroundHeight { get; set; } = 44;
         public double GamingOverlayFpsResponsiveness { get; set; }
         public bool GamingOverlayTransparentBackground { get; set; }
         public bool GamingOverlayAutoTransparentBackground { get; set; }

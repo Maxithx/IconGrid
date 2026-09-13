@@ -45,8 +45,8 @@ namespace IconGrid.Views
             public int Y;
         }
 
-        private const double BaseOverlayHeight = 44.0;
         private const double PopupRowHeight = 116.0;
+        private const double DefaultActionButtonHeight = 32.0;
         private const double PopupRowSpacing = 8.0;
         private const double DisplayChangeSettleDelayMs = 400.0;
         private readonly MainViewModel _viewModel;
@@ -64,6 +64,22 @@ namespace IconGrid.Views
         private System.Windows.Threading.DispatcherTimer? _positionReapplyTimer;
         private System.Windows.Threading.DispatcherTimer? _scaleDebounceTimer;
         private const int ScaleDebounceDelayMs = 150;
+
+        /// <summary>
+        /// Height (px) of the overlay bar background before the overlay scale is applied.
+        /// User adjustable on the Monitor Row Layout settings page; defaults to 44 px.
+        /// Read live from the view model so a slider change takes effect immediately.
+        /// </summary>
+        private double BaseOverlayHeight => _viewModel.GamingOverlayBackgroundHeight;
+
+        /// <summary>
+        /// Height of the two action buttons (settings gear + close). They are 32 px by
+        /// design, but must never be taller than the overlay bar: with a low
+        /// "Overlay background height" (Monitor Row Layout page) a 32 px button would
+        /// stick out above/below the bar, get clipped by the window edge and no longer
+        /// line up with the centered monitor row. Clamping makes them shrink with the bar.
+        /// </summary>
+        private double ActionButtonHeight => Math.Min(DefaultActionButtonHeight, BaseOverlayHeight);
 
         public GamingOverlayWindow(MainViewModel viewModel, GamingOverlayLayout layout)
         {
@@ -258,11 +274,13 @@ namespace IconGrid.Views
 
             if (SettingsMenuButton != null)
             {
+                SettingsMenuButton.Height = ActionButtonHeight;
                 SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
             }
 
             if (CloseButton != null)
             {
+                CloseButton.Height = ActionButtonHeight;
                 CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
             }
 
@@ -319,10 +337,16 @@ namespace IconGrid.Views
             }
 
             if (SettingsMenuButton != null)
+            {
+                SettingsMenuButton.Height = ActionButtonHeight;
                 SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
+            }
 
             if (CloseButton != null)
+            {
+                CloseButton.Height = ActionButtonHeight;
                 CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+            }
         }
 
         private void UpdateOverlayMetrics()

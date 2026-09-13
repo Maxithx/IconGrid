@@ -622,6 +622,63 @@
                         </Expander>
                     </Border>
 
+                    <!-- Gaming overlay background height -->
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Monitor row overlay background card">
+                        <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Monitor row overlay background expander">
+                            <Expander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                               Text="{Binding MonitorRowOverlayCardTitle}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               Margin="24,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Grid>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Margin="0,14,0,0"
+                                               Text="{Binding MonitorRowOverlayHeightLabel}" />
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Minimum="20" Maximum="120" SmallChange="1" LargeChange="5"
+                                                TickFrequency="1" IsSnapToTickEnabled="True"
+                                                Style="{StaticResource ModernSliderStyle}"
+                                                Value="{Binding GamingOverlayBackgroundHeight, Mode=TwoWay}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Margin="12,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Text="{Binding GamingOverlayBackgroundHeight, StringFormat={}{0:F0} px}" />
+                                    </Grid>
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="{Binding MonitorRowOverlayHeightDescription}" />
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
+                    </Border>
+
                     <!-- Reset / Save actions -->
                     <StackPanel Margin="0,12,0,0">
                         <StackPanel Orientation="Horizontal">

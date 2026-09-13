@@ -23,6 +23,7 @@ namespace IconGrid.ViewModels.Settings
                 config.IconScale = state.IconScale;
                 config.UiScale = state.UiScale;
                 config.GamingOverlayUiScale = state.GamingOverlayUiScale;
+                config.GamingOverlayBackgroundHeight = state.GamingOverlayBackgroundHeight;
                 config.GamingOverlayFpsResponsiveness = state.GamingOverlayFpsResponsiveness;
                 config.GamingOverlayTransparentBackground = state.GamingOverlayTransparentBackground;
                 config.GamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
