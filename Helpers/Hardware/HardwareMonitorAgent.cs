@@ -32,8 +32,11 @@ public static class HardwareMonitorAgent
     // through the weak DxgKrnl fallback) must never block the real game forever.
     private static readonly TimeSpan StickyChallengerOverrideDelay = TimeSpan.FromSeconds(20);
 
-    // Single source of truth for "this process is never a game" (name + system path).
-    private static readonly string[] IgnoredForegroundProcesses = GameProcessClassifier.NonGameProcessNames;
+    // FPS classification is EVIDENCE-BASED: a process is a game only when the
+    // native agent observed application-level presents (DXGI/D3D9) for it. The
+    // only name-based exclusion in this pipeline is our own processes — there is
+    // deliberately no app blocklist here (see GameProcessClassifier).
+    private static readonly string[] IgnoredForegroundProcesses = GameProcessClassifier.SelfProcessNames;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly FpsNormalizerState FpsNormalizer = new();
 
@@ -65,6 +68,9 @@ public static class HardwareMonitorAgent
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
     private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetClassNameW")]
+    private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 
     // Toolhelp32 for module enumeration — used to confidently identify
     // non-rendering programs (Notepad, Paint, etc.) via module list.
@@ -166,6 +172,7 @@ public static class HardwareMonitorAgent
         }
 
         var parentPid = TryReadParentPid(args);
+        var parentStartFileTimeUtc = TryReadParentStartFileTime(args);
         var configManager = new ConfigManager();
         var baseDir = configManager.BaseDirectory;
         var statePath = Path.Combine(baseDir, "monitor-state.json");
@@ -196,6 +203,9 @@ public static class HardwareMonitorAgent
             var currentForegroundGamePid = default(int?);
             var confirmedForegroundGamePid = default(int?);
             var hadConfirmedGameSession = false;
+            // Declared here (not with the other loop state below) because the
+            // startup bootstrap needs to start the non-game probe timer.
+            var currentForegroundPidObservedAtUtc = default(DateTime?);
 
             int? initialForegroundPid = null;
             if (HasConfiguredTargetIdentity(fpsTarget))
@@ -209,6 +219,11 @@ public static class HardwareMonitorAgent
                 {
                     log?.Invoke($"Initial foreground game PID detected: {initialForegroundPid.Value}");
                     currentForegroundGamePid = initialForegroundPid;
+
+                    // Start the non-game probe timer for the bootstrap target too,
+                    // so a wrongly-acquired shell/Store process is rejected after
+                    // the probe timeout instead of being held forever.
+                    currentForegroundPidObservedAtUtc = DateTime.UtcNow;
                 }
             }
 
@@ -220,7 +235,6 @@ public static class HardwareMonitorAgent
             var foregroundPollCounter = 0;
             var foregroundOverridePid = default(int?);
             var overrideExpiresAtUtc = default(DateTime?);
-            var currentForegroundPidObservedAtUtc = default(DateTime?);
             var rejectedForegroundPid = default(int?);
             var rejectedForegroundPidCooldownUntilUtc = default(DateTime?);
             var stickyChallengerPid = default(int?);
@@ -236,7 +250,7 @@ public static class HardwareMonitorAgent
                     break;
                 }
 
-                if (!ParentIsAlive(parentPid))
+                if (!ParentIsAlive(parentPid, parentStartFileTimeUtc))
                 {
                     parentMissingSinceUtc ??= DateTime.UtcNow;
                     if (DateTime.UtcNow - parentMissingSinceUtc.Value > OrphanGracePeriod)
@@ -361,7 +375,22 @@ public static class HardwareMonitorAgent
 
                 // Write full snapshot to disk
                 WriteSnapshot(statePath, tempPath, snapshot);
-                log?.Invoke($"Snapshot: FPS={snapshot.FpsStatus} GPU={snapshot.GpuUsagePercent:F1}% Source={snapshot.FpsSource}");
+
+                // Per-target dedicated VRAM, so it is visible in the trace whether a
+                // target is genuinely using the GPU the way a game does. A shell
+                // process reports a small figure (or none), a game reports hundreds
+                // of MB to GB.
+                var targetVramText = "Vram=--";
+                if (nativeState?.TargetPid > 0)
+                {
+                    var targetVram = GpuProcessMemory.TryGetDedicatedUsageBytes(nativeState.TargetPid);
+                    if (targetVram.HasValue)
+                    {
+                        targetVramText = $"Vram={GpuProcessMemory.Format(targetVram.Value)}";
+                    }
+                }
+
+                log?.Invoke($"Snapshot: FPS={snapshot.FpsStatus} GPU={snapshot.GpuUsagePercent:F1}% Source={snapshot.FpsSource} {targetVramText}");
 
                 // Write FPS-state at 20ms intervals for the next 500ms
                 for (int i = 0; i < SnapshotIntervalMs / FpsStateIntervalMs; i++)
@@ -371,7 +400,7 @@ public static class HardwareMonitorAgent
                         goto exit;
                     }
 
-                    if (i % 25 == 0 && !ParentIsAlive(parentPid))
+                    if (i % 25 == 0 && !ParentIsAlive(parentPid, parentStartFileTimeUtc))
                     {
                         parentMissingSinceUtc ??= DateTime.UtcNow;
                         if (DateTime.UtcNow - parentMissingSinceUtc.Value > OrphanGracePeriod)
@@ -465,6 +494,14 @@ exit:
             log?.Invoke($"Failed to open shutdown event {eventName}: {ex.Message}");
             return null;
         }
+    }
+
+    private static long? TryReadParentStartFileTime(string[] args)
+    {
+        var value = TryReadArgument(args, "--parent-start-filetime");
+        if (long.TryParse(value, out var fileTime) && fileTime > 0)
+            return fileTime;
+        return null;
     }
 
     private static int? TryReadParentPid(string[] args)
@@ -808,6 +845,47 @@ exit:
         }
     }
 
+    // Windows shell windows: the desktop, the taskbar and the task view. They are
+    // screen-sized, visible, and owned by explorer.exe — so without this check they
+    // pass the "looks like a game window" test and explorer.exe gets classified as
+    // a game (it then became a sticky target and blocked the real game).
+    //
+    // This is a STRUCTURAL rule (window class), deliberately not an app-name
+    // blocklist, so it cannot go stale the way a name list does.
+    private static readonly string[] ShellWindowClasses =
+    {
+        "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd",
+        "MultitaskingViewFrame", "TaskListThumbnailWnd", "XamlExplorerHostIslandWindow"
+    };
+
+    private static bool IsShellWindowClass(IntPtr hwnd, out string className)
+    {
+        className = string.Empty;
+
+        try
+        {
+            var buffer = new System.Text.StringBuilder(256);
+            if (GetClassName(hwnd, buffer, buffer.Capacity) <= 0)
+            {
+                return false;
+            }
+
+            className = buffer.ToString();
+            foreach (var shellClass in ShellWindowClasses)
+            {
+                if (string.Equals(className, shellClass, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return false;
+    }
+
     private static bool LooksLikeOverlayWindow(IntPtr hwnd)
     {
         try
@@ -855,6 +933,12 @@ exit:
         if (!IsWindowVisible(hwnd))
         {
             log?.Invoke($"Rejecting foreground PID because window is not visible. Name={processName}");
+            return false;
+        }
+
+        if (IsShellWindowClass(hwnd, out var shellClassName))
+        {
+            log?.Invoke($"Rejecting foreground PID because the window is a Windows shell window. Name={processName} Class={shellClassName}");
             return false;
         }
 
@@ -974,6 +1058,57 @@ exit:
             return;
         }
 
+        // A wrong sticky target (a shell/Store process acquired through a stray
+        // frame event) must never block the real game. Before honouring the
+        // "current target is still owned" short-circuit below, re-evaluate the
+        // foreground window: when a DIFFERENT valid game candidate stays stable
+        // for the override delay, release the current target so the real game is
+        // acquired on the retarget step. This is deliberately checked here and
+        // NOT after the short-circuit, otherwise it would be unreachable while a
+        // bad target is still alive — which is exactly how a locked Command
+        // Palette process blocked COD from ever being detected.
+        var stickyTargetConfirmed = confirmedForegroundGamePid.HasValue &&
+                                    currentForegroundGamePid == confirmedForegroundGamePid &&
+                                    ProcessIsAlive(confirmedForegroundGamePid.Value);
+        if (stickyTargetConfirmed)
+        {
+            var observedChallengerPid = TryGetForegroundGamePid(log);
+            if (observedChallengerPid.HasValue && observedChallengerPid.Value != currentForegroundGamePid!.Value)
+            {
+                if (stickyChallengerPid != observedChallengerPid.Value)
+                {
+                    stickyChallengerPid = observedChallengerPid.Value;
+                    stickyChallengerSinceUtc = DateTime.UtcNow;
+                }
+
+                var challengerStableFor = stickyChallengerSinceUtc.HasValue
+                    ? DateTime.UtcNow - stickyChallengerSinceUtc.Value
+                    : TimeSpan.Zero;
+
+                if (challengerStableFor >= StickyChallengerOverrideDelay)
+                {
+                    log?.Invoke(
+                        $"Releasing sticky game target PID {currentForegroundGamePid.Value} after {challengerStableFor.TotalSeconds:F0}s: foreground PID {observedChallengerPid.Value} is a stable challenger. Retargeting.");
+                    currentForegroundGamePid = null;
+                    confirmedForegroundGamePid = null;
+                    stickyChallengerPid = null;
+                    stickyChallengerSinceUtc = null;
+                    currentForegroundPidObservedAtUtc = null;
+                    nativeFpsStarted = false;
+                }
+                else
+                {
+                    log?.Invoke(
+                        $"Ignoring foreground PID {observedChallengerPid.Value} because sticky game target PID {currentForegroundGamePid.Value} is still alive ({challengerStableFor.TotalSeconds:F0}s/{StickyChallengerOverrideDelay.TotalSeconds:F0}s).");
+                }
+            }
+            else
+            {
+                stickyChallengerPid = null;
+                stickyChallengerSinceUtc = null;
+            }
+        }
+
         if (currentForegroundGamePid.HasValue &&
             ProcessIsAlive(currentForegroundGamePid.Value) &&
             IsCurrentTargetStillOwned(currentForegroundGamePid, confirmedForegroundGamePid, nativeState))
@@ -1005,50 +1140,6 @@ exit:
         {
             log?.Invoke(
                 $"Skipping non-game rejection for PID {currentForegroundGamePid.Value} because native FPS state was unavailable during probe timeout.");
-        }
-
-        var stickyTargetConfirmed = confirmedForegroundGamePid.HasValue &&
-                                    currentForegroundGamePid == confirmedForegroundGamePid &&
-                                    ProcessIsAlive(confirmedForegroundGamePid.Value);
-        if (currentForegroundGamePid.HasValue && ProcessIsAlive(currentForegroundGamePid.Value))
-        {
-            var observedForegroundPid = TryGetForegroundGamePid(log);
-            if (stickyTargetConfirmed && observedForegroundPid.HasValue && observedForegroundPid.Value != currentForegroundGamePid.Value)
-            {
-                // Track how long the challenger has been the stable foreground
-                // candidate. A confirmed sticky target is normally held while
-                // alive, but a wrong target must never block the real game for
-                // good — so after the override delay we release it and retarget.
-                if (stickyChallengerPid != observedForegroundPid.Value)
-                {
-                    stickyChallengerPid = observedForegroundPid.Value;
-                    stickyChallengerSinceUtc = DateTime.UtcNow;
-                }
-
-                var challengerStableFor = stickyChallengerSinceUtc.HasValue
-                    ? DateTime.UtcNow - stickyChallengerSinceUtc.Value
-                    : TimeSpan.Zero;
-
-                if (challengerStableFor < StickyChallengerOverrideDelay)
-                {
-                    log?.Invoke(
-                        $"Ignoring foreground PID {observedForegroundPid.Value} because sticky game target PID {currentForegroundGamePid.Value} is still alive.");
-                    return;
-                }
-
-                log?.Invoke(
-                    $"Releasing sticky game target PID {currentForegroundGamePid.Value} after {challengerStableFor.TotalSeconds:F0}s: foreground PID {observedForegroundPid.Value} is a stable challenger. Retargeting.");
-                currentForegroundGamePid = null;
-                confirmedForegroundGamePid = null;
-                stickyChallengerPid = null;
-                stickyChallengerSinceUtc = null;
-                nativeFpsStarted = false;
-            }
-            else
-            {
-                stickyChallengerPid = null;
-                stickyChallengerSinceUtc = null;
-            }
         }
 
         var newForegroundPid = TryGetForegroundGamePid(log);
@@ -1162,6 +1253,51 @@ exit:
         return GameProcessClassifier.IsGameEvidence(nativeState);
     }
 
+    /// <summary>
+    /// Evidence required to ACQUIRE/CONFIRM a target (as opposed to merely
+    /// displaying a frame rate). Store/WindowsApps processes (shell companions,
+    /// PowerToys, Command Palette) can emit a stray coarse kernel present, so for
+    /// them only application-level DXGI/D3D9 presents count. Real Store/Game Pass
+    /// games still produce DXGI presents, so they keep working.
+    /// </summary>
+    private static bool HasAcquisitionEvidence(NativeFpsAgentState? nativeState)
+    {
+        if (nativeState == null)
+        {
+            return false;
+        }
+
+        // 1. Application-level presents (DXGI/D3D9) are direct proof that the
+        //    process presents frames as an application.
+        if (GameProcessClassifier.HasPrimaryGraphicsEvidence(nativeState))
+        {
+            return true;
+        }
+
+        // 2. A game-like amount of DEDICATED VRAM is equally strong evidence and is
+        //    independent of the ETW providers. A shell/desktop process holds only a
+        //    few tens of MB, a real game hundreds of MB to several GB. This is what
+        //    keeps explorer.exe / Command Palette / PowerToys out WITHOUT an
+        //    app-name blocklist — and it is measurable even when an application
+        //    emits no (or only the coarse kernel) present events.
+        var vramBytes = GpuProcessMemory.TryGetDedicatedUsageBytes(nativeState.TargetPid);
+        if (vramBytes.HasValue)
+        {
+            return vramBytes.Value >= GameProcessClassifier.MinimumGameVramBytes;
+        }
+
+        // 3. VRAM could not be measured (no WDDM counter category available). Fall
+        //    back to the coarse DxgKrnl threshold — but never for Store/shell
+        //    processes, which must show application-level presents.
+        if (GameProcessClassifier.RequiresPrimaryGraphicsEvidence(
+                GameProcessClassifier.TryGetProcessPath(nativeState.TargetPid)))
+        {
+            return false;
+        }
+
+        return GameProcessClassifier.IsGameEvidence(nativeState);
+    }
+
     private static bool IsStickyTargetConfirmed(int? currentForegroundGamePid, NativeFpsAgentState? nativeState)
     {
         if (!currentForegroundGamePid.HasValue || nativeState == null)
@@ -1169,10 +1305,12 @@ exit:
             return false;
         }
 
-        // Never confirm a shell/system process as the game target, even if the
-        // weak DxgKrnl fallback produced a frame count for it. A confirmed shell
-        // target is what previously blocked the real game from being acquired.
-        if (GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName))
+        // Never confirm our own process as the game target, and never confirm a
+        // process that lives in a Windows system directory. Everything else is
+        // decided by evidence, not by name.
+        if (GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName) ||
+            GameProcessClassifier.IsNonGameProcessPath(
+                GameProcessClassifier.TryGetProcessPath(nativeState.TargetPid)))
         {
             return false;
         }
@@ -1182,7 +1320,7 @@ exit:
             return false;
         }
 
-        return HasUsableFrameSignal(nativeState);
+        return HasAcquisitionEvidence(nativeState);
     }
 
     private static bool IsCurrentTargetStillOwned(
@@ -1200,7 +1338,7 @@ exit:
             return false;
         }
 
-        if (HasUsableFrameSignal(nativeState))
+        if (HasAcquisitionEvidence(nativeState))
         {
             return true;
         }
@@ -1220,8 +1358,8 @@ exit:
             return false;
         }
 
-        // A shell/system process has no game signal regardless of frame counts.
-        if (GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName))
+        // Our own process has no game signal regardless of frame counts.
+        if (GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName))
         {
             return false;
         }
@@ -1231,7 +1369,7 @@ exit:
             return false;
         }
 
-        return HasUsableFrameSignal(nativeState);
+        return HasAcquisitionEvidence(nativeState);
     }
 
     private static bool HasNativeGameSignal(NativeFpsAgentState? nativeState)
@@ -1293,8 +1431,8 @@ exit:
         if (nativeState == null || nativeState.TargetPid != pid)
             return;
 
-        var hasTrustworthyEvidence = GameProcessClassifier.IsGameEvidence(nativeState);
-        var isNonGameProcess = GameProcessClassifier.IsNonGameProcessName(nativeState.TargetProcessName) ||
+        var hasTrustworthyEvidence = HasAcquisitionEvidence(nativeState);
+        var isNonGameProcess = GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName) ||
                                GameProcessClassifier.IsNonGameProcessPath(GameProcessClassifier.TryGetProcessPath(pid));
         if (!hasTrustworthyEvidence || isNonGameProcess)
         {
@@ -1851,14 +1989,41 @@ exit:
         }
     }
 
-    private static bool ParentIsAlive(int? parentPid)
+    // A PID alone is not a reliable liveness check: Windows reuses PIDs, so an
+    // orphaned agent could find an unrelated process with "our" parent PID and
+    // never exit — leaving an elevated agent and a stale FPS target alive after
+    // the launcher was gone. Verify the parent's start time as well.
+    private static bool ParentIsAlive(int? parentPid, long? parentStartFileTimeUtc)
     {
         if (!parentPid.HasValue)
             return true;
         try
         {
             using var process = Process.GetProcessById(parentPid.Value);
-            return !process.HasExited;
+            if (process.HasExited)
+            {
+                return false;
+            }
+
+            if (parentStartFileTimeUtc is > 0)
+            {
+                try
+                {
+                    var actualStartFileTimeUtc = process.StartTime.ToUniversalTime().ToFileTimeUtc();
+                    // Tolerate sub-second rounding; PID reuse implies a very
+                    // different start time.
+                    if (Math.Abs(actualStartFileTimeUtc - parentStartFileTimeUtc.Value) > 20_000_000L)
+                    {
+                        return false;
+                    }
+                }
+                catch
+                {
+                    // Start time unavailable (access denied): fall back to PID-only.
+                }
+            }
+
+            return true;
         }
         catch (System.ComponentModel.Win32Exception)
         {

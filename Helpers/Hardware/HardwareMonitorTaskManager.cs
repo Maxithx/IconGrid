@@ -23,10 +23,25 @@ public static class HardwareMonitorTaskManager
             var shutdownEventName = GetShutdownEventName(Environment.ProcessId);
             using var shutdownEvent = new EventWaitHandle(false, EventResetMode.ManualReset, shutdownEventName);
 
+            // A parent PID alone is not a reliable liveness check: Windows reuses
+            // PIDs, so an orphaned agent could find an unrelated process with "our"
+            // PID and never exit. That left an elevated agent — and a stale FPS
+            // target — alive after the launcher was gone. Pass our start time too
+            // so the agent can verify PID *and* start time.
+            long parentStartFileTimeUtc = 0;
+            try
+            {
+                parentStartFileTimeUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime().ToFileTimeUtc();
+            }
+            catch
+            {
+                // Fall back to PID-only validation when the start time is unavailable.
+            }
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = executablePath,
-                Arguments = $"{MonitorAgentArgument} --parent-pid {Environment.ProcessId} {ShutdownEventArgument} \"{shutdownEventName}\"",
+                Arguments = $"{MonitorAgentArgument} --parent-pid {Environment.ProcessId} --parent-start-filetime {parentStartFileTimeUtc} {ShutdownEventArgument} \"{shutdownEventName}\"",
                 UseShellExecute = true,
                 WorkingDirectory = AppContext.BaseDirectory,
                 WindowStyle = ProcessWindowStyle.Hidden

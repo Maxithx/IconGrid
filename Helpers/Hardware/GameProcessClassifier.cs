@@ -22,34 +22,61 @@ namespace IconGrid.Helpers.Hardware;
 public static class GameProcessClassifier
 {
     /// <summary>
-    /// Processes that must never be treated as a game, even when they own a
-    /// large visible window or emit a stray present event. Shared by the FPS
-    /// target selection and the game-resolution lock so both pipelines agree.
+    /// The only identities that are "never a game" by NAME: our own processes.
+    ///
+    /// Everything else is decided by evidence (see <see cref="IsGameEvidence"/> /
+    /// <see cref="HasPrimaryGraphicsEvidence"/>), because an ever-growing list of
+    /// "programs that are not games" is a losing game: a new shell element / utility
+    /// / overlay always appears that is not on the list, and it then gets detected
+    /// as a game. That is exactly how TextInputHost, PowerToys.Peek.UI and the
+    /// Windows Command Palette were mis-detected as games, each time blocking the
+    /// real game from being acquired.
+    ///
+    /// The FPS pipeline must NOT consult an app blocklist for classification.
     /// </summary>
-    public static readonly string[] NonGameProcessNames =
+    public static readonly string[] SelfProcessNames =
     {
-        // Windows shell / system UI (source of the worst false positives).
-        "explorer", "ApplicationFrameHost", "SearchApp", "SearchHost",
-        "StartMenuExperienceHost", "ShellExperienceHost", "ShellHost",
-        "TextInputHost", "LockApp", "Widgets", "RuntimeBroker", "dwm",
-        "SystemSettings", "mscopilot", "WmiPrvSE", "Taskmgr", "IconGrid",
-        "SecurityHealthSystray", "SecurityHealthService", "conhost",
-        "XboxGameBar", "XboxGameBarWidgets", "GameBar", "GameBarPresenceWriter",
-        // Stores / game launchers (never the game itself).
+        "IconGrid", "IconGridFpsAgent"
+    };
+
+    /// <summary>
+    /// Launchers / stores / bootstrappers that belong to a launch session but are
+    /// never the game itself. Used ONLY to disambiguate a KNOWN launch (the
+    /// process-tree matching behind the resolution lock and the window handoff),
+    /// never to classify an arbitrary foreground process as a game.
+    /// </summary>
+    public static readonly string[] LaunchInfrastructureProcessNames =
+    {
         "Battle.net", "steam", "steamwebhelper", "upc", "EADesktop",
         "EpicGamesLauncher", "launcher", "UbisoftConnect",
-        // Browsers / editors / terminals.
-        "Code", "devenv", "brave", "chrome", "msedge", "msedgewebview2",
-        "firefox", "WindowsTerminal", "OpenConsole", "cmd", "powershell", "pwsh",
-        // Media / capture / productivity / chat.
-        "notepad", "mspaint", "SnippingTool", "ScreenSketch", "Photos",
-        "Microsoft.Photos", "Microsoft.Media.Player", "ZuneMusic", "Music.UI",
-        "Photoshop", "Illustrator", "olk", "OUTLOOK", "WINWORD", "EXCEL", "POWERPNT",
-        "ms-teams", "Teams", "Spotify", "Discord", "OneDrive",
-        // Overlays / utilities that are not games.
-        "nvcontainer", "NVIDIA Share", "RadeonSoftware", "AMDRSServ",
-        "qbittorrent", "KeePassXC"
+        "conhost", "cmd", "powershell", "pwsh", "WindowsTerminal", "OpenConsole"
     };
+
+    /// <summary>
+    /// Identity set for the launch/resolution path (self + launch infrastructure +
+    /// Windows shell hosts). This exists so a shell host cannot steal the
+    /// "game confirmed" handoff while a known launch is still starting. It is NOT
+    /// used by the FPS classification path anymore.
+    /// </summary>
+    public static readonly string[] NonGameProcessNames = BuildNonGameProcessNames();
+
+    private static string[] BuildNonGameProcessNames()
+    {
+        string[] shellHosts =
+        {
+            "explorer", "ApplicationFrameHost", "SearchApp", "SearchHost",
+            "StartMenuExperienceHost", "ShellExperienceHost", "ShellHost",
+            "TextInputHost", "LockApp", "Widgets", "RuntimeBroker", "dwm",
+            "SystemSettings", "Taskmgr", "SecurityHealthSystray", "SecurityHealthService",
+            "XboxGameBar", "XboxGameBarWidgets", "GameBar", "GameBarPresenceWriter"
+        };
+
+        var combined = new string[SelfProcessNames.Length + LaunchInfrastructureProcessNames.Length + shellHosts.Length];
+        SelfProcessNames.CopyTo(combined, 0);
+        LaunchInfrastructureProcessNames.CopyTo(combined, SelfProcessNames.Length);
+        shellHosts.CopyTo(combined, SelfProcessNames.Length + LaunchInfrastructureProcessNames.Length);
+        return combined;
+    }
 
     private static readonly string[] NonGamePathPrefixes = BuildNonGamePathPrefixes();
 
@@ -74,16 +101,29 @@ public static class GameProcessClassifier
     }
 
     /// <summary>
-    /// True when the process name is a known non-game program.
+    /// True when the process is one of our own processes. The FPS pipeline uses
+    /// this (plus the structural path rules and ETW evidence) instead of an app
+    /// blocklist.
+    /// </summary>
+    public static bool IsSelfProcessName(string? processName)
+        => MatchesAnyName(processName, SelfProcessNames);
+
+    /// <summary>
+    /// True when the process name is in the launch/resolution identity set
+    /// (self + launch infrastructure + Windows shell hosts). Used to disambiguate
+    /// a known launch session, not to classify arbitrary foreground processes.
     /// </summary>
     public static bool IsNonGameProcessName(string? processName)
+        => MatchesAnyName(processName, NonGameProcessNames);
+
+    private static bool MatchesAnyName(string? processName, string[] names)
     {
         if (string.IsNullOrWhiteSpace(processName))
         {
             return false;
         }
 
-        foreach (var ignored in NonGameProcessNames)
+        foreach (var ignored in names)
         {
             if (string.Equals(processName, ignored, StringComparison.OrdinalIgnoreCase))
             {
@@ -121,6 +161,61 @@ public static class GameProcessClassifier
     /// </summary>
     public static bool IsNonGameProcess(string? processName, string? executablePath)
         => IsNonGameProcessName(processName) || IsNonGameProcessPath(executablePath);
+
+    /// <summary>
+    /// Dedicated VRAM a process must hold before it is trusted as a game without
+    /// application-level present evidence. A shell/desktop process (explorer,
+    /// Command Palette, PowerToys) stays far below this; a real game is far above.
+    /// </summary>
+    public const long MinimumGameVramBytes = 300L * 1024 * 1024;
+
+    private static readonly string[] WindowsStorePathPrefixes = BuildWindowsStorePathPrefixes();
+
+    private static string[] BuildWindowsStorePathPrefixes()
+    {
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (string.IsNullOrWhiteSpace(programFiles))
+        {
+            programFiles = @"C:\Program Files";
+        }
+
+        var separator = Path.DirectorySeparatorChar;
+        return new[] { Path.Combine(programFiles, "WindowsApps") + separator };
+    }
+
+    /// <summary>
+    /// True when the executable is packaged as a Microsoft Store / MSIX app
+    /// (under Program Files\WindowsApps). That folder hosts real games (Game
+    /// Pass) but also shell companions (Command Palette, PowerToys) that own
+    /// large windows and emit a stray kernel present. Such processes therefore
+    /// need stronger evidence before they are trusted as a game.
+    /// </summary>
+    public static bool IsWindowsStoreAppPath(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return false;
+        }
+
+        foreach (var prefix in WindowsStorePathPrefixes)
+        {
+            if (executablePath!.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the process must show application-level (DXGI/D3D9) presents to
+    /// be trusted as a game — the coarse DxgKrnl kernel fallback alone is never
+    /// enough. This covers Store/MSIX apps in Program Files\WindowsApps, where
+    /// shell companions previously slipped through on kernel-only evidence.
+    /// </summary>
+    public static bool RequiresPrimaryGraphicsEvidence(string? executablePath)
+        => IsWindowsStoreAppPath(executablePath);
 
     /// <summary>
     /// Best-effort executable path lookup. Returns null when MainModule is

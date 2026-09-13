@@ -305,3 +305,203 @@ MINDRE OBSERVATIONER (ikke blokerende):
 1. `LauncherItemLaunchManager` mærkede COD-PID 22072 som `PathOfExile.exe` under resolution-lock-handoff (linje 100-109), fordi POE-sessionen stadig var aktiv da COD kom. Harmløst (rigtig opløsning anvendt), men log-støj + konceptuelt mismatch. Kandidat til oprydning.
 2. Efter COD-luk viste monitor-rækken `FPS=105 Source=FpsMeter` (hold-last) i ~1 min. Formodentlig bevidst hold-last; bør bekræftes at det er ønsket.
 3. "FindAnyGameProcess gave up after 60s for PathOfExile" (linje 136) — harmløs støj fra POE-sessionen der reelt blev afløst af COD.
+
+## RODÅRSAG FUNDET: overlay vises ikke ved COD når en shell-proces er låst (2026-09-13) — FIKSET, AFVENTER DEPLOY
+
+Bruger startede COD MW igen 13-09 ~20:39 og gaming overlayet kom IKKE frem. trace.log (6,1 MB) analyseret.
+
+TO UAFHÆNGIGE BUGS:
+
+Bug 1 — identitets-hul (shell-proces låst som spil ved startup):
+- `15:51:26 Foreground candidate detected: PID=2760 Name=Microsoft.CmdPal.UI` -> `Initial foreground game PID detected: 2760` -> `Auto-registered external game: Microsoft.CmdPal.UI.exe at C:\Program Files\WindowsApps\...\Microsoft.CmdPal.UI.exe`.
+- Windows Command Palette slap gennem ALLE filtre: navnet var ikke i blocklisten, og stien ligger i `C:\Program Files\WindowsApps\` som klassificereren IKKE dækkede (kun SystemApps/system32/SysWOW64).
+- Låst via svag `Source=DxgKrnlFallback` (DXGI=0, DXGKRNL=2). Samme mønster tidligere på dagen med `PowerToys.Peek.UI` (07:19).
+
+Bug 2 — escape-hatchen var DØD KODE (den strukturelle killer):
+- `TryUpdateForegroundGameTarget` havde `if (currentForegroundGamePid.HasValue && ProcessIsAlive(...) && IsCurrentTargetStillOwned(...)) return;` FØR challenger-logikken.
+- `IsCurrentTargetStillOwned` er sand for CmdPal (DXGKRNL>=2 -> HasUsableFrameSignal), så loopet returnerede hver gang og evaluerede ALDRIG forgrundsvinduet. Derfor 0 `cod22`-linjer efter 05:05. Challenger-frigivelsen (20s) lå efter return og var derfor unåelig.
+
+Symptom-mekanik: `IsInGame = TargetPid > 0` (SystemMonitor.cs:723-724). CmdPal satte TargetPid=2760 -> IsInGame=true fra 15:51. Da COD startede var IsInGame allerede true -> ingen false->true-overgang -> `GameLaunched` fyrer ikke -> `MainViewModel.OnSystemMonitorPropertyChanged` (1876) viser ikke overlayet. POE virker fordi intet dårligt target blev låst først.
+
+FIKS (3 lag, defense-in-depth) — BUILD OK (0 fejl), DEPLOY BLOKERET:
+1. Identitet: `GameProcessClassifier.NonGameProcessNames` + `Microsoft.CmdPal.UI`, `CmdPal`, `PowerToys.Peek.UI`, `PowerToys.PowerLauncher`, `PowerToys`, `PowerToys.Runner`. Ny `IsWindowsStoreAppPath` (Program Files\WindowsApps) + `RequiresPrimaryGraphicsEvidence`.
+2. Evidens: ny `HardwareMonitorAgent.HasAcquisitionEvidence` — Store/WindowsApps-processer kan IKKE bekræftes/ejes/registreres på svag DxgKrnl alene; de kræver ægte DXGI/D3D9 (Game Pass-spil udsender DXGI, så de virker fortsat). Anvendes i `IsStickyTargetConfirmed`, `IsCurrentTargetStillOwned`, `HasAnyGameSignal`, `TryAutoRegisterExternalGame`. `IsStickyTargetConfirmed` afviser nu ogsaa via sti (ikke kun navn).
+3. Struktur: challenger-frigivelsen flyttet FØR early-return i `TryUpdateForegroundGameTarget` — et forkert target kan ikke blokere det rigtige spil i mere end 20s. Bootstrap-target sætter nu `currentForegroundPidObservedAtUtc`, så non-game-afvisningen (5s) ogsaa gælder ved startup. `currentForegroundPidObservedAtUtc` flyttet op før bootstrap-blokken (CS0841-fix).
+
+STATUS:
+- Build: `IconGrid.dll` 13-09 20:50 (1.205.760 bytes), 0 fejl.
+- trace.log: RYDDET (0 B) for frisk test.
+- DEPLOY BLOKERET: kørende `IconGrid.exe` (PID 10356) + `IconGridFpsAgent.exe` (PID 13244) kører FORHØJET -> `taskkill` giver "Adgang nægtet". `C:\icongrid\IconGrid.dll` er derfor stadig 12-09 21:29. Bruger skal lukke IconGrid via Task Manager, derefter køres `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` igen.
+- Ikke committet/pushet (kræver separat godkendelse).
+
+NÆSTE TEST (frisk log): start COD MW -> overlay skal frem; POE -> skal stadig virke; CmdPal/PowerToys/taskmgr/browser -> maa IKKE aktivere. Verificér at der ikke længere kommer `Auto-registered external game: Microsoft.CmdPal.UI.exe`.
+
+## ARKITEKTUR-OMLÆGNING: evidens-baseret spil-klassificering (2026-09-13) — bruger-godkendt
+
+Bruger afviste blocklist-tilgangen: "det er så forkert, for så vil der altid være problemer fremover med at programmer som ikke er et spil, detectes som et spil". Korrekt — vi er ramt 3 gange (TextInputHost -> PowerToys.Peek -> CmdPal), hver gang et nyt program der ikke stod på listen.
+
+RODÅRSAG I PIPELINEN (native FPS-agent):
+- `PollLockedTarget()` (main.cpp): `g_targetPid = candidate->pid` låses UBETINGET naar `FindTargetProcess()` returnerer en kandidat — dvs. 0 beviser kraevet. Valget sker paa identitet (navn/sti/root/score).
+- `WriteSharedFpsState()`: `snapshot.targetPid = g_targetPid` publiceres ubetinget.
+- `SystemMonitor.FpsTimer_Tick`: `SetInGame(trackedGamePid > 0)`.
+=> "in game" betoed "agenten foelger en PID", ikke "PID'en renderer frames". Beviser blev KUN brugt til at beregne FPS-tallet.
+- `EtwCallback`: DxgKrnl kernel-fallback (`dxgKrnlCount>=2 && dxgiCount==0 && d3d9Count==0`) blev behandlet som gyldig FPS-kilde. Kernel-presents attribueres til den PID kernen rapporterer — for DWM-komponerede shell-apps er det appens PID. Derfor fik CmdPal/Peek/TextInputHost "FPS" via DxgKrnlFallback med DXGI=0 D3D9=0.
+
+DATA DER BEVISER DET: alle falske positiver havde DXGI=0 D3D9=0; alle aegte spil havde DXGI>=2 (POE DXGI=3, COD DXGI=5). Signalet var der hele tiden — vi brugte det bare ikke til klassificering.
+
+NY DESIGN (implementeret):
+- Native `main.cpp`: nyt `--trusted-launch` (saettes KUN naar IconGrid selv startede spillet). Nyt atomar `g_lastPrimaryEvidenceTicksUtc` saettes i `EtwCallback` naar `dxgiCount>=2 || d3d9Count>=2`. `WriteSharedFpsState` publicerer nu `targetPid` KUN naar `g_trustedLaunch || frisk primary-evidens (<5s hold)`; nyt shared-flag `kSharedFlagGameConfirmed=0x4`. JSON-state faar `gameConfirmed` + `trustedLaunch`. Nulstilles ved pid-skift.
+- C#: `NativeFpsAgentRunner` sender `--trusted-launch` i config-target-grenen (launch-session), IKKE ved foreground/ekstern detektion. `NativeFpsAgentState` + `NativeFpsSharedMemory` + `ReadSharedMemoryState` faar `GameConfirmed`/`TrustedLaunch`.
+- `GameProcessClassifier` opdelt: `SelfProcessNames` (kun IconGrid/IconGridFpsAgent) til FPS-pipelinen; `LaunchInfrastructureProcessNames` + `NonGameProcessNames` (self + launchers + Windows shell hosts) bruges KUN af launch/resolution-disambiguering (DisplayResolutionService, LauncherItemLaunchManager). Den store app-blocklist (browsere/editors/media/utilities/CmdPal/PowerToys) er FJERNET. `HardwareMonitorAgent` bruger nu `IsSelfProcessName` + strukturelle sti-regler + evidens.
+- Beholdt (principielt, ikke en blocklist): `NonGamePathPrefixes` (SystemApps/system32/SysWOW64) og `IsWindowsStoreAppPath` -> WindowsApps-processer kraever primaer-evidens.
+- `--trusted-launch` bevarer emulatorer/aeldre titler der kun eksponerer kernel-pathen, naar de startes FRA IconGrid.
+
+BUILD/VERIFIKATION:
+- Native: MSBuild `C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe` "E:\IconGrid-GitHub\Native\FpsAgent\FpsAgent.vcxproj" /p:Configuration=Debug /p:Platform=x64 -> `Native\FpsAgent\bin\Debug\IconGridFpsAgent.exe` 13-09 20:57 (OK).
+- C#: `dotnet build IconGrid.csproj` 0 fejl; `IconGrid.dll` 13-09 20:59; ny FpsAgent exe kopieret til `bin\Debug\...\Tools\FpsAgent\` (20:57).
+- DEPLOY STADIG BLOKERET: `C:\icongrid\IconGrid.dll` er 12-09 21:29 og `C:\icongrid\Tools\FpsAgent\IconGridFpsAgent.exe` er 23-07. IconGrid.exe PID 10356 kører forhøjet -> taskkill "Adgang nægtet". Bruger skal lukke IconGrid helt.
+
+TESTPLAN (frisk trace.log): COD (ekstern, fra Battle.net) -> overlay skal frem; POE (fra IconGrid) -> uændret; CmdPal/PowerToys/taskmgr/Steam/Discord/browser -> IsInGame maa forblive false og INGEN `Auto-registered external game`. Forventet i log: `gameConfirmed` false indtil DXGI/D3D9-evidens, derefter true.
+
+OPFOELGNING (bevidst udskudt): hvis en Chromium-baseret app (Steam/Discord/Electron) viser sig at udsende app-level DXGI-present og dermed klassificeres som spil, skal vi stramme EVIDENS-reglen (fx kraev vedvarende cadence / flip-model fullscreen), IKKE tilfoeje navne til en liste.
+
+## BRUGER-RAPPORT "overlay vises ved opstart uden spil" (2026-09-13 ~21:04) — IKKE NY BUG, GAMMEL BUILD + STALE AGENT
+
+Symptom: naar IconGrid startes vises gaming-overlayet med det samme, selvom intet spil koerer.
+
+Diagnose (bevist med procesdata):
+- `C:\icongrid\IconGrid.dll` = 12-09 21:29 og `C:\icongrid\Tools\FpsAgent\IconGridFpsAgent.exe` = 23-07. **DEPLOY ER ALDRIG GENNEMFOERT** — brugeren tester den GAMLE build. Hele evidens-omlaegningen er ikke i drift.
+- Stale forhoejede processer fra i eftermiddags koerer endnu: `IconGrid.exe` PID 10356 startet 13-09 15:50:57 (agent-mode, forhoejet, 31 MB) og `IconGridFpsAgent.exe` PID 13244 startet 15:51:26.
+- `Microsoft.CmdPal.UI.exe` PID 2760 (startet 15:51:17) er stadig den laaste target.
+- `native-fps-state.json` uaendret i 3+ timer: `targetPid=2760 Target=Microsoft.CmdPal.UI.exe matchedDxgiEventCount=0 matchedD3D9EventCount=0 matchedDxgKrnlEventCount=2` — praecis den gamle false-positive-signatur.
+- `config.json` FpsTarget: `ExecutableName=null`, `RootProcessId=null` -> intet config-target.
+- Ved 21:03:25 kunne den NYE agent-instans ikke starte: "Hardware monitor agent is already running. Waiting for the previous instance to exit..." -> den gamle agent (PID 10356) holder mutex'en.
+
+Mekanik: den gamle native agent holder `TargetPid=2760` i shared memory (`Local\IconGrid.NativeFps.Live`). `SystemMonitor.FpsTimer_Tick` laeser kun `targetPid > 0` -> `SetInGame(true)` -> overlayet vises. Ingen spil involveret.
+
+KONKLUSION: evidens-gaten (native `targetPid` publiceres kun ved DXGI/D3D9-evidens eller trusted-launch) FIK SER netop dette; men den skal deployes foerst. En stale ikke-spil-target kan derefter ikke laengere saette `targetPid > 0`.
+
+ROBUSTHEDS-HULL (kandidat, ikke implementeret): den forhoejede monitor-agent overlevede at launcher'en blev lukket. `ParentIsAlive` (HardwareMonitorAgent.cs:1896) validerer KUN PID — ved PID-genbrug kan en fremmed proces holde agenten i live, og en ny launcher kan ikke tage over (mutex). Anbefalet fiks: send ogsaa foraelderens start-tid med (`--parent-start-filetime`) og validér PID+start-tid, alternativt lad launcher'en aktivt stoppe en stale agent ved opstart.
+
+IKKE committet/pushet. Naeste skridt: bruger skal lukke ALLE `IconGrid.exe` (baade launcher og agent-mode) + `IconGridFpsAgent.exe` med forhoejet rettigheder, hvorefter deploy koeres og verificeres.
+
+## FIX (2026-09-13 sen aften): X-knappen efterlod headless proces + foraeldreloes agent
+
+Bruger-diagnose var korrekt: "naar icongrid bliver lukket fra knappen X, lukker den ikke alt i taskmanager".
+
+BEVIS:
+- `IconGridFpsAgent.exe` PID 13244 havde `ParentProcessId = 10356` -> PID 10356 ER den forhoejede monitor-agent (IconGrid.exe i `--monitor-agent` mode).
+- 10356's foraelder er `svchost.exe` PID 2268 (UAC-host). Launcher'en fra 15:50 er VAEK, men agenten levede 5+ timer senere.
+- `CommandLine` var tom for 10356 (forhoejet -> kan ikke laeses uden elevation), men parent/child-forholdet er entydigt.
+
+ROD (to huller):
+
+1. `MainWindow.Window_Closing` (Views/Launcher/MainWindow.xaml.cs) lukkede bare vinduet. Fordi `App.xaml.cs:35 ShutdownMode = OnExplicitShutdown`, drabte det IKKE processen -> launcher-traaden blev haengende headless, og den forhoejede agent + native FPS-agent fortsatte med et stale target. Den eksisterende `CloseButton_Click` (in-app luk-knap) gjorde det RIGTIGE (`ExitApplication()` naar `StartDirectlyInLauncher`, ellers `EnterFloatingMode()`), men OS-vinduets X gik udenom.
+   FIX: `Window_Closing` ruter nu X gennem praecis samme adfaerd som `CloseButton_Click` (`e.Cancel = true` + `ExitApplication()` eller `EnterFloatingMode()`), styret af et nyt `_isShuttingDown`-flag som `ExitApplication()` saetter foerst, saa den rigtige exit ikke blokeres.
+
+2. `HardwareMonitorAgent.ParentIsAlive` validerede KUN PID. Windows genbruger PID'er, saa en foraeldreloes agent kan finde en fremmed proces med "sin" PID og aldrig afslutte.
+   FIX: `HardwareMonitorTaskManager.StartAgent` sender nu ogsaa `--parent-start-filetime <FILETIME>` (launcherens starttid). Agenten parser den (`TryReadParentStartFileTime`) og `ParentIsAlive(int? parentPid, long? parentStartFileTimeUtc)` verificerer nu PID **+ starttid** (tolerance 20.000.000 = 2 sek). Falder tilbage til PID-only hvis starttiden ikke kan laeses.
+
+3. YDERLIGERE HUL (IKKE fixet endnu): launcher'en har INGEN single-instance-beskyttelse. Kun agenten har en mutex (`AgentMutexName`). En ny launcher kan derfor starte mens en gammel (floating/headless) instans koerer -> den nye kan ikke tage agent-mutex'en ("Hardware monitor agent is already running. Waiting for the previous instance to exit...") og arver det stale target. Det er praecis sekvensen kl. 21:03. Anbefalet fiks: single-instance mutex + signalér den koerende instans om at komme i forgrunden (fx named event), og afslut den nye proces.
+
+BUILD: `dotnet build IconGrid.csproj` 0 fejl efter alle tre aendringer (1 + 2).
+DEPLOY: stadig blokeret af forhoejet `IconGrid.exe` PID 10356 + `IconGridFpsAgent.exe` PID 13244.
+
+## DEPLOY GENNEMFOERT + DEPLOY-SCRIPT BUG FUNDET (2026-09-13 ~21:15)
+
+Bruger lukkede de forhoejede processer; `taskkill` var ikke laengere noedvendigt. Deploy koert.
+
+KRITISK FUND: `deploy-test.cmd` havde ALDRIG deployet den native FPS-agent.
+- Scriptet kopierede kun `%SRC%\*.exe` (roden). FpsAgent ligger i UNDERMAPPEN `Tools\FpsAgent\`, og `xcopy` uden `/s` rekurserer IKKE -> `C:\icongrid\Tools\FpsAgent\IconGridFpsAgent.exe` stod stille paa 23-07-2026.
+- Fejlen var usynlig fordi linjen slutter med `>nul`.
+- FIX: tilfoejet eksplicit `xcopy /y /q /i "%SRC%\Tools\FpsAgent\IconGridFpsAgent.exe" "%DST%\Tools\FpsAgent\" >nul` i `deploy-test.cmd` (linje ~21).
+- KONSEKVENS: alle tidligere "native agent"-aendringer i repoet er aldrig naaet ud til `C:\IconGrid`. Den nu udrullede agent er den FOERSTE opdaterede nogensinde (23-07 -> 13-09).
+
+VERIFIKATION (hash, ikke timestamp!):
+- `IconGrid.dll`: DEPLOYED = BUILD = `188614CD14A8F8C9004EC42721A2199A6BDC59551628599EDCEE93CB1C6DC22F` (13-09 21:09:43, 1.206.784 bytes).
+- `IconGridFpsAgent.exe`: DEPLOYED = BUILD = `39D1C1E8A4DF4CE4DCCB49D7828B41D2CE2F9BDA796BBD2F6B87FF9BE30E9FF9` (13-09 20:57:14, 1.000.448 bytes).
+
+VIGTIGT: `cmd /c dir` gav FORAELDEDE resultater i denne session (viste 12-09 21:29 for en fil der reelt var 13-09 21:09). Brug ALTID `Get-FileHash <dst>,<src>` og sammenlign hashes. Dette boer ind i AGENT.md's deploy-verifikationsinstruks, som i dag siger "verify the DLL timestamp".
+
+TESTPLAN (frisk trace.log, ryddet):
+1. Start IconGrid -> overlay skal IKKE vise noget (intet spil, ingen stale target).
+2. COD MW (fra Battle.net) -> overlay skal frem; forvent `gameConfirmed` true foerst efter DXGI/D3D9-evidens.
+3. POE (fra IconGrid, trusted-launch) -> uaendret.
+4. CmdPal/PowerToys/taskmgr/Steam/Discord/browser -> IsInGame skal forblive false, ingen `Auto-registered external game`.
+5. Luk IconGrid med X -> INGEN `IconGrid.exe` eller `IconGridFpsAgent.exe` maa staa tilbage i Task Manager (medmindre StartDirectlyInLauncher=false, hvor den gaar til floating-ikon).
+
+## SINGLE-INSTANCE GUARD IMPLEMENTERET (2026-09-13 ~21:20)
+
+Bruger godkendte at fixe det tredje hul: to launcher-instanser kunne koere samtidigt (kun agenten havde en mutex), saa en ny launcher ikke kunne overtage agent-mutex'en og arvede et stale FPS-target.
+
+NY FIL: `Helpers/Launcher/SingleInstanceGuard.cs`
+- Named mutex `Local\IconGrid.Launcher.SingleInstance` (ejes i processens levetid).
+- Named event `Local\IconGrid.Launcher.Activate` (AutoReset).
+- `TryAcquire()` -> true for foerste instans; false hvis en anden launcher ejer mutex'en.
+- `SignalExistingInstance()` -> statisk; aabner activate-eventet (best-effort) og saetter det.
+- `ListenForActivation(Dispatcher, Action)` -> `ThreadPool.RegisterWaitForSingleObject` der dispatcher til UI-traaden.
+- `Dispose()` rydder RegisteredWaitHandle/event/mutex.
+
+AENDRINGER:
+- `App.xaml.cs`: nyt felt `_singleInstanceGuard`. I launcher-grenen (efter `WriteTrace("Starting launcher UI...")`, FOER agent-start): hvis `!TryAcquire()` -> log, `SignalExistingInstance()`, dispose, `Shutdown(0)` og return. Ellers `ListenForActivation(Dispatcher, ActivateRunningLauncher)`. Ny metode `ActivateRunningLauncher()` kalder `MainWindow.ActivateFromSecondInstance()`. Nyt `using IconGrid.Helpers.Launcher;`.
+- `Views/Launcher/MainWindow.xaml.cs`: ny public `ActivateFromSecondInstance()` — gendanner vinduet hvis minimeret (`WindowState = Normal`, `Show()`), kalder `EnterFullMode()` (som allerede kalder `_window.Activate()`), derefter `Activate()`.
+
+VERIFIKATION: `dotnet build` 0 fejl. Deploy koert SEPARAT efter build. Hash-verifikation OK:
+- `IconGrid.dll`: DEPLOYED = BUILD = `2C0E2CF8E56493A3...`
+- `IconGridFpsAgent.exe`: DEPLOYED = BUILD = `39D1C1E8A4DF4CE4...`
+
+NY LAERDOMME (cheatsheet afsnit 11): `dotnet build ... | Select-String` returnerede FOER buildet var faerdigt (~20 sek senere), saa en deploy i samme batch kopierede en ufaerdig fil. Koer ALTID build og deploy som separate tool-kald + verificér med hash.
+
+TEST TILFOEJET: start IconGrid to gange -> anden opstart maa IKKE give en ekstra `IconGrid.exe`; den koerende instans skal komme i forgrunden, og den nye proces skal afslutte.
+
+## REGRESSION: explorer.exe blev klassificeret som spil + VRAM-EVIDENS (2026-09-13 ~21:30)
+
+Bruger-test: COD OK men langsom; POE perfekt; **Division 2 viser INTET overlay**.
+
+RODÅRSAG (fundet i trace.log):
+- `21:20:21 Foreground candidate detected: PID=10776 Name=explorer` -> `Foreground game PID changed from 19532 to 10776. Restarting native FPS agent.`
+- `21:20:49 Auto-registered external game: Explorer.EXE at C:\WINDOWS\Explorer.EXE` (leak!)
+- Derefter sad agenten fast paa `explorer.exe` med `DXGI=0 D3D9=0 DXGKRNL=1-2` og falsk FPS (290/37/60) via `DxgKrnlFallback` indtil shutdown.
+- **Division 2 (PID 25656)** blev fundet af `LauncherItemLaunchManager.FindAnyGameProcess` og fik resolution-lock, men FPS-pipelinen opdagede den ALDRIG, fordi den var laast paa explorer. Ingen `Foreground candidate detected` for Division 2 i hele loggen.
+
+HVORFOR (min regression): da blocklisten blev fjernet (efter brugerens oenske), forsvandt `explorer` fra FPS-pipelinens filter. Explorers skrivebordsvindue er skaermstort + synligt -> bestod `IsLikelyGameForegroundWindow`, og `HasAcquisitionEvidence` accepterede den svage DxgKrnl-fallback (DXGKRNL=2) -> bekræftet sticky target.
+
+FIX 1 — STRUKTUREL shell-vindue-regel (ikke en navneliste):
+- Nyt P/Invoke `GetClassNameW` + `ShellWindowClasses` = Progman, WorkerW, Shell_TrayWnd, Shell_SecondaryTrayWnd, MultitaskingViewFrame, TaskListThumbnailWnd, XamlExplorerHostIslandWindow.
+- `IsShellWindowClass(hwnd, out className)` kaldes i `IsLikelyGameForegroundWindow` -> afviser skrivebord/taskbar/opgavvisning uanset procesnavn. Log: `Rejecting foreground PID because the window is a Windows shell window.`
+- Bevidst IKKE `Windows.UI.Core.CoreWindow` (bruges ogsaa af UWP/Game Pass-spil).
+
+FIX 2 — VRAM SOM BEVIS (brugerens idé, verificeret mulig):
+- NY FIL `Helpers/Hardware/GpuProcessMemory.cs`: laeser per-proces dedikeret VRAM via PDH-kategorien `GPU Process Memory` -> `Dedicated Usage` (instanser `pid_<pid>_...` summmeres). Genbruger samme PerformanceCounter-infrastruktur som FpsMeter allerede bruger. Cache m. 2s refresh; returnerer null hvis kategorien mangler.
+- `GameProcessClassifier.MinimumGameVramBytes = 300 MB`.
+- `HasAcquisitionEvidence` er nu 3-trins: (1) DXGI/D3D9 app-presents -> spil; (2) maalbar VRAM >= 300MB -> spil; (3) VRAM ikke maalbar -> fald tilbage til DxgKrnl-tærsklen, men ALDRIG for Store/shell-processer. En shell-proces har maalbar, lav VRAM -> afvises.
+- Synlighed: `Snapshot:`-linjen i trace.log har nu `Vram=XXMB` for target-PID'en (brugeren kan se om VRAM bliver brugt).
+
+COD-LANGSOMMELIGHED (analyse): 21:18:43 COD-HQ-vinduet (843x480) afvist -> 21:18:53 kandidat -> 21:18:56 resolution + native agent start -> 21:19:00 lock -> 21:19:03 `ETW events but no usable frame count` (DXGI=20) -> 21:19:10 FPS=187. Dvs. ~17s fra kandidat til FPS. Elementer: COD-HQ-vinduet afvises indtil det rigtige spil-vindue kommer; native agent-process + ETW-session skal startes (~3-5s); evidens-gaten kraever DXGI>=2 i 50ms-vinduet. Mulig optimering (IKKE implementeret): genbrug native agent i stedet for Restart, eller start den ved launch-session-start i stedet for ved foreground-skift.
+
+BUILD + DEPLOY: `dotnet build` 0 fejl. Deploy koert 2x (1. gang ramte build-skrivningsracet). Hash-verifikation OK:
+- `IconGrid.dll`: DEPLOYED = BUILD = `A6123DC44F...` (1.212.416 bytes)
+- `IconGridFpsAgent.exe`: DEPLOYED = BUILD = `39D1C1E8A4...`
+
+## BRUGER-TEST EFTER VRAM/SHELL-FIX (2026-09-13 21:31-21:38) — ALT PERFEKT
+
+Bruger: "alt kørte perfekt". COD + Division 2 virker; FPS falder naar Start-menu/vinduer aabnes (forventet).
+
+Verifikation fra trace.log (55 KB):
+- **Shell-vindue-reglen virker:** `Rejecting foreground PID because the window is a Windows shell window. Name=explorer Class=Progman` (gentagne gange). Ingen explorer-laasning, ingen `Auto-registered external game: Explorer.EXE`.
+- **Strukturelle filtre virker:** `Skipping foreground PID 18284 (brave) — module scan confirmed no graphics API DLLs`, samme for `21268 (Code)` og `5932 (Battle.net)`; `Rejecting ... Name=EACLaunch Size=800x450` (for lille); `Skipping 11704 (ApplicationFrameHost) — process lives in a Windows system directory`.
+- **VRAM-synlighed virker:** `Snapshot: ... Vram=` stiger 978MB -> 1,40GB -> 1,83GB -> 1,96GB -> 3,50GB -> 4,50GB -> 5,38GB -> 5,39GB for COD (PID 27400). Da brugeren aabnede Start-menuen faldt den til `Vram=73MB` og FPS blev holdt: `Holding COD background FPS during ambiguous ETW sample: holdFps=63`.
+- **Ingen fejl-retarget:** COD (PID 27400) forblev target gennem alle vindues-aabninger; ingen `Releasing sticky`, ingen `Foreground game PID changed`.
+- COD FPS varierede 55-200 under spil (normalt: afhaenger af scene og fokus).
+
+FPS-FALD VED START-MENU/VINDUER — NORMALT, ikke en IconGrid-fejl:
+1. Start-menu/andet vindue tager spillet ud af exclusive fullscreen -> spillet praesenterer gennem DWM-kompositoren (ekstra kopi/komposition).
+2. Spillet mister forgrundsfokus -> mange spil (COD isaer) throttler eller pauser rendering naar de ikke er i fokus ("background FPS").
+3. Derfor kollapser VRAM (5,39GB -> 73MB) og FPS falder. Det er Windows/spillets adfaerd, ikke pipelinen.
+IconGrid gjorde det RIGTIGE: holdt COD som target, holdt sidste FPS, retargetede ikke.
+
+RISIKO NOTERET (ikke et problem nu): `HasAnyGameSignal` bruger nu `HasAcquisitionEvidence` (DXGI/D3D9 ELLER VRAM>=300MB). Et spil der bruger >5s (NonGameProbeTimeout) paa at naa DXGI>=2/300MB VRAM kan i teorien afvises + faa 45s cooldown. Et allerede bekræftet target er beskyttet af sustain-branchen (`confirmed && EtwRunning`). Hvis et langsomt-startende spil nogensinde rammes, er fixet at forlaenge probe-timeout naar VRAM er maalbar og > 0.
+
+IKKE committet/pushet.
+
+IKKE committet/pushet.

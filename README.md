@@ -11,7 +11,7 @@ IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It c
 
 - `Views/Launcher/MainWindow.xaml` is the main launcher shell containing the logo area, live monitor strip (CPU / GPU / ping / network), tab bar, shortcut grid, idle hide button, and settings entry point.
 - Shortcut icons are fully drag-and-drop manageable with right-click context menus (rename, change icon, run as admin, copy path, remove).
-- Closing the launcher hides it back to floating-icon mode instead of terminating the process.
+- Closing the launcher follows the same rule as the in-app close button: with **Start directly in launcher** enabled it exits the app completely (which also stops the elevated hardware agent and the native FPS worker); otherwise it drops back to floating-icon mode. A second launch never spawns a duplicate instance — it brings the running one to the front and exits, so a stale FPS target can never be inherited from a previous session (single-instance guard).
 
 ### Categories (tabs)
 
@@ -144,9 +144,12 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | **Startside** | Startup mode, topmost behavior, UI scale, **hide mode** (Always visible / Manual / Auto), **auto-hide delay** (1–10 sec), **peek activation** (Hover / Click), language (Dansk / English) |
 | **GenvejsIkoner** | Shortcut icon settings split by view: **Grid view** (icons per row, row spacing, bottom padding), **Carousel view** (visible icons 1–12), shared **icon size** (82–150%), scrollbar on/off |
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
-| **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **Game Resolution** (per-game display resolution switching) |
+| **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |
+| **Monitor row layout** | Which values the launcher's live monitor strip shows, and their order |
+| **Monitor ping** | Ping target, interval, timeout and severity thresholds for the monitor row and overlay |
 | **Fast USB Copy** | High-performance file copying to/from any drive (USB/HDD/SSD) with an optimized buffer pipeline, live speed/ETA, structured logs and a benchmark suite (port/read/write/buffer/stability/Windows baseline + CSV export) |
+| **Test** | Diagnostics and maintenance: FPS/ETW setup status, trace-log size + **Clean trace log** |
 | **Hjælp** | Help and troubleshooting content |
 | **About** | Version info, app description, credits |
 
@@ -219,9 +222,10 @@ Logic lives in `Helpers/UsbCopy/` (engine, detector, logger, benchmark runner, s
 
 ### Helpers
 
-- `Helpers/Launcher/` — `LauncherWindowModeController`, `FloatingIconController`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
+- `Helpers/Launcher/` — `LauncherWindowModeController`, `FloatingIconController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
 - `Helpers/Settings/` — config, localization, startup, theme helpers
-- `Helpers/Hardware/` — hardware monitor, ETW/FPS pipeline, native FPS agent runner, FPS smoothing
+- `Helpers/Hardware/` — hardware monitor, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM)
+- `Helpers/Logging/` — `AppTrace`, the size-capped shared trace writer
 - `Helpers/Converters/` — shared WPF value converters
 - `Helpers/Common/` — `RelayCommand`, `DevInspector`
 
@@ -251,26 +255,72 @@ IconGrid uses a multi-process architecture:
 1. Game renders frames
 2. Native FPS worker captures present events through ETW
 3. Native FPS worker publishes live FPS via shared memory (hottest path) + `native-fps-state.json` (fallback/diagnostics)
-4. Elevated hardware agent reads native FPS state
-5. `FpsMeter` maintains direct `live` FPS + smoothed `trend` FPS for fallback
-6. Launcher / gaming overlay prefers shared-memory live FPS path, overlay shows a single live FPS number
+4. The worker publishes a target PID **only once that target is confirmed by evidence** — until then it publishes `targetPid = 0`, so "in game" can never be claimed by a process that is not actually rendering
+5. Elevated hardware agent reads native FPS state and owns target selection and retargeting
+6. `FpsMeter` maintains direct `live` FPS + smoothed `trend` FPS for fallback
+7. Launcher / gaming overlay prefers shared-memory live FPS path, overlay shows a single live FPS number
+
+### Game detection policy — evidence, not a blocklist
+
+IconGrid deliberately does **not** decide "is this a game?" from a list of program names. A name list always goes stale: a new shell element, utility or overlay appears that nobody added, and it then gets detected as a game. That is exactly how `TextInputHost`, `PowerToys.Peek.UI`, the Windows Command Palette (`Microsoft.CmdPal.UI`) and `explorer.exe` were each mis-detected in turn — and a mis-detected process becomes a *sticky* target that then blocks the real game from ever being picked up.
+
+Instead, a process counts as a game only when there is real evidence:
+
+| Signal | Weight | Notes |
+|---|---|---|
+| **DXGI / D3D9 present events** | Strong | Application-level presents. A game always emits these. |
+| **Dedicated VRAM ≥ 300 MB** | Strong | Read per process from the Windows `GPU Process Memory` → `Dedicated Usage` counter. A shell/desktop process holds only a few tens of MB; a real game holds hundreds of MB to several GB. Independent of the ETW providers. |
+| **DxgKrnl kernel presents** | **Never classifies** | The coarse kernel fallback may only supply an FPS *number* for an already-confirmed target. DWM-composited shell apps emit stray kernel presents while producing zero application presents — which is what created the false positives. |
+| **`--trusted-launch`** | Trusted | Set only when IconGrid itself started the game. Such a session is trusted by identity, which keeps emulators and older titles working when they only expose the kernel path. |
+
+Structural rules — deliberately *not* name lists, so they cannot go stale:
+
+- **Windows system directories** (`SystemApps`, `system32`, `SysWOW64`) are never a game. No real game ships from inside them.
+- **Windows shell window classes** (`Progman`, `WorkerW`, `Shell_TrayWnd`, `Shell_SecondaryTrayWnd`, `MultitaskingViewFrame`, `TaskListThumbnailWnd`, `XamlExplorerHostIslandWindow`) are never a game window — regardless of which process owns them. This is what keeps the desktop, taskbar and task view out.
+- **Store / MSIX packages** (`Program Files\WindowsApps`) must show application-level presents to be trusted, because that folder also hosts shell companions.
+
+Two supporting behaviours keep a wrong target from ever sticking:
+
+- **Challenger override** — a confirmed target is normally held while it is alive (so alt-tabbing does not retarget), but if a *different* valid foreground game candidate stays stable for 20 seconds, the old target is released and the real game is acquired.
+- **Orphan safety** — the elevated agent verifies its launcher's PID *and* start time, and exits when they are gone, so a leftover agent with a stale target cannot survive into the next session.
+
+The result: `IsInGame` — and with it overlay transparency and overlay auto-show — follows only a confirmed game, and a stale or non-game target can no longer make the overlay appear at startup.
+
+### Per-process VRAM readout
+
+Because dedicated VRAM is both an evidence signal and a useful diagnostic, every `Snapshot:` line in `trace.log` reports it for the current target:
+
+```
+Snapshot: FPS=118 GPU=97,0% Source=PrimaryApi Vram=1842MB
+```
+
+A game shows hundreds of MB to several GB while it is focused, and collapses to a small figure (for example `Vram=73MB`) the moment it loses focus — because most games stop rendering when they are not in the foreground. That is expected behaviour, not a dropped target: the overlay intentionally holds the last known FPS instead of blanking.
 
 ### Important Windows requirement
 
 The current Windows user may need to be added to `Performance Log Users` (Danish: `Brugere af ydelseslog`) for ETW to work. After adding, sign out/in or reboot.
 
-### Currently tested games (2026-08-04)
+### Currently tested games (2026-09-13)
 
 | Game | FPS source | Status | Notes |
 |------|-----------|--------|-------|
-| **Path of Exile 1** | PrimaryApi (DXGI) | ✅ Perfect | Gold standard — holds target stably across all window switches |
+| **Path of Exile 1** | PrimaryApi (DXGI) | ✅ Perfect | Gold standard — holds target stably across all window switches. Overlay appears almost instantly |
 | **Path of Exile 2** | PrimaryApi (DXGI) | ✅ Works | Real FPS fluctuates when unfocused — ETW shows correct render rate |
-| **Call of Duty (cod22-cod.exe)** | PrimaryApi (DXGI) | ✅ Works | Intro >200 FPS, menu ~100 FPS. Unrelated present/display behavior when unfocused |
+| **Call of Duty (cod22-cod.exe)** | PrimaryApi (DXGI) | ✅ Works | Intro >200 FPS, menu ~100 FPS. Dedicated VRAM rises to ~5.4 GB while playing and drops to ~70 MB when unfocused |
 | **Tom Clancy's The Division 2** | PrimaryApi (DXGI) | ✅ Works | Render stops completely at de-focus (Nvidia confirms 0 FPS). Last known FPS shown via sticky-hold |
 | **Stumble Guys** | PrimaryApi (DXGI) | ✅ Works | Tested 2026-08-04 |
 | **RHYTHM SPROUT Demo** | PrimaryApi (DXGI) | ✅ Works | Tested 2026-08-04 |
-| **Yuzu (emulator)** | DxgKrnlFallback | ⚠️ Overcount | Emulator normalization clamped to ~60 FPS |
+| **Yuzu (emulator)** | DxgKrnlFallback | ⚠️ Overcount | Emulator normalization clamped to ~60 FPS. Works via `--trusted-launch` when started from IconGrid |
 | **Fireworks Mania** | PrimaryApi (DXGI) | ✅ Works | Direct .exe launch, fast lock |
+
+**Verified false positives eliminated (2026-09-13):** `explorer.exe` (desktop/taskbar), Windows Command Palette (`Microsoft.CmdPal.UI`), PowerToys `Peek.UI`, `TextInputHost`, Task Manager, and browsers/editors all stay out of detection without being named in any list. `trace.log` shows the structural rejection instead, for example:
+
+```
+Rejecting foreground PID because the window is a Windows shell window. Name=explorer Class=Progman
+Skipping foreground PID 18284 (brave) — module scan confirmed no graphics API DLLs.
+```
+
+A note on FPS drops: when a game loses foreground focus — opening the Start menu, another window, or the overlay — its FPS legitimately drops, because most games throttle or pause rendering when unfocused. With **Fullscreen Windowed** the game is always DWM-composited, so there is no display-mode transition involved; the drop is the game's own background behaviour plus the extra compositor work. The pipeline holds the last known FPS rather than blanking, and does not retarget.
 
 ---
 
@@ -293,8 +343,9 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 | `items.json` | Launcher shortcuts grouped by category/tab (machine-specific) |
 | `monitor-state.json` | Live hardware monitor state (CPU/GPU readings) |
 | `fps-state.json` | Compatibility/fallback FPS state |
-| `native-fps-state.json` | Raw native FPS worker state (diagnostics) |
-| `trace.log` | App trace output (startup + runtime diagnostics) |
+| `native-fps-state.json` | Raw native FPS worker state (diagnostics, incl. `gameConfirmed` / `trustedLaunch`) |
+| `external-games.json` | Games detected as started outside IconGrid (auto-registered so they can get their own resolution) |
+| `trace.log` | App trace output (startup + runtime diagnostics). Size-capped at 10 MB — the oldest half is trimmed automatically, and it can be cleared from the **Test** settings page |
 | `error.log` | Fatal error log |
 | `IconPack\` | Optional cached icon pack assets |
 
@@ -309,8 +360,8 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 
 ### MCP notes server
 
-- The `icongrid-notes` MCP server lives in `tools/mcp-notes-server/` — versioned with git, single source of truth.
-- Fresh-clone setup: `cd tools/mcp-notes-server/ && npm install`, then register in Cline's MCP config.
+- The `icongrid-notes` MCP server lives in `Tools/mcp-notes-server/` — versioned with git, single source of truth.
+- Fresh-clone setup: `cd Tools/mcp-notes-server/ && npm install`, then register in Cline's MCP config.
 - See `AGENT.md` ("Session memory") for full details.
 
 ---

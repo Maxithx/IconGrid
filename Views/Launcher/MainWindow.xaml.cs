@@ -69,6 +69,7 @@ namespace IconGrid.Views.Launcher
             { "linux", "Linux" }
         };
         private bool _skipSavingLocation;
+        private bool _isShuttingDown;
 
         private double _lastLoggedLeft = double.NaN;
         private double _lastLoggedTop = double.NaN;
@@ -173,6 +174,31 @@ namespace IconGrid.Views.Launcher
         private void EnterFloatingMode()
         {
             _windowModeController?.EnterFloatingMode();
+        }
+
+        /// <summary>
+        /// Called when a second IconGrid launch asks this (the running) instance to
+        /// come to the foreground. Part of the single-instance guard: the second
+        /// process exits instead of becoming a duplicate launcher/agent.
+        /// </summary>
+        public void ActivateFromSecondInstance()
+        {
+            try
+            {
+                if (WindowState == WindowState.Minimized)
+                {
+                    ShowInTaskbar = true;
+                    WindowState = WindowState.Normal;
+                }
+
+                Show();
+                EnterFullMode();
+                Activate();
+            }
+            catch (Exception ex)
+            {
+                LogTrace($"ActivateFromSecondInstance failed: {ex}");
+            }
         }
 
         private void PositionFloatingIcon(bool preferSaved = true)
@@ -1003,6 +1029,32 @@ namespace IconGrid.Views.Launcher
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            // The OS close (X) must NEVER leave a headless launcher process behind.
+            // ShutdownMode is OnExplicitShutdown, so merely closing the window kept
+            // the process (and with it the ELEVATED hardware-monitor agent plus the
+            // native FPS agent) alive. The next launch then could not take over the
+            // agent mutex and inherited the stale FPS target, which made the gaming
+            // overlay appear at startup with no game running.
+            //
+            // Route X through the exact same behaviour as the in-app close button:
+            // exit completely, or drop to floating-icon mode (which intentionally
+            // keeps the overlay agent alive).
+            if (!_isShuttingDown)
+            {
+                e.Cancel = true;
+
+                if (_viewModel == null || _viewModel.StartDirectlyInLauncher)
+                {
+                    ExitApplication();
+                }
+                else
+                {
+                    EnterFloatingMode();
+                }
+
+                return;
+            }
+
             _monitorPollingController.Stop();
             _autoHideTimer?.Stop();
             HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);
@@ -1024,6 +1076,10 @@ namespace IconGrid.Views.Launcher
 
         private void ExitApplication()
         {
+            // Allow Window_Closing to perform the real teardown instead of
+            // re-routing into floating mode.
+            _isShuttingDown = true;
+
             _monitorPollingController.Stop();
             _autoHideTimer?.Stop();
             HardwareMonitorTaskManager.SignalCurrentAgentToStop(LogTrace);

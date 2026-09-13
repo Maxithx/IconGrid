@@ -81,6 +81,8 @@ namespace
         bool isElevated = false;
         bool etwRunning = false;
         bool etwEventsReceived = false;
+        bool gameConfirmed = false;
+        bool trustedLaunch = false;
         int preFilterDxgiEventCount = 0;
         int preFilterD3d9EventCount = 0;
         int preFilterDxgKrnlEventCount = 0;
@@ -104,6 +106,7 @@ namespace
         std::optional<DWORD> rootPid;
         unsigned long long rootStartFileTimeUtc = 0;
         unsigned long long launchFileTimeUtc = 0;
+        bool trustedLaunch = false;
     };
 
 #pragma pack(push, 1)
@@ -152,6 +155,7 @@ namespace
     unsigned long long g_rootStartFileTimeUtc = 0;
     unsigned long long g_launchFileTimeUtc = 0;
     bool g_isElevated = false;
+    bool g_trustedLaunch = false;
     DWORD g_parentPid = 0;
     long long g_workerStartedTicksUtc = 0;
     std::atomic<bool> g_etwEventsReceived = false;
@@ -161,9 +165,30 @@ namespace
     std::atomic<int> g_dxgiEventCount = 0;
     std::atomic<int> g_d3d9EventCount = 0;
     std::atomic<int> g_dxgKrnlEventCount = 0;
+
+    // Last time application-level (DXGI/D3D9) present evidence was observed for
+    // the currently locked target. 0 means "no primary evidence yet".
+    std::atomic<long long> g_lastPrimaryEvidenceTicksUtc = 0;
     constexpr DWORD kEtwRetryIntervalMs = 3000;
     constexpr unsigned int kSharedFlagHasFps = 0x1;
     constexpr unsigned int kSharedFlagEtwRunning = 0x2;
+    constexpr unsigned int kSharedFlagGameConfirmed = 0x4;
+
+    // Evidence-based game classification.
+    //
+    // A PID counts as a GAME only when the ETW layer observed application-level
+    // present events (DXGI/D3D9) for it. The coarse DxgKrnl kernel fallback may
+    // only supply an FPS *number* for a target that is already confirmed — it
+    // must never classify a process as a game, because DWM-composited shell apps
+    // (Command Palette, TextInputHost, PowerToys, ...) emit stray kernel presents
+    // while producing zero application presents. That was the root cause of
+    // non-game processes being detected as games, and it needs no name blocklist
+    // to fix: the evidence itself separates them.
+    //
+    // A session that IconGrid launched itself is trusted by identity (we started
+    // it) and skips the gate; that keeps emulators/older titles working when they
+    // only expose the kernel path.
+    constexpr long long kEvidenceHoldMs = 5000;
 
     std::wstring GetIsoUtcNow()
     {
@@ -327,13 +352,29 @@ namespace
         SharedFpsState snapshot{};
         snapshot.magic = 0x49474650;
         snapshot.version = 1;
-        snapshot.capturedTicksUtc = GetUtcTicksNow();
+        const auto nowTicks = GetUtcTicksNow();
+        snapshot.capturedTicksUtc = nowTicks;
         snapshot.fpsValue = hasFps ? fpsValue : 0.0;
-        snapshot.targetPid = g_targetPid.load(std::memory_order_relaxed);
+
+        // Evidence gate: publish the locked PID as the "game" PID only when the
+        // target is a trusted IconGrid launch or has produced fresh
+        // application-level presents. Consumers treat targetPid > 0 as "in game",
+        // so a shell process that never renders can no longer claim that state.
+        const auto lastEvidenceTicks = g_lastPrimaryEvidenceTicksUtc.load(std::memory_order_relaxed);
+        const bool hasFreshEvidence =
+            lastEvidenceTicks > 0 && (nowTicks - lastEvidenceTicks) <= (kEvidenceHoldMs * 10000LL);
+        const bool gameConfirmed = g_trustedLaunch || hasFreshEvidence;
+        const auto lockedPid = g_targetPid.load(std::memory_order_relaxed);
+        snapshot.targetPid = gameConfirmed ? lockedPid : 0;
+
         snapshot.flags = g_etwRunning.load(std::memory_order_relaxed) ? kSharedFlagEtwRunning : 0;
         if (hasFps)
         {
             snapshot.flags |= kSharedFlagHasFps;
+        }
+        if (gameConfirmed && lockedPid != 0)
+        {
+            snapshot.flags |= kSharedFlagGameConfirmed;
         }
 
         const auto sequence = g_sharedSequence.fetch_add(2, std::memory_order_relaxed) + 2;
@@ -408,6 +449,11 @@ namespace
         g_state.isElevated = g_isElevated;
         g_state.etwRunning = g_etwRunning.load(std::memory_order_relaxed);
         g_state.etwEventsReceived = g_etwEventsReceived.load(std::memory_order_relaxed);
+        const auto nowTicks = GetUtcTicksNow();
+        const auto lastEvidenceTicks = g_lastPrimaryEvidenceTicksUtc.load(std::memory_order_relaxed);
+        g_state.gameConfirmed = g_trustedLaunch ||
+            (lastEvidenceTicks > 0 && (nowTicks - lastEvidenceTicks) <= (kEvidenceHoldMs * 10000LL));
+        g_state.trustedLaunch = g_trustedLaunch;
         g_state.preFilterDxgiEventCount = g_preFilterDxgiEventCount.load(std::memory_order_relaxed);
         g_state.preFilterD3d9EventCount = g_preFilterD3d9EventCount.load(std::memory_order_relaxed);
         g_state.preFilterDxgKrnlEventCount = g_preFilterDxgKrnlEventCount.load(std::memory_order_relaxed);
@@ -989,6 +1035,8 @@ namespace
              << L"\"dxgiEventCount\":" << stateCopy.dxgiEventCount << L","
              << L"\"d3d9EventCount\":" << stateCopy.d3d9EventCount << L","
              << L"\"dxgKrnlEventCount\":" << stateCopy.dxgKrnlEventCount << L","
+             << L"\"gameConfirmed\":" << (stateCopy.gameConfirmed ? L"true" : L"false") << L","
+             << L"\"trustedLaunch\":" << (stateCopy.trustedLaunch ? L"true" : L"false") << L","
              << L"\"debugMessage\":\"" << EscapeJson(stateCopy.debugMessage) << L"\","
              << L"\"error\":\"" << EscapeJson(stateCopy.error) << L"\""
              << L"}";
@@ -1189,6 +1237,8 @@ namespace
             g_dxgiEventCount.store(0, std::memory_order_relaxed);
             g_d3d9EventCount.store(0, std::memory_order_relaxed);
             g_dxgKrnlEventCount.store(0, std::memory_order_relaxed);
+            // A new target must earn its own evidence.
+            g_lastPrimaryEvidenceTicksUtc.store(0, std::memory_order_relaxed);
         }
 
         if (isDxgiEvent)
@@ -1216,6 +1266,14 @@ namespace
         g_dxgiEventCount.store(dxgiCount, std::memory_order_relaxed);
         g_d3d9EventCount.store(d3d9Count, std::memory_order_relaxed);
         g_dxgKrnlEventCount.store(dxgKrnlCount, std::memory_order_relaxed);
+
+        // Application-level presents are the ONLY signal that classifies this PID
+        // as a game. The DxgKrnl kernel fallback below may still compute an FPS
+        // number, but it never counts as classification evidence.
+        if (dxgiCount >= 2 || d3d9Count >= 2)
+        {
+            g_lastPrimaryEvidenceTicksUtc.store(GetUtcTicksNow(), std::memory_order_relaxed);
+        }
 
         bool usingPrimaryApiSignal = false;
         float rollingFps = 0.0f;
@@ -1503,6 +1561,10 @@ namespace
             {
                 args.launchFileTimeUtc = _wcstoui64(argv[++index], nullptr, 10);
             }
+            else if (current == L"--trusted-launch")
+            {
+                args.trustedLaunch = true;
+            }
         }
 
         if (args.statePath.empty())
@@ -1529,6 +1591,7 @@ int wmain(int argc, wchar_t* argv[])
     g_parentPid = parsedArgs->parentPid.value_or(0);
     g_rootStartFileTimeUtc = parsedArgs->rootStartFileTimeUtc;
     g_launchFileTimeUtc = parsedArgs->launchFileTimeUtc;
+    g_trustedLaunch = parsedArgs->trustedLaunch;
     g_isElevated = IsCurrentProcessElevated();
     {
         std::scoped_lock lock(g_stateMutex);

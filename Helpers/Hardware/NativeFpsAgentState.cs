@@ -31,6 +31,8 @@ public sealed class NativeFpsAgentState
     public bool IsElevated { get; set; }
     public bool EtwRunning { get; set; }
     public bool EtwEventsReceived { get; set; }
+    public bool GameConfirmed { get; set; }
+    public bool TrustedLaunch { get; set; }
     public int PreFilterDxgiEventCount { get; set; }
     public int PreFilterD3D9EventCount { get; set; }
     public int PreFilterDxgKrnlEventCount { get; set; }

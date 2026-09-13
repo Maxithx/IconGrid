@@ -15,5 +15,10 @@ xcopy /y /q "%SRC%\*.exe" "%DST%\" >nul
 xcopy /y /q "%SRC%\*.runtimeconfig.json" "%DST%\" >nul
 xcopy /y /q "%SRC%\*.deps.json" "%DST%\" >nul
 
+REM The native FPS agent lives in a SUBFOLDER. xcopy without /s does NOT recurse,
+REM so "%SRC%\*.exe" never covered it and the deployed agent silently stayed
+REM stale (last shipped build was 2026-07-23). Copy it explicitly.
+xcopy /y /q /i "%SRC%\Tools\FpsAgent\IconGridFpsAgent.exe" "%DST%\Tools\FpsAgent\" >nul
+
 echo Done. IconGrid deployed to C:\icongrid
 echo Start: C:\icongrid\IconGrid.exe

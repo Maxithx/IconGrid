@@ -20,6 +20,7 @@ internal static class NativeFpsSharedMemory
     private const int SequenceEndOffset = 48;
     private const uint FlagHasFps = 0x1;
     private const uint FlagEtwRunning = 0x2;
+    private const uint FlagGameConfirmed = 0x4;
 
     public static NativeFpsLiveSnapshot? TryRead()
     {
@@ -58,7 +59,8 @@ internal static class NativeFpsSharedMemory
                     capturedAtUtc,
                     (flags & FlagHasFps) != 0 ? fpsValue : null,
                     unchecked((int)targetPid),
-                    (flags & FlagEtwRunning) != 0);
+                    (flags & FlagEtwRunning) != 0,
+                    (flags & FlagGameConfirmed) != 0);
             }
         }
         catch
@@ -73,4 +75,5 @@ internal readonly record struct NativeFpsLiveSnapshot(
     DateTime CapturedAtUtc,
     double? FpsValue,
     int TargetPid,
-    bool EtwRunning);
+    bool EtwRunning,
+    bool GameConfirmed);

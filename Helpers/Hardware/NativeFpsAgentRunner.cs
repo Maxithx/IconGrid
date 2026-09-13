@@ -58,6 +58,14 @@ internal sealed class NativeFpsAgentRunner : IDisposable
             {
                 // Use the launcher-provided FPS target (game started from IconGrid).
                 arguments += BuildTargetArguments(fpsTarget);
+
+                // IconGrid launched this game itself, so the target identity is
+                // trusted: the native agent may classify it as a game without
+                // requiring application-level present evidence (keeps emulators /
+                // older titles that only expose the kernel path working).
+                // Externally/foreground-detected targets do NOT get this flag and
+                // must earn classification through DXGI/D3D9 evidence.
+                arguments += " --trusted-launch";
             }
             else
             {
@@ -275,7 +283,8 @@ internal sealed class NativeFpsAgentRunner : IDisposable
                 FpsStatus = liveState.Value.FpsValue.HasValue ? Math.Round(liveState.Value.FpsValue.Value).ToString("F0") : "--",
                 FpsSource = "NativeFpsAgent",
                 TargetPid = liveState.Value.TargetPid,
-                EtwRunning = liveState.Value.EtwRunning
+                EtwRunning = liveState.Value.EtwRunning,
+                GameConfirmed = liveState.Value.GameConfirmed
             };
         }
 
@@ -286,6 +295,7 @@ internal sealed class NativeFpsAgentRunner : IDisposable
             fallbackState.FpsStatus = liveState.Value.FpsValue.HasValue ? Math.Round(liveState.Value.FpsValue.Value).ToString("F0") : "--";
             fallbackState.TargetPid = liveState.Value.TargetPid;
             fallbackState.EtwRunning = liveState.Value.EtwRunning;
+            fallbackState.GameConfirmed = liveState.Value.GameConfirmed;
         }
 
         return fallbackState;

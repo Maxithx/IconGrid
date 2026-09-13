@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Threading;
 using IconGrid.Helpers;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
 using WinForms = System.Windows.Forms;
@@ -18,6 +19,7 @@ public partial class App : System.Windows.Application
     private bool _isMonitorAgentMode;
     private bool _isFpsEtwProbeMode;
     private bool _isWindowsStartupLaunch;
+    private SingleInstanceGuard? _singleInstanceGuard;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -78,6 +80,26 @@ public partial class App : System.Windows.Application
             }
 
             WriteTrace($"Starting launcher UI. Elevated={IsCurrentProcessElevated()}");
+
+            // Single-instance guard. A second launch must NOT create a second
+            // launcher: it could not take over the hardware-monitor agent mutex and
+            // would inherit the previous session's stale FPS target (which showed
+            // the gaming overlay with no game running). Instead, ask the running
+            // instance to come to the foreground and exit this one.
+            _singleInstanceGuard = new SingleInstanceGuard();
+            if (!_singleInstanceGuard.TryAcquire())
+            {
+                WriteTrace("Another IconGrid launcher is already running. Activating it and exiting this instance.");
+                SingleInstanceGuard.SignalExistingInstance();
+                _singleInstanceGuard.Dispose();
+                _singleInstanceGuard = null;
+                ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                Shutdown(0);
+                return;
+            }
+
+            _singleInstanceGuard.ListenForActivation(Dispatcher, ActivateRunningLauncher);
+
             if (_isWindowsStartupLaunch)
             {
                 WriteTrace("Windows startup launch detected; monitor agent is expected to be started by its own scheduled task.");
@@ -109,7 +131,22 @@ public partial class App : System.Windows.Application
         }
     }
 
-        private void TrySetAppUserModelId()
+    private void ActivateRunningLauncher()
+    {
+        try
+        {
+            if (MainWindow is IconGrid.Views.Launcher.MainWindow window)
+            {
+                window.ActivateFromSecondInstance();
+            }
+        }
+        catch (Exception ex)
+        {
+            WriteTrace($"Failed to activate the running launcher instance: {ex.Message}");
+        }
+    }
+
+    private void TrySetAppUserModelId()
         {
             try
             {
