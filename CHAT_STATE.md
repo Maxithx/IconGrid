@@ -830,3 +830,42 @@ Bruger lukkede COD; jeg tjekkede hele afslutnings-kaeden (post-conditions):
 3. Overvej at lade `TrustedLaunch`-flaget (spil startet fra IconGrid) ogsaa omfatte baggrunds-scenariet, saa et spil startet via launcheren aldrig afhaenger af VRAM-maalingen.
 
 
+
+## Session findings (2026-09-19, del 8) — "overlay kommer ikke igen efter mange timers kørsel" (FIXET)
+
+**Bruger-rapport:** IconGrid havde kørt i mange timer; COD blev startet igen, men gaming overlayet kom ikke. Genstart af IconGrid eller "reset FPS agent" fiksede det — men det bør ikke være noedvendigt.
+
+**Bevis (trace + config):**
+```
+19:21:45  Visible window candidate PID=8644 (pythonw) skipped: dedicated VRAM peak 0MB   <- fallback afviste den korrekt
+19:22:03  Foreground candidate detected: PID=8644 Name=pythonw                          <- forgrundsstien har ingen VRAM-regel
+19:22:03  Foreground game PID changed from null to 8644                                  <- laast som target
+(5 timer senere, mens COD koerte:)
+22:16:43  Skipping external game registration for PID 8644: no trustworthy game evidence
+   targetPid=8644, DXGI=0 D3D9=0 DXGKRNL=0, gameConfirmed=false, Vram=0MB Peak=0MB
+```
+`config.json` -> `FpsTarget` er **tom** (alle felter null).
+
+**ROOT CAUSE (gammel logik-fejl, ikke relateret til dagens VRAM-arbejde):**
+`MatchesConfigTargetProcess(configTarget, process)` afslutter med `return true` naar config-targetet ikke har nogen identitet (ingen `ExecutableName`, ingen `ResolvedExecutablePath`) — den matcher derfor **enhver proces**. Dermed:
+1. `IsConfiguredTargetAuthoritative(emptyConfig, nativeState)` -> **true** (fordi `nativeState.TargetPid > 0` og "matchet" lykkedes).
+2. Config-grenen koerer -> `nativeOwnsConfigTarget` = true -> `confirmedForegroundGamePid = nativeState.TargetPid` (**bekraeftet uden EN eneste evidens**) og `currentForegroundPidObservedAtUtc = null` (**probe-timeren slaas fra**).
+3. Den tidlige `return` (linje ~1198-1203) betyder at hverken non-game-afvisningen eller retarget-stien naas.
+4. Fallback'en koerte ALDRIG, fordi den var gated paa `!currentForegroundGamePid.HasValue` — og pythonw holdt altid en vaerdi.
+=> Et ikke-spil blev holdt som "bekraeftet spil" i det uendelige; COD i baggrunden kunne aldrig tage target tilbage. Genstart/reset virkede, fordi tilstanden blev genopbygget.
+
+**FIX (3 lag):**
+1. `IsConfiguredTargetAuthoritative`: returnerer nu false uden `HasConfiguredTargetIdentity(configTarget)` -> et tomt target kan aldrig vaere autoritativt.
+2. `MatchesConfigTargetProcess(configTarget, process)`: returnerer false uden identitet -> "tomt target matcher alt" er ikke laengere muligt.
+3. **Challenger-fallback:** `TryGetVisibleGamePidFallback` koeres nu ogsaa naar der holdes et target UDEN spil-evidens (`!HasAcquisitionEvidence(nativeState)`), saa et koerende baggrunds-spil altid selv tager target tilbage — uden genstart eller reset.
+
+**Verifikation (deployet, hash `00FBA671...`):** IconGrid startet mens COD havde koert i baggrunden i 431 s:
+```
+22:20:33.531  Visible window candidate PID=8644 (pythonw) skipped: dedicated VRAM peak 0MB < 250MB
+22:20:33.556  Visible game fallback candidate detected: PID=24584 Name=cod Area=3686400 Score=1 Age=431s
+22:20:38.806  [NativeFpsAgent] FPS=92 ... TargetPid=24584 Target=cod.exe DXGI=4 gameConfirmed=true
+```
+-> COD fanget inden for ~1 s, pythonw afvist, og de tidligere `Skipping external game registration`-linjer er vaek. `Score=1` bekreafter samtidig den skjulte-vindue-vej fra del 5.
+
+**Bonus-fund (deploy):** `deploy-test.cmd` fejlede gentagne gange med "Sharing violation" fordi den koerende monitor-agent var startet af **Task Scheduler** (`parentPid: 0` i state) og derfor holder DLL'erne i op til 60 s (min nye "ingen launcher"-regel), og `taskkill` kan ikke draebe en elevated agent. Scriptet signalerer nu **request-stop-eventet** foerst (`Local\IconGrid.HardwareMonitorAgent.RequestStop`) + 3 s ventetid -> deploy lykkedes paa foerste forsoeg. Linjen er verificeret inde i cmd (`exit=0`).
+

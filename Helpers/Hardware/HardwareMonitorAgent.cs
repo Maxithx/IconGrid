@@ -1302,7 +1302,13 @@ exit:
         }
 
         var newForegroundPid = TryGetForegroundGamePid(log);
-        if (!newForegroundPid.HasValue && !currentForegroundGamePid.HasValue)
+
+        // The visible-window fallback also runs as a challenger while a target WITHOUT
+        // game evidence is held, so a running background game always gets the target
+        // back on its own instead of requiring an IconGrid restart or an FPS-agent
+        // reset.
+        if (!newForegroundPid.HasValue &&
+            (!currentForegroundGamePid.HasValue || !HasAcquisitionEvidence(nativeState)))
         {
             newForegroundPid = TryGetVisibleGamePidFallback(log);
             if (newForegroundPid.HasValue)
@@ -1719,6 +1725,19 @@ exit:
             return false;
         }
 
+        // A config target WITHOUT any identity (no executable name, no path, no root
+        // PID) matches every process in MatchesConfigTargetProcess. It therefore made
+        // whatever the native agent had locked look like "the configured target" and
+        // confirmed it without a single piece of evidence: a non-game target
+        // (pythonw.exe) was held for hours, the non-game probe never ran
+        // (currentForegroundPidObservedAtUtc was cleared) and the visible-window
+        // fallback was skipped, so a running background game could never take the
+        // target back without restarting IconGrid.
+        if (!HasConfiguredTargetIdentity(configTarget))
+        {
+            return false;
+        }
+
         if (nativeState != null &&
             nativeState.TargetPid > 0 &&
             MatchesConfigTargetProcess(configTarget, nativeState.TargetPid))
@@ -1843,6 +1862,14 @@ exit:
     {
         try
         {
+            // Never match on an identity-less config target: with no executable name
+            // and no path to compare, this method reported a match for ANY process,
+            // which confirmed arbitrary (non-game) targets as "the configured game".
+            if (!HasConfiguredTargetIdentity(configTarget))
+            {
+                return false;
+            }
+
             var expectedProcessName = Path.GetFileNameWithoutExtension(configTarget.ExecutableName ?? string.Empty);
             if (!string.IsNullOrWhiteSpace(expectedProcessName) &&
                 !string.Equals(process.ProcessName, expectedProcessName, StringComparison.OrdinalIgnoreCase))

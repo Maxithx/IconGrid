@@ -1,6 +1,15 @@
 @echo off
 REM Safe deploy to C:\icongrid — only copies DLLs and EXEs, NEVER data files
 echo Stopping IconGrid...
+
+REM The elevated monitor agent may have been started by the "IconGrid Monitor"
+REM scheduled task (no launcher parent). It then keeps the DLLs loaded until its
+REM "no launcher process present" grace period (60s) expires, which made xcopy
+REM fail with "Sharing violation" and the new build was silently not deployed.
+REM Ask it to stop through the well-known request-stop event first.
+powershell -NoProfile -Command "try { [System.Threading.EventWaitHandle]::OpenExisting('Local\IconGrid.HardwareMonitorAgent.RequestStop').Set() } catch { }; exit 0" >nul 2>&1
+timeout /t 3 /nobreak >nul
+
 taskkill /f /im IconGrid.exe >nul 2>&1
 taskkill /f /im IconGridFpsAgent.exe >nul 2>&1
 timeout /t 2 /nobreak >nul
