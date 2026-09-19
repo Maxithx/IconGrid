@@ -9,6 +9,7 @@ Before making changes, read these files in this order:
 1. `CHAT_STATE.md`
 2. `README.md`
 3. `ARCHITECTURE_RULES.md`
+4. `PROJECT_STRUCTURE.md` (folder/file map + where new code belongs)
 
 ## Purpose
 

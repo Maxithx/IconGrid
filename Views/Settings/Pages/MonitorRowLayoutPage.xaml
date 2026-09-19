@@ -11,6 +11,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <helpers:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter" />
             <Style x:Key="ResetDefaultsButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="#FF0078D4" />
                 <Setter Property="BorderBrush" Value="#FF0078D4" />
@@ -674,6 +675,74 @@
                                     <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
                                                Margin="0,4,20,0"
                                                Text="{Binding MonitorRowOverlayHeightDescription}" />
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
+                    </Border>
+
+                    <!-- Ping target (moved here from the former Monitor Ping sidebar page) -->
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Monitor row ping target card">
+                        <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                                  IsExpanded="False"
+                                  helpers:DevInspector.Metadata="Monitor row ping target expander">
+                            <Expander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                               Text="{Binding MonitorPingPageTitle}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               Margin="24,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>
+                                </Grid>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,14,20,0"
+                                               Text="{Binding MonitorPingPageIntro}" />
+
+                                    <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                               Margin="0,14,0,0"
+                                               Text="{Binding MonitorPingTargetTitle}" />
+                                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                               Margin="0,4,20,0"
+                                               Text="{Binding MonitorPingTargetDescription}" />
+
+                                    <ComboBox Margin="0,14,0,0"
+                                              MaxWidth="360"
+                                              HorizontalAlignment="Left"
+                                              ItemsSource="{Binding MonitorPingTargetItems}"
+                                              SelectedValuePath="Key"
+                                              DisplayMemberPath="Value"
+                                              SelectedValue="{Binding MonitorPingTargetMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                                    <!-- Custom target input — visible only when MonitorPingTargetMode == "Custom" -->
+                                    <StackPanel Margin="0,14,0,0"
+                                                Visibility="{Binding MonitorPingTargetMode, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Custom}">
+                                        <TextBlock Style="{StaticResource TemplateSectionTitleStyle}"
+                                                   Text="{Binding MonitorPingCustomTargetTitle}" />
+                                        <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                                   Margin="0,4,20,0"
+                                                   Text="{Binding MonitorPingCustomTargetDescription}" />
+                                        <TextBox Margin="0,8,0,0"
+                                                 MaxWidth="280"
+                                                 HorizontalAlignment="Left"
+                                                 Text="{Binding MonitorPingCustomTarget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 FontFamily="Consolas" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>

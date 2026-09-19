@@ -146,8 +146,7 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |
-| **Monitor row layout** | Which values the launcher's live monitor strip shows, and their order |
-| **Monitor ping** | Ping target, interval, timeout and severity thresholds for the monitor row and overlay |
+| **Monitor row layout** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
 | **Fast USB Copy** | High-performance file copying to/from any drive (USB/HDD/SSD) with an optimized buffer pipeline, live speed/ETA, structured logs and a benchmark suite (port/read/write/buffer/stability/Windows baseline + CSV export) |
 | **Test** | Diagnostics and maintenance: FPS/ETW setup status, trace-log size + **Clean trace log** |
 | **Hjælp** | Help and troubleshooting content |
@@ -196,6 +195,8 @@ Logic lives in `Helpers/UsbCopy/` (engine, detector, logger, benchmark runner, s
 ---
 
 ## Architecture
+
+> Full folder/file reference: [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md).
 
 ### Models
 
@@ -360,7 +361,7 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 
 ### MCP notes server
 
-- The `icongrid-notes` MCP server lives in `Tools/mcp-notes-server/` — versioned with git, single source of truth.
+- The `icongrid-notes` MCP server lives in `tools/mcp-notes-server/` — versioned with git, single source of truth.
 - Fresh-clone setup: `cd Tools/mcp-notes-server/ && npm install`, then register in Cline's MCP config.
 - See `AGENT.md` ("Session memory") for full details.
 

@@ -190,11 +190,6 @@ namespace IconGrid.Views
             ShowPage(new MonitorRowLayoutPage(), MonitorLayoutNavButton);
         }
 
-        private void MonitorPingNavButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowPage(new MonitorPingPage(), MonitorPingNavButton);
-        }
-
         private void UsbCopyNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new UsbCopyPage(), UsbCopyNavButton);

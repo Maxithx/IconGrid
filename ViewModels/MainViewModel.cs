@@ -1041,7 +1041,7 @@ namespace IconGrid.ViewModels
         };
 
         /// <summary>
-        /// ComboBox source for MonitorPingPage. Key = config value, Value = localized label.
+        /// ComboBox source for the ping target card on MonitorRowLayoutPage. Key = config value, Value = localized label.
         /// Built on-demand so it follows the active language without needing explicit OnPropertyChanged.
         /// </summary>
         public IEnumerable<KeyValuePair<string, string>> MonitorPingTargetItems
