@@ -25,12 +25,29 @@ internal static class GpuProcessMemory
     private const string CounterName = "Dedicated Usage";
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(2);
 
+    /// <summary>
+    /// A failed counter lookup is retried after this delay instead of disabling the
+    /// measurement for the rest of the process lifetime. The VRAM measurement is
+    /// the strongest game signal we have, so a transient provider failure (driver
+    /// reset, counter service restart) must not silently downgrade detection to the
+    /// weak kernel-present rule.
+    /// </summary>
+    private static readonly TimeSpan UnavailableRetryInterval = TimeSpan.FromSeconds(30);
+
     private static readonly object Gate = new();
     private static readonly Dictionary<string, PerformanceCounter> Counters =
         new(StringComparer.OrdinalIgnoreCase);
 
     private static DateTime _nextRefreshUtc = DateTime.MinValue;
+    private static DateTime _nextUnavailableRetryUtc = DateTime.MinValue;
     private static bool _categoryUnavailable;
+
+    /// <summary>
+    /// Why the per-process VRAM counter is currently unavailable, or null when it
+    /// works. Surfaced in trace output so a broken counter provider is visible
+    /// instead of silently changing detection behavior.
+    /// </summary>
+    public static string? LastUnavailableReason { get; private set; }
 
     /// <summary>
     /// Total dedicated VRAM (bytes) currently held by the process across all of
@@ -48,6 +65,11 @@ internal static class GpuProcessMemory
         {
             lock (Gate)
             {
+                if (_categoryUnavailable && DateTime.UtcNow < _nextUnavailableRetryUtc)
+                {
+                    return null;
+                }
+
                 RefreshCountersIfDue();
 
                 if (_categoryUnavailable)
@@ -97,7 +119,7 @@ internal static class GpuProcessMemory
     private static void RefreshCountersIfDue()
     {
         var now = DateTime.UtcNow;
-        if (now < _nextRefreshUtc || _categoryUnavailable)
+        if (now < _nextRefreshUtc)
         {
             return;
         }
@@ -108,7 +130,7 @@ internal static class GpuProcessMemory
         {
             if (!PerformanceCounterCategory.Exists(CategoryName))
             {
-                _categoryUnavailable = true;
+                MarkUnavailable($"counter category '{CategoryName}' is not present");
                 return;
             }
 
@@ -148,11 +170,21 @@ internal static class GpuProcessMemory
 
                 Counters.Remove(stale);
             }
+
+            _categoryUnavailable = false;
+            LastUnavailableReason = null;
         }
-        catch
+        catch (Exception ex)
         {
-            _categoryUnavailable = true;
+            MarkUnavailable(ex.Message);
         }
+    }
+
+    private static void MarkUnavailable(string reason)
+    {
+        _categoryUnavailable = true;
+        LastUnavailableReason = reason;
+        _nextUnavailableRetryUtc = DateTime.UtcNow.Add(UnavailableRetryInterval);
     }
 
     /// <summary>Formats a byte count for trace output (e.g. "812MB").</summary>

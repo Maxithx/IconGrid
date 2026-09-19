@@ -9,6 +9,14 @@ public static class HardwareMonitorTaskManager
     private const string MonitorAgentArgument = "--monitor-agent";
     private const string ShutdownEventArgument = "--shutdown-event";
 
+    // Kept alive for the lifetime of this (launcher) process. The spawned agent
+    // opens the event by name at startup and can only do that while at least one
+    // handle exists, so the handle must NOT be disposed right after
+    // Process.Start. Doing that made the agent log
+    // "Shutdown event was not found: Local\IconGrid.HardwareMonitorAgent.Stop.<launcherPid>"
+    // and left it unstoppable when the launcher closed.
+    private static EventWaitHandle? _launcherShutdownEvent;
+
     public static bool StartAgent(Func<string>? executablePathProvider = null, Action<string>? log = null, bool elevate = true)
     {
         var executablePath = executablePathProvider?.Invoke() ?? Environment.ProcessPath;
@@ -21,7 +29,7 @@ public static class HardwareMonitorTaskManager
         try
         {
             var shutdownEventName = GetShutdownEventName(Environment.ProcessId);
-            using var shutdownEvent = new EventWaitHandle(false, EventResetMode.ManualReset, shutdownEventName);
+            _launcherShutdownEvent ??= new EventWaitHandle(false, EventResetMode.ManualReset, shutdownEventName);
 
             // A parent PID alone is not a reliable liveness check: Windows reuses
             // PIDs, so an orphaned agent could find an unrelated process with "our"
@@ -72,7 +80,12 @@ public static class HardwareMonitorTaskManager
         }
         catch (WaitHandleCannotBeOpenedException)
         {
+            // The running agent may have been started by the "IconGrid Monitor"
+            // Task Scheduler task, which passes no launcher shutdown event. Fall
+            // back to the well-known request-stop event so the elevated agent (and
+            // the native FPS agent it owns) cannot outlive the launcher.
             log?.Invoke("Hardware monitor shutdown event was not present.");
+            MonitorAgentLifecycle.TrySignalRequestStop(log);
         }
         catch (Exception ex)
         {

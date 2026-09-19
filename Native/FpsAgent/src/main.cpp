@@ -1651,6 +1651,10 @@ int wmain(int argc, wchar_t* argv[])
 
     StopEtwSession();
     UpdateDebugCounts();
+    // Diagnostics: leave a trace of WHY the worker stopped so the launcher side
+    // can tell a graceful exit apart from a crash or an external kill. A killed
+    // or failed process never reaches this line, which is itself the signal.
+    SetDebugMessage(L"Exiting: worker loop finished (parent gone or stop requested).");
     WriteStateFile(parsedArgs->statePath);
     CleanupSharedMemory();
     return 0;

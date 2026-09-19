@@ -16,6 +16,14 @@ internal sealed class NativeFpsAgentRunner : IDisposable
     private readonly ConfigManager _configManager = new();
     private Process? _process;
 
+    /// <summary>
+    /// Foreground PID used for the most recent <see cref="Start"/> call (null when
+    /// the agent was started from a configured launch target). A watchdog restart
+    /// reuses it so a trusted config-target launch keeps its
+    /// <c>--trusted-launch</c> identity instead of silently switching mode.
+    /// </summary>
+    public int? LastForegroundGamePid { get; private set; }
+
     public NativeFpsAgentRunner(string statePath, Action<string>? log = null)
     {
         _statePath = statePath;
@@ -84,6 +92,8 @@ internal sealed class NativeFpsAgentRunner : IDisposable
                     WorkingDirectory = Path.GetDirectoryName(executablePath) ?? AppContext.BaseDirectory
                 }
             };
+
+            LastForegroundGamePid = foregroundGamePid;
 
             var started = _process.Start();
             Trace(
@@ -212,6 +222,38 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         {
             Trace($"Native FPS agent state read failed: {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Diagnostic helper: reports the exit code of the native worker once it has
+    /// exited. Returns false while the worker is still running or when no worker
+    /// was started. The exit code tells a graceful exit (0) apart from an
+    /// external kill (none-zero) so trace.log can show why the FPS pipeline went
+    /// silent instead of leaving only a stale state file behind.
+    /// </summary>
+    public bool TryGetProcessExitCode(out int exitCode)
+    {
+        exitCode = 0;
+        var process = _process;
+        if (process == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (!process.HasExited)
+            {
+                return false;
+            }
+
+            exitCode = process.ExitCode;
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

@@ -25,6 +25,10 @@ public static class HardwareMonitorAgent
     private static readonly TimeSpan NonGameProbeTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan NonGameCooldown = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan OrphanGracePeriod = TimeSpan.FromSeconds(5);
+    // An agent started without a launcher parent (the "IconGrid Monitor" Task
+    // Scheduler task passes no --parent-pid) must not stay alive as an orphan:
+    // exit once no launcher process has been present for this long.
+    private static readonly TimeSpan LauncherAbsenceGracePeriod = TimeSpan.FromSeconds(60);
 
     // A sticky game target is held while it is alive (so alt-tab does not retarget).
     // If a DIFFERENT valid foreground game candidate stays stable this long, the
@@ -158,8 +162,18 @@ public static class HardwareMonitorAgent
             {
                 if (!mutex.WaitOne(TimeSpan.FromSeconds(15)))
                 {
-                    log?.Invoke("Timed out waiting for the previous hardware monitor agent to release the mutex.");
-                    return 0;
+                    // The previous agent may have been started by the "IconGrid
+                    // Monitor" Task Scheduler task, which passes no launcher
+                    // shutdown event. Ask it to stop through the well-known
+                    // request-stop event and wait for that handover instead of
+                    // leaving NO agent at all (which stopped FPS/overlay updates).
+                    log?.Invoke("Timed out waiting for the previous hardware monitor agent to release the mutex. Requesting a stop and retrying.");
+                    MonitorAgentLifecycle.TrySignalRequestStop(log);
+                    if (!mutex.WaitOne(TimeSpan.FromSeconds(15)))
+                    {
+                        log?.Invoke("Previous hardware monitor agent still holds the mutex after the stop request.");
+                        return 0;
+                    }
                 }
             }
             catch (AbandonedMutexException)
@@ -170,6 +184,12 @@ public static class HardwareMonitorAgent
 
             log?.Invoke("Previous hardware monitor agent exited; this instance is now the active agent.");
         }
+
+        // Opened only once this instance owns the mutex, so an instance that is
+        // still waiting for a takeover never consumes its own stop request.
+        using var requestStopEvent = MonitorAgentLifecycle.OpenRequestStopEvent(log);
+        MonitorAgentLifecycle.ClearStopRequest(requestStopEvent);
+        var launcherPresence = new LauncherPresenceTracker();
 
         var parentPid = TryReadParentPid(args);
         var parentStartFileTimeUtc = TryReadParentStartFileTime(args);
@@ -231,6 +251,7 @@ public static class HardwareMonitorAgent
             log?.Invoke($"Hardware monitor agent started. NativeFpsStarted={nativeFpsStarted} ForegroundPid={initialForegroundPid?.ToString() ?? "null"}");
 
             var nativeFpsLoggedSummary = string.Empty;
+            var fpsAgentWatchdog = new FpsAgentWatchdog();
             DateTime? parentMissingSinceUtc = null;
             var foregroundPollCounter = 0;
             var foregroundOverridePid = default(int?);
@@ -247,6 +268,20 @@ public static class HardwareMonitorAgent
                 if (shutdownEvent?.WaitOne(0) == true)
                 {
                     log?.Invoke("Exiting because shutdown event was signaled.");
+                    break;
+                }
+
+                if (requestStopEvent?.WaitOne(0) == true)
+                {
+                    log?.Invoke("Exiting because a monitor agent stop was requested.");
+                    break;
+                }
+
+                // An agent started without a launcher parent (Task Scheduler) has no
+                // parent-liveness check, so it must prove on its own that the app it
+                // belongs to still exists.
+                if (!parentPid.HasValue && launcherPresence.ShouldExit(LauncherAbsenceGracePeriod, log))
+                {
                     break;
                 }
 
@@ -267,6 +302,31 @@ public static class HardwareMonitorAgent
                 var latestConfig = configManager.LoadConfig();
                 TryClearStaleFpsTargetRuntimeMetadata(latestConfig, log);
                 var nativeState = nativeFpsStarted ? nativeFpsAgent.ReadState() : null;
+
+                // Watchdog: a native worker that is gone, hung, or whose output went
+                // stale must never leave the FPS pipeline dead while the tracked game
+                // PID stays the same (2026-09-19: 12 minutes with no FPS/overlay after
+                // Call of Duty restarted itself).
+                if (nativeFpsStarted)
+                {
+                    var workerExitCode = nativeFpsAgent.TryGetProcessExitCode(out var exitCode)
+                        ? exitCode
+                        : (int?)null;
+                    var restartReason = fpsAgentWatchdog.Evaluate(
+                        currentForegroundGamePid,
+                        nativeState,
+                        workerExitCode,
+                        DateTime.UtcNow,
+                        out var restartDetail);
+                    if (restartReason != FpsAgentRestartReason.None)
+                    {
+                        log?.Invoke($"FPS agent watchdog: restarting the native FPS worker. Reason={restartReason}. {restartDetail}");
+                        nativeFpsStarted = nativeFpsAgent.IsAvailable &&
+                                           nativeFpsAgent.Restart(parentPid, nativeFpsAgent.LastForegroundGamePid);
+                        fpsAgentWatchdog.OnRestarted(DateTime.UtcNow);
+                        nativeState = nativeFpsStarted ? nativeFpsAgent.ReadState() : null;
+                    }
+                }
 
                 // Poll foreground window every ~1s to detect the current game directly.
                 foregroundPollCounter++;
@@ -387,6 +447,14 @@ public static class HardwareMonitorAgent
                     if (targetVram.HasValue)
                     {
                         targetVramText = $"Vram={GpuProcessMemory.Format(targetVram.Value)}";
+                    }
+
+                    // The classifier uses the peak (a game frees VRAM during
+                    // loading/alt-tab), so show it next to the live value.
+                    var targetVramPeak = GameVramEvidence.GetPeakBytes(nativeState.TargetPid, DateTime.UtcNow);
+                    if (targetVramPeak.HasValue)
+                    {
+                        targetVramText += $" Peak={GpuProcessMemory.Format(targetVramPeak.Value)}";
                     }
                 }
 
@@ -554,11 +622,10 @@ exit:
                     }
                 }
 
-                if (GameProcessClassifier.IsNonGameProcessPath(GameProcessClassifier.TryGetProcessPath((int)pid)))
-                {
-                    log?.Invoke($"Skipping foreground PID {(int)pid} ({processName}) — process lives in a Windows system directory.");
-                    return null;
-                }
+                // No process-name or installation-path filter here on purpose: the
+                // candidate is classified by evidence afterwards (dedicated VRAM
+                // peak, or application-level presents), which rejects shell/system
+                // programs from their own measurements instead of from a list.
 
                 if (!IsLikelyGameForegroundWindow(foregroundHwnd, processName, log))
                 {
@@ -673,6 +740,19 @@ exit:
 
                     if (!IsLikelyGameForegroundWindow(hwnd, processName, log: null))
                     {
+                        return true;
+                    }
+
+                    // Window geometry alone is NOT evidence of a game: apply the
+                    // same dedicated-VRAM rule used everywhere else. A shell window
+                    // (Task Manager, a dialog, the desktop) never holds game-like
+                    // VRAM, so it can no longer steal the target from a running
+                    // game — which is exactly what happened on 2026-09-19, when
+                    // Task Manager (12 MB VRAM) replaced Call of Duty (5.3 GB).
+                    var candidateVerdict = GameVramEvidence.Evaluate((int)candidatePid, null, nowUtc, out var candidateDetail);
+                    if (candidateVerdict != GameEvidenceVerdict.Game)
+                    {
+                        log?.Invoke($"Visible window candidate PID={candidatePid} ({processName}) skipped: {candidateDetail}.");
                         return true;
                     }
 
@@ -1121,12 +1201,12 @@ exit:
             currentForegroundPidObservedAtUtc.HasValue &&
             DateTime.UtcNow - currentForegroundPidObservedAtUtc.Value >= NonGameProbeTimeout &&
             nativeState != null &&
-            !HasAnyGameSignal(currentForegroundGamePid, nativeState))
+            GameVramEvidence.IsMeasurablyNotGame(currentForegroundGamePid.Value, nativeState, DateTime.UtcNow, out var rejectionDetail))
         {
             rejectedForegroundPid = currentForegroundGamePid.Value;
             rejectedForegroundPidCooldownUntilUtc = DateTime.UtcNow.Add(NonGameCooldown);
             log?.Invoke(
-                $"Rejecting foreground PID {currentForegroundGamePid.Value} as a non-game after ETW probe timeout. Cooldown until {rejectedForegroundPidCooldownUntilUtc.Value:HH:mm:ss}.");
+                $"Rejecting foreground PID {currentForegroundGamePid.Value} as a non-game after the probe window: {rejectionDetail}. Cooldown until {rejectedForegroundPidCooldownUntilUtc.Value:HH:mm:ss}.");
             currentForegroundGamePid = null;
             currentForegroundPidObservedAtUtc = null;
             foregroundOverridePid = null;
@@ -1255,10 +1335,10 @@ exit:
 
     /// <summary>
     /// Evidence required to ACQUIRE/CONFIRM a target (as opposed to merely
-    /// displaying a frame rate). Store/WindowsApps processes (shell companions,
-    /// PowerToys, Command Palette) can emit a stray coarse kernel present, so for
-    /// them only application-level DXGI/D3D9 presents count. Real Store/Game Pass
-    /// games still produce DXGI presents, so they keep working.
+    /// displaying a frame rate): dedicated VRAM (peak) or application-level
+    /// DXGI/D3D9 presents. The rule itself lives in
+    /// <see cref="GameVramEvidence"/>, so detection behavior is defined in exactly
+    /// one place and needs no process-name or installation-path list.
     /// </summary>
     private static bool HasAcquisitionEvidence(NativeFpsAgentState? nativeState)
     {
@@ -1267,35 +1347,8 @@ exit:
             return false;
         }
 
-        // 1. Application-level presents (DXGI/D3D9) are direct proof that the
-        //    process presents frames as an application.
-        if (GameProcessClassifier.HasPrimaryGraphicsEvidence(nativeState))
-        {
-            return true;
-        }
-
-        // 2. A game-like amount of DEDICATED VRAM is equally strong evidence and is
-        //    independent of the ETW providers. A shell/desktop process holds only a
-        //    few tens of MB, a real game hundreds of MB to several GB. This is what
-        //    keeps explorer.exe / Command Palette / PowerToys out WITHOUT an
-        //    app-name blocklist — and it is measurable even when an application
-        //    emits no (or only the coarse kernel) present events.
-        var vramBytes = GpuProcessMemory.TryGetDedicatedUsageBytes(nativeState.TargetPid);
-        if (vramBytes.HasValue)
-        {
-            return vramBytes.Value >= GameProcessClassifier.MinimumGameVramBytes;
-        }
-
-        // 3. VRAM could not be measured (no WDDM counter category available). Fall
-        //    back to the coarse DxgKrnl threshold — but never for Store/shell
-        //    processes, which must show application-level presents.
-        if (GameProcessClassifier.RequiresPrimaryGraphicsEvidence(
-                GameProcessClassifier.TryGetProcessPath(nativeState.TargetPid)))
-        {
-            return false;
-        }
-
-        return GameProcessClassifier.IsGameEvidence(nativeState);
+        return GameVramEvidence.Evaluate(nativeState.TargetPid, nativeState, DateTime.UtcNow, out _) ==
+               GameEvidenceVerdict.Game;
     }
 
     private static bool IsStickyTargetConfirmed(int? currentForegroundGamePid, NativeFpsAgentState? nativeState)
@@ -1305,12 +1358,10 @@ exit:
             return false;
         }
 
-        // Never confirm our own process as the game target, and never confirm a
-        // process that lives in a Windows system directory. Everything else is
-        // decided by evidence, not by name.
-        if (GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName) ||
-            GameProcessClassifier.IsNonGameProcessPath(
-                GameProcessClassifier.TryGetProcessPath(nativeState.TargetPid)))
+        // Never confirm our own process as the game target. Everything else is
+        // decided by evidence (dedicated VRAM / application-level presents), never
+        // by a process-name or installation-path list.
+        if (GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName))
         {
             return false;
         }
@@ -1349,27 +1400,6 @@ exit:
         return confirmedForegroundGamePid.HasValue &&
                confirmedForegroundGamePid.Value == currentForegroundGamePid.Value &&
                nativeState.EtwRunning;
-    }
-
-    private static bool HasAnyGameSignal(int? currentForegroundGamePid, NativeFpsAgentState? nativeState)
-    {
-        if (!currentForegroundGamePid.HasValue || nativeState == null)
-        {
-            return false;
-        }
-
-        // Our own process has no game signal regardless of frame counts.
-        if (GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName))
-        {
-            return false;
-        }
-
-        if (nativeState.TargetPid != currentForegroundGamePid.Value)
-        {
-            return false;
-        }
-
-        return HasAcquisitionEvidence(nativeState);
     }
 
     private static bool HasNativeGameSignal(NativeFpsAgentState? nativeState)
@@ -1432,8 +1462,7 @@ exit:
             return;
 
         var hasTrustworthyEvidence = HasAcquisitionEvidence(nativeState);
-        var isNonGameProcess = GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName) ||
-                               GameProcessClassifier.IsNonGameProcessPath(GameProcessClassifier.TryGetProcessPath(pid));
+        var isNonGameProcess = GameProcessClassifier.IsSelfProcessName(nativeState.TargetProcessName);
         if (!hasTrustworthyEvidence || isNonGameProcess)
         {
             log?.Invoke($"Skipping external game registration for PID {pid}: no trustworthy game evidence (anti-false-positive guard).");

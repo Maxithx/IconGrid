@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -107,8 +108,16 @@ namespace IconGrid.Helpers
         // timing resolution is 1 ms, so a LAN round-trip to the local router reports 0 ms —
         // used to display "<1ms" instead of a misleading, never-changing "1ms".
         private bool _lastSampleSubMillisecond;
+        private string _clockText = string.Empty;
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// Local wall-clock time shown in the gaming overlay, formatted with the
+        /// user's own Windows short-time pattern (e.g. "03:12" in Denmark,
+        /// "3:12 AM" in the US) so no format is hardcoded.
+        /// </summary>
+        public string ClockText { get => _clockText; private set { _clockText = value; OnPropertyChanged(); } }
 
         public string NetworkStatus { get => _networkStatus; private set { _networkStatus = value; OnPropertyChanged(); } }
         public string PingTargetLabel { get => _activePingTargetLabel; private set { _activePingTargetLabel = value; OnPropertyChanged(); } }
@@ -722,8 +731,25 @@ namespace IconGrid.Helpers
             }
         }
 
+        /// <summary>
+        /// Refreshes the overlay clock. Called from the FPS timer, but only raises a
+        /// property change when the rendered text actually changes, so the overlay is
+        /// not invalidated on every poll.
+        /// </summary>
+        private void UpdateClock()
+        {
+            var pattern = CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern;
+            var text = DateTime.Now.ToString(pattern, CultureInfo.CurrentCulture);
+            if (!string.Equals(text, _clockText, StringComparison.Ordinal))
+            {
+                ClockText = text;
+            }
+        }
+
         private void FpsTimer_Tick(object? sender, EventArgs e)
         {
+            UpdateClock();
+
             var nativeFpsState = NativeFpsSharedMemory.TryRead();
             var fpsState = ReadFpsState();
             var nativeFpsValue = nativeFpsState?.FpsValue;
@@ -743,7 +769,19 @@ namespace IconGrid.Helpers
             // tracked game process only: TargetPid greater than 0 means a game is running,
             // anything else (0 or unavailable shared memory) means no game is tracked.
             var trackedGamePid = nativeFpsState?.TargetPid ?? 0;
-            SetInGame(trackedGamePid > 0);
+
+            // The native agent only publishes a target PID for a confirmed game, so
+            // this preserves existing behavior — but the overlay now also follows
+            // the VRAM rule, so a game that holds game-like dedicated VRAM shows up
+            // even when the native agent had no application-level present evidence
+            // (emulators / older titles). A shell process never qualifies: it holds
+            // a few MB, far below the game floor.
+            var nativeGameEvidence = trackedGamePid > 0
+                ? GameVramEvidence.Evaluate(trackedGamePid, null, DateTime.UtcNow, out _)
+                : GameEvidenceVerdict.Unknown;
+            var isGameTarget = nativeFpsState?.GameConfirmed == true ||
+                               nativeGameEvidence == GameEvidenceVerdict.Game;
+            SetInGame(trackedGamePid > 0 && isGameTarget);
             if (!hasNativeFps && fpsState == null)
             {
                 _targetFpsValue = null;

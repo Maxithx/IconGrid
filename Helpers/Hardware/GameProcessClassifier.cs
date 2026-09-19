@@ -162,13 +162,6 @@ public static class GameProcessClassifier
     public static bool IsNonGameProcess(string? processName, string? executablePath)
         => IsNonGameProcessName(processName) || IsNonGameProcessPath(executablePath);
 
-    /// <summary>
-    /// Dedicated VRAM a process must hold before it is trusted as a game without
-    /// application-level present evidence. A shell/desktop process (explorer,
-    /// Command Palette, PowerToys) stays far below this; a real game is far above.
-    /// </summary>
-    public const long MinimumGameVramBytes = 300L * 1024 * 1024;
-
     private static readonly string[] WindowsStorePathPrefixes = BuildWindowsStorePathPrefixes();
 
     private static string[] BuildWindowsStorePathPrefixes()
@@ -207,15 +200,6 @@ public static class GameProcessClassifier
 
         return false;
     }
-
-    /// <summary>
-    /// True when the process must show application-level (DXGI/D3D9) presents to
-    /// be trusted as a game — the coarse DxgKrnl kernel fallback alone is never
-    /// enough. This covers Store/MSIX apps in Program Files\WindowsApps, where
-    /// shell companions previously slipped through on kernel-only evidence.
-    /// </summary>
-    public static bool RequiresPrimaryGraphicsEvidence(string? executablePath)
-        => IsWindowsStoreAppPath(executablePath);
 
     /// <summary>
     /// Best-effort executable path lookup. Returns null when MainModule is

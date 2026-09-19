@@ -225,6 +225,11 @@
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 Margin="14,0,0,0">
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Margin="0,0,9,0">
+                            <Run Text="{Binding SystemMonitor.ClockText, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource MonitorDividerStyle}" />
                         <Border Width="10"
                                 Height="10"
                                 CornerRadius="5"
@@ -232,7 +237,7 @@
                                 Margin="0,0,6,0"
                                 Background="{Binding SystemMonitor.PingSeverityLevel, Converter={StaticResource PingSeverityBrush}}" />
                         <TextBlock Style="{StaticResource NetworkMonitorTextStyle}"
-                                   MinWidth="70"
+                                   Margin="0,0,9,0"
                                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
                             <Run Text="{Binding MonitorNetworkLabel, Mode=OneWay}" />
                             <Run Text=": " />
@@ -241,7 +246,6 @@
                         <TextBlock Style="{StaticResource MonitorDividerStyle}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
                                    Margin="0,0,9,0"
-                                   Width="75"
                                    TextAlignment="Right"
                                    ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
                             <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" />
@@ -250,7 +254,7 @@
                         </TextBlock>
                         <Border Width="12"
                                 Height="14"
-                                Margin="0,0,10,0"
+                                Margin="0,0,9,0"
                                 Background="#22000000"
                                 BorderBrush="#80FFFFFF"
                                 BorderThickness="1"
@@ -265,7 +269,6 @@
                         </Border>
                         <TextBlock Style="{StaticResource MonitorDividerStyle}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
-                                   Width="64"
                                    Margin="0,0,9,0"
                                    TextAlignment="Right"
                                    ToolTip="{Binding SystemMonitor.GpuName}"
@@ -276,7 +279,7 @@
                         </TextBlock>
                         <Border Width="12"
                                 Height="14"
-                                Margin="0,0,10,0"
+                                Margin="0,0,9,0"
                                 Background="#22000000"
                                 BorderBrush="#80FFFFFF"
                                 BorderThickness="1"

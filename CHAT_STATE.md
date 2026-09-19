@@ -3,7 +3,9 @@
 > **Full session history:** `.local-state/session-history.md` (gitignored, searchable via `search_notes`)
 
 ## Current date
-Wednesday, September 4, 2026
+September 19, 2026
+
+> **Seneste session:** se nederst — "Session findings (2026-09-19) — FPS-agent: COD-genstart-blindhed + hængende monitor-agent (fixet, deployet)". **ÅBENT:** COD-test mangler (brugeren tester fra `C:\icongrid`).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -505,3 +507,228 @@ RISIKO NOTERET (ikke et problem nu): `HasAnyGameSignal` bruger nu `HasAcquisitio
 IKKE committet/pushet.
 
 IKKE committet/pushet.
+
+## Session findings (2026-09-13, sen aften) — Gaming overlay baggrundshøjde + ping-fix
+
+### 1. Gaming overlay baggrundshøjde (px) — ✅ bruger-verificeret ("spiller super godt")
+- Ny persisteret `GamingOverlayBackgroundHeight` (20-120 px, default 44) med slider i et NYT kort "Gaming overlay" på `MonitorRowLayoutPage.xaml` (centraliseret lokalisering, en+da).
+- Værdien er design-højden FØR overlay-skalering (44 px @ 100% = 66 px @ 150%).
+- `GamingOverlayWindow.xaml`: `<Grid Height="{Binding GamingOverlayBackgroundHeight}">` (var hardcodet 44). Code-behind: `const BaseOverlayHeight` → property der læser VM-værdien live. `MainViewModel.GamingOverlayWindowHeight` bruger samme felt.
+- Indgår i `MonitorLayoutDefaultsSnapshot` som **nullable** `double?` — gamle snapshots (uden feltet) rører IKKE brugerens nuværende højde ved "Nulstil til min standard".
+- Config-kæden opdateret alle 5 steder: ConfigModel → ConfigState (normaliserer 20-120, ellers 44) → SettingsState → MainViewModel.Settings (apply/default/save) → SettingsPersistence.
+- 3 nye lok-nøgler (en+da): MonitorRowOverlayCardTitle / MonitorRowOverlayHeightLabel / MonitorRowOverlayHeightDescription.
+
+### 2. FIX: gear/luk-knap stak ud af baren ved lav højde (brugerrapport)
+- Rodårsag: `SettingsMenuButton` + `CloseButton` havde fast `Height="32"`. Ved bar-højde < 32 (fx 20 px) blev knapperne højere end baren og klippet / ikke centreret — alt andet i rækken er `VerticalAlignment="Center"` uden fast højde.
+- Fix: `ActionButtonHeight => Math.Min(32, GamingOverlayBackgroundHeight)` anvendes i BÅDE `ApplyWindowSize()` og `ApplyVisualScaleOnly()` (samme steder som margins sættes). Knapperne skrumper nu med baren og forbliver centreret.
+
+### 3. FIX: "Net: 1ms" altid — ping målte routeren (brugerrapport "virker ikke korrekt")
+- Rodårsag: `PingTargetMode.Auto` pingede gateway FØRST. Brugerens router (192.168.0.1) svarer `time<1ms` → `PingReply.RoundtripTime = 0` → clampet til `MinPingMs = 1.0` → ALTID "1ms". Bevist på maskinen: gateway = 0 ms, Cloudflare 1.1.1.1 = 12 ms.
+- Kommentaren på `MinPingMs` ("clock-tick ~15.6ms") var en fejlslutning — 0 ms er en reelt sub-millisekund LAN-roundtrip. Kommentaren er rettet.
+- Fix (bruger valgte "Rettelse A"):
+  1. `Auto` = internet-first: **Cloudflare → Google → router (sidste udkald)**. Værdien flytter sig nu med den reelle forbindelse.
+  2. Sub-millisekund-samples vises som **`<1ms`** i stedet for et fastlåst `1ms` (nyt felt `_lastSampleSubMillisecond`); stale viser `--ms (<1)`.
+- UI-tekster opdateret (en+da): MonitorPingTargetAuto, MonitorPingTargetDescription, MonitorPingPageIntro.
+- "Router only (gateway)" er bevaret som eksplicit valg for LAN-latency.
+
+### Verifikation
+- Build 0 fejl begge gange; deploy til C:\icongrid med SHA256 BUILD == DEPLOYED hver gang.
+- Lokalisering: 269 en / 269 da (paritet) efter ændringerne.
+- ✅ COMMITTET + PUSHET: `b5c44db` → origin/main — "feat: adjustable gaming overlay background height and internet-first ping" (14 filer, +201/-21).
+- Bruger-feedback: "det spiller perfekt".
+
+### Næste skridt
+- Ingen kendte åbne punkter fra denne session.
+- Mulig opfølgning: nu hvor Auto er internet-first, kan "Kun router (gateway)" evt. relabeles/omtales klarere — bevaret uændret indtil videre.
+
+
+## Session findings (2026-09-15) — Monitor Ping flettet ind i Monitor row layout
+
+### Ændring (bruger-ønske: "MonitorPingPage bør ligge inden i MonitorRowLayoutPage")
+- **`Views/Settings/Pages/MonitorRowLayoutPage.xaml`**: Nyt expander-kort "Monitor Ping" (samme `StartsideSectionCardStyle` + `MonitorRowExpanderStyle` som sidens øvrige kort, `IsExpanded="False"`) med ping-mål ComboBox (`MonitorPingTargetItems` / `MonitorPingTargetMode`) + Custom-target TextBox (`MonitorPingCustomTarget`). Kortet ligger efter "Gaming overlay background height" og før Reset/Save-knapperne. `StringEqualsToVisibilityConverter` tilføjet til sidens ressourcer (Custom-input vises kun ved mode = "Custom").
+- **`Views/Settings/SettingsWindow.xaml`**: `MonitorPingNavButton` ("MP") fjernet fra sidebaren → siden har ikke længere en separat ping-underside.
+- **`Views/Settings/SettingsWindow.xaml.cs`**: `MonitorPingNavButton_Click` fjernet.
+- **Slettet (dead code efter merge)**: `Views/Settings/Pages/MonitorPingPage.xaml` + `.xaml.cs`.
+- **Lokalisering**: `MonitorPingNavTitle` fjernet fra BEGGE dictionaries (en+da) + property + `OnPropertyChanged` (kun sidebaren brugte den, og teksten var identisk med `MonitorPingPageTitle`). Ingen nye nøgler nødvendige — `MonitorPingPageTitle`/`MonitorPingPageIntro` genbruges nu som kort-titel/beskrivelse. Paritet en/da bevaret.
+- **`ViewModels/MainViewModel.cs`**: XML-doc på `MonitorPingTargetItems` opdateret til at pege på det nye kort.
+
+### Verifikation
+- `dotnet build IconGrid.csproj` → **Build succeeded, 0 fejl** (frisk BAML for begge XAML-filer).
+- Grep: 0 resterende referencer til `MonitorPingPage`/`MonitorPingNavButton` i .cs/.xaml (uden for obj).
+- **DEPLOY ✅ (15-09-2026 19:34, efter brugeren lukkede IconGrid)**: `deploy-test.cmd` uden "Sharing violation"; SHA256 BUILD == DEPLOYED (`66C784F0...4226E1F5`). Brugeren kan teste fra `C:\icongrid`.
+- Ikke committet/pushet (kræver separat bruger-godkendelse).
+
+### Åbent spørgsmål (ikke implementeret)
+- Ping-målet indgår IKKE i `MonitorLayoutDefaultsSnapshot`, så "Nulstil til standard"/"Gem nuværende som min standard" på siden rører ikke ping-indstillingen. Kan tilføjes hvis brugeren ønsker det.
+
+### Dokumentation (2026-09-15)
+- **NY `PROJECT_STRUCTURE.md`** i repo-roden — komplet mappe-/filoversigt (verificeret mod arbejdstræet), "Where new code goes"-tabel, build/deploy-kommandoer, runtime-data-placering og liste over gitignored stier. Engelsk, som README/ARCHITECTURE_RULES.
+- `README.md`: "Monitor ping"-rækken i Settings pages-tabellen fjernet og "Monitor row layout"-beskrivelsen opdateret til at nævne ping-målet; link til `PROJECT_STRUCTURE.md` tilføjet i "Architecture"; `Tools/mcp-notes-server` → `tools/mcp-notes-server` (case-fix).
+- `AGENT.md`: `PROJECT_STRUCTURE.md` tilføjet som punkt 4 i "Read first".
+- `.local-state/project-structure.md` (gitignored) gjort til kort stub der peger på det nye sporede dokument (den gamle kopi var forældet).
+
+
+
+## Session findings (2026-09-19) — FPS-agent: COD-genstart-blindhed + hængende monitor-agent (fixet, deployet)
+
+### Brugerens to rapporter
+1. COD bliver ikke fanget (igen) efter at spillet selv genstarter (fx efter en opdatering, ~5 s inde).
+2. IconGrid har kørt længe og har fanget falske positiver; desuden **"de 2 processer hænger når programmet lukkes"**.
+
+### A. RODÅRSAG 1 — 12 minutters blindhed efter COD-genstart (trace.log 2026-09-19)
+Beviskæde fra `%APPDATA%\IconGrid\trace.log`:
+```
+02:05:20  Foreground candidate detected: PID=28952 Name=cod
+02:05:20  Ignoring foreground PID 28952 because sticky game target PID 8748 (explorer.exe) is still alive
+02:05:20  Foreground game PID changed from 8748 to 28952 → agent genstart → FPS=120, overlay 02:05:23 OK
+02:05:50  Rejecting foreground PID ... Name=cod Size=854x480   +   Current game PID 28952 has exited. Clearing.
+02:06:25  Visible game fallback candidate detected ... PID=14088 Name=cod Area=3686400
+02:06:28  [NativeFpsAgentRunner] start requested ... ForegroundGamePid=14088 -> laaser 14088, starter ETW,
+          skriver EN state-fil (02:06:28.766, etwRunning=true, ALLE counters=0, gameConfirmed=false)
+   -> INTET derefter i 12 minutter (02:07:02-02:11:27 kun "native FPS state was unavailable during probe timeout")
+02:18:45  foerst HER genstartes agenten (fordi Taskmgr blev "visible game fallback")
+```
+- Agent-processen VAR væk (ca. 02:16 viste `tasklist` ingen `IconGridFpsAgent.exe`, mens `native-fps-state.json` stod stille). Ingen WER-hændelse 1000/1001 -> ikke et managed crash; proces afsluttet uden oprydning. **Sandsynlig kode-aarsag (ikke endeligt bevist):** `g_etwThread` er ubeskyttet — `StopEtwSession()` (`main.cpp:1493`, `g_etwThread.join()`) kaldes fra target-traaden samtidig med at main-loekkens `StartEtwSession()` tildeler `g_etwThread = std::thread(...)` (`main.cpp:1484`) -> race der kan give `std::terminate()` uden WER-spor.
+- `SystemMonitor.FpsTimer_Tick` (SystemMonitor.cs:745) saetter `IsInGame = nativeFpsState?.TargetPid > 0`, og `WriteSharedFpsState` (main.cpp:345-388) publicerer `targetPid` KUN naar `gameConfirmed` (DXGI/D3D9>=2). Uden agent-output -> `targetPid=0` -> **overlayet vises aldrig** (ingen `[GamingOverlay]`-linjer efter 02:05:23).
+- **Ingen watchdog:** C# genstarter kun agenten naar game-PID'en aendrer sig -> en doed/haengt agent holdt pipelinen nede i 12 min.
+
+### B. RODÅRSAG 2 — "de 2 processer hænger" (bevist)
+- Arkitekturen starter agenten to steder fra: (1) launcheren (`HardwareMonitorTaskManager.StartAgent`, med `--parent-pid` + `--shutdown-event`), (2) **Task Scheduler `\IconGrid Monitor` -> `C:\IconGrid\IconGrid.exe --monitor-agent`** (verificeret Enabled, At logon, Highest) — sidstnaevnte **uden foraelder og uden shutdown-event**. `ParentIsAlive(null)` = altid true og `TryOpenShutdownEvent` = null -> agenten kunne hverken afslutte sig selv eller signaleres; dens barn `IconGridFpsAgent.exe` fulgte med.
+- **Ekstra defekt fundet under testen:** `StartAgent` havde `using var shutdownEvent = ...` -> event-handlen blev frigivet **foer** den netop spawnede agent naaede at `OpenExisting`, saa agenten loggede `Shutdown event was not found: Local\IconGrid.HardwareMonitorAgent.Stop.<launcherPid>` (set 02:28:59). Ogsaa launcher-startede agenter var derfor ustopbare.
+- Tracebevis fra den oprindelige session: `02:09:47/02:14:12 Hardware monitor shutdown event was not present.` + `02:10:14 Timed out waiting for the previous hardware monitor agent to release the mutex.`
+- **ETW-laek:** `logman query -ets` viste `IconGridFpsAgent_ETW = Running` efter at ALLE IconGrid-processer var draebt (og efter at `Local\IconGrid.NativeFps.Live` var vaek). `DisposeProcess()` bruger `Process.Kill()` -> `StopEtwSession()` blev aldrig koert (ETW real-time sessions overlever processen). Ryddet manuelt med `logman stop "IconGridFpsAgent_ETW" -ets`.
+
+
+### C. IMPLEMENTERET (trin 1-3, bruger-godkendt plan)
+1. **Diagnostik:** native `main.cpp` skriver nu exit-aarsag til state-JSON (`"Exiting: worker loop finished (parent gone or stop requested)."`); `NativeFpsAgentRunner.TryGetProcessExitCode()` rapporterer barnets exit-kode, saa trace kan skelne graceful exit fra kill/crash.
+2. **Livscyklus (ny fil `Helpers/Hardware/MonitorAgentLifecycle.cs`, 167 linjer):** velkendt `Local\IconGrid.HardwareMonitorAgent.RequestStop`-event (ikke PID-bundet) + `LauncherPresenceTracker` (1 s probe-interval). Brugt i:
+   - `HardwareMonitorAgent.Run`: mutex-timeout -> signalér RequestStop -> vent 15 s igen (handover i stedet for "ingen agent tilbage"); agenten venter ogsaa paa RequestStop i loekken; `Reset()` efter mutex-overtagelse; **uden `--parent-pid`** afslutter agenten naar ingen IconGrid-launcher har vaeret der i 60 s (`LauncherAbsenceGracePeriod`).
+   - `HardwareMonitorTaskManager.SignalCurrentAgentToStop`: falder tilbage til RequestStop naar per-PID-eventet mangler.
+   - `HardwareMonitorTaskManager.StartAgent`: `_launcherShutdownEvent` holdes i live for processens levetid (ikke laengere `using`).
+3. **Watchdog (ny fil `Helpers/Hardware/FpsAgentWatchdog.cs`, 93 linjer):** hvis en game-PID holdes og native state er vaek/stale i >5 s, eller barnet er exited, genstartes den native agent (min. 10 s mellem restarts, `Restart(parentPid, LastForegroundGamePid)` saa trusted-launch/config-target-tilstand bevares).
+
+### D. VERIFIKATION
+- Native: MSBuild `FpsAgent.vcxproj` -> `IconGridFpsAgent.exe` SHA256 `8AA06E3A...` (identisk i `Native\...\bin\Debug`, `bin\Debug\...\Tools\FpsAgent` og `C:\icongrid\Tools\FpsAgent`).
+- C#: `dotnet build IconGrid.csproj` -> **0 advarsler / 0 fejl**. `IconGrid.dll` SHA256 `5D05D021...` i baade `bin\Debug` og `C:\icongrid` (foerste deploy gav "Sharing violation" = gammel hash; koert igen jf. cheatsheet §11 -> hash matcher).
+- **Livetest 1 (request-stop):** signallede eventet eksternt -> trace: `Exiting because a monitor agent stop was requested.` + `Hardware monitor agent exited gracefully.` -> **den elevated agent OG FPS-agenten forsvandt** (kun launcheren tilbage).
+- **Livetest 2 (Task Scheduler-vejen):** startede `IconGrid.exe --monitor-agent` (uden foraelder), draebte launcheren -> trace: `Exiting because no IconGrid launcher process has been present for 62s.` + `Hardware monitor agent exited gracefully.` -> **0 IconGrid-processer tilbage**.
+- **Opstartsverifikation:** den nye build logger ikke laengere `Shutdown event was not found` (den gamle build gjorde kl. 02:28:59).
+- `deploy-test.cmd` **starter ikke** appen (sidste linje er kun `echo Start: ...`) — start manuelt med `Start-Process 'C:\icongrid\IconGrid.exe'`.
+
+### E. ARKITEKTUR-NOTE (violation, dokumenteret)
+- `Helpers/Hardware/HardwareMonitorAgent.cs` er nu **2156 linjer mod graensen 1500** (var 2096 foer denne session; +~60 for mutex/loekke/watchdog-hook). Nye features blev derfor lagt i nye filer ovenfor. **Foreslaaet udtraek ved naeste lejlighed:** flyt evidens-helperne `HasUsableFrameSignal` / `HasAcquisitionEvidence` / `IsStickyTargetConfirmed` / `IsCurrentTargetStillOwned` / `HasAnyGameSignal` (~130 linjer) til `Helpers/Hardware/GameTargetEvidence.cs` (mekanisk flytning, ingen logikaendring).
+
+### F. IKKE LØST ENDNU (naeste skridt)
+- **COD-test mangler:** start COD (gerne med den selv-genstart/opdatering) -> forvent i trace: `FPS agent watchdog: restarting the native FPS worker. Reason=...` hvis agenten falder ud, i stedet for 12 minutters blindhed.
+- **Falske positiver (bekraeftet, ikke fikset):** (a) `explorer.exe` var "spil" i ~3,5 t med opdigtet `FPS=81 Source=DxgKrnlFallback` — `HasAcquisitionEvidence` trin 3 falder tilbage til `IsGameEvidence` naar PDH-VRAM ikke kan maales, og `RequiresPrimaryGraphicsEvidence` daekker KUN Store/WindowsApps-stier (ikke `C:\Windows`); (b) `TryGetVisibleGamePidFallback` (HardwareMonitorAgent.cs:637) mangler `IsNonGameProcessPath`-filteret som forgrundsstien har -> **Taskmgr.exe blev target 02:18:45**; (c) `PollLockedTarget`'s "grace expired" re-scanner ikke reelt (kommentar/kode-uoverensstemmelse, `main.cpp:1094-1112`) -> et levende-ikke-renderende target holdes i det uendelige.
+- **ETW-laek:** FPS-agentens kill-sti rydder stadig ikke ETW-sessionen (RequestStop daekker monitor-agenten, ikke FPS-agenten).
+- **WER LocalDumps er ikke aktiveret** paa maskinen (`HKLM\...\Windows Error Reporting\LocalDumps` findes ikke) — kraever elevation hvis vi vil have crash-dumps af FPS-agenten.
+- Ikke committet/pushet (kraever separat bruger-godkendelse).
+
+## Session findings (2026-09-19, del 2) — VRAM gjort til AUTORITET for spil-detektion (ingen navne-/stilister)
+
+### Bruger-beslutning
+"vi skal ikke bruge nogen filter fordi der findes så mange programmer, vi skal derimod bruge VRAM use for at detekte spil" → bekraeftet med data fra den koerende session. Jeg valgte den bedste loesning: VRAM er nu den primaere klassificering, kernel-present klassificerer aldrig.
+
+### Data der grundlagde reglen (live trace 19-09 02:46-02:53)
+- `cod.exe`: 4,69-5,42 GB (peak 5,42 GB). Under load/alt-tab: 790 MB, 835 MB, 838 MB, **85 MB**.
+- `explorer.exe`: **166 MB** peak (havde vaeret "spil" i ~3,5 t med opdigtet FPS=81 via DxgKrnl-fallback).
+- `Taskmgr.exe`: **12 MB** → blev target 02:47:44-02:48:37 mens COD koerte (5,29 GB, DXGI=11). Aarsag: `TryGetVisibleGamePidFallback` valgte efter vinduesareal/score uden VRAM.
+- `brave`, `Code`: 0 MB. `TextInputHost`: 12 MB.
+- VRAM var maalbar i 9180 af 9457 snapshots (97 %).
+
+### NY REGEL (ét sted: `Helpers/Hardware/GameVramEvidence.cs`)
+```
+SPIL      = peak(VRAM) >= 500 MB            ELLER  app-presents (DXGI/D3D9) >= 2
+IKKE SPIL = peak(VRAM) < 250 MB   OG  ingen app-presents   (maalt, ikke gættet)
+UNKNOWN   = derimellem, eller VRAM ikke maalbar
+```
+- **Peak-hold pr. PID (15 min)** fordi et spil frigiver VRAM under load/alt-tab (COD: 85 MB midt i en transition) — en momentan graense ville droppe spillet. PID-reuse er begraenset af hold-vinduet.
+- **Kernel-present (DXGKRNL) klassificerer ALDRIG.** Det var netop kernel-reglen der lukkede explorer ind. Den bruges fortsat kun til at *beregne* et FPS-tal for et allerede bekræftet target.
+- **Afvisning kraever maalt bevis:** `IsMeasurablyNotGame` returnerer false naar VRAM er ikke-målbar → et target afvises aldrig pga. manglende data (kun hvis maalt lav VRAM + ingen presents).
+- **Ansigt udad:** et target kan derfor vaere "UNKNOWN" (hverken bekræftet eller afvist) og holdes under probe-vinduet i stedet for at faa en 45 s cooldown paa falsk grundlag.
+
+### Fjernede filtre (jf. brugerens princip)
+- `GameProcessClassifier.RequiresPrimaryGraphicsEvidence` (Store-sti-krav) og `MinimumGameVramBytes` (300 MB, nu 500 MB i den nye regel) er FJERNET.
+- `IsNonGameProcessPath` er fjernet fra FPS-klassificeringen: forgrundsstien (gammel linje 617), `IsStickyTargetConfirmed`, `TryAutoRegisterExternalGame` og `HasAnyGameSignal` (helt slettet som doed kode).
+- `NonGameProcessNames`/`IsNonGameProcessPath` bruges nu KUN af `DisplayResolutionService` (opløsningslaas ved spil-start) — ikke af FPS/spil-detektion.
+- Tilbage er kun strukturelle, ikke-navnebaserede guards: self-proces (`IconGrid*`), shell-vindues-klasser (Progman/taskbar — desktoppen er skaermstor), overlay-vindue-stile, og modul-scan (læser processen dxgi/d3d11 ind?) som optimistisk skip. Modul-scannet kaldes nu KUN for kandidater der allerede har spil-lignende VRAM (rækkefølgen er byttet), hvilket samtidig fjerner hang-risikoen ved `CreateToolhelp32Snapshot` på beskyttede processer.
+
+### Implementerede aendringer
+| Fil | Aendring |
+|---|---|
+| **NY** `Helpers/Hardware/GameVramEvidence.cs` (204 linjer) | Den nye regel + peak-hold + `IsMeasurablyNotGame` + `GetPeakBytes` |
+| `GpuProcessMemory.cs` | Permanent `_categoryUnavailable`-latch FJERNET → retry hver 30 s (`UnavailableRetryInterval`) + ny `LastUnavailableReason` (synlig i trace). Foer kunne én transient PDH-fejl slaa VRAM-evidensen fra for resten af processens levetid og dermed lydloest nedgradere detektion til kernel-reglen |
+| `HardwareMonitorAgent.cs` | `HasAcquisitionEvidence` → den nye regel; VRAM-gate + trace-log i `TryGetVisibleGamePidFallback`; afvisning kraever maalt ikke-spil; `Peak=` tilfoejet snapshot-linjen; filtre fjernet (se ovenfor) |
+| `GameProcessClassifier.cs` | To nu-ubrugte medlemmer fjernet (én regel ét sted) |
+| `SystemMonitor.cs` | `IsInGame` foelger nu samme regel (native `GameConfirmed` ELLER VRAM-evidens for target-PID'en) — bevarer eksisterende adfaerd og tllfoejer VRAM-vejen |
+
+### Verifikation
+- `dotnet build IconGrid.csproj` → **0 advarsler / 0 fejl** (2 builds). Deploy hash-verificeret: `IconGrid.dll` `6ED9EA61...` i baade build og `C:\icongrid` (foerste deploy gav "Sharing violation" fordi den elevated agent stadig lukkede ned → koert igen jf. cheatsheet §11).
+- **Live-bevis efter deploy (03:00):**
+```
+Visible window candidate PID=8748 (explorer)   skipped: dedicated VRAM peak 166MB < 250MB and no application-level presents.
+Visible window candidate PID=10144 (TextInputHost) skipped: dedicated VRAM peak 12MB < 250MB and no application-level presents.
+Visible window candidate PID=15896 (Code)      skipped: dedicated VRAM peak 0MB < 250MB and no application-level presents.
+Visible window candidate PID=4816 (brave)      skipped: dedicated VRAM peak 0MB < 250MB and no application-level presents.
+```
+→ Samme fire vinduer som foer blev kandidater; nu afvises de paa deres EGEN maalte VRAM. Taskmgr-scenariet (12 MB mod spillets 5,3 GB) kan ikke gentages.
+
+### Status / naeste
+- Appen koerer fra `C:\icongrid` med den nye regel. **COD-test mangler** (brugeren): forvent `Foreground candidate detected ... Name=cod` og snapshot med `Vram=4,69GB Peak=4,72GB`, samt `Visible window candidate ... skipped` for alt andet.
+- Arkitektur-note opdateret: `HardwareMonitorAgent.cs` er nu **2125 linjer** (graense 1500) — stadig en dokumenteret violation; udtraek af evidens-helperne til `GameTargetEvidence.cs` er fortsat den anbefalede oprydning.
+- Ikke committet/pushet.
+
+
+## Session findings (2026-09-19, del 3) — Klokke i gaming overlayet
+
+### Bruger-ønske
+"i vores gaming overlay lige før vores ping 12MS. kan du ikke vise klokken." → implementeret.
+
+### Ændringer
+- **`Helpers/Launcher/SystemMonitor.cs`**: ny `ClockText`-property (lokal tid) + `UpdateClock()` kaldt fra `FpsTimer_Tick`. Formateres med brugerens EGET Windows-mønster (`CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern`, fx `03:12` i DK / `3:12 AM` i US) — ingen hardcodet format. `PropertyChanged` rejses kun når teksten faktisk ændrer sig, så overlayet ikke invalideres hver 250 ms. Lagt i `SystemMonitor` fordi det er overlayets live-telemetri (ARCHITECTURE_RULES forbyder realtids-polling i `MainViewModel`).
+- **`Views/Launcher/GamingOverlayWindow.xaml`**: klokke-`TextBlock` (genbrug af `MonitorTextStyle` + `MonitorDividerStyle`, `MinWidth="40"`, højrestillet) indsat som FØRSTE element i monitor-rækken, dvs. umiddelbart før ping-prikken og "Ping: 12ms". Ingen ny styling/effekt, ingen nye lokaliseringsnøgler (et klokkeslæt er ikke oversættelig tekst).
+- Layout nu: `[03:08] │ ● Ping: 12ms │ CPU: xx° │ ▮ │ GPU: xx° │ ▮ │ FPS: xx`
+
+### Verifikation
+- `dotnet build IconGrid.csproj` → **0 advarsler / 0 fejl** (XAML/BAML kompileret).
+- Deploy hash-verificeret: `IconGrid.dll` `7D10F355...` i baade build og `C:\icongrid`. Appen genstartet og koerer.
+- Ping vises kun ét sted i XAML (`GamingOverlayWindow.xaml:246`), så der er kun denne række at holde ved lige.
+- **Bruger-verifikation mangler:** se at klokken staar til venstre for ping-prikken i overlayet. Ønskes sekunder, er det ét format-skift i `UpdateClock`.
+
+### Bonus-bekraeftelse fra brugeren
+"det ser ud til at virke super godt, og gaming overlayet starter også hurtigere op i spillet nu." → VRAM-reglen (del 2) bekreaftet i praksis.
+
+
+### Opfoelgning — afstand omkring klokken (bruger-feedback)
+Bruger: "for stor mellemrum i forhold til resten af elementerne".
+- **Aaarsag:** overlayets spaceringsmodel er at divideren `|` (`MonitorDividerStyle`) har `Margin="0,0,12,0"` — dvs. **0 px venstre-margin**. Afstanden FOER en divider kommer derfor udelukkende fra det foregaaende elements hoejre-margin (CPU/GPU-teksterne bruger `Margin="0,0,9,0"`). Mit foerste forsoeg gav klokken `MinWidth="40"` + `TextAlignment="Right"`, hvilket lagde ~7-10 px luft i boksen ud over teksten.
+- **Fix:** fjernet `MinWidth` og `TextAlignment` fra klokke-TextBlock; beholdt `Margin="0,0,9,0"`. Klokken har nu praecis samme rytme som de oevrige elementer: `03:08` + 9 px + `|` + 12 px + ping-prik.
+- Byg 0 fejl, deploy hash-verificeret (`AB68E648...`), app genstartet.
+- Hvis brugeren stadig synes det er for luftigt: naeste skridt er at fjerne divideren efter klokken (=> `03:08 ● Ping: 12ms`).
+
+
+### Retteise 2 — ensartet afstand i HELE monitor-raekken (bruger: "den boer saa have samme mellemrum som resten")
+Brugeren praeciserede at problemet var luften EFTER divideren der foelger "Net: 12ms", altsaa foer `CPU:`.
+
+**Maalt med WPF FormattedText (Segoe UI 12, samme som overlayet):**
+`Ping: 12ms`=57,7 · `CPU: 45°`=45,7 · `CPU: 100°`=52,2 · `GPU: 45°`=46,5 · `03:08`=28,5.
+
+**Aarsag:** `Width="75"` (CPU) og `Width="64"` (GPU) + `TextAlignment="Right"` betoed at teksten blev skubbet til HOEJRE i boksen → **29 px / 17 px tom luft til venstre**, dvs. praecis efter divideren. Tilsvarende gav `MinWidth="70"` paa net-teksten ~12 px luft FOER dens divider.
+
+**Fix (ensartet rytme: 9 px foer hver divider, 12 px efter):**
+| Element | Foer | Efter |
+|---|---|---|
+| Klokke | `MinWidth=40` + Right | `Margin="0,0,9,0"` (hugger teksten) |
+| Net-tekst | `MinWidth="70"` | `Margin="0,0,9,0"` |
+| CPU-tekst | `Width="75"` + Right | `Margin="0,0,9,0"` (ingen fast bredde) |
+| CPU-bar | `Margin="0,0,10,0"` | `Margin="0,0,9,0"` |
+| GPU-tekst | `Width="64"` + Right | `Margin="0,0,9,0"` (ingen fast bredde) |
+| GPU-bar | `Margin="0,0,10,0"` | `Margin="0,0,9,0"` |
+Alle `MonitorDividerStyle`-divider har fortsat `Margin="0,0,12,0"` (0 venstre / 12 hoejre) — uændret, saa rytmen er nu identisk hele vejen. `TextAlignment="Right"` er beholdt (no-op uden fast bredde, saa en fremtidig bredde opfoerer sig som foer).
+
+**Konsekvens:** overlayet bliver ~40 px smallere. Ved 3-cifrede temperaturer (100°) vokser CPU/GPU-teksterne ~6 px (teksten hugger altid, ingen luft) — acceptabelt og ensartet. FPS-gruppen (`Width="54"`, Margin 10) er bevidst UROERT (sidste element, moeder knapperne, ikke en divider).
+
+- Byg 0 fejl · deploy hash-verificeret (`C55F36F7...`) · app genstartet.
+
+
