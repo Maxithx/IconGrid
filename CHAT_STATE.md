@@ -5,7 +5,7 @@
 ## Current date
 September 19, 2026
 
-> **Seneste session:** se nederst — "Session findings (2026-09-19) — FPS-agent: COD-genstart-blindhed + hængende monitor-agent (fixet, deployet)". **ÅBENT:** COD-test mangler (brugeren tester fra `C:\icongrid`).
+> **Seneste session:** se nederst — "Session findings (2026-09-19, del 7) — spil-lukningsstien verificeret". Dagens arbejde er committet + pushet (`75c0b5a`, `b1e8747`, `d8ee3cb`, `9aa7845`). **ÅBENT:** exclusive-fullscreen-test + udtræk af evidens-/vindues-helperne ud af `HardwareMonitorAgent.cs` (~2180 linjer mod 1500-grænsen).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -806,5 +806,27 @@ Ingen `Auto-registered external game: dwm.exe` efter fixet. COD var lukket paa t
 - Byg 0 fejl · deploy hash-verificeret (`A1C2795F...`) · app genstartet · IKKE committet (afventer godkendelse).
 
 **Laere til fremtiden:** VRAM alene er IKKE nok som kandidat-filter — kompositoren (dwm) holder store VRAM-maengder som funktion af skrivebordet, ikke af et spil. Et strukturelt vindues-krav (spil-stoerrelse, gendannet rect) er noedvendigt ved siden af VRAM.
+
+
+## Session findings (2026-09-19, del 7) — spil-lukningsstien verificeret
+
+Bruger lukkede COD; jeg tjekkede hele afslutnings-kaeden (post-conditions):
+
+| Kontrol | Resultat |
+|---|---|
+| Target ryddet | `native-fps-state.json`: `targetPid=0`, `etwRunning=false`, `debug="No running process matched the current launch session."` — ryddet straks da `cod.exe` forsvandt |
+| ETW-session | `logman query -ets \| Select-String IconGrid` = **TOM** → agentens `StopEtwSession()` koerte. Dvs. graceful-stop-fixet (del 4) er nu ogsaa bevist paa den RIGTIGE vej (target doer), ikke kun i den isolerede test |
+| Processer | Kun de 3 normale: launcher + monitor-agent + idle FPS-agent. Ingen orphans |
+| Baggrunds-scan | **Ingen tavse drops**: alle kandidater maales og logges — `AcPowerNotification` 0MB, `AUEPMaster` 0MB, `CrossDeviceResume` 0MB, `ArmouryCrate.UserSessionHelper` 0MB, `svchost` 0MB, `PowerToys.QuickAccess` 35MB, `explorer` 166MB, `SystemSettings` 4MB → alle korrekt afvist. Ingen falsk positiv (hverken dwm, taskmgr, shell eller svchost) |
+| Overlay | Ingen `IsInGame` (`targetPid=0` + `etwRunning=false`) → lukkede korrekt |
+
+**Konklusion:** alle fire fix fra i dag holder ogsaa i afslutningsfasen — VRAM-klassificeringen, agent-livscyklussen, den graceful ETW-stop og baggrunds-/stoerrelsesreglen.
+
+**Dagens commits (alle pushet til origin/main):** `75c0b5a` (Monitor Ping-UI), `b1e8747` (VRAM-klassificering + livscyklus), `d8ee3cb` (graceful FPS-stop + baggrunds-spil), `9aa7845` (dwm/kompositor-regel).
+
+**Naeste session — anbefalet raekkefoelge:**
+1. Test exclusive fullscreen (alt-tab ud af COD i exclusive mode) og bekraeft at den gendannede rect stadig giver target.
+2. Oprydning: udtraek evidens-/vindues-helperne (`HasAcquisitionEvidence`, `IsStickyTargetConfirmed`, `IsCurrentTargetStillOwned`, `HasUsableFrameSignal`, `TryGetWindowSize`) til `Helpers/Hardware/GameTargetEvidence.cs` → bringer `HardwareMonitorAgent.cs` under 2000 linjer og taettere paa 1500-graensen.
+3. Overvej at lade `TrustedLaunch`-flaget (spil startet fra IconGrid) ogsaa omfatte baggrunds-scenariet, saa et spil startet via launcheren aldrig afhaenger af VRAM-maalingen.
 
 
