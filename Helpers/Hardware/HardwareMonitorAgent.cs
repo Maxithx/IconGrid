@@ -67,6 +67,10 @@ public static class HardwareMonitorAgent
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
 
@@ -130,6 +134,28 @@ public static class HardwareMonitorAgent
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    /// <summary>
+    /// Mirrors WINDOWPLACEMENT. NormalPosition is the restored (non-minimized) rect,
+    /// which stays game-sized even while the window is minimized or hidden.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WINDOWPLACEMENT
+    {
+        public int length;
+        public int flags;
+        public int showCmd;
+        public POINT MinPosition;
+        public POINT MaxPosition;
+        public RECT NormalPosition;
     }
 
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -701,6 +727,40 @@ exit:
         }
     }
 
+    /// <summary>
+    /// Best-effort window size for candidate scoring. A minimized or hidden window
+    /// reports an unusable (or iconic 160x28) rect, so the RESTORED placement is
+    /// used as a fallback. That restored size is what separates a real game window
+    /// from a Windows composition helper window: dwm.exe permanently owns a hidden
+    /// 160x28 "DWM Notification Window" whose VRAM (measured: 921 MB on a 2560x1440
+    /// desktop) otherwise reaches the game VRAM floor.
+    /// </summary>
+    private static bool TryGetWindowSize(IntPtr hwnd, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+
+        if (GetWindowRect(hwnd, out var rect))
+        {
+            width = Math.Max(0, rect.Right - rect.Left);
+            height = Math.Max(0, rect.Bottom - rect.Top);
+        }
+
+        if (width >= MinimumGameWindowWidth && height >= MinimumGameWindowHeight)
+        {
+            return true;
+        }
+
+        var placement = new WINDOWPLACEMENT { length = Marshal.SizeOf<WINDOWPLACEMENT>() };
+        if (GetWindowPlacement(hwnd, ref placement))
+        {
+            width = Math.Max(width, Math.Max(0, placement.NormalPosition.Right - placement.NormalPosition.Left));
+            height = Math.Max(height, Math.Max(0, placement.NormalPosition.Bottom - placement.NormalPosition.Top));
+        }
+
+        return width > 0 && height > 0;
+    }
+
     private static int? TryGetVisibleGamePidFallback(Action<string>? log)
     {
         try
@@ -770,18 +830,23 @@ exit:
                         return true;
                     }
 
-                    var startedAtUtc = TryGetProcessStartTimeUtc(process);
-                    long area = 0;
-                    if (GetWindowRect(hwnd, out var rect))
+                    // A background game must still own a GAME-SIZED window. Windows'
+                    // own composition helper window (dwm.exe keeps a hidden 160x28
+                    // "DWM Notification Window") reaches the VRAM floor on a large
+                    // desktop; it was picked as the tracked target and even registered as
+                    // an external game. The restored window size separates the two
+                    // without any process-name list.
+                    if (!TryGetWindowSize(hwnd, out var width, out var height) ||
+                        width < MinimumGameWindowWidth ||
+                        height < MinimumGameWindowHeight)
                     {
-                        var width = Math.Max(0, rect.Right - rect.Left);
-                        var height = Math.Max(0, rect.Bottom - rect.Top);
-                        area = (long)width * height;
+                        log?.Invoke($"Visible window candidate PID={candidatePid} ({processName}) skipped: window {width}x{height} is too small for a game.");
+                        return true;
                     }
 
-                    // Prefer a visible, large window; a background/minimized window of a
-                    // VRAM-confirmed game is still accepted as a candidate.
-                    var score = windowIsUsable ? ScoreVisibleWindowCandidate(area, startedAtUtc, nowUtc) : 1;
+                    var startedAtUtc = TryGetProcessStartTimeUtc(process);
+                    var area = (long)width * height;
+                    var score = ScoreVisibleWindowCandidate(area, startedAtUtc, nowUtc);
                     if (score <= 0)
                     {
                         score = 1;

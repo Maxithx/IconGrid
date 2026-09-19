@@ -777,3 +777,34 @@ Det tidligere noterede aabne punkt "ETW-sessionen laekker hvis FPS-agenten draeb
 - Byg 0 fejl · deploy hash-verificeret (`0556EAD9...`) · IKKE committet (afventer brugerens godkendelse).
 
 
+## Session findings (2026-09-19, del 6) — dwm.exe blev falsk spil (FIXET)
+
+**Fund (i loggen lige efter del 5-fixet):**
+```
+04:12:09  Visible game fallback candidate detected ... PID=25884 Name=dwm Area=4480 Score=1 Age=5106s
+04:12:17  Auto-registered external game: dwm.exe at C:\WINDOWS\system32\dwm.exe
+```
+`dwm.exe` (desktop-kompositoren) holdt **921 MB** dedikeret VRAM paa en 2560x1440-session -> over 500 MB-graensen -> slap igennem den nye "skjult vindue bedoemmes paa VRAM"-sti, blev **tracked target** OG **auto-registreret** i `external-games.json` (vedvarende forurening).
+
+**Maalt paa DWM's vindue:** `vis=False ico=True size=160x28 class=[Dwm] title=[DWM Notification Window]` — dvs. et PERMANENT lille, skjult hjaelpevindue. Et titel-tjek ville IKKE have hjulpet (den har en titel).
+
+**Aarsag:** da jeg fjernede `IsIconic/!IsWindowVisible`-filtrene, forsvandt ogsaa *stoerrelses*-kravet for skjulte vinduer — og DWM's 160x28-vindue kvalificerede derfor alene paa VRAM.
+
+**Fix (strukturel, ingen navneliste):** nyt `TryGetWindowSize()` bruger `GetWindowRect`, og for minimerede/skjulte vinduer falder den tilbage til **`GetWindowPlacement().rcNormalPosition`** (den GENDANNEDE stoerrelse, som forbliver spill-stoerrelse ogsaa naar vinduet er skjult). Fallback'en kraever nu `width >= 960 && height >= 540` for ALLE kandidater:
+- DWM's notification-vindue = 160x28 -> afvises ("window 160x28 is too small for a game") ✓
+- COD skjult = 2560x1440 -> accepteres fortsat ✓ (del 5-fixet er intakt)
+- Nye P/Invoke + structs: `GetWindowPlacement`, `WINDOWPLACEMENT`, `POINT` (ingen dubletter i filen).
+
+**Oprydning:** den falske `dwm.exe`-post blev fjernet fra `%APPDATA%\IconGrid\external-games.json` (registret lastes ved opstart, saa den skulle vaek inden genstart).
+
+**Verifikation:**
+```
+04:16:59.334  Visible window candidate PID=25884 (dwm) skipped: window 160x28 is too small for a game.
+04:17:04.047  Visible window candidate PID=25884 (dwm) skipped: window 160x28 is too small for a game.
+```
+Ingen `Auto-registered external game: dwm.exe` efter fixet. COD var lukket paa testtidspunktet (`cod-processer: 0`), saa intet target = korrekt adfaerd.
+- Byg 0 fejl · deploy hash-verificeret (`A1C2795F...`) · app genstartet · IKKE committet (afventer godkendelse).
+
+**Laere til fremtiden:** VRAM alene er IKKE nok som kandidat-filter — kompositoren (dwm) holder store VRAM-maengder som funktion af skrivebordet, ikke af et spil. Et strukturelt vindues-krav (spil-stoerrelse, gendannet rect) er noedvendigt ved siden af VRAM.
+
+
