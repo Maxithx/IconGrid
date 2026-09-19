@@ -732,3 +732,48 @@ Alle `MonitorDividerStyle`-divider har fortsat `Margin="0,0,12,0"` (0 venstre / 
 - Byg 0 fejl · deploy hash-verificeret (`C55F36F7...`) · app genstartet.
 
 
+## Session findings (2026-09-19, del 4) — ETW-laek FIXET (graceful stop af FPS-worker)
+
+Det tidligere noterede aabne punkt "ETW-sessionen laekker hvis FPS-agenten draebes" er nu loest.
+
+**Aarsag:** `NativeFpsAgentRunner.DisposeProcess()` brugte udelukkende `Process.Kill()`. En draebt proces naar aldrig at koere `StopEtwSession()`, og en ETW real-time session overlever processen -> `IconGridFpsAgent_ETW` blev efterladt "Running" (verificeret flere gange, fx lige efter et deploy).
+
+**Loesning (samme moenster som monitor-agenten fik):**
+- Native `main.cpp`: nyt `--stop-event <navn>`. Agenten aabner eventet (`OpenEventW(SYNCHRONIZE)`) og tjekker det som foerste i hovedloekken -> saetter `stopRequested`, bryder ud, og den normale exit-sti koerer `StopEtwSession()` + skriver en sidste state-fil. Exit-aarsag skelnes nu: `"Exiting: graceful stop requested (ETW session stopped)."` vs `"Exiting: parent gone or runner loop ended (ETW session stopped)."`
+- `NativeFpsAgentRunner.cs`: holder et velkendt event `Local\IconGrid.NativeFpsAgent.Stop` (oprettes i ctor), sender `--stop-event` med, `Reset()` foer hver start, og `DisposeProcess()` goer nu: **signalér -> `WaitForExit(900)` -> kun hvis den ikke stopper: `Kill()` (med trace-linje) -> `Reset()`**. Eventet frigives i `Dispose()`.
+
+**Verifikation (isoleret test, ikke gætværk):** startede agenten manuelt med `--root-pid <explorer> --stop-event Local\IconGrid.FpsAgent.StopTest`, lod den laase target og starte ETW, satte derefter eventet:
+| | Foer stop | Efter stop |
+|---|---|---|
+| Proces | kørte (PID 28208) | **væk** (afsluttede sig selv) |
+| ETW | `IconGridFpsAgent_ETW` **Running** | **ingen session** |
+| State | `etwRunning=true` | `etwRunning=false` + `"Exiting: graceful stop requested (ETW session stopped)."` |
+- Byg: native MSBuild + `dotnet build` = 0 fejl. Deploy hash-verificeret.
+- Restrisiko (dokumenteret): draebes agenten haardt (Task Manager) eller crasher den, kan sessionen stadig efterlades — men naeste agent-start stopper den by-name (`ControlTraceA(0, kSessionName, STOP)` i `StartEtwSession`), og det er nu den eneste vej til en orphan.
+
+
+
+## Session findings (2026-09-19, del 5) — spil i baggrunden blev IKKE fundet (FIXET)
+
+**Bruger-rapport:** "COD har hele tiden koert i baggrund ... da du startede IconGrid, saa startede launcher fint op, men gaming overlayet kom IKKE, selvom COD er open." (+ praecisering: "COD er ikke minimeret, det koerer fullscreen window eller borderless".)
+
+**Aarsag (bevist):** Fallback'en `TryGetVisibleGamePidFallback` havde `if (!IsWindowVisible(hwnd) || IsIconic(hwnd)) return true;` som ALLERFOERSTE filter — og **Windows skjuler vinduet paa et fullscreen-spil naar det mister fokus** (`IsWindowVisible=false`). Spillet blev derfor filtreret vaek foer VRAM-maalingen, helt tavst (ingen log), og `cod.exe` optraadte ikke i kandidatlisten (kun Code, brave, SystemSettings, explorer, TextInputHost, codCrashHandler). Maalt paa COD's vindue: class="COD", rect 0,0 2560x1440, `style=0x15000000`, `exstyle=0x0` — dvs. intet i vinduets stil afviste det; det var udelukkende synligheds-tjekket.
+- Samtidig maalt: COD (skjult) holdt **5094,8 MB dedikeret VRAM** og brugte **9,18 % GPU-engine** → VRAM-evidensen var der hele tiden.
+- Og: en skjult COD **udsender stadig app-presents** (agent-test: `matchedDxgiEventCount=4`, `gameConfirmed=true`, FPS=90-91, `Source=PrimaryApi`) → hele kæden virker, naar blot target bliver valgt.
+
+**Fix i `HardwareMonitorAgent.TryGetVisibleGamePidFallback`:**
+1. Synligheds-tjekket filtrerer ikke laengere: `var windowIsUsable = IsWindowVisible(hwnd) && !IsIconic(hwnd);`. Er vinduet ikke brugbart (skjult/minimeret), springes geometri-tjekket over og kandidaten bedoemmes **udelukkende** paa VRAM-reglen. Synligt+stort vindue foretraekkes stadig (score fra areal/alder), mens et baggrundsvindue faar `score=1` (accepteres kun hvis intet bedre findes).
+2. `GetWindowThreadProcessId` flyttet op, saa PID er kendt i fejlstien.
+3. **Ingen tavse skips laengere:** den tomme `catch {}` logger nu `"Visible window candidate PID=... skipped: <ExceptionType>: <message>"`.
+4. `GetWindowRect`-fejl er ikke laengere et hardt afvisningskriterium (area bliver 0 og kandidaten bedoemmes paa VRAM).
+
+**Verifikation (bruger-test):** IconGrid lukket HELT og genstartet med COD koerende i baggrunden:
+```
+03:37:28.986  Visible game fallback candidate detected behind IconGrid foreground:
+              PID=26204 Name=cod Area=3686400 Score=1 Age=955s
+03:37:35.067  [NativeFpsAgent] FPS=90 ... TargetPid=26204 Target=cod.exe DXGI=4 Source=PrimaryApi
+```
+`Score=1` = den nye skjult-vindue-sti, `Age=955s` = spillet havde koert i ~16 min. Bruger: **"saa kom gaming overlayet frem med det samme perfekt"**. `codCrashHandler` (0 MB VRAM) blev korrekt afvist i samme gennemloeb.
+- Byg 0 fejl · deploy hash-verificeret (`0556EAD9...`) · IKKE committet (afventer brugerens godkendelse).
+
+

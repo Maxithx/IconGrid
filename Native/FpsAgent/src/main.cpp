@@ -107,6 +107,7 @@ namespace
         unsigned long long rootStartFileTimeUtc = 0;
         unsigned long long launchFileTimeUtc = 0;
         bool trustedLaunch = false;
+        std::wstring stopEventName;
     };
 
 #pragma pack(push, 1)
@@ -143,6 +144,11 @@ namespace
     std::atomic<long long> g_lastMatchedEventTicksUtc = 0;
     TRACEHANDLE g_etwSession = 0;
     TRACEHANDLE g_etwTrace = 0;
+
+    // Signaled by the launcher before it replaces or disposes this worker, so the
+    // ETW session is stopped properly on the way out instead of being left
+    // orphaned in the kernel when the process is killed.
+    HANDLE g_stopEvent = nullptr;
     std::thread g_etwThread;
     HANDLE g_sharedMemoryHandle = nullptr;
     SharedFpsState* g_sharedMemoryView = nullptr;
@@ -1565,6 +1571,10 @@ namespace
             {
                 args.trustedLaunch = true;
             }
+            else if (current == L"--stop-event" && index + 1 < argc)
+            {
+                args.stopEventName = argv[++index];
+            }
         }
 
         if (args.statePath.empty())
@@ -1593,6 +1603,11 @@ int wmain(int argc, wchar_t* argv[])
     g_launchFileTimeUtc = parsedArgs->launchFileTimeUtc;
     g_trustedLaunch = parsedArgs->trustedLaunch;
     g_isElevated = IsCurrentProcessElevated();
+    if (!parsedArgs->stopEventName.empty())
+    {
+        // SYNCHRONIZE is enough: this process only waits on the event.
+        g_stopEvent = OpenEventW(SYNCHRONIZE, FALSE, parsedArgs->stopEventName.c_str());
+    }
     {
         std::scoped_lock lock(g_stateMutex);
         g_state.workerStartedAtUtc = GetIsoUtcNow();
@@ -1608,9 +1623,18 @@ int wmain(int argc, wchar_t* argv[])
     std::thread targetThread(PollLockedTarget);
     auto nextEtwRetryAt = std::chrono::steady_clock::now();
     bool reportedWaitingForTarget = false;
+    bool stopRequested = false;
 
     while (g_running.load(std::memory_order_relaxed) && ParentIsAlive(parsedArgs->parentPid))
     {
+        // Graceful stop: honoured before anything else in the loop, so the exit
+        // path below always gets to stop the ETW session.
+        if (g_stopEvent != nullptr && WaitForSingleObject(g_stopEvent, 0) == WAIT_OBJECT_0)
+        {
+            stopRequested = true;
+            break;
+        }
+
         const auto targetPid = g_targetPid.load(std::memory_order_relaxed);
         if (!g_etwRunning.load(std::memory_order_relaxed) && targetPid == 0)
         {
@@ -1654,7 +1678,9 @@ int wmain(int argc, wchar_t* argv[])
     // Diagnostics: leave a trace of WHY the worker stopped so the launcher side
     // can tell a graceful exit apart from a crash or an external kill. A killed
     // or failed process never reaches this line, which is itself the signal.
-    SetDebugMessage(L"Exiting: worker loop finished (parent gone or stop requested).");
+    SetDebugMessage(stopRequested
+        ? L"Exiting: graceful stop requested (ETW session stopped)."
+        : L"Exiting: parent gone or runner loop ended (ETW session stopped).");
     WriteStateFile(parsedArgs->statePath);
     CleanupSharedMemory();
     return 0;

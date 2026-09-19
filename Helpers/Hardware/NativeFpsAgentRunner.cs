@@ -17,6 +17,17 @@ internal sealed class NativeFpsAgentRunner : IDisposable
     private Process? _process;
 
     /// <summary>
+    /// Well-known (per user session) stop request for the native FPS worker. The
+    /// worker stops its ETW session and writes a final state file before exiting,
+    /// so replacing or closing it can no longer leave an orphaned kernel ETW
+    /// session behind (a killed process never runs its cleanup).
+    /// </summary>
+    internal const string StopEventName = @"Local\IconGrid.NativeFpsAgent.Stop";
+
+    private const int GracefulStopWaitMs = 900;
+    private EventWaitHandle? _stopEvent;
+
+    /// <summary>
     /// Foreground PID used for the most recent <see cref="Start"/> call (null when
     /// the agent was started from a configured launch target). A watchdog restart
     /// reuses it so a trusted config-target launch keeps its
@@ -28,6 +39,17 @@ internal sealed class NativeFpsAgentRunner : IDisposable
     {
         _statePath = statePath;
         _log = log;
+
+        try
+        {
+            _stopEvent = new EventWaitHandle(false, EventResetMode.ManualReset, StopEventName);
+        }
+        catch (Exception ex)
+        {
+            // Without the event the worker can only be killed; ETW cleanup then
+            // relies on the next worker start, so log it.
+            Trace($"Failed to create the native FPS agent stop event: {ex.Message}");
+        }
     }
 
     public bool IsAvailable => !string.IsNullOrWhiteSpace(TryResolveExecutablePath());
@@ -45,7 +67,7 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_statePath)!);
 
-            var arguments = $"--state-path \"{_statePath}\"";
+            var arguments = $"--state-path \"{_statePath}\" --stop-event \"{StopEventName}\"";
             if (parentPid.HasValue && parentPid.Value > 0)
             {
                 arguments += $" --parent-pid {parentPid.Value}";
@@ -80,6 +102,10 @@ internal sealed class NativeFpsAgentRunner : IDisposable
                 // No target at all; native agent will run without following any process.
                 Trace("No FPS target configured and no foreground game detected.");
             }
+
+            // A stop request left over from a previous worker must not terminate the
+            // worker we are about to start.
+            ResetStopRequest();
 
             _process = new Process
             {
@@ -260,6 +286,17 @@ internal sealed class NativeFpsAgentRunner : IDisposable
     public void Dispose()
     {
         DisposeProcess();
+
+        try
+        {
+            _stopEvent?.Dispose();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _stopEvent = null;
     }
 
     private string? TryResolveExecutablePath()
@@ -354,8 +391,19 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         {
             if (!_process.HasExited)
             {
-                _process.Kill(entireProcessTree: true);
-                _process.WaitForExit(1000);
+                // Ask the worker to stop its ETW session and exit cleanly first;
+                // only kill it when it does not honour the request in time.
+                if (RequestGracefulStop())
+                {
+                    _process.WaitForExit(GracefulStopWaitMs);
+                }
+
+                if (!_process.HasExited)
+                {
+                    Trace("Native FPS agent did not stop within the grace period; killing it.");
+                    _process.Kill(entireProcessTree: true);
+                    _process.WaitForExit(1000);
+                }
             }
         }
         catch
@@ -365,6 +413,38 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         {
             _process.Dispose();
             _process = null;
+            ResetStopRequest();
+        }
+    }
+
+    private bool RequestGracefulStop()
+    {
+        try
+        {
+            if (_stopEvent == null)
+            {
+                return false;
+            }
+
+            _stopEvent.Set();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Trace($"Failed to request a graceful native FPS agent stop: {ex.Message}");
+            return false;
+        }
+    }
+
+    private void ResetStopRequest()
+    {
+        try
+        {
+            _stopEvent?.Reset();
+        }
+        catch
+        {
+            // ignore
         }
     }
 }

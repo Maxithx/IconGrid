@@ -710,18 +710,26 @@ exit:
 
             EnumWindows((hwnd, _) =>
             {
+                var candidatePid = 0u;
                 try
                 {
-                    if (hwnd == IntPtr.Zero || !IsWindowVisible(hwnd) || IsIconic(hwnd))
+                    if (hwnd == IntPtr.Zero)
                     {
                         return true;
                     }
 
-                    GetWindowThreadProcessId(hwnd, out var candidatePid);
+                    GetWindowThreadProcessId(hwnd, out candidatePid);
                     if (candidatePid == 0)
                     {
                         return true;
                     }
+
+                    // A game that runs in the background (hidden or minimized) is still
+                    // a running game. Its window rect is unusable then, so such a window
+                    // is judged purely by the VRAM evidence below instead of being
+                    // dropped - otherwise a borderless/background game stayed invisible
+                    // to detection until it was brought to the foreground.
+                    var windowIsUsable = IsWindowVisible(hwnd) && !IsIconic(hwnd);
 
                     using var process = Process.GetProcessById((int)candidatePid);
                     var processName = process.ProcessName;
@@ -738,7 +746,7 @@ exit:
                         return true;
                     }
 
-                    if (!IsLikelyGameForegroundWindow(hwnd, processName, log: null))
+                    if (windowIsUsable && !IsLikelyGameForegroundWindow(hwnd, processName, log: null))
                     {
                         return true;
                     }
@@ -762,19 +770,21 @@ exit:
                         return true;
                     }
 
-                    if (!GetWindowRect(hwnd, out var rect))
+                    var startedAtUtc = TryGetProcessStartTimeUtc(process);
+                    long area = 0;
+                    if (GetWindowRect(hwnd, out var rect))
                     {
-                        return true;
+                        var width = Math.Max(0, rect.Right - rect.Left);
+                        var height = Math.Max(0, rect.Bottom - rect.Top);
+                        area = (long)width * height;
                     }
 
-                    var width = Math.Max(0, rect.Right - rect.Left);
-                    var height = Math.Max(0, rect.Bottom - rect.Top);
-                    var area = (long)width * height;
-                    var startedAtUtc = TryGetProcessStartTimeUtc(process);
-                    var score = ScoreVisibleWindowCandidate(area, startedAtUtc, nowUtc);
+                    // Prefer a visible, large window; a background/minimized window of a
+                    // VRAM-confirmed game is still accepted as a candidate.
+                    var score = windowIsUsable ? ScoreVisibleWindowCandidate(area, startedAtUtc, nowUtc) : 1;
                     if (score <= 0)
                     {
-                        return true;
+                        score = 1;
                     }
 
                     var candidate = new VisibleWindowCandidate((int)candidatePid, processName, area, startedAtUtc, score);
@@ -794,8 +804,12 @@ exit:
 
                     bestCandidate = candidate;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // Never drop a window candidate silently: a game protected by
+                    // anti-cheat, or any other query failure, must be visible in the
+                    // trace instead of silently disabling game detection.
+                    log?.Invoke($"Visible window candidate PID={candidatePid} skipped: {ex.GetType().Name}: {ex.Message}");
                 }
 
                 return true;
