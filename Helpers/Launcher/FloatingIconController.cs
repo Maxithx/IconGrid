@@ -52,7 +52,7 @@ namespace IconGrid.Helpers
 
         public void PositionFloatingIcon(Window window, MainViewModel viewModel, bool preferSaved = true)
         {
-            var area = SystemParameters.WorkArea;
+            var area = WindowWorkAreaHelper.GetWorkAreaDip(window);
             double left = area.Right - FloatingIconSize - FloatingIconMargin;
             double top = area.Bottom - FloatingIconSize - FloatingIconMargin;
 
@@ -62,14 +62,15 @@ namespace IconGrid.Helpers
                 top = savedTop;
             }
 
-            (left, top) = ClampToWorkArea(left, top, FloatingIconSize, FloatingIconSize);
+            (left, top) = WindowWorkAreaHelper.Clamp(left, top, FloatingIconSize, FloatingIconSize, area);
             window.Left = left;
             window.Top = top;
         }
 
         public void ClampFloatingIconToWorkArea(Window window)
         {
-            var (left, top) = ClampToWorkArea(window.Left, window.Top, FloatingIconSize, FloatingIconSize);
+            var area = WindowWorkAreaHelper.GetWorkAreaDip(window);
+            var (left, top) = WindowWorkAreaHelper.Clamp(window.Left, window.Top, FloatingIconSize, FloatingIconSize, area);
             window.Left = left;
             window.Top = top;
         }
@@ -142,23 +143,5 @@ namespace IconGrid.Helpers
             }
         }
 
-        private static (double left, double top) ClampToWorkArea(double left, double top, double width, double height)
-        {
-            var area = SystemParameters.WorkArea;
-
-            var newLeft = left;
-            var newTop = top;
-
-            if (newLeft + width > area.Right)
-                newLeft = area.Right - width;
-            if (newTop + height > area.Bottom)
-                newTop = area.Bottom - height;
-            if (newLeft < area.Left)
-                newLeft = area.Left;
-            if (newTop < area.Top)
-                newTop = area.Top;
-
-            return (newLeft, newTop);
-        }
     }
 }

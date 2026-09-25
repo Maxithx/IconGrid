@@ -166,7 +166,7 @@ namespace IconGrid.Helpers
                 return;
             }
 
-            var area = SystemParameters.WorkArea;
+            var area = WindowWorkAreaHelper.GetWorkAreaDip(_window);
             var width = _viewModel.WindowDesiredWidth;
             var height = _viewModel.WindowDesiredHeight;
             const double defaultTopOffset = 20;
@@ -183,7 +183,8 @@ namespace IconGrid.Helpers
         {
             var width = double.IsNaN(_window.ActualWidth) || _window.ActualWidth <= 0 ? _window.Width : _window.ActualWidth;
             var height = double.IsNaN(_window.ActualHeight) || _window.ActualHeight <= 0 ? _window.Height : _window.ActualHeight;
-            var (left, top) = ClampToWorkArea(_window.Left, _window.Top, width, height);
+            var area = WindowWorkAreaHelper.GetWorkAreaDip(_window);
+            var (left, top) = WindowWorkAreaHelper.Clamp(_window.Left, _window.Top, width, height, area);
             _window.Left = left;
             _window.Top = top;
         }
@@ -191,25 +192,6 @@ namespace IconGrid.Helpers
         public void ClampFloatingIconToWorkArea()
         {
             _floatingIconController.ClampFloatingIconToWorkArea(_window);
-        }
-
-        public static (double left, double top) ClampToWorkArea(double left, double top, double width, double height)
-        {
-            var area = SystemParameters.WorkArea;
-
-            var newLeft = left;
-            var newTop = top;
-
-            if (newLeft + width > area.Right)
-                newLeft = area.Right - width;
-            if (newTop + height > area.Bottom)
-                newTop = area.Bottom - height;
-            if (newLeft < area.Left)
-                newLeft = area.Left;
-            if (newTop < area.Top)
-                newTop = area.Top;
-
-            return (newLeft, newTop);
         }
 
         // ---- Idle hide (manual / auto, no game running) ----
