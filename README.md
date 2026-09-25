@@ -372,3 +372,13 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
 
 Current version: `0.7.0-beta.1`
+
+---
+
+## License
+
+IconGrid is released under the [MIT License](LICENSE).
+
+Third-party components bundled with or referenced by IconGrid (including
+LibreHardwareMonitorLib, HidSharp, Newtonsoft.Json, and Intel PresentMon) remain under
+their own licenses — see [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) for the full list.
