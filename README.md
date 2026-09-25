@@ -377,7 +377,12 @@ Current version: `0.7.0-beta.1`
 
 ## License
 
-IconGrid is released under the [MIT License](LICENSE).
+Copyright (c) 2026 Maxithx. All rights reserved.
+
+IconGrid is **source-available, not open source**. It is licensed under the
+[PolyForm Strict License 1.0.0](LICENSE): you are free to **use** it for any noncommercial
+purpose, but the license does **not** permit changing it, distributing it, sublicensing it,
+or selling it. Commercial use requires a separate license — contact the author.
 
 Third-party components bundled with or referenced by IconGrid (including
 LibreHardwareMonitorLib, HidSharp, Newtonsoft.Json, and Intel PresentMon) remain under
