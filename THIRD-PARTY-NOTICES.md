@@ -1,10 +1,10 @@
 # Third-party notices
 
-IconGrid itself is licensed under the PolyForm Strict License 1.0.0 (see `LICENSE`) — it is
-source-available and free to use for noncommercial purposes, but it may not be changed,
-distributed, sublicensed, or sold. The third-party components below are licensed more
-permissively by their respective owners. All third-party components remain under their own
-licenses, and the notices here are provided to satisfy their attribution requirements.
+IconGrid itself is licensed under the PolyForm Noncommercial License 1.0.0 (see `LICENSE`) —
+it is source-available and free to use, modify and share for noncommercial purposes, but
+commercial use and selling are not permitted. The third-party components below remain under
+the licenses of their respective owners, and the notices here are provided to satisfy their
+attribution requirements.
 
 ## NuGet packages (direct)
 

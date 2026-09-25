@@ -379,10 +379,14 @@ Current version: `0.7.0-beta.1`
 
 Copyright (c) 2026 Maxithx. All rights reserved.
 
+Required Notice: Copyright (c) 2026 Maxithx (https://github.com/Maxithx/IconGrid)
+
 IconGrid is **source-available, not open source**. It is licensed under the
-[PolyForm Strict License 1.0.0](LICENSE): you are free to **use** it for any noncommercial
-purpose, but the license does **not** permit changing it, distributing it, sublicensing it,
-or selling it. Commercial use requires a separate license — contact the author.
+[PolyForm Noncommercial License 1.0.0](LICENSE): you may **use, modify and share** it freely
+for any **noncommercial** purpose — personal use, hobby projects, study, charitable and
+educational use, public research, or government institutions — as long as you pass on the
+license terms and the Required Notice line above. **Selling it, or any commercial use, is
+not permitted** — that requires a separate license from the author.
 
 Third-party components bundled with or referenced by IconGrid (including
 LibreHardwareMonitorLib, HidSharp, Newtonsoft.Json, and Intel PresentMon) remain under
