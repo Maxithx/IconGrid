@@ -869,3 +869,85 @@ Bruger lukkede COD; jeg tjekkede hele afslutnings-kaeden (post-conditions):
 
 **Bonus-fund (deploy):** `deploy-test.cmd` fejlede gentagne gange med "Sharing violation" fordi den koerende monitor-agent var startet af **Task Scheduler** (`parentPid: 0` i state) og derfor holder DLL'erne i op til 60 s (min nye "ingen launcher"-regel), og `taskkill` kan ikke draebe en elevated agent. Scriptet signalerer nu **request-stop-eventet** foerst (`Local\IconGrid.HardwareMonitorAgent.RequestStop`) + 3 s ventetid -> deploy lykkedes paa foerste forsoeg. Linjen er verificeret inde i cmd (`exit=0`).
 
+
+## Session findings (2026-10-17) — FASE 0: evidens-telemetri (implementeret + deployet)
+
+**Bruger-rapport:** lokale AI-projekter (LM Studio, Grounded-SAM/SAM+DINO) trigger gaming overlay; overlay skal kun komme ved spil. Brugeren afviste fullscreen/monitor-dækning som gate (overlay kræver borderless) og afviste allowlist/blocklist.
+
+**BEVIS (trace.log 17-10-2026):**
+```
+18:20:23  Foreground candidate detected: PID=22084 Name=WindowsTerminal
+18:20:23  Foreground game PID changed from null to 22084. Restarting native FPS agent.
+          Target=WindowsTerminal.exe DXGI=2 D3D9=0 DXGKRNL=2 FPS=51
+          Snapshot: FPS=51 Source=NativeFpsAgent Vram=43MB Peak=43MB
+18:45-18:50  samme med PID=7308, DXGI=2, FPS=156/90/66, holdt i minutter
+```
+ROOT CAUSE:
+- `Native/FpsAgent/src/main.cpp:47` `kRollingFpsWindowSeconds = 0.050` => "DXGI>=2" betyder 2 presents i 50 ms (enhver UI-redraw).
+- `main.cpp:1276-1282` saetter `g_lastPrimaryEvidenceTicksUtc` paa `dxgiCount>=2`; `WriteSharedFpsState` (351-393) publicerer `targetPid`/`gameConfirmed` i 5 s.
+- `GameVramEvidence.Evaluate` (79-85) returnerer Game paa app-presents FOER VRAM maales; (98-102) VRAM-peak >= 500 MB er ogsaa Game alene.
+- `SystemMonitor.FpsTimer_Tick` (779-784) => IsInGame => `MainViewModel` GameLaunched => overlay auto-show.
+- Historisk samme fejlklasse: se del 8 ovenfor (`pythonw` laast som target i 5 timer).
+
+**BESLUTTET MODEL (ikke implementeret endnu):** ingen lister, ingen fullscreen-gate. Klassifikation = adfaerd:
+3D-engine vs Compute-engine (spil bruger 3D; CUDA/DirectML bruger Compute), sustained present-kadence (>= 20 fps i >= 2-3 s, ikke 2 events/50 ms), input-uafhaengighed (GetLastInputInfo), VRAM kun som tier/korroborering. `Unknown` => ingen auto-show. Hysterese paa acquire/hold/release.
+
+**FASE 0 IMPLEMENTERET (kun additiv telemetri — klassifikationen er UENDRET):**
+- NY `Helpers/Hardware/GpuEngineActivity.cs` — per-PID 3D/Compute/Copy/VideoDecode/VideoEncode/Other via PDH `GPU Engine`, med cache + retry.
+- NY `Helpers/Hardware/SystemInputIdle.cs` — sekunder siden sidste input (wrap-sikker 32-bit beregning).
+- NY `Helpers/Hardware/GameEvidenceProbe.cs` — én trace-linje pr. kandidat: vram/peak/p95, engine-fordeling + shares, presentFps/dxgi/d3d9/dxgkrnl (kun for target), idle, stoerste vindue + monitor-daekning. Plus throttlet top-VRAM-scan hvert 10 s.
+- `GpuProcessMemory.cs` — ny `GetTopDedicatedUsage(limit)` + pid-parsing af instansnavne.
+- `GameVramEvidence.cs` — p95 over seneste 20 VRAM-samples (`GetRecentPercentileBytes`) + `RecordSample` til telemetri. Peak-hold (15 min) uaendret.
+- `HardwareMonitorAgent.cs` — hooks: `GameEvidenceProbe[foreground]`, `[visible]` (Game-verdict eller peak >= 250 MB), `[topvram]` hvert 10 s, samt `3D/Compute/Idle/VramP95` paa `Snapshot:`-linjen.
+
+**BUILD + DEPLOY:** 0 fejl. `C:\icongrid\IconGrid.dll` = 1.241.600 bytes, 17-10-2026 19:20:17 (matcher build).
+
+**FOERSTE KALIBRERINGSFUND (19:20-19:21, 30 s koersel):**
+```
+GameEvidenceProbe[visible] pid=1796 name=dwm vram=2,58GB peak=2,58GB p95=2,58GB 3D=0,0% Compute=0,0% engines=27 presentFps=-- idle=1,0s win=--
+GameEvidenceProbe[visible] pid=25192 name=Discord vram=1,16GB peak=1,16GB p95=1,16GB 3D=9,1% VideoEnc=37,8% engines=14 presentFps=-- idle=1,1s win=--
+```
+=> VRAM-only-reglen klassificerer baade `dwm` (2,58 GB) og `Discord` (1,16 GB) som spil. Det bekreafter at VRAM skal vaere tier/korroborering, ikke gate. Ingen target blev laast og intet overlay blev vist under testen.
+
+**NAESTE (bruger-test):** koer COD, POE, LM Studio, Grounded-SAM og en browser; sammenlign `GameEvidenceProbe`-linjerne (3D vs Compute, kadence, idle, VRAM) og fastsaet taerskler. Derefter fase 1: sustained kadence + compute-veto i `GameVramEvidence`/`SystemMonitor` + release af sticky target i `PollLockedTarget`.
+
+**BEMAERK:** en elevated `IconGrid.exe` (PID 14548) og `IconGridFpsAgent.exe` (PID 17008) koerte videre efter testen og kunne ikke stoppes fra ikke-elevated shell ("Adgang naegtet") — luk via Task Manager hvis noedvendigt. Ikke committet/pushet (kraever separat godkendelse).
+
+
+## Session findings (2026-10-17, del 2) — launcher forblev i hide mode efter POE-lukning (FIXET)
+
+**Bruger-rapport:** efter POE 1-lukning kom main-launcheren 2 gange ikke ud af hide mode; efter COD + POE igen virkede det.
+
+**BEVIS (trace.log 19:24-19:27):**
+```
+19:24:17  Sticky-target: no game foreground detected. Holding current game PID 9364
+19:24:19  (POE starter) [SlideAnim] from=0,0 to=-204,8   <- launcher hides
+19:24:23  [NativeFpsAgent] TargetPid=9364 Target=explorer.exe DXGI=0 DXGKRNL=1
+19:24:28  Configured FPS target changed ... RootPid=21564 CurrentForegroundPid=9364 NativeTargetPid=9364
+19:24:28  NativeFPSAgentRunner ... ForegroundGamePid=9364 ... RootPid=21564
+19:25:21  [DisplayResolutionService] Game session confirmed running and exited; restoring resolution.
+19:25:25..19:25:43  Sticky-target: ... Holding current game PID 9364 (explorer)  <- INGEN GameExited
+```
+
+**ROOT CAUSE (to fejl der forstærker hinanden):**
+1. `NativeFpsAgentRunner.Start` giver `--root-pid` prioritet og springer derefter config-target + `--trusted-launch` over (linje 83-99). Når POE blev startet fra IconGrid, sendte `TryUpdateForegroundGameTarget` det STALE native target (explorer.exe, PID 9364) som `foregroundGamePid` -> agenten fulgte skrivebordet i stedet for POE. Derfor `Target=explorer.exe` mens POE kørte.
+2. Explorer udsender lejlighedsvise DXGI/DxgKrnl presents -> `gameConfirmed` blev (gen)bekræftet -> `IsInGame` forblev true -> `GameExited` fyrede aldrig -> launcher blev i hide mode. Samtidig genstartede agenten hvert ~10 s fordi den aldrig "ejede" config-targetet.
+
+**FIX (målrettet, lille):**
+- `HardwareMonitorAgent.TryUpdateForegroundGameTarget`: i config-first-grenen sendes et eksternt foreground-PID nu KUN videre når config-targetet ikke længere er i live (`IsConfiguredTargetAlive`). Er spillet IconGrid startede stadig i live, genstartes agenten med config-target + `--trusted-launch` (og `currentForegroundGamePid` ryddes), så spilllet følges korrekt og eksisterende mål frigives ved spil-luk.
+- Diagnostik til næste test: `MainWindow.OnGameLaunched/OnGameExited` logger nu `[GameFlow] GameLaunched: ...` / `[GameFlow] GameExited: autoCloseOverlay=.. gameHideActive=.. hidden=..`, og `LauncherWindowModeController.IsGameHideActive` er eksponeret.
+
+**BUILD + DEPLOY:** 0 fejl. `C:\icongrid\IconGrid.dll` = 1.242.112 bytes, 17-10-2026 19:33:24 (matcher build; første deploy-forsøg kopierede ikke pga. låst DLL — andet forsøg OK).
+
+**NÆSTE TEST:** start IconGrid -> start POE fra IconGrid -> luk POE. Forvent i trace:
+```
+Target=PathOfExile.exe (IKKE explorer.exe)
+[GameFlow] GameExited: autoCloseOverlay=.. gameHideActive=True hidden=True
+[SlideVisible] restoreTopDip=...
+```
+Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-klassifikation) og ikke denne sti.
+
+**BEMÆRK:** Den dybere årsag — at DXGI-present alene klassificerer explorer/dwm/Discord som spil — er stadig aaben og adresseres i fase 1 (3D vs Compute + sustained kadence + input-uafhængighed). Fase 0-telemetrien kører uændret.
+
+**NY BUILD + DEPLOY (2026-10-17 19:37:31):** `dotnet build -t:Rebuild` (0 fejl) → `C:\icongrid\IconGrid.dll` = 1.242.112 bytes, 19:37:31 (matcher build). De første deploy-forsøg kopierede ikke (xcopy fejlede tavst mens DLL'en var kortvarigt låst), så timestamp blev verificeret og bragt på plads med `Copy-Item -Force` + endnu en `deploy-test.cmd`. Dokumenteret i `.local-state/regex-commands-cheatsheet.md` afsnit 16.
+

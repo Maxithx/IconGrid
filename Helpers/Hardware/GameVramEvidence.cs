@@ -58,6 +58,16 @@ internal static class GameVramEvidence
     private static readonly object Gate = new();
     private static readonly Dictionary<int, PidPeak> Peaks = new();
 
+    /// <summary>
+    /// Rolling observation window per PID (most recent dedicated-VRAM readings).
+    /// Phase 0 telemetry uses the 95th percentile of this window instead of the
+    /// all-time peak: the peak is easily inflated by a single transient
+    /// allocation, while a game holds its VRAM level for the whole session.
+    /// </summary>
+    private const int RecentSampleCapacity = 20;
+
+    private static readonly Dictionary<int, Queue<long>> RecentBytes = new();
+
 
     /// <summary>
     /// Classifies a PID. <paramref name="nativeState"/> may be null (for a
@@ -145,6 +155,50 @@ internal static class GameVramEvidence
         }
     }
 
+    /// <summary>
+    /// 95th percentile of the most recent dedicated-VRAM readings for a PID, or
+    /// null when fewer than two readings exist. Telemetry only (phase 0).
+    /// </summary>
+    public static long? GetRecentPercentileBytes(int pid, DateTime nowUtc, double percentile = 0.95)
+    {
+        if (pid <= 0)
+        {
+            return null;
+        }
+
+        lock (Gate)
+        {
+            Prune(nowUtc);
+            if (!RecentBytes.TryGetValue(pid, out var samples) || samples.Count < 2)
+            {
+                return null;
+            }
+
+            var ordered = new long[samples.Count];
+            samples.CopyTo(ordered, 0);
+            Array.Sort(ordered);
+
+            var clamped = Math.Clamp(percentile, 0.0, 1.0);
+            var index = (int)Math.Round((ordered.Length - 1) * clamped);
+            return ordered[index];
+        }
+    }
+
+    /// <summary>
+    /// Records one dedicated-VRAM reading for telemetry and peak tracking. Called
+    /// by the evidence probe for candidates that are not evaluated by the
+    /// classifier (e.g. GPU compute processes with no window).
+    /// </summary>
+    public static void RecordSample(int pid, long? bytes, DateTime nowUtc)
+    {
+        if (pid <= 0)
+        {
+            return;
+        }
+
+        ObservePeak(pid, bytes, nowUtc);
+    }
+
     private static long? ObservePeak(int pid, long? bytes, DateTime nowUtc)
     {
         lock (Gate)
@@ -167,10 +221,23 @@ internal static class GameVramEvidence
                 }
 
                 peak.BytesObservedAtUtc = nowUtc;
+
+                if (!RecentBytes.TryGetValue(pid, out var samples))
+                {
+                    samples = new Queue<long>(RecentSampleCapacity);
+                    RecentBytes[pid] = samples;
+                }
+
+                samples.Enqueue(bytes.Value);
+                while (samples.Count > RecentSampleCapacity)
+                {
+                    samples.Dequeue();
+                }
             }
             else if (peak.Bytes.HasValue && nowUtc - peak.BytesObservedAtUtc > PeakHold)
             {
                 peak.Bytes = null;
+                RecentBytes.Remove(pid);
             }
 
             return peak.Bytes;
@@ -192,6 +259,7 @@ internal static class GameVramEvidence
         foreach (var pid in stale)
         {
             Peaks.Remove(pid);
+            RecentBytes.Remove(pid);
         }
     }
 

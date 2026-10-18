@@ -891,6 +891,7 @@ namespace IconGrid.Views.Launcher
 
         private void OnGameLaunched()
         {
+            LogTrace($"[GameFlow] GameLaunched: launcherBehavior={_viewModel.GameLauncherAutoBehavior} autoShowOverlay={_viewModel.AutoShowGamingOverlayOnGameStart}");
             // Apply the configured launcher behavior: 0=None, 1=AutoHide, 2=MinimizeToTaskbar.
             _windowModeController?.HideForGame(_viewModel.GameLauncherAutoBehavior);
 
@@ -903,6 +904,7 @@ namespace IconGrid.Views.Launcher
 
         private void OnGameExited()
         {
+            LogTrace($"[GameFlow] GameExited: autoCloseOverlay={_viewModel.AutoCloseGamingOverlayOnGameEnd} gameHideActive={_windowModeController?.IsGameHideActive} hidden={_windowModeController?.IsHidden}");
             // Optionally close the gaming overlay when the game exits.
             if (_viewModel.AutoCloseGamingOverlayOnGameEnd)
             {

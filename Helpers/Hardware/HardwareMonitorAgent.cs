@@ -379,6 +379,12 @@ public static class HardwareMonitorAgent
                         log);
                 }
 
+                // Phase-0 telemetry: log the processes that hold the most dedicated
+                // VRAM, even when they have no game-sized window. This is how GPU
+                // compute workloads (LLM runtimes, PyTorch/SAM/DINO) become visible
+                // in the trace so the classifier can be calibrated against real data.
+                GameEvidenceProbe.MaybeLogTopVramProcesses(log, DateTime.UtcNow);
+
                 // Full hardware snapshot (every 500ms)
                 var snapshot = collector.Capture();
                 var nativeFpsStatus = nativeState?.FpsStatus;
@@ -484,7 +490,20 @@ public static class HardwareMonitorAgent
                     }
                 }
 
-                log?.Invoke($"Snapshot: FPS={snapshot.FpsStatus} GPU={snapshot.GpuUsagePercent:F1}% Source={snapshot.FpsSource} {targetVramText}");
+                // Phase-0 telemetry: engine distribution and input-idle for the
+                // tracked target, so a terminal/Electron target is distinguishable
+                // from a running game in the trace itself.
+                var targetEvidenceText = nativeState?.TargetPid > 0
+                    ? GameEvidenceProbe.BuildCompact(nativeState.TargetPid, nativeState, DateTime.UtcNow)
+                    : string.Empty;
+
+                var snapshotLine = $"Snapshot: FPS={snapshot.FpsStatus} GPU={snapshot.GpuUsagePercent:F1}% Source={snapshot.FpsSource} {targetVramText}";
+                if (!string.IsNullOrEmpty(targetEvidenceText))
+                {
+                    snapshotLine += $" {targetEvidenceText}";
+                }
+
+                log?.Invoke(snapshotLine);
 
                 // Write FPS-state at 20ms intervals for the next 500ms
                 for (int i = 0; i < SnapshotIntervalMs / FpsStateIntervalMs; i++)
@@ -670,6 +689,7 @@ exit:
                 }
 
                 log?.Invoke($"Foreground candidate detected: PID={(int)pid} Name={processName}");
+                GameEvidenceProbe.LogCandidate("foreground", (int)pid, nativeState: null, log);
             }
             catch
             {
@@ -818,6 +838,18 @@ exit:
                     // game — which is exactly what happened on 2026-09-19, when
                     // Task Manager (12 MB VRAM) replaced Call of Duty (5.3 GB).
                     var candidateVerdict = GameVramEvidence.Evaluate((int)candidatePid, null, nowUtc, out var candidateDetail);
+
+                    // Phase-0 telemetry: capture a full evidence fingerprint for every
+                    // candidate that already shows game-like VRAM, plus every candidate
+                    // the current rule would accept. The trace then shows why the
+                    // verdict was reached, including engine distribution and idle state.
+                    var candidatePeak = GameVramEvidence.GetPeakBytes((int)candidatePid, nowUtc) ?? 0;
+                    if (candidateVerdict == GameEvidenceVerdict.Game ||
+                        candidatePeak >= GameVramEvidence.NotGameBytes)
+                    {
+                        GameEvidenceProbe.LogCandidate("visible", (int)candidatePid, nativeState: null, log, nowUtc);
+                    }
+
                     if (candidateVerdict != GameEvidenceVerdict.Game)
                     {
                         log?.Invoke($"Visible window candidate PID={candidatePid} ({processName}) skipped: {candidateDetail}.");
@@ -1205,7 +1237,20 @@ exit:
             // When the native agent has locked onto a DIFFERENT process than the
             // stale config target (e.g. the user started COD externally), pass
             // that PID as the foreground game so the agent locks onto it for FPS.
-            var externalForegroundPid = nativeState?.TargetPid > 0 ? nativeState.TargetPid : (int?)null;
+            //
+            // BUT never do that while the config target (the game IconGrid just
+            // launched) is still alive. NativeFpsAgentRunner gives --root-pid
+            // priority and then OMITS the config target and --trusted-launch, so a
+            // stale target such as explorer.exe made the agent follow the desktop
+            // instead of the launched game. Explorer's DXGI presents then kept
+            // IsInGame alive, so GameExited never fired and the launcher stayed in
+            // hide mode after the game closed (trace 2026-10-17 19:24-19:25:
+            // Target=explorer.exe while Path of Exile was running).
+            int? externalForegroundPid = null;
+            if (!IsConfiguredTargetAlive(configTarget))
+            {
+                externalForegroundPid = nativeState?.TargetPid > 0 ? nativeState.TargetPid : null;
+            }
 
             log?.Invoke($"Configured FPS target changed or does not own the native agent. Restarting in config-first mode. TargetExe={configTarget?.ExecutableName ?? "null"} TargetPath={configTarget?.ResolvedExecutablePath ?? "null"} RootPid={configTarget?.RootProcessId?.ToString() ?? "null"} RootStartFileTime={configTarget?.RootProcessStartFileTimeUtc?.ToString() ?? "null"} CurrentForegroundPid={currentForegroundGamePid?.ToString() ?? "null"} NativeTargetPid={nativeState?.TargetPid.ToString() ?? "null"} ExternalForegroundPid={externalForegroundPid?.ToString() ?? "null"}");
             activeFpsTargetSignature = configTargetSignature;

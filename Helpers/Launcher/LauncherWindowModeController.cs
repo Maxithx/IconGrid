@@ -99,6 +99,12 @@ namespace IconGrid.Helpers
 
         public bool IsHidden => _isHidden;
         public bool IsManuallyHidden => _isManuallyHidden;
+
+        /// <summary>
+        /// True while the launcher is hidden because a game is running. Exposed for
+        /// diagnostics so the trace can show why a restore did or did not run.
+        /// </summary>
+        public bool IsGameHideActive => _isGameHideActive;
         public bool IsIdleHideActive { get; private set; }
 
         public void EnterFullMode()

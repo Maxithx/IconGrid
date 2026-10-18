@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 
 namespace IconGrid.Helpers.Hardware;
@@ -114,6 +115,105 @@ internal static class GpuProcessMemory
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// The processes with the highest current dedicated VRAM, ordered descending.
+    /// Used by the phase-0 evidence probe to log GPU compute workloads that have
+    /// no game-sized window at all (LLM runtimes, PyTorch/SAM/DINO processes), so
+    /// their engine distribution and input-independent behaviour can be
+    /// calibrated against real games.
+    /// </summary>
+    public static IReadOnlyList<(int Pid, long Bytes)> GetTopDedicatedUsage(int limit)
+    {
+        if (limit <= 0)
+        {
+            return Array.Empty<(int, long)>();
+        }
+
+        try
+        {
+            lock (Gate)
+            {
+                if (_categoryUnavailable && DateTime.UtcNow < _nextUnavailableRetryUtc)
+                {
+                    return Array.Empty<(int, long)>();
+                }
+
+                RefreshCountersIfDue();
+                if (_categoryUnavailable)
+                {
+                    return Array.Empty<(int, long)>();
+                }
+
+                var totals = new Dictionary<int, long>();
+
+                foreach (var entry in Counters)
+                {
+                    if (!TryParsePid(entry.Key, out var pid))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var value = entry.Value.NextValue();
+                        if (float.IsNaN(value) || float.IsInfinity(value) || value < 0)
+                        {
+                            continue;
+                        }
+
+                        if (!totals.ContainsKey(pid))
+                        {
+                            totals[pid] = 0;
+                        }
+
+                        if (value > 0)
+                        {
+                            totals[pid] += (long)value;
+                        }
+                    }
+                    catch
+                    {
+                        // Instance vanished between enumeration and read.
+                    }
+                }
+
+                return totals
+                    .OrderByDescending(pair => pair.Value)
+                    .ThenBy(pair => pair.Key)
+                    .Take(limit)
+                    .Select(pair => (pair.Key, pair.Value))
+                    .ToList();
+            }
+        }
+        catch
+        {
+            return Array.Empty<(int, long)>();
+        }
+    }
+
+    private static bool TryParsePid(string instanceName, out int pid)
+    {
+        pid = 0;
+        const string prefix = "pid_";
+        if (!instanceName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var end = instanceName.IndexOf('_', prefix.Length);
+        if (end <= prefix.Length)
+        {
+            return false;
+        }
+
+        return int.TryParse(
+                   instanceName.AsSpan(prefix.Length, end - prefix.Length),
+                   NumberStyles.Integer,
+                   CultureInfo.InvariantCulture,
+                   out pid) &&
+               pid > 0;
     }
 
     private static void RefreshCountersIfDue()
