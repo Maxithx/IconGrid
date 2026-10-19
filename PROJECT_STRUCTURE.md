@@ -74,7 +74,7 @@ native FPS worker `Native\FpsAgent\bin\$(Configuration)\IconGridFpsAgent.exe`
 ├── Models\            # Data contracts, config model, enums
 ├── Native\            # C++ ETW/FPS worker (FpsAgent)
 ├── publish\           # dotnet publish / MSIX output                                (gitignored)
-├── tools\             # Standalone helper projects (benchmark runner, MCP notes server)
+├── tools\             # Standalone helper projects (MCP notes server)
 ├── ViewModels\        # MVVM view models and state objects
 ├── Views\             # WPF windows, settings shell and settings pages
 └── _backups\          # Manual backups                                              (gitignored)
@@ -170,17 +170,6 @@ Helpers\
 │   ├── PawnIoHelper.cs                   # PawnIO driver helper (hardware sensor access)
 │   ├── StartupTaskManager.cs             # Windows startup / scheduled task registration
 │   └── ThemeHelper.cs                    # Light/dark theme resolution
-└── UsbCopy\                          # Fast Copy feature (engine, IO, benchmark, state)
-    ├── FileBrowserEntry.cs               # Drive/folder/file entry model for the dual-pane browser
-    ├── FileBrowserPane.cs                # Pane logic (enumeration, refresh, create/delete)
-    ├── MultiWorkerCopyService.cs         # Multi-worker copy engine (buffers, chunk/ZIP strategy)
-    ├── OverwritePolicy.cs                # Overwrite/skip decisions + session-scoped resolver
-    ├── UsbBenchmarkRunner.cs             # Port/read/write/buffer/stability/Windows-baseline tests
-    ├── UsbCopyEngine.cs                  # High-level orchestration of a copy job
-    ├── UsbCopyLogger.cs                  # Structured logging to %APPDATA%\IconGrid\logs
-    ├── UsbCopyState.cs                   # Observable copy progress/labels
-    ├── UsbDeviceDetector.cs              # Drive/port capability detection
-    └── UsbDeviceInfo.cs
 ```
 
 ## Models\ (data contracts and enums)
@@ -239,8 +228,7 @@ ViewModels\
 └── Settings\                         # Config state + persistence
     ├── MainViewModelConfigState.cs       # Config → observable state mapping (+ normalization)
     ├── MainViewModelSettingsPersistence.cs # Save mapping to config.json
-    ├── MainViewModelSettingsState.cs     # Editable settings state
-    └── UsbCopyViewModel.cs               # Dedicated view model for the Fast Copy page
+    └── MainViewModelSettingsState.cs     # Editable settings state
 ```
 
 ## Views\ (windows, settings shell and settings pages)
@@ -248,12 +236,6 @@ ViewModels\
 ```
 Views\
 ├── AboutWindow.xaml (.cs)              # About dialog
-├── BenchmarkRunWindow.xaml (.cs)       # Fast Copy benchmark progress/results window
-├── DeleteConfirmWindow.xaml (.cs)      # Explorer-style delete confirmation
-├── FileCopyProgressWindow.xaml (.cs)   # Non-modal copy progress window (topmost, drag-movable)
-├── NewFolderDialogWindow.xaml (.cs)    # "New folder" name prompt
-├── OverwritePromptWindow.xaml (.cs)    # Overwrite conflict prompt (Yes / Yes all / No / No all)
-├── OverwritePromptResolver.cs          # Shows the prompt from worker threads (Dispatcher marshalling)
 ├── GamingOverlayWindowCoordinator.cs   # Overlay window lifetime + placement coordination
 ├── StartsideStyles.xaml                # Shared styles: cards, toggles, sliders, scrollbars
 ├── TemplateGuidelines.xaml             # Settings-page style set (hero/card/section/body styles)
@@ -273,7 +255,6 @@ Views\
         ├── MonitorRowLayoutPage.xaml (.cs)  # Monitor row gaps/dividers, overlay height, ping target
         ├── GamingOverlayPage.xaml (.cs)     # Overlay scale, position, transparency, FPS setup
         ├── GameResolutionPage.xaml (.cs)    # Per-game display resolution switching
-        ├── UsbCopyPage.xaml (.cs)           # Fast Copy: dual pane, copy job, benchmark
         ├── TestPage.xaml (.cs)              # Diagnostics: FPS/ETW status, trace-log cleanup
         ├── HjaelpPage.xaml (.cs)            # Help / troubleshooting
         ├── AboutPage.xaml (.cs)             # Version info and credits
@@ -306,9 +287,6 @@ figma-icons\                          # Design-exported icon sources
 └── *.fig                             # Original Figma files (genvejs, Layout, Startside-logo)
 
 tools\                                # Standalone helper projects
-├── benchmark-runner\                 # Console benchmark harness
-│   ├── BenchmarkRunner.csproj, Program.cs
-│   └── bin\, obj\                    # (generated)
 └── mcp-notes-server\                 # Local MCP server "icongrid-notes"
     ├── package.json, package-lock.json, .gitignore, TESTING.md
     ├── src\index.js                  # Note tools + project checks (run_all_checks etc.)
@@ -370,8 +348,7 @@ verified good/bad patterns for this machine.
 ## Runtime data (not in the repo)
 
 User data lives in `%APPDATA%\IconGrid`: `config.json`, `items.json`, `monitor-state.json`,
-`fps-state.json`, `native-fps-state.json`, `external-games.json`, `trace.log`, `error.log`, `IconPack\`
-and `logs\fastusbcopy\` (+ `benchmark\`).
+`fps-state.json`, `native-fps-state.json`, `external-games.json`, `trace.log`, `error.log` and `IconPack\`.
 
 ## Ignored / local-only paths
 

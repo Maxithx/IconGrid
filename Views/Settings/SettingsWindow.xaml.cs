@@ -10,7 +10,6 @@ using IconGrid.Helpers;
 using IconGrid.Helpers.Settings;
 using IconGrid.ViewModels;
 using IconGrid.ViewModels.Launcher;
-using IconGrid.ViewModels.Settings;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using WpfButton = System.Windows.Controls.Button;
 using WpfMenuItem = System.Windows.Controls.MenuItem;
@@ -188,11 +187,6 @@ namespace IconGrid.Views
         private void MonitorLayoutNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new MonitorRowLayoutPage(), MonitorLayoutNavButton);
-        }
-
-        private void UsbCopyNavButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowPage(new UsbCopyPage(), UsbCopyNavButton);
         }
 
         private void TestNavButton_Click(object sender, RoutedEventArgs e)
