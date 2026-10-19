@@ -43,7 +43,10 @@ namespace
     constexpr DWORD kStickyGracePeriodMs = 3000;
     constexpr DWORD kTargetPollIntervalMs = 500;
     constexpr DWORD kFastTargetPollIntervalMs = 75;
-    constexpr DWORD kStateWriteIntervalMs = 2;
+    // The state file is a UI/diagnostics handoff, not a frame clock. Writing it
+    // every 2 ms kept the worker's loop disk-bound (~60 writes/s) and consumed a
+    // large part of a CPU core. 10 Hz is more than enough for the overlay.
+    constexpr DWORD kStateWriteIntervalMs = 100;
     constexpr double kRollingFpsWindowSeconds = 0.050;
     constexpr size_t kMinimumRollingSamples = 2;
     constexpr double kInstantFrameFloorSeconds = 1.0 / 360.0;
@@ -1672,6 +1675,10 @@ int wmain(int argc, wchar_t* argv[])
     {
         targetThread.join();
     }
+
+    // Publish "no game" before the final state write so the launcher can hide the
+    // gaming overlay immediately instead of waiting for the state to go stale.
+    UpdateTargetState(0, L"");
 
     StopEtwSession();
     UpdateDebugCounts();

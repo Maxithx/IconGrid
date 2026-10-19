@@ -14,7 +14,45 @@ public static class PawnIoHelper
     private static readonly string[] PawnIoServiceNames = { "PawnIO" };
     private const string PawnIoDisplayNameFragment = "pawnio";
 
+    // This check enumerates every process, every Windows service and the
+    // uninstall registry. The hardware snapshot calls it twice per second, which
+    // made it one of the largest idle CPU consumers. The installation state
+    // changes very rarely, so a short cache is safe; the warning UI explicitly
+    // invalidates it while it retries after a user install.
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+    private static readonly object CacheGate = new();
+    private static DateTime _cacheValidUntilUtc = DateTime.MinValue;
+    private static bool _cachedResult;
+
     public static bool IsPawnIoInstalled()
+    {
+        lock (CacheGate)
+        {
+            var now = DateTime.UtcNow;
+            if (now < _cacheValidUntilUtc)
+            {
+                return _cachedResult;
+            }
+
+            _cachedResult = CheckIsPawnIoInstalled();
+            _cacheValidUntilUtc = now.Add(CacheDuration);
+            return _cachedResult;
+        }
+    }
+
+    /// <summary>
+    /// Forces the next <see cref="IsPawnIoInstalled"/> call to re-scan. Used by
+    /// the warning UI, which retries every few seconds after a user install.
+    /// </summary>
+    public static void InvalidateCache()
+    {
+        lock (CacheGate)
+        {
+            _cacheValidUntilUtc = DateTime.MinValue;
+        }
+    }
+
+    private static bool CheckIsPawnIoInstalled()
     {
         if (IsProcessRunning())
         {

@@ -41,6 +41,12 @@ namespace IconGrid.Helpers
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan HardwareSnapshotMaxAge = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan FpsStateMaxAge = TimeSpan.FromSeconds(2);
+        // The FPS state file and the native shared-memory block only need to be
+        // polled fast while the gaming overlay is actually showing. In idle the
+        // timer only watches for a game session to begin.
+        private const int IdleFpsUiPollIntervalMs = 1000;
+        private const int ActiveFpsUiPollIntervalMs = 50;
+        private static readonly TimeSpan GameEvidenceCacheAge = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan PingStaleAfter = TimeSpan.FromSeconds(10);
         private const int PingTimeoutMs = 200;
         // EMA smoothing factor (0 = no new info, 1 = no smoothing). 0.3 dampens single spikes well.
@@ -62,7 +68,19 @@ namespace IconGrid.Helpers
         private readonly string _monitorStatePath;
         private readonly string _fpsStatePath;
         private readonly DispatcherTimer _fpsTimer;
-        private int _fpsUiPollIntervalMs = 1;
+        private int _fpsUiPollIntervalMs = IdleFpsUiPollIntervalMs;
+
+        // Cached FPS-state read so the in-game timer does not reopen and re-parse
+        // fps-state.json on every tick when the file has not changed.
+        private DateTime _fpsStateWriteUtc = DateTime.MinValue;
+        private FpsState? _fpsStateCache;
+        private bool _fpsStateCacheInitialized;
+
+        // VRAM classification is comparatively expensive; evaluate it at most
+        // every two seconds while a target is tracked.
+        private DateTime _gameEvidenceCheckedUtc = DateTime.MinValue;
+        private int _gameEvidencePid;
+        private GameEvidenceVerdict _gameEvidenceVerdict = GameEvidenceVerdict.Unknown;
 
         // Reusable Ping instance. Not thread-safe — guarded by _pingLock when calling Send/SendAsync.
         private readonly Ping _sharedPing = new();
@@ -256,7 +274,7 @@ namespace IconGrid.Helpers
             get => _fpsUiPollIntervalMs;
             set
             {
-                var clamped = Math.Max(1, Math.Min(8, value));
+                var clamped = Math.Max(20, Math.Min(1000, value));
                 if (_fpsUiPollIntervalMs == clamped)
                 {
                     return;
@@ -707,11 +725,29 @@ namespace IconGrid.Helpers
             {
                 if (!File.Exists(_fpsStatePath))
                 {
+                    _fpsStateCacheInitialized = false;
+                    _fpsStateCache = null;
                     return null;
                 }
 
                 var info = new FileInfo(_fpsStatePath);
-                if (DateTime.UtcNow - info.LastWriteTimeUtc > FpsStateMaxAge)
+                var writeUtc = info.LastWriteTimeUtc;
+
+                // The in-game timer polls often; only re-read the file when the
+                // monitor agent actually rewrote it.
+                if (_fpsStateCacheInitialized && writeUtc == _fpsStateWriteUtc)
+                {
+                    return _fpsStateCache != null &&
+                           DateTime.UtcNow - _fpsStateCache.CapturedAtUtc <= FpsStateMaxAge
+                        ? _fpsStateCache
+                        : null;
+                }
+
+                _fpsStateCacheInitialized = true;
+                _fpsStateWriteUtc = writeUtc;
+                _fpsStateCache = null;
+
+                if (DateTime.UtcNow - writeUtc > FpsStateMaxAge)
                 {
                     return null;
                 }
@@ -723,6 +759,7 @@ namespace IconGrid.Helpers
                     return null;
                 }
 
+                _fpsStateCache = state;
                 return state;
             }
             catch
@@ -776,9 +813,19 @@ namespace IconGrid.Helpers
             // even when the native agent had no application-level present evidence
             // (emulators / older titles). A shell process never qualifies: it holds
             // a few MB, far below the game floor.
-            var nativeGameEvidence = trackedGamePid > 0
-                ? GameVramEvidence.Evaluate(trackedGamePid, null, DateTime.UtcNow, out _)
-                : GameEvidenceVerdict.Unknown;
+            var nativeGameEvidence = GameEvidenceVerdict.Unknown;
+            if (trackedGamePid > 0)
+            {
+                if (_gameEvidencePid != trackedGamePid ||
+                    DateTime.UtcNow - _gameEvidenceCheckedUtc >= GameEvidenceCacheAge)
+                {
+                    _gameEvidencePid = trackedGamePid;
+                    _gameEvidenceCheckedUtc = DateTime.UtcNow;
+                    _gameEvidenceVerdict = GameVramEvidence.Evaluate(trackedGamePid, null, DateTime.UtcNow, out _);
+                }
+
+                nativeGameEvidence = _gameEvidenceVerdict;
+            }
             var isGameTarget = nativeFpsState?.GameConfirmed == true ||
                                nativeGameEvidence == GameEvidenceVerdict.Game;
             SetInGame(trackedGamePid > 0 && isGameTarget);
@@ -885,6 +932,16 @@ namespace IconGrid.Helpers
             }
 
             _inGame = value;
+
+            // Poll fast only while a game session is active so the overlay stays
+            // responsive; idle polling just watches for a game session to begin.
+            var interval = value ? ActiveFpsUiPollIntervalMs : IdleFpsUiPollIntervalMs;
+            if (_fpsUiPollIntervalMs != interval)
+            {
+                _fpsUiPollIntervalMs = interval;
+                _fpsTimer.Interval = TimeSpan.FromMilliseconds(interval);
+            }
+
             OnPropertyChanged(nameof(IsInGame));
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -12,8 +13,13 @@ namespace IconGrid.Helpers.Hardware;
 public static class HardwareMonitorAgent
 {
     private const string AgentMutexName = @"Local\IconGrid.HardwareMonitorAgent";
-    private const int SnapshotIntervalMs = 500;
-    private const int FpsStateIntervalMs = 2;
+    // The monitor row UI reads this snapshot every two seconds. Capturing it at
+    // 1 Hz keeps the data fresh while halving the sensor-hardware cost.
+    private const int SnapshotIntervalMs = 1000;
+    // The FPS state file is only an overlay/UI handoff, not a frame clock. 10 Hz
+    // is more than enough; the previous 2 ms interval wrote ~60 files per second
+    // and kept a full CPU core busy even while no game was running.
+    private const int FpsStateIntervalMs = 100;
     private const int AtomicWriteRetryCount = 8;
     private const int AtomicWriteRetryDelayMs = 6;
     private const int ForegroundPollIntervalMs = 1000;
@@ -29,6 +35,20 @@ public static class HardwareMonitorAgent
     // Scheduler task passes no --parent-pid) must not stay alive as an orphan:
     // exit once no launcher process has been present for this long.
     private static readonly TimeSpan LauncherAbsenceGracePeriod = TimeSpan.FromSeconds(60);
+
+    // Diagnostics must never become a busy-loop side effect: candidate traces are
+    // emitted at most once per PID per interval instead of once per scan.
+    private static readonly TimeSpan LogThrottleInterval = TimeSpan.FromSeconds(30);
+    private static readonly object LogThrottleGate = new();
+    private static readonly Dictionary<int, DateTime> LastVisibleCandidateLogUtc = new();
+    private static readonly Dictionary<int, DateTime> LastStartGateLogUtc = new();
+
+    // Enumerating every visible window and measuring VRAM per candidate is one of
+    // the most expensive detection paths. A background game is still detected
+    // within a couple of seconds; there is no need to scan every second.
+    private static readonly TimeSpan VisibleGameScanInterval = TimeSpan.FromSeconds(2);
+    private static readonly object VisibleGameScanGate = new();
+    private static DateTime _nextVisibleGameScanUtc = DateTime.MinValue;
 
     // A sticky game target is held while it is alive (so alt-tab does not retarget).
     // If a DIFFERENT valid foreground game candidate stays stable this long, the
@@ -273,7 +293,18 @@ public static class HardwareMonitorAgent
                 }
             }
 
-            var nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Start(parentPid, initialForegroundPid);
+            // Lazy start: the native FPS worker is overlay infrastructure and must
+            // not run (or write state files) until a game session exists.
+            var nativeFpsStarted = false;
+            if (ShouldStartNativeFpsAgent(initialForegroundPid, fpsTarget, log))
+            {
+                nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Start(parentPid, initialForegroundPid);
+            }
+            else
+            {
+                log?.Invoke("Native FPS agent not started: no active game session detected.");
+            }
+
             log?.Invoke($"Hardware monitor agent started. NativeFpsStarted={nativeFpsStarted} ForegroundPid={initialForegroundPid?.ToString() ?? "null"}");
 
             var nativeFpsLoggedSummary = string.Empty;
@@ -291,6 +322,7 @@ public static class HardwareMonitorAgent
 
             while (true)
             {
+                var loopStartedTicks = Stopwatch.GetTimestamp();
                 if (shutdownEvent?.WaitOne(0) == true)
                 {
                     log?.Invoke("Exiting because shutdown event was signaled.");
@@ -328,6 +360,7 @@ public static class HardwareMonitorAgent
                 var latestConfig = configManager.LoadConfig();
                 TryClearStaleFpsTargetRuntimeMetadata(latestConfig, log);
                 var nativeState = nativeFpsStarted ? nativeFpsAgent.ReadState() : null;
+                var nativeFpsWasStarted = nativeFpsStarted;
 
                 // Watchdog: a native worker that is gone, hung, or whose output went
                 // stale must never leave the FPS pipeline dead while the tracked game
@@ -377,6 +410,21 @@ public static class HardwareMonitorAgent
                         ref stickyChallengerSinceUtc,
                         parentPid,
                         log);
+                }
+
+                // When a session ends, publish one final "--" state immediately so
+                // consumers do not wait for the file to go stale.
+                if (nativeFpsWasStarted && !nativeFpsStarted)
+                {
+                    WriteFpsState(fpsStatePath, fpsTempPath, new FpsState
+                    {
+                        CapturedAtUtc = DateTime.UtcNow,
+                        FpsStatus = "--",
+                        FpsSource = "FpsMeter",
+                        LiveFpsStatus = "--",
+                        TrendFpsStatus = "--"
+                    });
+                    log?.Invoke("Native FPS agent stopped; game session ended and FPS state was reset.");
                 }
 
                 // Phase-0 telemetry: log the processes that hold the most dedicated
@@ -505,8 +553,9 @@ public static class HardwareMonitorAgent
 
                 log?.Invoke(snapshotLine);
 
-                // Write FPS-state at 20ms intervals for the next 500ms
-                for (int i = 0; i < SnapshotIntervalMs / FpsStateIntervalMs; i++)
+                // Publish the FPS handoff at 10 Hz and only while a game session is
+                // active. Idle IconGrid must not write state files continuously.
+                for (int i = 0; nativeFpsStarted && i < SnapshotIntervalMs / FpsStateIntervalMs; i++)
                 {
                     if (shutdownEvent?.WaitOne(0) == true)
                     {
@@ -573,6 +622,16 @@ public static class HardwareMonitorAgent
 
                     WriteFpsState(fpsStatePath, fpsTempPath, fpsState);
                     Thread.Sleep(FpsStateIntervalMs);
+                }
+
+                // The FPS-state loop used to be the only sleep in this loop. With
+                // the native agent stopped there is no sleep left, so pace the
+                // outer loop explicitly to the snapshot interval.
+                var elapsedMs = (long)((Stopwatch.GetTimestamp() - loopStartedTicks) * 1000.0 / Stopwatch.Frequency);
+                var remainingMs = SnapshotIntervalMs - elapsedMs;
+                if (remainingMs > 0)
+                {
+                    Thread.Sleep((int)remainingMs);
                 }
             }
 
@@ -785,8 +844,18 @@ exit:
     {
         try
         {
-            var bestCandidate = default(VisibleWindowCandidate);
             var nowUtc = DateTime.UtcNow;
+            lock (VisibleGameScanGate)
+            {
+                if (nowUtc < _nextVisibleGameScanUtc)
+                {
+                    return null;
+                }
+
+                _nextVisibleGameScanUtc = nowUtc.Add(VisibleGameScanInterval);
+            }
+
+            var bestCandidate = default(VisibleWindowCandidate);
 
             EnumWindows((hwnd, _) =>
             {
@@ -852,7 +921,11 @@ exit:
 
                     if (candidateVerdict != GameEvidenceVerdict.Game)
                     {
-                        log?.Invoke($"Visible window candidate PID={candidatePid} ({processName}) skipped: {candidateDetail}.");
+                        LogThrottled(
+                            log,
+                            (int)candidatePid,
+                            isStartGate: false,
+                            $"Visible window candidate PID={candidatePid} ({processName}) skipped: {candidateDetail}.");
                         return true;
                     }
 
@@ -872,7 +945,11 @@ exit:
                         width < MinimumGameWindowWidth ||
                         height < MinimumGameWindowHeight)
                     {
-                        log?.Invoke($"Visible window candidate PID={candidatePid} ({processName}) skipped: window {width}x{height} is too small for a game.");
+                        LogThrottled(
+                            log,
+                            (int)candidatePid,
+                            isStartGate: false,
+                            $"Visible window candidate PID={candidatePid} ({processName}) skipped: window {width}x{height} is too small for a game.");
                         return true;
                     }
 
@@ -1185,6 +1262,15 @@ exit:
         {
             log?.Invoke($"Confirmed game PID {confirmedForegroundGamePid.Value} exited. Clearing confirmation.");
             confirmedForegroundGamePid = null;
+
+            var currentTargetAlive = currentForegroundGamePid.HasValue &&
+                                     ProcessIsAlive(currentForegroundGamePid.Value);
+            if (!currentTargetAlive && !IsConfiguredTargetAlive(config.FpsTarget) && nativeFpsStarted)
+            {
+                nativeFpsAgent.Stop();
+                nativeFpsStarted = false;
+                log?.Invoke("Native FPS agent stopped because no game session is active.");
+            }
         }
 
         if (rejectedForegroundPidCooldownUntilUtc.HasValue &&
@@ -1258,7 +1344,19 @@ exit:
             confirmedForegroundGamePid = null;
             foregroundOverridePid = null;
             currentForegroundPidObservedAtUtc = null;
-            nativeFpsStarted = nativeFpsAgent.IsAvailable && nativeFpsAgent.Restart(parentPid, foregroundGamePid: externalForegroundPid);
+            if (IsConfiguredTargetAlive(configTarget) ||
+                (externalForegroundPid.HasValue &&
+                 ShouldStartNativeFpsAgent(externalForegroundPid, configTarget: null, log)))
+            {
+                nativeFpsStarted = nativeFpsAgent.IsAvailable &&
+                                   nativeFpsAgent.Restart(parentPid, foregroundGamePid: externalForegroundPid);
+            }
+            else if (nativeFpsStarted)
+            {
+                nativeFpsAgent.Stop();
+                nativeFpsStarted = false;
+                log?.Invoke("Native FPS agent stopped: the configured target is not running.");
+            }
             return;
         }
 
@@ -1298,6 +1396,11 @@ exit:
                     stickyChallengerPid = null;
                     stickyChallengerSinceUtc = null;
                     currentForegroundPidObservedAtUtc = null;
+                    if (nativeFpsStarted)
+                    {
+                        nativeFpsAgent.Stop();
+                        log?.Invoke("Native FPS agent stopped for retargeting.");
+                    }
                     nativeFpsStarted = false;
                 }
                 else
@@ -1334,6 +1437,11 @@ exit:
             currentForegroundGamePid = null;
             currentForegroundPidObservedAtUtc = null;
             foregroundOverridePid = null;
+            if (nativeFpsStarted)
+            {
+                nativeFpsAgent.Stop();
+                log?.Invoke("Native FPS agent stopped after the foreground candidate was rejected as a non-game.");
+            }
             nativeFpsStarted = false;
         }
         else if (currentForegroundGamePid.HasValue &&
@@ -1386,6 +1494,11 @@ exit:
                 confirmedForegroundGamePid = null;
                 foregroundOverridePid = null;
                 currentForegroundPidObservedAtUtc = null;
+                if (nativeFpsStarted)
+                {
+                    nativeFpsAgent.Stop();
+                    log?.Invoke("Native FPS agent stopped because the game process exited.");
+                }
                 nativeFpsStarted = false;
             }
             return;
@@ -1393,7 +1506,14 @@ exit:
 
         if (newForegroundPid.HasValue && newForegroundPid != currentForegroundGamePid)
         {
-            log?.Invoke($"Foreground game PID changed from {currentForegroundGamePid?.ToString() ?? "null"} to {newForegroundPid.Value}. Restarting native FPS agent.");
+            // Do not start the overlay pipeline for a process without any game
+            // evidence. The gate logs (throttled) why the candidate was rejected.
+            if (!ShouldStartNativeFpsAgent(newForegroundPid, configTarget: null, log))
+            {
+                return;
+            }
+
+            log?.Invoke($"Foreground game PID changed from {currentForegroundGamePid?.ToString() ?? "null"} to {newForegroundPid.Value}. Starting native FPS agent.");
             currentForegroundGamePid = newForegroundPid;
             foregroundOverridePid = newForegroundPid;
             currentForegroundPidObservedAtUtc = DateTime.UtcNow;
@@ -2219,6 +2339,87 @@ exit:
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Lazy-start gate for the native FPS worker. The worker is overlay
+    /// infrastructure: it publishes FPS through shared memory and writes state
+    /// files continuously, so it must only run while a game session exists.
+    /// A launcher-provided target is trusted; an externally detected foreground
+    /// process must at least not be measurably a non-game (dedicated VRAM below
+    /// the not-game floor). Missing VRAM data is never treated as a rejection.
+    /// </summary>
+    private static bool ShouldStartNativeFpsAgent(
+        int? candidatePid,
+        Models.FpsTargetConfig? configTarget,
+        Action<string>? log)
+    {
+        if (IsConfiguredTargetAlive(configTarget))
+        {
+            return true;
+        }
+
+        if (!candidatePid.HasValue || candidatePid.Value <= 0)
+        {
+            return false;
+        }
+
+        var verdict = GameVramEvidence.Evaluate(candidatePid.Value, nativeState: null, DateTime.UtcNow, out var detail);
+        if (verdict == GameEvidenceVerdict.NotGame)
+        {
+            LogThrottled(
+                log,
+                candidatePid.Value,
+                isStartGate: true,
+                $"Native FPS agent not started for PID {candidatePid.Value}: {detail}.");
+            return false;
+        }
+
+        LogThrottled(
+            log,
+            candidatePid.Value,
+            isStartGate: true,
+            $"Native FPS agent start allowed for PID {candidatePid.Value}: verdict={verdict} ({detail}).");
+        return true;
+    }
+
+    private static void LogThrottled(Action<string>? log, int pid, bool isStartGate, string message)
+    {
+        if (log == null)
+        {
+            return;
+        }
+
+        var target = isStartGate ? LastStartGateLogUtc : LastVisibleCandidateLogUtc;
+        var now = DateTime.UtcNow;
+        lock (LogThrottleGate)
+        {
+            if (target.TryGetValue(pid, out var last) && now - last < LogThrottleInterval)
+            {
+                return;
+            }
+
+            target[pid] = now;
+
+            if (target.Count > 256)
+            {
+                var stale = new List<int>();
+                foreach (var pair in target)
+                {
+                    if (now - pair.Value > LogThrottleInterval * 4)
+                    {
+                        stale.Add(pair.Key);
+                    }
+                }
+
+                foreach (var key in stale)
+                {
+                    target.Remove(key);
+                }
+            }
+        }
+
+        log(message);
     }
 
     private static void WriteSnapshot(string statePath, string tempPath, HardwareMonitorSnapshot snapshot)

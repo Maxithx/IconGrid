@@ -42,6 +42,16 @@ public sealed class HardwareSnapshotCollector : IDisposable
         catch
         {
         }
+        // One sensor update per snapshot. Calling Accept() inside every helper
+        // updated all CPU/GPU/motherboard sensors six times per capture, which
+        // took ~500 ms and kept a full core busy.
+        try
+        {
+            _computer.Accept(_visitor);
+        }
+        catch
+        {
+        }
 
         var (cpuTemp, gpuTemp) = CaptureTemperatures();
         var cpuUsage = CaptureCpuUsage();
@@ -77,7 +87,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
 
         try
         {
-            _computer.Accept(_visitor);
             foreach (var hardware in _computer.Hardware)
             {
                 if (hardware.HardwareType == HardwareType.Cpu)
@@ -112,7 +121,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
     {
         try
         {
-            _computer.Accept(_visitor);
             foreach (var hardware in _computer.Hardware)
             {
                 if (hardware.HardwareType != HardwareType.Cpu)
@@ -139,7 +147,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
     {
         try
         {
-            _computer.Accept(_visitor);
             string? bestCpuNode = null;
             string? bestBoardNode = null;
 
@@ -229,7 +236,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
     {
         try
         {
-            _computer.Accept(_visitor);
             foreach (var hardware in _computer.Hardware)
             {
                 if (hardware.HardwareType != HardwareType.Cpu)
@@ -258,7 +264,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
         _gpuName = null;
         try
         {
-            _computer.Accept(_visitor);
             float? nvidiaUsage = null;
             string? nvidiaName = null;
             float? fallbackUsage = null;
@@ -338,7 +343,6 @@ public sealed class HardwareSnapshotCollector : IDisposable
     {
         try
         {
-            _computer.Accept(_visitor);
             foreach (var hardware in _computer.Hardware)
             {
                 if (!IsGpuHardwareType(hardware.HardwareType))

@@ -143,6 +143,17 @@ internal sealed class NativeFpsAgentRunner : IDisposable
         return Start(parentPid, foregroundGamePid);
     }
 
+    /// <summary>
+    /// Stops the native worker but keeps this runner reusable for a later game
+    /// session. Called when a game session ends so the FPS pipeline does not
+    /// consume CPU or write state files while idle.
+    /// </summary>
+    public void Stop()
+    {
+        DisposeProcess();
+        LastForegroundGamePid = null;
+    }
+
     public static string CreateTargetSignature(FpsTargetConfig? fpsTarget)
     {
         if (fpsTarget == null)

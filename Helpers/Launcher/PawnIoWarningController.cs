@@ -62,6 +62,9 @@ namespace IconGrid.Helpers
 
         private void UpdatePawnIoWarningWindow()
         {
+            // The monitor path caches the installation check; the warning retry
+            // must see a freshly installed driver immediately.
+            PawnIoHelper.InvalidateCache();
             if (_viewModel.SystemMonitor.IsPawnIoAvailable || PawnIoHelper.IsPawnIoInstalled())
             {
                 StopPawnIoWarningRetryTimer();
