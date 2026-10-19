@@ -951,3 +951,65 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **NY BUILD + DEPLOY (2026-10-17 19:37:31):** `dotnet build -t:Rebuild` (0 fejl) → `C:\icongrid\IconGrid.dll` = 1.242.112 bytes, 19:37:31 (matcher build). De første deploy-forsøg kopierede ikke (xcopy fejlede tavst mens DLL'en var kortvarigt låst), så timestamp blev verificeret og bragt på plads med `Copy-Item -Force` + endnu en `deploy-test.cmd`. Dokumenteret i `.local-state/regex-commands-cheatsheet.md` afsnit 16.
 
+
+## Session findings (2026-10-18) — commit/push af fase 0 + game-exit-fix
+
+- Arbejdstræet blev bygget rent: `dotnet build IconGrid.csproj --nologo -v m` → **Build succeeded** (0 fejl).
+- Rebase oven på `origin/main` (4 nye remote-commits: MIT/PolyForm-licens + DPI-bevisst work-area-clamping) gik igennem **uden konflikter**; build + deploy blev kørt igen efter rebase.
+- Deploy: `C:\icongrid\IconGrid.dll` = **18-10-2026 17:29:30**, matcher `bin\Debug\...\IconGrid.dll` (verificeret).
+- Push: **`189b361`** på `origin/main` (`6e7432c..189b361`) — "feat: phase-0 game evidence telemetry and stable game-exit path" (9 filer, 1027 insertions): `GameEvidenceProbe`, `GpuEngineActivity`, `SystemInputIdle`, `GpuProcessMemory.GetTopDedicatedUsage`, `GameVramEvidence` p95, monitor-hooks, config-target game-exit-fix, GameFlow-diagnostik.
+- **Ikke committet:** denne note (kræver separat godkendelse).
+- **Næste skridt:** bruger-test af POE/COD-stien (overlay kun ved spil, launcher ud af hide mode ved spil-luk), derefter fase 1 (sustained present-kadence + compute-veto + release af stickytarget).
+
+
+## Session findings (2026-10-18, del 2) — Fast Copy-siden fjernet helt
+
+**Bruger-ønske:** siden `Views/Settings/Pages/UsbCopyPage.xaml` og AL tilhørende kode skal fjernes.
+
+**Slettet (git rm):**
+- `Views/Settings/Pages/UsbCopyPage.xaml` + `.xaml.cs`
+- `ViewModels/Settings/UsbCopyViewModel.cs`
+- `Helpers/UsbCopy/` (10 filer: FileBrowserEntry, FileBrowserPane, MultiWorkerCopyService, OverwritePolicy, UsbBenchmarkRunner, UsbCopyEngine, UsbCopyLogger, UsbCopyState, UsbDeviceDetector, UsbDeviceInfo)
+- `Views/FileCopyProgressWindow.xaml` + `.xaml.cs`
+- `Views/OverwritePromptWindow.xaml` + `.xaml.cs`, `Views/OverwritePromptResolver.cs`
+- `Views/BenchmarkRunWindow.xaml` + `.xaml.cs`
+- `Views/DeleteConfirmWindow.xaml` + `.xaml.cs`, `Views/NewFolderDialogWindow.xaml` + `.xaml.cs`
+- `tools/benchmark-runner/` (BenchmarkRunner.csproj + Program.cs; bin/obj ryddet bagefter)
+
+**Referencer fjernet:**
+- `SettingsWindow.xaml`: `UsbCopyNavButton` (FC-knap) inkl. tooltip/bindings.
+- `SettingsWindow.xaml.cs`: `UsbCopyNavButton_Click` + ubrugt `using IconGrid.ViewModels.Settings;`.
+- `LocalizationHelper.cs`: 77 `FastCopy*`-nøgler i både `en` og `da` (154 linjer; 569→415).
+- `MainViewModel.Localization.cs`: 77 properties + 77 `OnPropertyChanged(nameof(FastCopy...))` (154 linjer; 528→374).
+- `README.md`: Fast USB Copy-rækken i settings-tabellen + hele "Fast USB Copy"-afsnittet.
+- `PROJECT_STRUCTURE.md`: Helpers\UsbCopy, UsbCopyViewModel, de 6 hjælpevinduer/handlers, UsbCopyPage, tools\benchmark-runner, runtime-log-sti.
+
+**Verifikation:** ingen resterende `FastCopy|UsbCopy|FileBrowser|MultiWorkerCopy|FileCopyProgress|BenchmarkRun|DeleteConfirmWindow|NewFolderDialogWindow` i cs/xaml/csproj/sln. Build: **0 fejl**.
+
+**Fuld rebuild + deploy (2026-10-18 17:38:18):** `dotnet build IconGrid.csproj -t:Rebuild` → **Build succeeded** (0 fejl). `cmd /c E:\IconGrid-GitHub\deploy-test.cmd` → "Done". Verificeret: `bin\Debug\...\IconGrid.dll` og `C:\icongrid\IconGrid.dll` har samme LastWriteTime **18-10-2026 17:38:18** OG samme SHA256 `98BC6FE3E470E93D97AC71BEFE9212F52B76D77B7F0B006DCE53131D7B6B9098`.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+
+## Session findings (2026-10-19) — gaming-overlay-agenter kun ved aktivt spil
+
+**Problem:** Idle IconGrid kørte native FPS-agent og skrev `fps-state.json` + `native-fps-state.json` ~60 gange/s. Målt ~60 % af én kerne i idle.
+
+**Ændringer (build 0 fejl, deployet 2026-10-19 ~18:09-18:10):**
+- `HardwareMonitorAgent`: lazy start/stop af `NativeFpsAgentRunner` via `ShouldStartNativeFpsAgent` (VRAM-evidens; `Unknown` => start, `NotGame` => afvis). Stop ved spil-exit, afvisning, retarget og død config-target.
+- `FpsStateIntervalMs` 2 → 100; `fps-state.json` skrives kun mens `nativeFpsStarted` (10 Hz) + én `--`-state ved sessionsslut.
+- `SnapshotIntervalMs` 500 → 1000; eksplicit ydre loop-pacing (FPS-loopets sleep var tidligere det eneste sleep → busy loop i idle).
+- `HardwareSnapshotCollector`: `Accept()` 6× → 1× pr. capture (capture 520 ms → ~80-110 ms).
+- `PawnIoHelper`: 30 s cache + `InvalidateCache()` (PawnIO-warning rydder den ved retry).
+- Visible-window fallback max hvert 2. s; `Visible window candidate`/start-gate-logs throttles 30 s pr. PID.
+- `SystemMonitor`: idle poll 1000 ms, 50 ms når `IsInGame`; `fps-state.json` caches indtil `LastWriteTime` ændres; VRAM-klassificering max hvert 2. s.
+- Native `main.cpp`: `kStateWriteIntervalMs` 2 → 100; `UpdateTargetState(0)` ved exit så overlayet falder straks.
+
+**Måling (idle, intet spil):** UI 0,78 %, monitor-agent 3,91 % af én kerne (`Get-Process` delta/10 s) = ~4,7 % samlet; 0 skrivninger til begge state-filer; ingen `IconGridFpsAgent`; WS ~321 MB; trace ~0,3 KB/s (1 MB/time). FØR: ~60 % + ~120 skrivninger/s.
+
+**Ikke testet:** in-game stien (kræver et rigtigt spil): FPS-agenten skal starte, overlay inden 1-2 s, `fps-state` ~10 Hz, og agenten skal forsvinde ved spil-exit. Test også et spil startet fra IconGrid (config target).
+
+**Filstørrelse:** `HardwareMonitorAgent.cs` ~2.350 linjer (fortsat over 1500-grænsen; udtræk af evidens-/vindues-helpers er stadig backlog jf. ARCHITECTURE_RULES).
+
+**Ikke committet/pushet** (kræver separat godkendelse). BEMÆRK: arbejdstræet indeholder også ændringer fra tidligere session (UsbCopy-sletninger, README/PROJECT_STRUCTURE/Localization), som IKKE er en del af denne ændring.
+
