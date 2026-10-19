@@ -1011,5 +1011,5 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Filstørrelse:** `HardwareMonitorAgent.cs` ~2.350 linjer (fortsat over 1500-grænsen; udtræk af evidens-/vindues-helpers er stadig backlog jf. ARCHITECTURE_RULES).
 
-**Ikke committet/pushet** (kræver separat godkendelse). BEMÆRK: arbejdstræet indeholder også ændringer fra tidligere session (UsbCopy-sletninger, README/PROJECT_STRUCTURE/Localization), som IKKE er en del af denne ændring.
+**Commits + push (2026-10-19):** `85f5b2d` (Fast Copy-fjernelse), `b404caa` (lazy overlay-agenter), `3b3e369` (denne note) er pushet til `origin/main`. Arbejdstræet er rent.
 
