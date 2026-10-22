@@ -29,6 +29,112 @@ internal static class MonitorAgentLifecycle
     public const string RequestStopEventName = @"Local\IconGrid.HardwareMonitorAgent.RequestStop";
 
     /// <summary>
+    /// Well-known per-session request asking the running monitor agent to reset
+    /// the native FPS worker. The agent owns the worker process and its in-memory
+    /// target, so a non-elevated launcher cannot reset either of them directly:
+    /// it can only ask the elevated agent to do it.
+    /// </summary>
+    public const string ResetFpsEventName = @"Local\IconGrid.HardwareMonitorAgent.ResetFps";
+
+    /// <summary>
+    /// Signaled (auto-reset) by the monitor agent after it has stopped the native
+    /// worker and cleared its cached target, so the launcher can report an honest
+    /// result instead of assuming the request was handled.
+    /// </summary>
+    public const string ResetFpsCompletedEventName = @"Local\IconGrid.HardwareMonitorAgent.ResetFpsCompleted";
+
+    /// <summary>
+    /// Creates (or opens) the reset-request event the agent waits on. The caller
+    /// owns the handle for the agent's lifetime.
+    /// </summary>
+    public static EventWaitHandle OpenResetFpsEvent(Action<string>? log = null)
+    {
+        try
+        {
+            return new EventWaitHandle(false, EventResetMode.ManualReset, ResetFpsEventName);
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to open the FPS reset event: {ex.Message}");
+            return new EventWaitHandle(false, EventResetMode.ManualReset);
+        }
+    }
+
+    /// <summary>
+    /// Creates (or opens) the auto-reset event the agent signals after handling a
+    /// reset request.
+    /// </summary>
+    public static EventWaitHandle OpenResetFpsCompletedEvent(Action<string>? log = null)
+    {
+        try
+        {
+            return new EventWaitHandle(false, EventResetMode.AutoReset, ResetFpsCompletedEventName);
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to open the FPS reset-completed event: {ex.Message}");
+            return new EventWaitHandle(false, EventResetMode.AutoReset);
+        }
+    }
+
+    /// <summary>
+    /// Asks the running monitor agent to reset the native FPS worker. Returns
+    /// false when no monitor agent is listening (then the caller must fall back
+    /// to a direct reset).
+    /// </summary>
+    public static bool TrySignalResetFps(Action<string>? log = null)
+    {
+        try
+        {
+            using var resetEvent = EventWaitHandle.OpenExisting(ResetFpsEventName);
+            resetEvent.Set();
+            log?.Invoke($"Signaled the FPS reset event {ResetFpsEventName}.");
+            return true;
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+            log?.Invoke("No monitor agent was listening for an FPS reset request.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to signal the FPS reset event: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Waits for the monitor agent to acknowledge a reset request. The request is
+    /// still handled when this returns false (the agent may be busy); the result
+    /// only tells the launcher whether it can report a confirmed reset.
+    /// </summary>
+    public static bool WaitForResetFpsCompleted(TimeSpan timeout, Action<string>? log = null)
+    {
+        try
+        {
+            using var completedEvent = EventWaitHandle.OpenExisting(ResetFpsCompletedEventName);
+            var completed = completedEvent.WaitOne(timeout);
+            if (!completed)
+            {
+                log?.Invoke(
+                    $"The monitor agent did not acknowledge the FPS reset within {timeout.TotalSeconds:F1}s.");
+            }
+
+            return completed;
+        }
+        catch (WaitHandleCannotBeOpenedException)
+        {
+            log?.Invoke("The FPS reset-completed event was not present.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to wait for the FPS reset acknowledgement: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Creates (or opens) the request-stop event the agent waits on. The caller
     /// owns the handle for the agent's lifetime.
     /// </summary>

@@ -62,6 +62,7 @@ namespace IconGrid.ViewModels
         public string ResetFpsAgentMenuLabel => _localizationState.Get(Language, "ResetFpsAgentMenuLabel");
         public string ResetFpsAgentSuccessMessage => _localizationState.Get(Language, "ResetFpsAgentSuccessMessage");
         public string ResetFpsAgentNoAgentMessage => _localizationState.Get(Language, "ResetFpsAgentNoAgentMessage");
+        public string ResetFpsAgentFailedMessage => _localizationState.Get(Language, "ResetFpsAgentFailedMessage");
         public string MonitorGpuLabel => _localizationState.Get(Language, "MonitorGpuLabel");
         public string HomeTitle => _localizationState.Get(Language, "HomeTitle");
         public string HomeIntroLine1 => _localizationState.Get(Language, "HomeIntroLine1");
@@ -242,6 +243,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(ResetFpsAgentMenuLabel));
             OnPropertyChanged(nameof(ResetFpsAgentSuccessMessage));
             OnPropertyChanged(nameof(ResetFpsAgentNoAgentMessage));
+            OnPropertyChanged(nameof(ResetFpsAgentFailedMessage));
             OnPropertyChanged(nameof(MonitorPingTargetItems));
             OnPropertyChanged(nameof(HomeTitle));
             OnPropertyChanged(nameof(HomeIntroLine1));

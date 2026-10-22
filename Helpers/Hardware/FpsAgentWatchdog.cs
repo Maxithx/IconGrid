@@ -90,4 +90,15 @@ internal sealed class FpsAgentWatchdog
         _lastRestartUtc = nowUtc;
         _stateMissingSinceUtc = null;
     }
+
+    /// <summary>
+    /// Forgets every observation. Used when the launcher explicitly resets the
+    /// pipeline: the previous restart interval and stale-state timer belong to the
+    /// old target and must not delay the fresh start.
+    /// </summary>
+    public void Reset()
+    {
+        _lastRestartUtc = DateTime.MinValue;
+        _stateMissingSinceUtc = null;
+    }
 }

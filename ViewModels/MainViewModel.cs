@@ -14,7 +14,9 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using WMedia = System.Windows.Media;
 using IconGrid.Helpers;
+using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
+using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
 using IconGrid.Models;
 using IconGrid.ViewModels.Launcher;
@@ -1246,65 +1248,79 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
-        /// Resets the native FPS agent so it rescans for a running game on the next tick.
-        /// This is useful when IconGrid started after a game was already running, or when the
-        /// agent is stuck on a stale target. Performs three actions:
-        ///   1. Kills any running IconGridFpsAgent.exe processes.
-        ///   2. Deletes fps-state.json so the agent has no cached target info to fall back on.
-        ///   3. Clears FpsTarget in config.json so the next agent start has no locked target.
-        /// HardwareMonitorAgent (separate elevated process) will pick up the cleared state on
-        /// its next tick and relaunch the native agent cleanly.
+        /// Resets the native FPS agent so it rescans for a running game. This is
+        /// useful when IconGrid started after a game was already running, or when
+        /// the agent is stuck on a stale target.
+        ///
+        /// The launcher runs non-elevated (app.manifest is asInvoker and the
+        /// startup task is "Limited"), while the native worker is started by the
+        /// elevated monitor agent ("IconGrid Monitor" task, "Highest"). The
+        /// launcher therefore cannot stop the worker, and killing it without
+        /// clearing the monitor agent's cached target would only make its watchdog
+        /// restart the worker against the same stale PID. The reset is therefore
+        /// routed through the monitor agent, which:
+        ///   1. stops the worker through its graceful stop event (ETW cleanup),
+        ///   2. deletes native-fps-state.json,
+        ///   3. clears every cached/confirmed/sticky target and the watchdog state,
+        ///   4. rescans the foreground and starts the worker again.
+        /// When no monitor agent is listening, a direct best-effort reset is
+        /// performed instead.
         /// </summary>
-        /// <returns>True if a running agent was found and killed; false if the agent was already idle.</returns>
+        /// <returns>True when a reset was performed or requested; false when no agent was running.</returns>
         public bool ResetFpsAgent()
         {
-            bool killedAgent = false;
+            void Log(string message) => AppTrace.Write(message);
 
-            // 1) Kill any running native FPS agent processes.
-            try
+            // 1) Preferred path: ask the elevated monitor agent to reset the
+            //    pipeline it owns.
+            if (MonitorAgentLifecycle.TrySignalResetFps(Log))
             {
-                var agents = System.Diagnostics.Process.GetProcessesByName("IconGridFpsAgent");
-                foreach (var proc in agents)
+                var confirmed = MonitorAgentLifecycle.WaitForResetFpsCompleted(TimeSpan.FromSeconds(3), Log);
+                Log($"FPS agent reset requested by the launcher. MonitorConfirmed={confirmed}.");
+                return true;
+            }
+
+            // 2) No monitor agent is listening. Reset whatever is left directly.
+            //    A kill can fail with access denied when an orphaned elevated worker
+            //    is still alive; that must surface as a real error instead of being
+            //    reported as "the agent was not running".
+            bool agentFound = false;
+            foreach (var proc in Process.GetProcessesByName("IconGridFpsAgent"))
+            {
+                using (proc)
                 {
-                    try
+                    if (proc.HasExited)
                     {
-                        using (proc)
-                        {
-                            if (!proc.HasExited)
-                            {
-                                proc.Kill(entireProcessTree: true);
-                                proc.WaitForExit(1000);
-                                killedAgent = true;
-                            }
-                        }
+                        continue;
                     }
-                    catch
-                    {
-                        // Process may have exited between GetProcessesByName and our check; ignore.
-                    }
+
+                    agentFound = true;
+                    proc.Kill(entireProcessTree: true);
+                    proc.WaitForExit(2000);
                 }
             }
-            catch
-            {
-                // GetProcessesByName failure is non-fatal — we'll still clear the file/config.
-            }
 
-            // 2) Delete the native agent state file. The agent writes it under ConfigManager.BaseDirectory.
-            try
+            // 3) Delete the cached state files. native-fps-state.json is the native
+            //    worker's own state; fps-state.json is the monitor agent's published
+            //    snapshot (recreated on the next tick, but there is no reason to
+            //    leave it stale).
+            foreach (var stateFileName in new[] { "native-fps-state.json", "fps-state.json" })
             {
-                var configManager = new IconGrid.Helpers.Settings.ConfigManager();
-                var fpsStatePath = System.IO.Path.Combine(configManager.BaseDirectory, "fps-state.json");
-                if (System.IO.File.Exists(fpsStatePath))
+                try
                 {
-                    System.IO.File.Delete(fpsStatePath);
+                    var statePath = Path.Combine(_configManager.BaseDirectory, stateFileName);
+                    if (File.Exists(statePath))
+                    {
+                        File.Delete(statePath);
+                    }
+                }
+                catch
+                {
+                    // Best-effort cleanup.
                 }
             }
-            catch
-            {
-                // Best-effort cleanup.
-            }
 
-            // 3) Clear the locked FpsTarget in config so the agent starts in foreground-first mode.
+            // 4) Clear the locked target so the next worker start is foreground-first.
             try
             {
                 _config.FpsTarget = new FpsTargetConfig();
@@ -1313,11 +1329,11 @@ namespace IconGrid.ViewModels
             }
             catch
             {
-                // Best-effort — even if save fails, the running agent is already killed and will
-                // pick up the cleared config on next HardwareMonitorAgent tick.
+                // Best-effort — the worker is already gone.
             }
 
-            return killedAgent;
+            Log($"FPS agent reset performed directly by the launcher. AgentWasRunning={agentFound}.");
+            return agentFound;
         }
 
         /// <summary>

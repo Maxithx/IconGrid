@@ -1013,3 +1013,27 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Commits + push (2026-10-19):** `85f5b2d` (Fast Copy-fjernelse), `b404caa` (lazy overlay-agenter), `3b3e369` (denne note) er pushet til `origin/main`. Arbejdstræet er rent.
 
+
+## Session findings (2026-10-22) — "Reset FPS-agent" gjort funktionel (event-baseret reset)
+
+**Bruger-ønske:** gennemgå menupunktet "Nulstil FPS-agent" på IconGrid-logoets højreklik-menu.
+
+**Gennemgang (før fix) — 3 strukturelle fejl:**
+1. Launcheren er non-elevated (`app.manifest` = `asInvoker`, startup-task `IconGrid` = `Limited`), mens FPS-agenten startes af `IconGrid Monitor`-tasken (`Highest`). `Process.Kill()` gav derfor `Access denied`, som blev slugt i en tom `catch` → falsk besked "FPS-agent kørte ikke".
+2. Der blev slettet `fps-state.json` (monitor-agentens publicerede snapshot, genskabes på næste tick). Native agentens egen state er `native-fps-state.json` — og agenten læser den aldrig ved opstart, så sletningen havde ingen effekt.
+3. Monitor-agentens in-memory target (`currentForegroundGamePid`, `confirmedForegroundGamePid`, sticky/rejected/override, watchdog) blev ikke ryddet. Watchdoggen genstartede endda agenten med `LastForegroundGamePid` → samme forældede PID.
+
+**Fix (event-baseret, følger RequestStop-mønstret der allerede virker fra non-elevated):**
+- `Helpers/Hardware/MonitorAgentLifecycle.cs`: nye events `Local\IconGrid.HardwareMonitorAgent.ResetFps` (ManualReset request) + `...ResetFpsCompleted` (AutoReset kvittering) samt `TrySignalResetFps()` / `WaitForResetFpsCompleted()`.
+- `HardwareMonitorAgent`: åbner begge events efter mutex-overtagelse. Ved reset: graceful `Stop()` af native agent (ETW cleanup), slet `native-fps-state.json`, nulstil ALLE sticky/confirmed/override/watchdog-felter, tving foreground-poll i samme iteration, kvittér via completed-event.
+- `FpsAgentWatchdog.Reset()`: glemmer tidligere restart-interval/stale-timer.
+- `MainViewModel.ResetFpsAgent()`: signalerer monitor-agenten og venter op til 3 s på kvittering; kun hvis ingen monitor-agent lytter, køres direkte fallback (kill + slet BEGGE state-filer + ryd `FpsTarget`). Kill-fejl kastes nu videre i stedet for at blive skjult.
+- `Views/Launcher/MainWindow.xaml.cs`: handleren er nu `async` og kører reset via `Task.Run` (ingen UI-frys); fejlbeskeden er lokaliseret.
+- Lokalisering: ny nøgle `ResetFpsAgentFailedMessage` (en+da); success-teksten opdateret (scanner straks, ikke "næste tick").
+
+**Build/deploy:** `dotnet build IconGrid.csproj` → **Build succeeded, 0 fejl**. `deploy-test.cmd` → Done. Verificeret: `bin\Debug\...\IconGrid.dll` og `C:\icongrid\IconGrid.dll` = **22-10-2026 22:58:06**.
+
+**Bruger-test:** start IconGrid fra `C:\IconGrid` → højreklik logo → "Nulstil FPS-agent" → forvent i `%APPDATA%\IconGrid\trace.log`: `FPS agent reset requested by the launcher`, `FPS agent reset completed; rescanning for a running game`, `FPS agent reset requested by the launcher. MonitorConfirmed=True`. Med et kørende spil skal agenten starte igen inden for ~1-2 s uden at IconGrid genstartes.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+

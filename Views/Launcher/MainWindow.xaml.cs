@@ -841,12 +841,14 @@ namespace IconGrid.Views.Launcher
             menu.Items.Add(resetFps);
         }
 
-        private void LogoMenuResetFpsAgent_Click(object sender, RoutedEventArgs e)
+        private async void LogoMenuResetFpsAgent_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var killedAgent = _viewModel.ResetFpsAgent();
-                var message = killedAgent
+                // The reset is routed through the elevated monitor agent and waits
+                // for its acknowledgement, so it must not run on the UI thread.
+                var resetDone = await Task.Run(() => _viewModel.ResetFpsAgent());
+                var message = resetDone
                     ? _viewModel.ResetFpsAgentSuccessMessage
                     : _viewModel.ResetFpsAgentNoAgentMessage;
                 System.Windows.MessageBox.Show(
@@ -860,7 +862,7 @@ namespace IconGrid.Views.Launcher
             {
                 System.Windows.MessageBox.Show(
                     this,
-                    $"FPS agent reset failed: {ex.Message}",
+                    $"{_viewModel.ResetFpsAgentFailedMessage} {ex.Message}",
                     "IconGrid",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);

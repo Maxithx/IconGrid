@@ -235,6 +235,8 @@ public static class HardwareMonitorAgent
         // still waiting for a takeover never consumes its own stop request.
         using var requestStopEvent = MonitorAgentLifecycle.OpenRequestStopEvent(log);
         MonitorAgentLifecycle.ClearStopRequest(requestStopEvent);
+        using var resetFpsEvent = MonitorAgentLifecycle.OpenResetFpsEvent(log);
+        using var resetFpsCompletedEvent = MonitorAgentLifecycle.OpenResetFpsCompletedEvent(log);
         var launcherPresence = new LauncherPresenceTracker();
 
         var parentPid = TryReadParentPid(args);
@@ -333,6 +335,51 @@ public static class HardwareMonitorAgent
                 {
                     log?.Invoke("Exiting because a monitor agent stop was requested.");
                     break;
+                }
+
+                // Launcher-requested reset: stop the native worker through the
+                // graceful path (it cleans up its ETW session) and drop EVERY
+                // cached target. The launcher runs non-elevated, so it cannot kill
+                // this worker, and even a kill would just make the watchdog
+                // restart it against the same stale PID. Only the agent that owns
+                // the worker can reset the pipeline for real.
+                if (resetFpsEvent?.WaitOne(0) == true)
+                {
+                    log?.Invoke(
+                        "FPS agent reset requested by the launcher: stopping the native FPS worker and clearing every cached target.");
+
+                    if (nativeFpsStarted)
+                    {
+                        nativeFpsAgent.Stop();
+                        nativeFpsStarted = false;
+                    }
+
+                    TryDeleteFile(nativeFpsStatePath, log);
+
+                    currentForegroundGamePid = null;
+                    confirmedForegroundGamePid = null;
+                    hadConfirmedGameSession = false;
+                    foregroundOverridePid = null;
+                    overrideExpiresAtUtc = null;
+                    currentForegroundPidObservedAtUtc = null;
+                    rejectedForegroundPid = null;
+                    rejectedForegroundPidCooldownUntilUtc = null;
+                    stickyChallengerPid = null;
+                    stickyChallengerSinceUtc = null;
+                    lastTargetWasForegroundWindow = null;
+                    lastTargetBecameForegroundAtUtc = DateTime.MinValue;
+                    activeFpsTargetSignature = string.Empty;
+                    nativeFpsLoggedSummary = string.Empty;
+                    fpsAgentWatchdog.Reset();
+
+                    // Scan the foreground on this iteration instead of waiting up
+                    // to a full poll interval.
+                    foregroundPollCounter = ForegroundPollIntervalMs / SnapshotIntervalMs;
+
+                    resetFpsEvent.Reset();
+                    resetFpsCompletedEvent?.Set();
+
+                    log?.Invoke("FPS agent reset completed; rescanning for a running game.");
                 }
 
                 // An agent started without a launcher parent (Task Scheduler) has no
@@ -2114,6 +2161,22 @@ exit:
                normalized.Equals("EADesktop", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("EpicGamesLauncher", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("launcher", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void TryDeleteFile(string path, Action<string>? log)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+                log?.Invoke($"Deleted {Path.GetFileName(path)} so the next native FPS start has no cached state.");
+            }
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to delete {Path.GetFileName(path)}: {ex.Message}");
+        }
     }
 
     private static void TryClearStaleFpsTargetConfig(
