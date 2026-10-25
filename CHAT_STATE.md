@@ -1154,3 +1154,21 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Ikke committet/pushet** (kræver separat godkendelse).
 
+
+## Session findings (2026-10-25) — Settings-vinduets størrelse huskes
+
+**Ændring:** Settings-vinduet gemmer nu sin størrelse (og maksimerede tilstand) ved luk, og gendanner den ved næste åbning. Positionen blev allerede gemt; den gemmes fortsat kun i normal tilstand, så et maksimeret vindue ikke overskriver restore-positionen.
+
+- `Models/ConfigModel.cs`: nye `SettingsWindowWidth`, `SettingsWindowHeight` (double?) og `SettingsWindowIsMaximized` (bool).
+- `ViewModels/Settings/MainViewModelConfigState.cs` + `MainViewModelSettingsState.cs` + `MainViewModelSettingsPersistence.cs`: mapping til/fra config.
+- `ViewModels/Launcher/WindowStateStore.cs`: `TryGetSavedSettingsWindowBounds(...)` (position/størrelse rapporteres som `double.NaN` når de ikke er gemt) + `SaveSettingsWindowBounds(...)`; `ApplyConfig` udvidet.
+- `ViewModels/MainViewModel.cs`: `TryGetSavedSettingsWindowBounds` / `SaveSettingsWindowBounds` (én config-skrivning ved luk).
+- `Views/Settings/SettingsWindow.xaml.cs`: `TryApplySavedPosition` → `TryApplySavedBounds` (position, størrelse og max-state; størrelsen kappes til virtual desktop), `SaveWindowBounds()` ved `Closed` (bruger `RestoreBounds` når maksimeret/minimeret), `LocationChanged` ignorerer ikke-normal tilstand.
+- `Views/Settings/SettingsWindowCoordinator.cs` + `Views/Launcher/GamingOverlayWindow.xaml.cs`: opdateret til `TryApplySavedBounds()`.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 25-10-2026 23:34:25 i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`.
+
+**Test for brugeren:** åbn Indstillinger, gør vinduet større (eller maksimér), luk, åbn igen → samme størrelse. Genstart IconGrid for at bekræfte at størrelsen også overlever app-restart (config skrives ved luk).
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+

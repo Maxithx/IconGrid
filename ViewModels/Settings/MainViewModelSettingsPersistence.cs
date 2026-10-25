@@ -51,6 +51,9 @@ namespace IconGrid.ViewModels.Settings
                 config.WindowTop = state.WindowTop;
                 config.SettingsWindowLeft = state.SettingsWindowLeft;
                 config.SettingsWindowTop = state.SettingsWindowTop;
+                config.SettingsWindowWidth = state.SettingsWindowWidth;
+                config.SettingsWindowHeight = state.SettingsWindowHeight;
+                config.SettingsWindowIsMaximized = state.SettingsWindowIsMaximized;
                 config.GamingOverlayWindowLeft = state.GamingOverlayWindowLeft;
                 config.GamingOverlayWindowTop = state.GamingOverlayWindowTop;
                 config.FloatingIconLeft = state.FloatingIconLeft;

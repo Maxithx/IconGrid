@@ -38,6 +38,9 @@ namespace IconGrid.ViewModels.Settings
         public double? WindowTop { get; set; }
         public double? SettingsWindowLeft { get; set; }
         public double? SettingsWindowTop { get; set; }
+        public double? SettingsWindowWidth { get; set; }
+        public double? SettingsWindowHeight { get; set; }
+        public bool SettingsWindowIsMaximized { get; set; }
         public double? GamingOverlayWindowLeft { get; set; }
         public double? GamingOverlayWindowTop { get; set; }
         public double? FloatingIconLeft { get; set; }

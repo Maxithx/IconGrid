@@ -65,6 +65,9 @@ namespace IconGrid.ViewModels.Settings
         public double? WindowTop { get; init; }
         public double? SettingsWindowLeft { get; init; }
         public double? SettingsWindowTop { get; init; }
+        public double? SettingsWindowWidth { get; init; }
+        public double? SettingsWindowHeight { get; init; }
+        public bool SettingsWindowIsMaximized { get; init; }
         public double? GamingOverlayWindowLeft { get; init; }
         public double? GamingOverlayWindowTop { get; init; }
         public double? FloatingIconLeft { get; init; }
@@ -115,6 +118,9 @@ namespace IconGrid.ViewModels.Settings
                 WindowTop = config.WindowTop,
                 SettingsWindowLeft = config.SettingsWindowLeft,
                 SettingsWindowTop = config.SettingsWindowTop,
+                SettingsWindowWidth = config.SettingsWindowWidth,
+                SettingsWindowHeight = config.SettingsWindowHeight,
+                SettingsWindowIsMaximized = config.SettingsWindowIsMaximized,
                 GamingOverlayWindowLeft = config.GamingOverlayWindowLeft,
                 GamingOverlayWindowTop = config.GamingOverlayWindowTop,
                 FloatingIconLeft = config.FloatingIconLeft,

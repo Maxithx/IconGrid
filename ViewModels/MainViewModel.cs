@@ -1225,6 +1225,19 @@ namespace IconGrid.ViewModels
             SaveSettingsToConfig();
         }
 
+        public bool TryGetSavedSettingsWindowBounds(out double left, out double top, out double width,
+            out double height, out bool isMaximized)
+        {
+            return _windowStateStore.TryGetSavedSettingsWindowBounds(out left, out top, out width, out height,
+                out isMaximized);
+        }
+
+        public void SaveSettingsWindowBounds(double left, double top, double width, double height, bool isMaximized)
+        {
+            _windowStateStore.SaveSettingsWindowBounds(left, top, width, height, isMaximized);
+            SaveSettingsToConfig();
+        }
+
         public bool TryGetSavedGamingOverlayWindowPosition(out double left, out double top)
         {
             return _windowStateStore.TryGetSavedGamingOverlayWindowPosition(out left, out top);

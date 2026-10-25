@@ -858,7 +858,7 @@ namespace IconGrid.Views
                 // foreground. Do NOT override Owner here (an explicit Owner would undo that).
                 settingsWindow = new SettingsWindow(_viewModel, openGamingOverlay: true);
 
-                if (!settingsWindow.TryApplySavedPosition() && settingsWindow.Owner != null)
+                if (!settingsWindow.TryApplySavedBounds() && settingsWindow.Owner != null)
                 {
                     settingsWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 }

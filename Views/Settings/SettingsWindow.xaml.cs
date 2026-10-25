@@ -140,17 +140,45 @@ namespace IconGrid.Views
 
         private void SettingsWindow_LocationChanged(object? sender, EventArgs e)
         {
+            // Only the normal-state position is meaningful; while maximized WPF reports
+            // the maximized frame position, which must not replace the restore position.
+            if (WindowState != WindowState.Normal)
+                return;
+
             _viewModel.SaveSettingsWindowPosition(Left, Top);
         }
 
         private void SettingsWindow_Closed(object? sender, EventArgs e)
         {
+            SaveWindowBounds();
             LocationChanged -= SettingsWindow_LocationChanged;
             Closed -= SettingsWindow_Closed;
             Loaded -= SettingsWindow_Loaded;
             Unloaded -= SettingsWindow_Unloaded;
             _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
             DetachDevOverlayHandlers();
+        }
+
+        /// <summary>
+        /// Persists the final window bounds so the next time the settings window opens it
+        /// starts at the same size (and position). While maximized, <see cref="Window.RestoreBounds"/>
+        /// holds the normal bounds, so the normal size survives a maximize/close cycle too.
+        /// </summary>
+        private void SaveWindowBounds()
+        {
+            var bounds = WindowState == WindowState.Normal
+                ? new Rect(Left, Top, ActualWidth, ActualHeight)
+                : RestoreBounds;
+
+            if (double.IsNaN(bounds.Left) || double.IsNaN(bounds.Top) ||
+                double.IsNaN(bounds.Width) || double.IsNaN(bounds.Height) ||
+                bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return;
+            }
+
+            _viewModel.SaveSettingsWindowBounds(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
+                WindowState == WindowState.Maximized);
         }
 
         private void SettingsWindow_Loaded(object? sender, RoutedEventArgs e)
@@ -587,17 +615,42 @@ namespace IconGrid.Views
             return false;
         }
 
-        public bool TryApplySavedPosition()
+        /// <summary>
+        /// Applies the persisted position, size and maximized state, if any. Position and size
+        /// are optional independently, so older configs that only stored a position keep working.
+        /// </summary>
+        public bool TryApplySavedBounds()
         {
-            if (_viewModel.TryGetSavedSettingsWindowPosition(out var left, out var top))
+            if (!_viewModel.TryGetSavedSettingsWindowBounds(out var left, out var top, out var width,
+                    out var height, out var isMaximized))
+            {
+                return false;
+            }
+
+            if (!double.IsNaN(width) && !double.IsNaN(height) && width > 0 && height > 0)
+            {
+                // Never restore a window larger than the current virtual desktop (a monitor may
+                // have been removed or the resolution may have changed since it was saved).
+                var maxWidth = SystemParameters.VirtualScreenWidth;
+                var maxHeight = SystemParameters.VirtualScreenHeight;
+                Width = Math.Max(MinWidth, maxWidth > 0 ? Math.Min(width, maxWidth) : width);
+                Height = Math.Max(MinHeight, maxHeight > 0 ? Math.Min(height, maxHeight) : height);
+            }
+
+            if (!double.IsNaN(left) && !double.IsNaN(top))
             {
                 WindowStartupLocation = WindowStartupLocation.Manual;
                 Left = left;
                 Top = top;
-                return true;
             }
 
-            return false;
+            if (isMaximized)
+            {
+                // The maximize/restore glyph is driven by a style trigger on WindowState.
+                WindowState = WindowState.Maximized;
+            }
+
+            return true;
         }
     }
 }

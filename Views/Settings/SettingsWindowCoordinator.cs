@@ -28,7 +28,7 @@ namespace IconGrid.Views
                 };
             }
 
-            if (!_window.TryApplySavedPosition())
+            if (!_window.TryApplySavedBounds())
             {
                 PositionRelativeToOwner(owner, _window);
             }
