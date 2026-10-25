@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -11,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows.Threading;
 using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Hardware.Storage;
 using IconGrid.Helpers.Settings;
 
 namespace IconGrid.Helpers
@@ -64,6 +66,8 @@ namespace IconGrid.Helpers
             IPAddress.Parse("8.8.8.8"),  // Google
         };
 
+        private static readonly JsonSerializerOptions NativeStateJsonOptions = new(JsonSerializerDefaults.Web);
+
         private readonly Dispatcher _dispatcher;
         private readonly string _monitorStatePath;
         private readonly string _fpsStatePath;
@@ -75,6 +79,14 @@ namespace IconGrid.Helpers
         private DateTime _fpsStateWriteUtc = DateTime.MinValue;
         private FpsState? _fpsStateCache;
         private bool _fpsStateCacheInitialized;
+
+        // Cached read of the native agent's full state record. The shared-memory
+        // snapshot only carries a coarse "GameConfirmed" flag; the full record is
+        // what lets the launcher apply the SAME evidence rule as the monitor agent
+        // (primary DXGI/D3D9 presents, trusted launch, game-like dedicated VRAM).
+        private readonly string _nativeAgentStatePath;
+        private DateTime _nativeAgentStateWriteUtc = DateTime.MinValue;
+        private NativeFpsAgentState? _nativeAgentStateCache;
 
         // VRAM classification is comparatively expensive; evaluate it at most
         // every two seconds while a target is tracked.
@@ -253,12 +265,20 @@ namespace IconGrid.Helpers
             }
         }
 
+        /// <summary>
+        /// Physical disks published by the hardware monitor agent. Instances are merged
+        /// in place (matched by disk index) so open SMART expanders on the Hardware page
+        /// keep their state while live activity values update.
+        /// </summary>
+        public ObservableCollection<PhysicalDiskStatus> Disks { get; } = new();
+
         public SystemMonitor()
         {
             _dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
             var configManager = new ConfigManager();
             _monitorStatePath = Path.Combine(configManager.BaseDirectory, "monitor-state.json");
             _fpsStatePath = Path.Combine(configManager.BaseDirectory, "fps-state.json");
+            _nativeAgentStatePath = Path.Combine(configManager.BaseDirectory, "native-fps-state.json");
             InitializeNetworkStats();
 
             _fpsTimer = new DispatcherTimer(DispatcherPriority.Render, _dispatcher)
@@ -337,6 +357,7 @@ namespace IconGrid.Helpers
                     }
 
                     IsPawnIoAvailable = hardware.IsPawnIoAvailable;
+                    ApplyDisks(hardware.Disks);
                 }
 
                 NetworkStatus = network.NetworkStatus;
@@ -350,6 +371,38 @@ namespace IconGrid.Helpers
                 _lastUploadBytes = network.NewUpload;
                 _lastUpdateTime = network.NewUpdateTime;
             }));
+        }
+
+        /// <summary>
+        /// Merge the agent's disk list into <see cref="Disks"/> without replacing the
+        /// existing instances, so WPF keeps item identity (and expander state).
+        /// </summary>
+        private void ApplyDisks(IReadOnlyList<PhysicalDiskStatus>? incoming)
+        {
+            if (incoming == null)
+            {
+                return;
+            }
+
+            for (var i = Disks.Count - 1; i >= 0; i--)
+            {
+                if (!incoming.Any(d => d.Index == Disks[i].Index))
+                {
+                    Disks.RemoveAt(i);
+                }
+            }
+
+            foreach (var disk in incoming.OrderBy(d => d.Index))
+            {
+                var existing = Disks.FirstOrDefault(d => d.Index == disk.Index);
+                if (existing == null)
+                {
+                    Disks.Add(disk);
+                    continue;
+                }
+
+                existing.CopyFrom(disk);
+            }
         }
 
         /// <summary>
@@ -783,11 +836,60 @@ namespace IconGrid.Helpers
             }
         }
 
+        /// <summary>
+        /// Cached read of the native FPS worker's full state file. The shared
+        /// memory snapshot only exposes "GameConfirmed"; the state file carries
+        /// the per-PID evidence (DXGI/D3D9 present counts, trusted launch) that
+        /// the game classification rule needs. Returns null when the file is
+        /// missing, unreadable, or older than the freshness window.
+        /// </summary>
+        private NativeFpsAgentState? ReadNativeAgentState()
+        {
+            try
+            {
+                var info = new FileInfo(_nativeAgentStatePath);
+                if (!info.Exists)
+                {
+                    _nativeAgentStateCache = null;
+                    _nativeAgentStateWriteUtc = DateTime.MinValue;
+                    return null;
+                }
+
+                if (_nativeAgentStateCache == null || info.LastWriteTimeUtc != _nativeAgentStateWriteUtc)
+                {
+                    using var stream = new FileStream(
+                        _nativeAgentStatePath,
+                        FileMode.Open,
+                        FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+                    using var reader = new StreamReader(stream);
+                    var json = reader.ReadToEnd();
+                    _nativeAgentStateCache = JsonSerializer.Deserialize<NativeFpsAgentState>(
+                        json,
+                        NativeStateJsonOptions);
+                    _nativeAgentStateWriteUtc = info.LastWriteTimeUtc;
+                }
+
+                var state = _nativeAgentStateCache;
+                if (state == null || DateTime.UtcNow - state.CapturedAtUtc > TimeSpan.FromSeconds(10))
+                {
+                    return null;
+                }
+
+                return state;
+            }
+            catch
+            {
+                return _nativeAgentStateCache;
+            }
+        }
+
         private void FpsTimer_Tick(object? sender, EventArgs e)
         {
             UpdateClock();
 
             var nativeFpsState = NativeFpsSharedMemory.TryRead();
+            var nativeAgentState = ReadNativeAgentState();
             var fpsState = ReadFpsState();
             var nativeFpsValue = nativeFpsState?.FpsValue;
             var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0 &&
@@ -807,27 +909,47 @@ namespace IconGrid.Helpers
             // anything else (0 or unavailable shared memory) means no game is tracked.
             var trackedGamePid = nativeFpsState?.TargetPid ?? 0;
 
-            // The native agent only publishes a target PID for a confirmed game, so
-            // this preserves existing behavior — but the overlay now also follows
-            // the VRAM rule, so a game that holds game-like dedicated VRAM shows up
-            // even when the native agent had no application-level present evidence
-            // (emulators / older titles). A shell process never qualifies: it holds
-            // a few MB, far below the game floor.
+            // The native agent only publishes a target PID for a confirmed game.
+            // That confirmation is NOT sufficient on its own: the native worker
+            // also confirms on DxgKrnl-only kernel presents, which shell processes
+            // (explorer.exe, Task Manager, Command Palette) emit. Measured
+            // 2026-10-23: explorer.exe was held as the tracked target while COD
+            // was running, so IsInGame stayed true the whole time and the overlay
+            // never auto-showed for the real game (false -> true transition never
+            // happened). IsInGame therefore uses the SAME evidence rule as the
+            // monitor agent: application-level DXGI/D3D9 presents, game-like
+            // dedicated VRAM, or a trusted launch started through IconGrid.
             var nativeGameEvidence = GameEvidenceVerdict.Unknown;
+            NativeFpsAgentState? evidenceState = null;
+            var hasPrimaryGraphicsEvidence = false;
+            var isTrustedLaunch = false;
             if (trackedGamePid > 0)
             {
+                evidenceState = nativeAgentState != null && nativeAgentState.TargetPid == trackedGamePid
+                    ? nativeAgentState
+                    : null;
+
                 if (_gameEvidencePid != trackedGamePid ||
                     DateTime.UtcNow - _gameEvidenceCheckedUtc >= GameEvidenceCacheAge)
                 {
                     _gameEvidencePid = trackedGamePid;
                     _gameEvidenceCheckedUtc = DateTime.UtcNow;
-                    _gameEvidenceVerdict = GameVramEvidence.Evaluate(trackedGamePid, null, DateTime.UtcNow, out _);
+                    _gameEvidenceVerdict = GameVramEvidence.Evaluate(
+                        trackedGamePid,
+                        evidenceState,
+                        DateTime.UtcNow,
+                        out _);
                 }
 
                 nativeGameEvidence = _gameEvidenceVerdict;
+                hasPrimaryGraphicsEvidence = evidenceState != null &&
+                                             GameProcessClassifier.HasPrimaryGraphicsEvidence(evidenceState);
+                isTrustedLaunch = evidenceState?.TrustedLaunch == true;
             }
-            var isGameTarget = nativeFpsState?.GameConfirmed == true ||
-                               nativeGameEvidence == GameEvidenceVerdict.Game;
+
+            var isGameTarget = nativeGameEvidence == GameEvidenceVerdict.Game ||
+                               hasPrimaryGraphicsEvidence ||
+                               (isTrustedLaunch && nativeFpsState?.GameConfirmed == true);
             SetInGame(trackedGamePid > 0 && isGameTarget);
             if (!hasNativeFps && fpsState == null)
             {

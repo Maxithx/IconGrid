@@ -8,6 +8,7 @@ public static class HardwareMonitorTaskManager
 {
     private const string MonitorAgentArgument = "--monitor-agent";
     private const string ShutdownEventArgument = "--shutdown-event";
+    private const string MonitorTaskName = "IconGrid Monitor";
 
     // Kept alive for the lifetime of this (launcher) process. The spawned agent
     // opens the event by name at startup and can only do that while at least one
@@ -65,6 +66,62 @@ public static class HardwareMonitorTaskManager
         catch (Exception ex)
         {
             log?.Invoke($"Failed to launch hardware monitor agent: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Starts the elevated monitor agent through its already-registered scheduled
+    /// task instead of a new <c>runas</c> launch. The task runs with highest
+    /// privileges without a UAC prompt, which is what the watchdog needs: a
+    /// silent agent restart must never show a consent dialog.
+    /// </summary>
+    public static bool TryRunScheduledMonitorTask(Action<string>? log = null, int waitMilliseconds = 10000)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "schtasks.exe",
+                Arguments = $"/run /tn \"{MonitorTaskName}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                log?.Invoke($"Could not start the '{MonitorTaskName}' scheduled task: no process was created.");
+                return false;
+            }
+
+            if (!process.WaitForExit(waitMilliseconds))
+            {
+                try
+                {
+                    process.Kill();
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                log?.Invoke($"Timed out while starting the '{MonitorTaskName}' scheduled task.");
+                return false;
+            }
+
+            if (process.ExitCode == 0)
+            {
+                log?.Invoke($"Started the '{MonitorTaskName}' scheduled task.");
+                return true;
+            }
+
+            log?.Invoke($"Could not start the '{MonitorTaskName}' scheduled task (exit code {process.ExitCode}).");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Failed to run the '{MonitorTaskName}' scheduled task: {ex.Message}");
             return false;
         }
     }

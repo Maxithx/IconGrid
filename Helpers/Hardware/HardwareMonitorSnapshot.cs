@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using IconGrid.Helpers.Hardware.Storage;
 
 namespace IconGrid.Helpers.Hardware;
 
@@ -18,4 +20,10 @@ public sealed class HardwareMonitorSnapshot
     public double? GpuUsagePercent { get; set; }
     public string? GpuName { get; set; }
     public bool IsPawnIoAvailable { get; set; }
+
+    /// <summary>
+    /// Physical disks (identity, health, SMART, power state) for the Hardware page.
+    /// Collected by the elevated agent because SMART and ATA pass-through need admin.
+    /// </summary>
+    public List<PhysicalDiskStatus>? Disks { get; set; }
 }

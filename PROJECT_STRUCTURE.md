@@ -129,6 +129,7 @@ Helpers\
 │   ├── BooleanToAngleConverter.cs        InverseBoolConverter.cs
 │   ├── BoolToBrushConverter.cs           InverseBoolToVisibilityConverter.cs
 │   ├── BoolToVisibilityConverter.cs      LayoutSlotLabelConverter.cs
+│   ├── DiskHealthToBrushConverter.cs     DiskStateLocalizationConverter.cs
 │   ├── DoubleToLeftMarginConverter.cs    LayoutSlotMatchConverter.cs
 │   ├── PercentToHeightConverter.cs       PingSeverityToBrushConverter.cs
 │   ├── ScrollButtonsVisibilityConverter.cs  SelectedTabMatchConverter.cs
@@ -148,7 +149,14 @@ Helpers\
     ├── HardwareSnapshotCollector.cs
     ├── NativeFpsAgentRunner.cs, NativeFpsAgentState.cs, NativeFpsSharedMemory.cs
     ├── PresentMonFpsProvider.cs          # Optional PresentMon-backed path
-    └── SmBiosMemoryParser.cs
+    ├── SmBiosMemoryParser.cs
+    └── Storage\                          # Disk inventory, SMART, ATA power state
+        ├── PhysicalDiskStatus.cs, SmartAttributeStatus.cs
+        ├── DiskInventoryReader.cs        # WMI identity/health/media type (no wake)
+        ├── StorageSmartReader.cs         # LibreHardwareMonitor SMART (slow cadence)
+        ├── AtaDriveReader.cs             # ATA CHECK POWER MODE + IDENTIFY word 217
+        ├── DiskActivityReader.cs         # Live I/O via Win32_PerfFormattedData
+        └── DiskStatusCollector.cs        # Cadence orchestration + SMART cache
 ├── Launcher\                         # Launcher runtime behaviour (window/state/telemetry)
 │   ├── DevOverlayController.cs           LayoutMenuController.cs
 │   ├── DisplayResolutionService.cs       MonitorPollingController.cs

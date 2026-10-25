@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl x:Class="IconGrid.Views.HardwarePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -11,6 +11,51 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <helpers:BooleanToAngleConverter x:Key="HardwareExpanderAngleConverter" />
+        <helpers:DiskStateLocalizationConverter x:Key="DiskStateTextConverter" />
+        <helpers:DiskHealthToBrushConverter x:Key="DiskHealthBrushConverter" />
+
+        <!--
+            Text styles used inside the disk list. The shared template styles bind
+            Foreground to the *DataContext*, which inside the item template is a
+            PhysicalDiskStatus (no theme properties) and therefore falls back to black.
+            These bind to the Window DataContext (MainViewModel) instead, so the disk
+            section follows the Windows 11 light/dark theme like the rest of the page.
+        -->
+        <Style x:Key="HardwareDiskTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="HardwareDiskSmallTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="HardwareDiskTemperatureStyle" TargetType="TextBlock" BasedOn="{StaticResource HardwareDiskSmallTextStyle}">
+            <Style.Triggers>
+                <!-- 40 °C and above: warning. -->
+                <DataTrigger Binding="{Binding IsTemperatureWarm}" Value="True">
+                    <Setter Property="Foreground" Value="#F59E0B" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+                <!-- 50 °C and above: critical. Must be last so it wins over the warning trigger. -->
+                <DataTrigger Binding="{Binding IsTemperatureHot}" Value="True">
+                    <Setter Property="Foreground" Value="#EF4444" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="HardwareDiskChipStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Background" Value="#26FFFFFF" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="#14000000" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
 
         <Style x:Key="HardwareHeroExpanderToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
@@ -764,6 +809,249 @@
                                                 </StackPanel>
                                             </Border>
                                         </WrapPanel>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
+                        </Border>
+                        <!-- Disks card -->
+                        <Border Style="{StaticResource StartsideSectionCardStyle}"
+                                helpers:DevInspector.Metadata="Disks card -> Views/HardwarePage.xaml">
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="Disks card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Count | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding HardwareDisksTitleText}"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource HardwareDiskTitleStyle}" />
+                                            <Border Grid.Column="1"
+                                                    MinWidth="76"
+                                                    Padding="12,6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding AccentBrush}"
+                                                    CornerRadius="12">
+                                                <TextBlock Text="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareDisksIntroText}"
+                                                   TextWrapping="Wrap"
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+                                        <ItemsControl ItemsSource="{Binding DataContext.SystemMonitor.Disks, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,0,0,8">
+                                                        <StackPanel>
+                                                            <!-- Model + drive letter + health chip -->
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding ModelText}"
+                                                                           Style="{StaticResource HardwareDiskTitleStyle}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Grid.Column="1"
+                                                                        Margin="8,0,0,0"
+                                                                        Style="{StaticResource HardwareDiskChipStyle}"
+                                                                        VerticalAlignment="Center"
+                                                                        Visibility="{Binding HasDriveLetters, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <TextBlock Text="{Binding DriveLetters}"
+                                                                               FontSize="12"
+                                                                               FontWeight="SemiBold"
+                                                                               VerticalAlignment="Center"
+                                                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                </Border>
+                                                                <Border Grid.Column="3" Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                                                 Fill="{Binding Health, Converter={StaticResource DiskHealthBrushConverter}}" />
+                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                            <TextBlock.Text>
+                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskHealth">
+                                                                                    <Binding Path="Health" />
+                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                </MultiBinding>
+                                                                            </TextBlock.Text>
+                                                                        </TextBlock>
+                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                                                   Text="{Binding HealthPercentText}"
+                                                                                   Visibility="{Binding HasHealthPercent, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Grid>
+                                                            <!-- Type / bus / size / temperature / SMART summary -->
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskType">
+                                                                            <Binding Path="MediaType" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding BusType}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding SizeText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding TemperatureText}" Style="{StaticResource HardwareDiskTemperatureStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmart">
+                                                                            <Binding Path="SmartStatus" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </WrapPanel>
+                                                            <!-- SATA HDD spin state (only rotating SATA media) -->
+                                                            <StackPanel Margin="0,10,0,0"
+                                                                        Visibility="{Binding ShowPowerState, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding HardwareDiskPowerLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
+                                                                               VerticalAlignment="Center" />
+                                                                    <Border Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
+                                                                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                            <TextBlock.Text>
+                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPower">
+                                                                                    <Binding Path="PowerState" />
+                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                </MultiBinding>
+                                                                            </TextBlock.Text>
+                                                                        </TextBlock>
+                                                                    </Border>
+                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskActivityLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ActivityText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskIoLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ReadRateText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding WriteRateText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                                                           Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPowerHint">
+                                                                            <Binding Path="PowerState" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                            <!-- SMART attribute details -->
+                                                            <Expander Margin="0,12,0,0" IsExpanded="False">
+                                                                <Expander.Header>
+                                                                    <TextBlock Text="{Binding HardwareDiskSmartTitleText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                </Expander.Header>
+                                                                <StackPanel Margin="0,8,0,0">
+                                                                    <TextBlock Text="{Binding HardwareDiskSmartUnavailableText}"
+                                                                               TextWrapping="Wrap"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
+                                                                               Visibility="{Binding HasNoSmart, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                    <StackPanel Visibility="{Binding HasSmart, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                        <Grid Margin="0,0,0,4">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="44" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="80" />
+                                                                                <ColumnDefinition Width="70" />
+                                                                                <ColumnDefinition Width="100" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <TextBlock Grid.Column="0" Text="ID" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                            <TextBlock Grid.Column="1" Text="{Binding HardwareDiskSmartAttributeColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                            <TextBlock Grid.Column="2" Text="{Binding HardwareDiskSmartValueColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                            <TextBlock Grid.Column="3" Text="{Binding HardwareDiskSmartThresholdColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                            <TextBlock Grid.Column="4" Text="{Binding HardwareDiskSmartStatusColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                        </Grid>
+                                                                        <ItemsControl ItemsSource="{Binding SmartAttributes}">
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Grid Margin="0,3,0,0">
+                                                                                        <Grid.ColumnDefinitions>
+                                                                                            <ColumnDefinition Width="44" />
+                                                                                            <ColumnDefinition Width="*" />
+                                                                                            <ColumnDefinition Width="80" />
+                                                                                            <ColumnDefinition Width="70" />
+                                                                                            <ColumnDefinition Width="100" />
+                                                                                        </Grid.ColumnDefinitions>
+                                                                                        <TextBlock Grid.Column="0" Text="{Binding IdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextTrimming="CharacterEllipsis" />
+                                                                                        <TextBlock Grid.Column="2" Text="{Binding ValueText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                                        <TextBlock Grid.Column="3" Text="{Binding ThresholdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                                        <TextBlock Grid.Column="4" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right">
+                                                                                            <TextBlock.Text>
+                                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmartAttributeStatus">
+                                                                                                    <Binding Path="Status" />
+                                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                                </MultiBinding>
+                                                                                            </TextBlock.Text>
+                                                                                        </TextBlock>
+                                                                                    </Grid>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </Expander>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding HardwareDiskNoDisksText}"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TemplateSmallTextStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </StackPanel>
                                 </Expander.Content>
                             </Expander>

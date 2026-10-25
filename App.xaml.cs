@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
     private bool _isFpsEtwProbeMode;
     private bool _isWindowsStartupLaunch;
     private SingleInstanceGuard? _singleInstanceGuard;
+    private MonitorAgentWatchdog? _monitorAgentWatchdog;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -123,12 +124,26 @@ public partial class App : System.Windows.Application
                     MessageBoxImage.Warning);
             }
             WriteTrace("MainWindow shown");
+
+            // The elevated monitor agent is the only process that detects games.
+            // It has died silently (heap corruption) while the launcher kept
+            // running, which left the gaming overlay with no detection at all.
+            // Supervise its heartbeat and restart it through the scheduled task.
+            _monitorAgentWatchdog = new MonitorAgentWatchdog(WriteTrace);
+            WriteTrace("Hardware monitor agent watchdog started.");
         }
         catch (Exception ex)
         {
             ReportFatal(ex, "startup");
             Shutdown(-1);
         }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _monitorAgentWatchdog?.Dispose();
+        _monitorAgentWatchdog = null;
+        base.OnExit(e);
     }
 
     private void ActivateRunningLauncher()

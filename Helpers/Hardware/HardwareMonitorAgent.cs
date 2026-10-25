@@ -266,6 +266,7 @@ public static class HardwareMonitorAgent
         {
             Directory.CreateDirectory(baseDir);
             using var collector = new HardwareSnapshotCollector();
+            using var diskCollector = new IconGrid.Helpers.Hardware.Storage.DiskStatusCollector();
             using var nativeFpsAgent = new NativeFpsAgentRunner(nativeFpsStatePath, log);
             using var fpsMeter = new FpsMeter(config.GamingOverlayFpsResponsiveness, log);
             var currentForegroundGamePid = default(int?);
@@ -482,6 +483,7 @@ public static class HardwareMonitorAgent
 
                 // Full hardware snapshot (every 500ms)
                 var snapshot = collector.Capture();
+                snapshot.Disks = diskCollector.GetSnapshot().ToList();
                 var nativeFpsStatus = nativeState?.FpsStatus;
                 var nativeFpsValue = nativeState?.FpsValue;
                 var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0;

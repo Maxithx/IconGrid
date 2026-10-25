@@ -3,9 +3,9 @@
 > **Full session history:** `.local-state/session-history.md` (gitignored, searchable via `search_notes`)
 
 ## Current date
-September 19, 2026
+October 23, 2026
 
-> **Seneste session:** se nederst — "Session findings (2026-09-19, del 7) — spil-lukningsstien verificeret". Dagens arbejde er committet + pushet (`75c0b5a`, `b1e8747`, `d8ee3cb`, `9aa7845`). **ÅBENT:** exclusive-fullscreen-test + udtræk af evidens-/vindues-helperne ud af `HardwareMonitorAgent.cs` (~2180 linjer mod 1500-grænsen).
+> **Seneste session:** se nederst — "Session findings (2026-10-25) — Disks-sektion på Hardware-siden (SMART-helbred + SATA-spindeltilstand)". Ny `Helpers/Hardware/Storage/` + Disks-kort i `HardwarePage`; deployet (DLL 25-10 22:25). Forrige: gaming-overlay COD-fix (2026-10-23 aften, DLL 23-10 23:22).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -1034,6 +1034,123 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 **Build/deploy:** `dotnet build IconGrid.csproj` → **Build succeeded, 0 fejl**. `deploy-test.cmd` → Done. Verificeret: `bin\Debug\...\IconGrid.dll` og `C:\icongrid\IconGrid.dll` = **22-10-2026 22:58:06**.
 
 **Bruger-test:** start IconGrid fra `C:\IconGrid` → højreklik logo → "Nulstil FPS-agent" → forvent i `%APPDATA%\IconGrid\trace.log`: `FPS agent reset requested by the launcher`, `FPS agent reset completed; rescanning for a running game`, `FPS agent reset requested by the launcher. MonitorConfirmed=True`. Med et kørende spil skal agenten starte igen inden for ~1-2 s uden at IconGrid genstartes.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+
+## Session findings (2026-10-23, aften) — gaming overlay detekterede ikke COD: monitor-agenten var død + shell-target holdt IsInGame
+
+**Bruger-rapport:** gaming overlay starter ikke automatisk, hvis IconGrid ikke kørte før COD blev startet; lige nu kører COD, men overlayet detekterer ikke spillet.
+
+**BEVIS 1 — monitor-agenten var væk (hovedårsag).**
+- `tasklist` ved sessionens start: kun `IconGrid.exe` (launcher) kørte; INGEN `IconGrid.exe --monitor-agent` og ingen `IconGridFpsAgent.exe`.
+- `trace.log` sidste skrivning fra agenten: **23-10 19:27:58**; COD (`cod22-cod.exe`, PID 6088) blev startet **19:37:26** — dvs. agenten var allerede død før spillet startede.
+- `trace.log` 23:02:25: `No monitor agent was listening for an FPS reset request.` (bekræfter at agenten ikke var der, selv om launcheren kørte).
+- Windows Application-log **23-10 19:28:00**: `IconGrid.exe` crashede med **0xc0000374 (STATUS_HEAP_CORRUPTION)** i `ntdll.dll`, rapport `AppCrash_IconGrid.exe_627ca38...`. Samme signatur gentages **22-10 17:31, 21-10 01:04, 19-10 23:59** — en reel, tilbagevendende heap-korruption i monitor-agent-processen. WER-rapporten viser at `LibreHardwareMonitorLib.dll`, `System.Management.dll` og `System.Diagnostics.PerformanceCounter.dll` er loadet (HardwareSnapshotCollector/GpuProcessMemory/GpuEngineActivity). Den præcise korrumperende native komponent er ikke isoleret endnu; ingen `error.log`-post fordi processen dør før .NET kan logge.
+
+**BEVIS 2 — forkert "sticky target" holdt IsInGame = true (strukturel årsag til "starter ikke hvis IconGrid kom bagefter").**
+- `trace.log` 19:26-19:27 mens COD kørte: `Sticky-target: no game foreground detected. Holding current game PID 11512` + `[NativeFpsAgent] Target=explorer.exe TargetPid=11512 DXGI=0 D3D9=0 DXGKRNL=1/2`.
+- explorer.exe blev altså låst som "spil" (native agentens `--root-pid` + DxgKrnl-kernel-presents gav `gameConfirmed=true`), selv om den kun holdt 260 MB VRAM og ingen DXGI/D3D9-presents havde.
+- `SystemMonitor` brugte `nativeFpsState.GameConfirmed == true` direkte → `IsInGame=true` allerede før COD blev vist. Derfor skete der ingen false→true-overgang, `GameLaunched` fyrede ikke, og overlayet blev aldrig auto-vist for det rigtige spil.
+
+**FIX 1 — `Helpers/Hardware/MonitorAgentWatchdog.cs` (NY).**
+- Launcheren superviserer monitor-agentens heartbeat (`monitor-state.json`, skrives ~1×/s). Mangler/stale >30 s → agenten genstartes via den eksisterende scheduled task `IconGrid Monitor` (`HardwareMonitorTaskManager.TryRunScheduledMonitorTask`, ny) så der IKKE kommer UAC-prompt. Fallback: `StartAgent`.
+- Cooldown 60 s mellem restart-forsøg; 15 s check-interval; heartbeat-baseret (ikke mutex) fordi en elevated agents mutex kan give adgangsfejl for den ikke-elevated launcher.
+- Startes i `App.OnStartup` efter `MainWindow shown`, disposer i ny `App.OnExit`.
+- Beskyttelse mod race: `Interlocked` så to checks ikke genstarter samtidigt.
+
+**FIX 2 — `Helpers/Launcher/SystemMonitor.cs` (evidens-gate).**
+- Læser nu native agentens fulde state (`native-fps-state.json`, cachet pr. LastWriteTime, 10 s freshness) via `ReadNativeAgentState()`.
+- `IsInGame` = `GameEvidenceVerdict.Game` (VRAM ≥500 MB peak eller app-level presents) ELLER `HasPrimaryGraphicsEvidence(state)` (DXGI/D3D9 ≥2) ELLER trusted launch (spil startet via IconGrid). Den rå `GameConfirmed`-flag alene er ikke længere nok.
+- Effekt: explorer/Task Manager/CmdPal kan ikke længere holde `IsInGame=true`; når COD bliver target sker der en ægte false→true-overgang → `GameLaunched` → overlay auto-vises. Samme klassifikationsregel som monitor-agenten (ingen blocklist).
+
+**BUILD + DEPLOY:** `dotnet build IconGrid.csproj` → **Build succeeded, 0 fejl/0 advarsler**. `deploy-test.cmd` → Done. Verificeret: `bin\Debug\net10.0-windows10.0.22621.0\IconGrid.dll` og `C:\IconGrid\IconGrid.dll` = **23-10-2026 23:22**, 1.065.984 bytes.
+
+**LIVE-VERIFIKATION (23:23):** scheduled task `IconGrid Monitor` startet manuelt (samme vej som watchdoggen bruger) → agenten fandt straks COD: `Visible game fallback candidate detected behind IconGrid foreground: PID=6088 Name=cod22-cod`, `Initial foreground game PID detected: 6088`, `Native FPS agent start allowed for PID 6088: verdict=Game`, `[NativeFpsAgent] FPS=159 ... Target=cod22-cod.exe DXGI=8 ... Source=PrimaryApi`, `Snapshot: FPS=159 ... Vram=5,89GB`. Dvs. detektion virker, når agenten kører.
+
+**Bemærkning:** agenten blev startet uden launcher-parent (`ParentPid=0`) og lukker sig selv efter 60 s uden launcher — brugeren skal starte `C:\IconGrid\IconGrid.exe`, så tager launcheren over og watchdoggen holder agenten i live.
+
+**Næste skridt / backlog:**
+- Find den præcise heap-korruption (0xc0000374). Kandidater: `LibreHardwareMonitorLib` (PawnIO/WinRing0-sensorer), PDH via `System.Diagnostics.PerformanceCounter` (`GpuProcessMemory`/`GpuEngineActivity`), `SmBiosMemoryParser`. Anbefaling: aktivér WER LocalDumps for `IconGrid.exe` og analysér dump, eller A/B-test med `IsMotherboardEnabled=false` / counter-læsning midlertidigt slået fra.
+- `visible fallback` logger stadig `cod22-cod ... window 0x0 is too small` for et hjælpe-vindue, mens et andet vindue (2560x1440) accepteres. Kosmetisk støj, ikke en fejl.
+- `external-games.json` indeholder en forkert sti `C:\IconGrid\cod22-cod.exe` (spillet ligger i `E:\Spil\...`) — bør ryddes, så resolutions-lock ikke peger på den forkerte exe.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+
+## Session findings (2026-10-25) — SVG-sidebar-ikoner forsøgt, derefter droppet (PNG-genoptagelse)
+
+**Bruger-ønske (start):** sidebar-ikonerne skulle følge Windows 11 Lys/Mørk + accentfarve, ligesom resten af launcheren. Nye grå SVG'er ligger i `figma-icons/svg/` (Figma-lag-ID'er: `theme-accent-*`, `fixed-light-*`, `fixed-dark-*`).
+
+**Forsøg (nu rullet tilbage):** Home blev konverteret til et tema-styret vektor-ikon via en ny `Controls/Common/SidebarIcon.xaml(.cs)` (`Kind`/`AccentBrush`/`InkBrush`), plus `IconInkBrush` i `LauncherThemeState` + `MainViewModel`. Rettelse undervejs: en `DataTrigger` på `Button.Tag="Selected"` gjorde hele ikonet hvidt — accent-triggeren i `SettingsWindow.xaml` linje ~168 tilhører `BackButtonStyle` (luk-knappen), ikke `NavButtonStyle`; triggeren blev fjernet.
+
+**Bruger-beslutning (2026-10-25):** SVG/vektor-sporet bruges **ikke** alligevel. Det originale PNG-logo (`figma-icons/figma-logo-x4.png`) skal tilbage på Home-ikonet.
+
+**Rullet tilbage (build 0 fejl, deployet — `IconGrid.dll` 25-10-2026 21:58:25 i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`; `C:\icongrid\figma-icons\figma-logo-x4.png` findes):**
+- `Views/Settings/SettingsWindow.xaml`: Home-knappen bruger igen `<Image Source="pack://siteoforigin:,,,/figma-icons/figma-logo-x4.png" .../>`; `xmlns:controls` fjernet.
+- Slettet: `Controls/Common/SidebarIcon.xaml` + `.xaml.cs`.
+- `ViewModels/Launcher/LauncherThemeState.cs` + `ViewModels/MainViewModel.cs`: `IconInkBrush` (property, assignment, OnPropertyChanged) fjernet igen.
+- `PROJECT_STRUCTURE.md`: `SidebarIcon`-linjen fjernet.
+- `.local-state/icon-smoke/` (midlertidigt verifikations-harness) slettet; cheatsheet-afsnit 22 fjernet.
+
+**Status:** Ingen SVG-relateret kode tilbage i repoet. `Views/Settings/SettingsWindow.xaml` er identisk med HEAD (whitespace gendannet via `git checkout`), og Home bruger igen PNG-logoet. `figma-icons/svg/` er fjernet fra disken.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+## Session findings (2026-10-25) — Disks-sektion på Hardware-siden (SMART-helbred + SATA-spindeltilstand)
+
+**Bruger-ønske:** en sektion på `Views/Settings/Pages/HardwarePage.xaml` der viser tilsluttede diske med SMART/helbred, og for SATA-harddiske viser om disken laver I/O eller står i sleep/standby (og dermed om pladerne roterer).
+
+**Arkitektur (alt i den elevated monitor-agent, fordi SMART + ATA pass-through kræver admin):**
+- NY `Helpers/Hardware/Storage/`:
+  - `PhysicalDiskStatus.cs` + `SmartAttributeStatus.cs` — data-model (INotifyPropertyChanged; `[JsonIgnore]` på udregnede visningstekster). Koder er sprogneutrale ("Healthy"/"Standby"/"SSD") og lokaliseres i UI.
+  - `DiskInventoryReader.cs` — WMI `Win32_DiskDrive` + `root\Microsoft\Windows\Storage:MSFT_PhysicalDisk` (identitet, MediaType, BusType, HealthStatus, SpindleSpeed). Waker ikke disken.
+  - `StorageSmartReader.cs` — dedikeret `Computer { IsStorageEnabled = true }` (LHM 0.9.6). **Må ikke ind i den 1 Hz `HardwareSnapshotCollector`** — SMART-læsning kan vække en sovende disk. Status = Failing ved value<=threshold, Warning ved normalized<100 på attributter med threshold, NVMe "Available Spare" under threshold, "Percentage Used" >= 90.
+  - `AtaDriveReader.cs` — `IOCTL_ATA_PASS_THROUGH_DIRECT`: CHECK POWER MODE (0xE5, vækker ikke) + IDENTIFY DEVICE (0xEC, word 217 rotation rate; vækker, derfor cachet).
+  - `DiskActivityReader.cs` — live I/O via WMI `Win32_PerfFormattedData_PerfDisk_PhysicalDisk`.
+  - `DiskStatusCollector.cs` — kadence: inventory 30 s, aktivitet 2 s, power-state 3 s, SMART 10 min **og kun for diske der ikke står i Standby** (første læsning af en aldrig-læst disk undtaget, så helbred kendes).
+- `HardwareMonitorSnapshot` + `Disks` (List<PhysicalDiskStatus>); agenten sætter `snapshot.Disks` hvert tick og disposer collectoren.
+- `SystemMonitor`: `ObservableCollection<PhysicalDiskStatus> Disks` + `ApplyDisks()` der merger pr. index (bevarer item-identitet, så åbne SMART-expandere ikke klapper sammen).
+- `HardwarePage.xaml`: nyt "Disks"-kort efter Memory-kortet; pr. disk model, health-chip (prik+tekst), type/bus/størrelse/temp/SMART-summary, spindeltilstand + aktivitet + læse/skrive-rate (kun HDD+SATA), forklarende hint-tekst, og en SMART-detalje-expander (ID/attribut/værdi/grænse/status).
+- NYE converters: `DiskStateLocalizationConverter` (kode+language → lokaliseret tekst) og `DiskHealthToBrushConverter` (grøn/gul/rød/grå prik).
+- Lokalisering: 35 nye `HardwareDisk*`-nøgler i både en og da + properties/OnPropertyChanged i `MainViewModel.Localization.cs`.
+
+**Rettelse (25-10 22:48) — NVMe-temperatur viste 84 °C:** `StorageSmartReader` tog `Max()` over alle `SensorType.Temperature`-sensorer. LHM rapporterer for Kingston SNV2S1000G: `Composite Temperature=34, Temperature #1=59, #2=71, #3=34, Warning Temperature=74, Critical Temperature=84` — altså var 84 °C **Critical-threshold**, ikke en måling. Retter: vælg `Composite`-sensoren (fallback: første sensor der ikke er Warning/Critical/Threshold). Verificeret i `monitor-state.json`: NVMe = **34 °C**. Sensornavnene logges én gang pr. drev til trace.log (`[StorageSmartReader] ... temperature sensors: ...`) til fremtidig diagnose.
+
+**Rettelse (25-10 22:43) — tekst var sort i mørk tema:** `TemplateSmallTextStyle`/`TemplateCardTitleStyle` sætter `Foreground="{Binding SettingsSubtextForeground/TopBarForeground}"`, men inde i `ItemsControl.ItemTemplate` er DataContext `PhysicalDiskStatus` (ingen tema-properties) → bindingen fejler og teksten blev sort. Nye lokale stile i `HardwarePage.xaml`: `HardwareDiskTitleStyle` og `HardwareDiskSmallTextStyle` (binder til `Window.DataContext.TopBarForeground`/`SettingsSubtextForeground` via `RelativeSource`) samt `HardwareDiskChipStyle` (chip-baggrund `#26FFFFFF` i mørk, `#14000000` i lys via `IsLightTheme`-trigger). 28 small-text-, 2 titel- og 2 chip-referencer i disk-kortet udskiftet.
+
+**Fund undervejs:**
+- `PerformanceCounter`-kategorier/navne er **lokaliseret** på dansk Windows ("PhysicalDisk"/"% Idle Time" findes ikke) → skiftet til WMI `Win32_PerfFormattedData_PerfDisk_PhysicalDisk`, som er sproguafhængig.
+- Ældre SATA-diske (fx WD5000AAKX) rapporterer `MediaType=0` (unspecified) og `SpindleSpeed=0` i WMI → ATA IDENTIFY word 217 bruges som fallback (cachet pr. disk).
+
+**Rettelse (25-10 22:58) — helbreds-%, temperaturfarver og drevbogstaver (HDS-paritet):**
+- **Helbred %** (`HealthPercent`): NVMe → `100 - Percentage Used`; SSD → `SSD Life Left`/`Remaining Life` → `Wear Indicator`/`Media Wearout` → `Wear Leveling` (kun 1-100); HDD → `100 - pending*0.6 - reallocated*1 - uncorrectable*2 - reportedUncorrectable*1 - spinRetry*2` (UDMA CRC ignoreres, det er kabel/signal). Resultat på denne maskine: SUV400 **58 %**, ST1000 **83 %**, SA400 **90 %**, WD **100 %**, NV2 **87 %** (HDS viser 42/83/90/100/87 — SUV400 afviger fordi Kingstons "SSD Life Left"=58 rapporteres mens HDS bruger sin egen levetidsmodel).
+- **Temperaturfarver**: `IsTemperatureWarm` (≥40 °C) → gul `#F59E0B`, `IsTemperatureHot` (≥50 °C) → rød `#EF4444`, ellers temaets subtext-farve. Verificeret med harness: 39→neutral, 40→gul, 49→gul, 50→rød.
+- **Drevbogstaver**: nyt `DriveLetters` fra `MSFT_Partition` (vist som chip ved disknavnet). **Fælde:** WMI returnerer `DriveLetter` som **ASCII-kode** (68='D'), ikke 0-baseret — 0 betyder "intet bogstav". Verificeret: C:, D:, E:, F:, G:.
+- **Fælde 2:** `ComputeHealthPercent` valgte først "Wear Leveling Count" (raw 18667) fordi SMART-listen er sorteret efter id, og "SSD Life Left" (id 231) kommer senere → health blev 100 %. Nu tjekkes hver indikator i prioriteret rækkefølge, og Wear Leveling bruges kun hvis værdien er 1-100.
+- UI: health-chip viser nu `● Sund 83 %` (procenten skjules hvis ukendt), drevbogstav-chip ved navnet, temperatur farves efter tærskler.
+
+**Rettelse (25-10 23:12) — model-baseret SSD/HDD-fallback + drevbogstav ved navnet:**
+- NY `Helpers/Hardware/Storage/DiskModelClassifier.cs`: regex-baseret fallback der kun bruges når WMI's `MediaType` er "unspecified" og `SpindleSpeed` mangler (ATA IDENTIFY blokeret). SSD-mønstre før HDD-mønstre (fx `SSD`, `MZ-`, `WDS\d`, `SA\d{3}`, Kingston-serier, `ZA\d`, SanDisk/Crucial/Intel), HDD-mønstre (`ST\d{3,}`, `WD\d{2,}`, `WDC WD…`, Samsung/Hitachi `HD|HM|SP`, Toshiba `DT0|MG0|…`, HGST `HDS|HUA|…`). Ukendte modeller forbliver "Unknown" — ingen gæt.
+- Verificeret mod 17 modelnavne: WD5000AAKX/WD10EZEX/WD20EARX/ST1000/ST4000/HD103SJ/DT01ACA100 → HDD; Samsung 860 EVO/MZ-/WDS/CT500MX/Kingston SA400/SUV400/SNV2S/SanDisk/ZA → SSD; "Generic ACME 12345" → Unknown.
+- Agent-data efter fix: WDC WD5000AAKX = **HDD** (var Unknown).
+- UI: drevbogstav-chip flyttet ind **ved siden af modelnavnet** (grid: model Auto | bogstav Auto | spacer * | health Auto), så den ikke længere står ude til højre.
+
+**Rettelse (25-10 23:18) — skjul spindel-rækken når tilstanden er ukendt:** `ShowPowerState` kræver nu også at `PowerState != Unknown` (tidligere: blot HDD+SATA). På maskiner hvor storage-driveren blokerer ATA pass-through forsvinder "Unknown / 0 % / 0 B/s"-rækken og dens hint helt i stedet for at stå som støj. Rækken dukker automatisk op igen hvis CHECK POWER MODE begynder at svare (fx hvis SAT-fallback implementeres). Verificeret i harness: `unknown=False, standby=True, ssd=False`.
+
+**Rettelse (25-10 23:22) — intro-tekst på to linjer:** `HardwareDisksIntro` (en+da) har nu et bevidst `\n` efter første sætning, så "Physical disks connected to this PC." står på linje 1 og agent-forklaringen på linje 2 (uafhængigt af vinduesbredde/sprog). `TextWrapping="Wrap"` er stadig sat, så begge linjer kan ombryde på smalle vinduer.
+
+**Verificeret (build 0 fejl, deployet — `IconGrid.dll` 25-10-2026 23:22:20 i både bin og `C:\icongrid`):**
+- Smoke-harness (`.local-state/disk-smoke`, gitignored, ikke-elevated) mod den byggede DLL: 5 diske fundet med korrekt SSD/HDD/NVMe/SATA-klassifikation, live aktivitet/læse-skrive-rate virker, alle lokaliseringskoder + farvekonverteringer verificeret. SMART og ATA power-state er "Unavailable/Unknown" i harnessen fordi den ikke er elevated — det er den forventede fallback.
+- **Ikke verificeret live endnu:** SMART-attributter og spindeltilstand i den elevated agent (kræver brugerens test).
+
+**ATA power-state — verificeret end-to-end, men blokeret af denne maskines driver:**
+- Startede den elevated agent via scheduled task `IconGrid Monitor` og læste `%APPDATA%\IconGrid\monitor-state.json`: SMART virker (21-29 attributter pr. disk, temperatur 25-84 °C), aktivitet/læse-skrive virker, SSD/HDD/NVMe-klassifikation virker.
+- **Power-state er `Unknown` på alle diske her.** `IOCTL_ATA_PASS_THROUGH_DIRECT` giver **win32=87 (ERROR_INVALID_PARAMETER)**, buffered variant giver **1306 (ERROR_NOT_ALL_ASSIGNED)**. Afprøvet: korrekt IOCTL-kode (`0x0004D030`, verificeret mod `ntddscsi.h`: `CTL_CODE(FILE_DEVICE_CONTROLLER, 0x040C, METHOD_BUFFERED, 3)`), struct-størrelse 40 (verificeret), `ATA_FLAGS_DRDY_REQUIRED`, `SeManageVolumePrivilege` aktiveret via `AdjustTokenPrivileges`, både DIRECT og BUFFERED med data-buffer i samme allokering. Controlleren er "Standard SATA AHCI-controller" (ikke RST), men systemet har også en Microsoft Storage Spaces-controller — en sandsynlig årsag er at storage-stakken ikke videresender ATA pass-through til disse fysiske diske.
+- Konsekvens: spindeltilstand vises som "Ukendt" med forklarende hint i UI'et. SMART/helbred/aktivitet er upåvirket.
+- **Næste forsøg (backlog):** SAT-laget via `IOCTL_SCSI_PASS_THROUGH_DIRECT` (0x0004D014) med ATA PASS-THROUGH(16) CDB (opcode 0x85, protocol 2 = non-data for CHECK POWER MODE). Det er den vej smartmontools bruger, når ATA pass-through afvises. Alternativt kan ATA IDENTIFY hentes via `IOCTL_STORAGE_QUERY_PROPERTY` + `StorageDeviceProtocolSpecificProperty` (ProtocolTypeAta) til at klassificere ældre diske som HDD (WD5000AAKX er stadig "Unknown").
+
+**Test for brugeren:** start `C:\IconGrid\IconGrid.exe` (så kører monitor-agenten også) → Indstillinger → Hardware → fold "Diske" ud. ST1000LM024 (HDD) skal vise spindeltilstand; WD5000AAKX skal nu klassificeres som HDD via ATA IDENTIFY. SMART-tabellen kræver at agenten er elevated (den er). USB-drev kan vise "Ukendt" — forventet.
 
 **Ikke committet/pushet** (kræver separat godkendelse).
 
