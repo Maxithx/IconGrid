@@ -11,7 +11,7 @@
          ============================================================ -->
     <!-- Card / page surfaces -->
     <SolidColorBrush x:Key="SurfaceFillDarkBrush" Color="#323232" />
-    <SolidColorBrush x:Key="SurfaceFillLightBrush" Color="#F3F4F7" />
+    <SolidColorBrush x:Key="SurfaceFillLightBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SurfaceBorderDarkBrush" Color="#3A3A3A" />
     <SolidColorBrush x:Key="SurfaceBorderLightBrush" Color="#D1D5DB" />
     <!-- Scrollbars -->
@@ -31,7 +31,7 @@
 
     <!-- Legacy brushes (kept for backward compatibility; new styles should
          use the DESIGN TOKENS above). -->
-    <SolidColorBrush x:Key="StartsideLightCardFill" Color="#F3F4F7" />
+    <SolidColorBrush x:Key="StartsideLightCardFill" Color="#FFFFFF" />
     <SolidColorBrush x:Key="StartsideCardFill" Color="#323232" />
     <SolidColorBrush x:Key="SettingsPageScrollBarTrackDarkBrush" Color="#323232" />
     <SolidColorBrush x:Key="SettingsPageScrollBarTrackLightBrush" Color="#F0F2F5" />

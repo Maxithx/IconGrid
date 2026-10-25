@@ -1172,3 +1172,19 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Ikke committet/pushet** (kræver separat godkendelse).
 
+
+### Rettelse (25-10 23:44) — kort var usynlige i lyst tema
+
+**Symptom (bruger):** På Hardware-siden (GPU/Memory/Disks og hero-kortet) "mangler" kortene i lyst tema — de smelter sammen med baggrunden.
+
+**Rodårsag:** `StartsideSectionCardStyle` brugte `StartsideLightCardFill = #F3F4F7`, mens `SettingsWindow`'s baggrund er `TopBarBackground = #F3F3F3` i lyst tema. Forskellen er 1-4 pr. RGB-kanal → kortene er reelt usynlige. I mørkt tema er der kontrast (`#323232` mod `#202020`).
+
+**Fix (design-token, gælder alle settings-sider):**
+- `Views/StartsideStyles.xaml`: `StartsideLightCardFill` og `SurfaceFillLightBrush` → `#FFFFFF` (samme som `SettingsCardBackground`; matcher Windows 11's indstillinger: hvide kort på lys grå baggrund). Kort-border `#D1D5DB` er uændret.
+- `Views/TemplateGuidelines.xaml`: palette-dokumentation opdateret til `#FFFFFF`.
+- Sideeffekt (positiv): `LayoutDropdownComboBoxStyle` i lyst tema bliver også hvid i stedet for næsten-baggrundsfarve.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 25-10-2026 23:44:47 i både `bin` og `C:\icongrid`.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+

@@ -14,7 +14,7 @@
 
           Surface / cards:
             SurfaceFillDarkBrush    #323232  -> card/page fill in dark theme
-            SurfaceFillLightBrush   #F3F4F7  -> card/page fill in light theme
+            SurfaceFillLightBrush   #FFFFFF  -> card/page fill in light theme
             SurfaceBorderDarkBrush  #3A3A3A  -> card border in dark theme
             SurfaceBorderLightBrush #D1D5DB  -> card border in light theme
 
