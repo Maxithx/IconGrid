@@ -509,11 +509,10 @@
                                         Height="28"
                                         CornerRadius="6"
                                         Background="transparent"                                         >
-                                    <Image Source="pack://siteoforigin:,,,/figma-icons/figma-logo-x4.png"
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Home.png"
                                            Width="24"
                                            Height="24"
-                                           Stretch="Uniform"
-                                           Opacity="1" />
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Text="{Binding HomeTitle}"
                                            Margin="12,0,0,0"
@@ -534,7 +533,7 @@
                                         Height="28"
                                         CornerRadius="6"
                                         Background="transparent">
-                                    <Image Source="pack://siteoforigin:,,,/figma-icons/figma-genvejs-ikon-x4.png"
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Shortcut%20icons.png"
                                            Width="24"
                                            Height="24"
                                            Stretch="Uniform" />
@@ -557,7 +556,7 @@
                                         Height="28"
                                         CornerRadius="6"
                                         Background="transparent">
-                                    <Image Source="pack://siteoforigin:,,,/figma-icons/figma-Layout-ikon-x4.png"
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Layout.png"
                                            Width="24"
                                            Height="24"
                                            Stretch="Uniform" />
@@ -579,13 +578,11 @@
                                 <Border Width="28"
                                         Height="28"
                                         CornerRadius="6"
-                                        Background="{Binding AccentBrush}">
-                                    <TextBlock Text="HW"
-                                               FontSize="11"
-                                               FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               Foreground="White" />
+                                        Background="transparent">
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Hardware.png"
+                                           Width="24"
+                                           Height="24"
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
                                            Text="{Binding HardwareNavTitleText}"
@@ -630,11 +627,10 @@
                                         Height="28"
                                         CornerRadius="6"
                                         Background="transparent">
-                                    <Image Source="pack://siteoforigin:,,,/figma-icons/help-icon-x4.png"
-                                           Width="28"
-                                           Height="28"
-                                           Stretch="Uniform"
-                                           Opacity="0.9" />
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Help.png"
+                                           Width="24"
+                                           Height="24"
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
                                            Text="{Binding HelpTitleText}"
@@ -678,13 +674,11 @@
                                 <Border Width="28"
                                         Height="28"
                                         CornerRadius="6"
-                                        Background="{Binding AccentBrush}">
-                                    <TextBlock Text="GO"
-                                               FontSize="10"
-                                               FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"
-                                               Foreground="White" />
+                                        Background="transparent">
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/Gaming%20overlay.png"
+                                           Width="24"
+                                           Height="24"
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
                                            Text="Gaming overlay"
@@ -704,11 +698,10 @@
                                         Height="28"
                                         CornerRadius="6"
                                         Background="transparent">
-                                    <Image Source="pack://siteoforigin:,,,/figma-icons/figma-About-ikon-x4.png"
+                                    <Image Source="pack://siteoforigin:,,,/figma-icons/About%20IconGrid.png"
                                            Width="24"
                                            Height="24"
-                                           Stretch="Uniform"
-                                           Opacity="0.95" />
+                                           Stretch="Uniform" />
                                 </Border>
                                 <TextBlock Margin="12,0,0,0"
                                            Text="{Binding AboutTitleText}"

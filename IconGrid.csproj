@@ -55,22 +55,25 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="figma-icons\\figma-logo-x4.png">
+    <Content Include="figma-icons\Home.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="figma-icons\\figma-genvejs-ikon-x4.png">
+    <Content Include="figma-icons\Shortcut icons.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="figma-icons\\figma-Layout-ikon-x4.png">
+    <Content Include="figma-icons\Layout.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="figma-icons\\help-icon-x4.png">
+    <Content Include="figma-icons\Hardware.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="figma-icons\\figma-About-ikon-x4.png">
+    <Content Include="figma-icons\Help.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="figma-icons\\Resolution.png">
+    <Content Include="figma-icons\Gaming overlay.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="figma-icons\About IconGrid.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Tools\PresentMon\PresentMon-*.exe">

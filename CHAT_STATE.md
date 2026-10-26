@@ -1188,3 +1188,22 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Ikke committet/pushet** (kræver separat godkendelse).
 
+
+### Ændring (26-10 03:05) — nyt sidebar-ikon-sæt til settings-vinduet
+
+**Brugeren** havde lagt 7 nye 96×96 PNG-ikoner i `figma-icons/` og slettet de gamle ikoner + `.fig`-kilder.
+
+**Integration:**
+- `IconGrid.csproj`: de 6 gamle `Content`-entries erstattet af de 7 nye (`Home.png`, `Shortcut icons.png`, `Layout.png`, `Hardware.png`, `Help.png`, `Gaming overlay.png`, `About IconGrid.png`). `Resolution.png` var ikke refereret og er fjernet.
+- `Views/Settings/SettingsWindow.xaml`:
+  - Home/Shortcut icons/Layout/Help/About bruger de nye filnavne via `pack://siteoforigin` (mellemrum som `%20`).
+  - Hardware-nav skifter fra "HW"-accent-badge til `Hardware.png`; Gaming overlay fra "GO"-badge til `Gaming overlay.png`. Monitor Row Layout ("ML") og Test ("DBG") beholder badges, da der ikke findes nye ikoner til dem.
+  - Alle ikoner vises nu ens som 24×24 (gamle Help/About-opacity-tweaks fjernet).
+- `deploy-test.cmd`: tilføjet asset-kopiering af `figma-icons\*` til `C:\icongrid` — scriptet kopierede før kun DLL/EXE, så nye assets nåede aldrig testmappen. Kommentaren understreger, at det er assets (ikke brugerdata/config).
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 26-10-2026 03:05:24 i både `bin` og `C:\icongrid`; `C:\icongrid\figma-icons` indeholder de 7 nye PNG'er.
+
+**Test for brugeren:** åbn Indstillinger og se sidebar-navigationen i både lyst og mørkt tema.
+
+**Ikke committet/pushet endnu** (commit/push køres efter denne note).
+

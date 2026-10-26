@@ -29,5 +29,10 @@ REM so "%SRC%\*.exe" never covered it and the deployed agent silently stayed
 REM stale (last shipped build was 2026-07-23). Copy it explicitly.
 xcopy /y /q /i "%SRC%\Tools\FpsAgent\IconGridFpsAgent.exe" "%DST%\Tools\FpsAgent\" >nul
 
+REM Static UI assets (sidebar icons) are content files loaded with
+REM pack://siteoforigin and must exist next to the EXE. They are assets,
+REM not user data/config, so they are safe to overwrite on every deploy.
+if exist "%SRC%\figma-icons" xcopy /y /q /i "%SRC%\figma-icons\*" "%DST%\figma-icons\" >nul
+
 echo Done. IconGrid deployed to C:\icongrid
 echo Start: C:\icongrid\IconGrid.exe
