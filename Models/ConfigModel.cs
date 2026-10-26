@@ -101,7 +101,7 @@ public class ConfigModel
     /// <summary>
     /// User-saved monitor layout defaults (JSON blob of 18 properties).
     /// When set, the "Reset defaults" button uses these instead of the hardcoded factory defaults.
-    /// Saved via "Save current as default" button on MonitorRowLayoutPage.
+    /// Saved via the "Save current as default" button in MonitorRowLayoutSection.
     /// </summary>
     public string? MonitorLayoutDefaults { get; set; }
 

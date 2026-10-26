@@ -1207,3 +1207,22 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Ikke committet/pushet endnu** (commit/push køres efter denne note).
 
+
+### Ændring (26-10 03:19) — Monitor Row flyttet ind på Home + launcher-opdeling
+
+**Brugerønske:** "Monitor Row Layout" skal ikke være en selvstændig side i sidebaren, men ligge nederst på Home. Home skal samtidig forklare, at Home/Shortcut icons/Layout (og monitorrækken) hører til **main launcher**, mens **gaming overlay** er en separat launcher, der kun vises under spil.
+
+**Implementeret:**
+- `Views/Settings/Pages/MonitorRowLayoutPage.xaml(.cs)` → omdøbt til **`MonitorRowLayoutSection.xaml(.cs)`** (git mv, historik bevaret). Sektionen har ikke længere egen `ScrollViewer`/`TemplatePage`/hero-side; den er nu en ren `StackPanel` med intro-card (16 px titel) + de eksisterende monitor-kort, så den kan ligge inline.
+- `Views/Settings/Pages/StartsidePage.xaml`: ny **"Launcher overview"-card øverst** (Main launcher + Gaming overlay forklaring og knap) samt `MonitorRowLayoutSection` nederst i CardsContent.
+- `Views/Settings/Pages/StartsidePage.xaml.cs`: `GamingOverlayOverviewButton_Click` → `SettingsWindow.NavigateToGamingOverlayPage()`.
+- `Views/Settings/SettingsWindow.xaml(.cs)`: `MonitorLayoutNavButton` og dens click-handler fjernet.
+- `Helpers/Settings/LocalizationHelper.cs` + `ViewModels/MainViewModel.Localization.cs`: 5 nye nøgler i både en/da (`HomeMainLauncherOverviewTitle/Body`, `HomeGamingOverlayOverviewTitle/Body`, `HomeGamingOverlayOverviewButton`) + opdateret `MonitorRowLayoutTitle/Intro` til at nævne hoved-launcheren. Ubrugt `MonitorRowLayoutNavTitle` fjernet fra begge sprog.
+- Docs/comments opdateret (`AGENT.md`, `PROJECT_STRUCTURE.md`, `ConfigModel.cs`, `MonitorLayoutDefaultsSnapshot.cs`, `MainViewModel.cs`).
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 26-10-2026 03:19:09 i både `bin` og `C:\icongrid`.
+
+**Test for brugeren:** Indstillinger → Home: øverst en forklaring af Main launcher vs. Gaming overlay (knap åbner overlay-indstillingerne), og nederst "Monitorrække (hoved-launcher)" med alle de gamle monitor-indstillinger. "Monitor Row Layout" er væk fra sidebaren.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+

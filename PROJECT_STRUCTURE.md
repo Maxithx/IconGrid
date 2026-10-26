@@ -260,7 +260,7 @@ Views\
         ├── GenvejsIkonerPage.xaml (.cs)     # Grid/carousel icon settings
         ├── LayoutPage.xaml (.cs)            # Layout presets and saved layouts
         ├── HardwarePage.xaml (.cs)          # CPU/GPU/RAM/motherboard diagnostics
-        ├── MonitorRowLayoutPage.xaml (.cs)  # Monitor row gaps/dividers, overlay height, ping target
+        ├── MonitorRowLayoutSection.xaml (.cs) # Monitor row gaps/dividers, overlay height, ping target (embedded in Home)
         ├── GamingOverlayPage.xaml (.cs)     # Overlay scale, position, transparency, FPS setup
         ├── GameResolutionPage.xaml (.cs)    # Per-game display resolution switching
         ├── TestPage.xaml (.cs)              # Diagnostics: FPS/ETW status, trace-log cleanup

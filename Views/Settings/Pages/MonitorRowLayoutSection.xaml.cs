@@ -4,9 +4,9 @@ using IconGrid.ViewModels;
 
 namespace IconGrid.Views
 {
-    public partial class MonitorRowLayoutPage : System.Windows.Controls.UserControl
+    public partial class MonitorRowLayoutSection : System.Windows.Controls.UserControl
     {
-        public MonitorRowLayoutPage()
+        public MonitorRowLayoutSection()
         {
             InitializeComponent();
         }

@@ -29,6 +29,30 @@
             <views:TemplatePage.CardsContent>
                 <StackPanel>
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
+                            helpers:DevInspector.Metadata="Launcher overview card -> Views/StartsidePage.xaml">
+                        <StackPanel>
+                            <TextBlock Text="{Binding HomeMainLauncherOverviewTitle}"
+                                       Style="{StaticResource TemplateCardTitleStyle}" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Text="{Binding HomeMainLauncherOverviewBody}"
+                                       Style="{StaticResource TemplateHeroBodyStyle}" />
+
+                            <StackPanel Margin="0,18,0,0">
+                                <TextBlock Text="{Binding HomeGamingOverlayOverviewTitle}"
+                                           Style="{StaticResource TemplateSectionTitleStyle}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding HomeGamingOverlayOverviewBody}"
+                                           Style="{StaticResource TemplateHeroBodyStyle}" />
+                                <Button Margin="0,12,0,0"
+                                        HorizontalAlignment="Left"
+                                        Style="{StaticResource TemplateActionButtonStyle}"
+                                        Content="{Binding HomeGamingOverlayOverviewButton}"
+                                        Click="GamingOverlayOverviewButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource StartsideSectionCardStyle}"
                             helpers:DevInspector.Metadata="System and startup card -> Views/StartsidePage.xaml">
                         <StackPanel>
                             <TextBlock Text="{Binding SystemAndStartupTitle}"
@@ -234,6 +258,11 @@
                                           IsChecked="{Binding ResetSettingsToggle, Mode=TwoWay}" />
                         </Grid>
                     </Border>
+
+                    <StackPanel Margin="0,12,0,0"
+                                helpers:DevInspector.Metadata="Monitor row section -> Views/MonitorRowLayoutSection.xaml">
+                        <views:MonitorRowLayoutSection />
+                    </StackPanel>
                 </StackPanel>
             </views:TemplatePage.CardsContent>
         </views:TemplatePage>

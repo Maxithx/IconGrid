@@ -67,6 +67,11 @@ namespace IconGrid.ViewModels
         public string HomeTitle => _localizationState.Get(Language, "HomeTitle");
         public string HomeIntroLine1 => _localizationState.Get(Language, "HomeIntroLine1");
         public string HomeIntroLine2 => _localizationState.Get(Language, "HomeIntroLine2");
+        public string HomeMainLauncherOverviewTitle => _localizationState.Get(Language, "HomeMainLauncherOverviewTitle");
+        public string HomeMainLauncherOverviewBody => _localizationState.Get(Language, "HomeMainLauncherOverviewBody");
+        public string HomeGamingOverlayOverviewTitle => _localizationState.Get(Language, "HomeGamingOverlayOverviewTitle");
+        public string HomeGamingOverlayOverviewBody => _localizationState.Get(Language, "HomeGamingOverlayOverviewBody");
+        public string HomeGamingOverlayOverviewButton => _localizationState.Get(Language, "HomeGamingOverlayOverviewButton");
         public string SystemAndStartupTitle => _localizationState.Get(Language, "SystemAndStartupTitle");
         public string LanguageSectionTitle => _localizationState.Get(Language, "LanguageSectionTitle");
         public string LanguageSectionDescription => _localizationState.Get(Language, "LanguageSectionDescription");
@@ -260,6 +265,11 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HomeTitle));
             OnPropertyChanged(nameof(HomeIntroLine1));
             OnPropertyChanged(nameof(HomeIntroLine2));
+            OnPropertyChanged(nameof(HomeMainLauncherOverviewTitle));
+            OnPropertyChanged(nameof(HomeMainLauncherOverviewBody));
+            OnPropertyChanged(nameof(HomeGamingOverlayOverviewTitle));
+            OnPropertyChanged(nameof(HomeGamingOverlayOverviewBody));
+            OnPropertyChanged(nameof(HomeGamingOverlayOverviewButton));
             OnPropertyChanged(nameof(SystemAndStartupTitle));
             OnPropertyChanged(nameof(LanguageSectionTitle));
             OnPropertyChanged(nameof(LanguageSectionDescription));

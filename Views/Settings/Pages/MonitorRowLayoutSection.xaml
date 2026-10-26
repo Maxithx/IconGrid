@@ -1,4 +1,4 @@
-<UserControl x:Class="IconGrid.Views.MonitorRowLayoutPage"
+<UserControl x:Class="IconGrid.Views.MonitorRowLayoutSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
@@ -103,26 +103,22 @@
             </Style>
         </ResourceDictionary>
     </UserControl.Resources>
-    <ScrollViewer Margin="12"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="False"
-                  PanningMode="VerticalOnly">
-        <ScrollViewer.Resources>
-            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
-        </ScrollViewer.Resources>
-        <views:TemplatePage Margin="0,0,8,0">
-            <views:TemplatePage.HeroContent>
-                <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutPage.xaml">
-                    <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
-                               Text="{Binding MonitorRowLayoutTitle}" />
-                    <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
-                               Margin="0,8,0,0"
-                               Text="{Binding MonitorRowLayoutIntro}" />
-                </StackPanel>
-            </views:TemplatePage.HeroContent>
-            <views:TemplatePage.CardsContent>
-                <StackPanel>
+    <!--
+        Embedded at the bottom of the Home page. The monitor row is part of the
+        main launcher, so it no longer has its own sidebar entry.
+    -->
+    <StackPanel>
+        <Border Style="{StaticResource StartsideSectionCardStyle}"
+                helpers:DevInspector.Metadata="Monitor row layout intro card -> Views/MonitorRowLayoutSection.xaml">
+            <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutSection.xaml">
+                <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                           Text="{Binding MonitorRowLayoutTitle}" />
+                <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                           Margin="0,8,0,0"
+                           Text="{Binding MonitorRowLayoutIntro}" />
+            </StackPanel>
+        </Border>
+        <StackPanel>
 
                     <!-- Element Gaps -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
@@ -767,8 +763,6 @@
                                    Margin="0,8,0,0"
                                    Text="{Binding MonitorRowSaveAsDefaultDescription}" />
                     </StackPanel>
-                </StackPanel>
-            </views:TemplatePage.CardsContent>
-        </views:TemplatePage>
-    </ScrollViewer>
+        </StackPanel>
+    </StackPanel>
 </UserControl>

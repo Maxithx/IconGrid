@@ -118,7 +118,7 @@ Every settings page or UI component that displays user-facing text MUST support 
 
 **Do NOT follow the GamingOverlayPage/StartsidePage pattern** of `DataContext = this` + `RefreshLocalizedText()` — that pattern predates the centralized localization system and is legacy. The centralized pattern (LocalizationHelper → MainViewModel.Localization → XAML bindings) is the preferred approach for new pages.
 
-**Note:** MonitorRowLayoutPage (2026-08-10) is the first fully centralized-localized page. Use it as the template for future settings pages.
+**Note:** `MonitorRowLayoutSection` (formerly MonitorRowLayoutPage, 2026-08-10) is the first fully centralized-localized settings surface. Since 2026-10-26 it is embedded at the bottom of the Home page. Use it as the template for future settings pages/sections.
 
 ## Architecture rules
 

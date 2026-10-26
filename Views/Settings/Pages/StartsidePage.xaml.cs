@@ -30,6 +30,12 @@ namespace IconGrid.Views
             Unloaded += StartsidePage_Unloaded;
         }
 
+        private void GamingOverlayOverviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is SettingsWindow settingsWindow)
+                settingsWindow.NavigateToGamingOverlayPage();
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public string LauncherVisibilityTitleText
