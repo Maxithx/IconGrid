@@ -1256,9 +1256,9 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:16:58, samme størrelse (1.131.520 B) i `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid` (første deploy af rettelsen 01:16:09, derefter genbygget med `Margin="0"`).
 
-**Test for brugeren:** Hardware → CPU. Voltage-tile'ens label og værdi skal nu stå på samme vandrette linje som de øvrige tiles.
+**Test for brugeren:** Hardware → CPU. Voltage-tile'ens label og værdi skal nu stå på samme vandrette linje som de øvrige tiles. Bruger-verificeret 27-10 ("det spiller tak").
 
-**Ikke committet/pushet** (kræver separat godkendelse).
+**Committet + pushet:** `34bc5ba` — "Align CPU voltage tile and Automatic-while-in-game toggles" (main → origin/main).
 
 ### Rettelse (27-10 01:20) — Gaming overlay → "Automatic while in game": knapperne sad ikke på linje
 
@@ -1270,7 +1270,7 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:20:37 (1.132.032 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`. XAML gennemlæst: alle tre rækker (linje 464-481, 483-500, 502-519) har nu identisk struktur.
 
-**Test for brugeren:** Gaming overlay → "Automatic while in game". Alle tre switches skal stå højrejusteret på hver sin titel-linje.
+**Test for brugeren:** Gaming overlay → "Automatic while in game". Alle tre switches skal stå højrejusteret på hver sin titel-linje. Bruger-verificeret 27-10 ("det virker perfekt").
 
-**Ikke committet/pushet** (kræver separat godkendelse).
+**Committet + pushet:** `34bc5ba` — "Align CPU voltage tile and Automatic-while-in-game toggles" (main → origin/main).
 
