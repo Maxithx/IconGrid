@@ -5,7 +5,7 @@
 ## Current date
 October 23, 2026
 
-> **Seneste session:** se nederst — "Session findings (2026-10-27) — drevbogstaver på Hardware → Disks i alfabetisk orden". C: øverst, derefter D:, E:, ... + bogstaver i chippen sorteret (DLL 27-10 01:10). Forrige: Disks-sektion (2026-10-25, DLL 25-10 22:25).
+> **Seneste session:** se nederst — "Session findings (2026-10-27)" + "Rettelse (27-10 01:16) — Voltage-tile" + "Rettelse (27-10 01:20) — Gaming overlay: switches aligned". Disks sorteret C: → D: → E: ..., Voltage-tile og de tre "Automatic while in game"-switches følger nu samme layout som resten (DLL 27-10 01:20:37).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -1245,4 +1245,32 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 **Test for brugeren:** Hardware → Disks. C:-disken skal stå øverst, derefter D:, E:, F:, G:; chip ved disknavnet viser bogstaverne alfabetisk. Bruger-verificeret 27-10 ("det virker perfekt").
 
 **Committet + pushet:** `61b1975` — "Sort Hardware Disks by drive letter (C: first)" (main → origin/main).
+
+### Rettelse (27-10 01:16) — Voltage-tile i CPU-kortet stod skævt
+
+**Symptom (bruger, med screenshot):** I Hardware → CPU stod "Voltage"-tile'en (1,3937 V) ikke på linje med Cores/Threads/Live temp/Live usage/Live clock/Boost — label og værdi sad ~10 px lavere, og tile'ens topkant var tilsvarende lavere.
+
+**Rodårsag:** `Views/Settings/Pages/HardwarePage.xaml` linje 534: Voltage-`Border` havde `Margin="0,10,0,0"` hardkodet oven på `HardwareMetricTileStyle` (der sætter `0,0,10,0`). De 10 px top-margin skubbede hele tile'en ned i den ellers fælles WrapPanel-række. De øvrige CPU-tiles bruger stylens margin uændret.
+
+**Fix:** Margin-override fjernet, så Voltage-tile'en arver `HardwareMetricTileStyle` ligesom de seks andre tiles; efterfølgende sat til `Margin="0"` som de sidste tiles i GPU- og Memory-rækkerne (fjerner kun den afsluttende 10 px-højremargin, ingen forskydning). Én XAML-linje. Ingen ændring af værdiformat eller data — `CpuVoltage` formateres stadig som `F4` ("1,3937 V") i `HardwareSnapshotCollector.FormatVoltage`; kan kortes til 2 decimaler hvis ønsket.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:16:58, samme størrelse (1.131.520 B) i `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid` (første deploy af rettelsen 01:16:09, derefter genbygget med `Margin="0"`).
+
+**Test for brugeren:** Hardware → CPU. Voltage-tile'ens label og værdi skal nu stå på samme vandrette linje som de øvrige tiles.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+### Rettelse (27-10 01:20) — Gaming overlay → "Automatic while in game": knapperne sad ikke på linje
+
+**Symptom (bruger, med screenshot):** I "Automatic while in game" stod den første switch ("Show gaming overlay automatically on game start") nede til **venstre** under beskrivelsen, mens de to øvrige switches ("Reopen launcher when the overlay closes", "Close gaming overlay when the game exits") stod **højrejusteret** på titel-linjen. De tre knobs var derfor ikke aligned.
+
+**Rodårsag:** `Views/Settings/Pages/GamingOverlayPage.xaml` — den første indstilling var bygget som løse `TextBlock`s + en `ToggleButton` med `Margin="0,8,0,0" HorizontalAlignment="Left"` direkte i `StackPanel`, mens de to andre var `Grid`-rækker med `*`/`Auto` kolonner (titel venstre, switch i kolonne 1). To forskellige layouts i samme sektion.
+
+**Fix:** Første indstilling bygget om til præcis samme `Grid`-mønster som de to andre rækker (titel i `*`, `ToggleButton` i `Auto`-kolonne, beskrivelse som `TextBlock` lige under med `Margin="0,4,0,0"`). Bindingen `AutoShowGamingOverlayOnGameStart` er uændret, så funktionaliteten er identisk — kun layoutet er ensrettet. Ingen nye styles eller farver.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:20:37 (1.132.032 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`. XAML gennemlæst: alle tre rækker (linje 464-481, 483-500, 502-519) har nu identisk struktur.
+
+**Test for brugeren:** Gaming overlay → "Automatic while in game". Alle tre switches skal stå højrejusteret på hver sin titel-linje.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
 

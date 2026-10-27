@@ -461,20 +461,24 @@
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
-                                    <TextBlock Margin="0,16,0,0"
-                                               Text="{Binding GameAutoShowTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding GameAutoShowTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding AutoShowGamingOverlayOnGameStart, Mode=TwoWay}" />
+                                    </Grid>
                                     <TextBlock Margin="0,4,0,0"
                                                Text="{Binding GameAutoShowIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                                TextWrapping="Wrap"
                                                FontSize="13"
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <ToggleButton Style="{StaticResource ToggleSwitchStyle}"
-                                                  Margin="0,8,0,0"
-                                                  HorizontalAlignment="Left"
-                                                  IsChecked="{Binding AutoShowGamingOverlayOnGameStart, Mode=TwoWay}" />
 
                                     <Grid Margin="0,16,0,0">
                                         <Grid.ColumnDefinitions>

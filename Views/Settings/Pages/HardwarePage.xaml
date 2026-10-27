@@ -531,7 +531,7 @@
                                                                Text="{Binding Overview.Cpu.BoostClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
-                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,10,0,0">
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding HardwareVoltageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
                                                     <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
