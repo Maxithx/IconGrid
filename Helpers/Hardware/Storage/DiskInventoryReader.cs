@@ -215,7 +215,11 @@ internal static class DiskInventoryReader
         {
         }
 
-        return map.ToDictionary(pair => pair.Key, pair => string.Join(", ", pair.Value));
+        // Alphabetical letters per disk ("C:, D:, E:") so the chip on the Hardware page
+        // reads naturally instead of following partition enumeration order.
+        return map.ToDictionary(
+            pair => pair.Key,
+            pair => string.Join(", ", pair.Value.OrderBy(letter => letter, StringComparer.Ordinal)));
     }
 
     private static List<Win32DiskInfo> ReadPhysicalDrives()

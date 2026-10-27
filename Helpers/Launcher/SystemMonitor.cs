@@ -403,6 +403,37 @@ namespace IconGrid.Helpers
 
                 existing.CopyFrom(disk);
             }
+
+            ReorderDisks();
+        }
+
+        /// <summary>
+        /// Orders the disk list alphabetically by drive letter so the system disk (C:)
+        /// is at the top, followed by D:, E:, ... Disks without a drive letter are
+        /// listed last. Uses <see cref="ObservableCollection{T}.Move"/> so the existing
+        /// item instances (and open SMART expanders) survive a reorder.
+        /// </summary>
+        private void ReorderDisks()
+        {
+            if (Disks.Count < 2)
+            {
+                return;
+            }
+
+            var ordered = Disks
+                .OrderBy(d => d.PrimaryDriveLetter.HasValue ? 0 : 1)
+                .ThenBy(d => d.PrimaryDriveLetter ?? char.MaxValue)
+                .ThenBy(d => d.Index)
+                .ToList();
+
+            for (var target = 0; target < ordered.Count; target++)
+            {
+                var current = Disks.IndexOf(ordered[target]);
+                if (current >= 0 && current != target)
+                {
+                    Disks.Move(current, target);
+                }
+            }
         }
 
         /// <summary>

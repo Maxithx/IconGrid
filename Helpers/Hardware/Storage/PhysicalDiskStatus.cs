@@ -47,8 +47,47 @@ public sealed class PhysicalDiskStatus : INotifyPropertyChanged
 
     public string Firmware { get => _firmware; set => SetField(ref _firmware, value); }
 
-    /// <summary>Drive letters assigned to this disk (e.g. "C:, D:"), empty when unpartitioned.</summary>
+    /// <summary>
+    /// Drive letters assigned to this disk (e.g. "C:, D:"), empty when unpartitioned.
+    /// Letters are listed alphabetically, so the first letter is also the lowest.
+    /// </summary>
     public string DriveLetters { get => _driveLetters; set => SetField(ref _driveLetters, value); }
+
+    /// <summary>
+    /// Lowest drive letter assigned to this disk, used to order the disk list on the
+    /// Hardware page (C: first, then D:, E:, ...). Null for disks without a letter
+    /// (unpartitioned or unmounted); those are listed last.
+    /// </summary>
+    [JsonIgnore]
+    public char? PrimaryDriveLetter
+    {
+        get
+        {
+            var text = DriveLetters;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            char? lowest = null;
+            foreach (var token in text.Split(
+                         ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (token.Length < 2 || !char.IsAsciiLetter(token[0]) || token[1] != ':')
+                {
+                    continue;
+                }
+
+                var letter = char.ToUpperInvariant(token[0]);
+                if (lowest == null || letter < lowest.Value)
+                {
+                    lowest = letter;
+                }
+            }
+
+            return lowest;
+        }
+    }
 
     /// <summary>Estimated health percentage (0-100) derived from SMART wear/critical attributes.</summary>
     public int? HealthPercent
@@ -227,6 +266,7 @@ public sealed class PhysicalDiskStatus : INotifyPropertyChanged
         OnPropertyChanged(nameof(HealthPercentText));
         OnPropertyChanged(nameof(HasHealthPercent));
         OnPropertyChanged(nameof(HasDriveLetters));
+        OnPropertyChanged(nameof(PrimaryDriveLetter));
         OnPropertyChanged(nameof(ActivityText));
         OnPropertyChanged(nameof(ReadRateText));
         OnPropertyChanged(nameof(WriteRateText));

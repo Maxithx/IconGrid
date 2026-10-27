@@ -5,7 +5,7 @@
 ## Current date
 October 23, 2026
 
-> **Seneste session:** se nederst — "Session findings (2026-10-25) — Disks-sektion på Hardware-siden (SMART-helbred + SATA-spindeltilstand)". Ny `Helpers/Hardware/Storage/` + Disks-kort i `HardwarePage`; deployet (DLL 25-10 22:25). Forrige: gaming-overlay COD-fix (2026-10-23 aften, DLL 23-10 23:22).
+> **Seneste session:** se nederst — "Session findings (2026-10-27) — drevbogstaver på Hardware → Disks i alfabetisk orden". C: øverst, derefter D:, E:, ... + bogstaver i chippen sorteret (DLL 27-10 01:10). Forrige: Disks-sektion (2026-10-25, DLL 25-10 22:25).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -1223,6 +1223,26 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 **Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 26-10-2026 03:19:09 i både `bin` og `C:\icongrid`.
 
 **Test for brugeren:** Indstillinger → Home: øverst en forklaring af Main launcher vs. Gaming overlay (knap åbner overlay-indstillingerne), og nederst "Monitorrække (hoved-launcher)" med alle de gamle monitor-indstillinger. "Monitor Row Layout" er væk fra sidebaren.
+
+**Ikke committet/pushet** (kræver separat godkendelse).
+
+## Session findings (2026-10-27) — drevbogstaver på Hardware → Disks i alfabetisk orden
+
+**Brugerønske:** I Disks-sektionen skal drevbogstaverne vises i alfabetisk orden med **C: i toppen**.
+
+**Rodårsag:** Disks-listen blev vist i fysisk disk-indeks-rækkefølge (`ApplyDisks` → `OrderBy(d => d.Index)`), og `DriveLetters` blev bygget i den rækkefølge `MSFT_Partition` blev enumereret. På denne maskine gav det `D:, F:, E:, G:, C:` (C: nederst).
+
+**Implementeret:**
+- `Helpers/Hardware/Storage/PhysicalDiskStatus.cs`: ny `[JsonIgnore] PrimaryDriveLetter` — parser `DriveLetters` ("C:, D:") og returnerer det **laveste** bogstav (robust over for usorteret input); `null` når disken ikke har bogstav. `OnPropertyChanged(nameof(PrimaryDriveLetter))` tilføjet i `CopyFrom`.
+- `Helpers/Hardware/Storage/DiskInventoryReader.cs` (`ReadDriveLetters`): bogstaverne pr. disk sorteres nu alfabetisk (`OrderBy(letter => letter, StringComparer.Ordinal)`) før de join'es til "C:, D:, E:".
+- `Helpers/Launcher/SystemMonitor.cs`: ny privat `ReorderDisks()` kaldes efter merge i `ApplyDisks`. Sortering: diske **med** bogstav først, derefter alfabetisk på `PrimaryDriveLetter`, derefter `Index`; diske uden bogstav sidst. Bruger `ObservableCollection.Move`, så item-identitet og åbne SMART-expandere bevares (ingen Clear/Add).
+
+**Verificeret:**
+- Build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:10:19, samme størrelse (1.131.520 B) i `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid` (første deploy 01:07:04, genbygget efter en null-guard i `PrimaryDriveLetter`).
+- Live `monitor-state.json`: `Index 0=D:, 1=F:, 2=E:, 3=G:, 4=C:` → ny rækkefølge bliver **C:, D:, E:, F:, G:**.
+- `.local-state\disk-smoke\Program.cs`: ny `VerifyDriveLetterOrdering()` bekræftede `primary` for `'E:, C:'` = C og ordren `#2 C | #4 C | #0 D | #1 F | #3 G | #5 -` (disk uden bogstav sidst).
+
+**Test for brugeren:** Hardware → Disks. C:-disken skal stå øverst, derefter D:, E:, F:, G:; chip ved disknavnet viser bogstaverne alfabetisk.
 
 **Ikke committet/pushet** (kræver separat godkendelse).
 
