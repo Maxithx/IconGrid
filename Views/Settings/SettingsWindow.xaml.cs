@@ -212,11 +212,6 @@ namespace IconGrid.Views
             ShowPage(new HardwarePage(), HardwareNavButton);
         }
 
-        private void TestNavButton_Click(object sender, RoutedEventArgs e)
-        {
-            ShowPage(new TestPage(), TestNavButton);
-        }
-
         private void GamingOverlayNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowGamingOverlayPage();

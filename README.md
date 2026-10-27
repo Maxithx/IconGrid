@@ -147,9 +147,8 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |
 | **Monitor row layout** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
-| **Test** | Diagnostics and maintenance: FPS/ETW setup status, trace-log size + **Clean trace log** |
 | **Hjælp** | Help and troubleshooting content |
-| **About** | Version info, app description, credits |
+| **About** | Version info, app description, credits, and the **Debug / Test** diagnostics section (FPS/ETW setup status, trace-log size + **Clean trace log**) |
 
 <!-- TODO: Screenshot — Startside settings page showing hide mode dropdown + peek toggle -->
 <!-- Replace: Assets/git-img/Settings-Startside.png -->
@@ -328,7 +327,7 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 | `fps-state.json` | Compatibility/fallback FPS state |
 | `native-fps-state.json` | Raw native FPS worker state (diagnostics, incl. `gameConfirmed` / `trustedLaunch`) |
 | `external-games.json` | Games detected as started outside IconGrid (auto-registered so they can get their own resolution) |
-| `trace.log` | App trace output (startup + runtime diagnostics). Size-capped at 10 MB — the oldest half is trimmed automatically, and it can be cleared from the **Test** settings page |
+| `trace.log` | App trace output (startup + runtime diagnostics). Size-capped at 10 MB — the oldest half is trimmed automatically, and it can be cleared from the **Debug / Test** section on the **About** settings page |
 | `error.log` | Fatal error log |
 | `IconPack\` | Optional cached icon pack assets |
 

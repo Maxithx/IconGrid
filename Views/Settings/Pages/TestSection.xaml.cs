@@ -19,7 +19,7 @@ using IconGrid.Helpers.Settings;
 
 namespace IconGrid.Views;
 
-public partial class TestPage : System.Windows.Controls.UserControl, INotifyPropertyChanged
+public partial class TestSection : System.Windows.Controls.UserControl, INotifyPropertyChanged
 {
     private string _instanceInfo = string.Empty;
     private string _processInfo = string.Empty;
@@ -109,10 +109,9 @@ public partial class TestPage : System.Windows.Controls.UserControl, INotifyProp
         private set => SetField(ref _traceLogStatusText, value);
     }
 
-    public TestPage()
+    public TestSection()
     {
         InitializeComponent();
-        DataContext = this;
     }
 
     private void UserControl_Loaded(object sender, RoutedEventArgs e)

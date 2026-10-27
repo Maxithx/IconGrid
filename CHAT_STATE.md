@@ -5,7 +5,7 @@
 ## Current date
 October 23, 2026
 
-> **Seneste session:** se nederst — "Session findings (2026-10-27)" + "Rettelse (27-10 01:16) — Voltage-tile" + "Rettelse (27-10 01:20) — Gaming overlay: switches aligned". Disks sorteret C: → D: → E: ..., Voltage-tile og de tre "Automatic while in game"-switches følger nu samme layout som resten (DLL 27-10 01:20:37).
+> **Seneste session:** se nederst — "Session findings (2026-10-27)" + "Test-siden flyttet ind i About + Test-fane fjernet" + "Rettelse (27-10 01:36) — tomme About-kort fjernet + mørk-tema-tekst i Debug/Test". Disks sorteret C: → D: → E: ..., Voltage-tile + switches aligned, `TestPage` → `TestSection` nederst på About, og About har ikke længere tomme kort (DLL 27-10 01:35:55).
 
 ## Current status
 - Fast Copy-siden (Settings → 'Fast Copy') er implementeret + committet/pushet: dual-pane fil-browser (Fra | Til), alle drevtyper (HDD/SSD/NVMe/USB), drev-dropdowns med navne, mappe-navigation, DriveRootPath, MultiWorkerCopyService (WorkerCount 1-16, 20-fil-tærskel, små filer ZIP-pakkes, store filer chunk-splittes), skalerings-benchmark + CSV.
@@ -1273,4 +1273,42 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 **Test for brugeren:** Gaming overlay → "Automatic while in game". Alle tre switches skal stå højrejusteret på hver sin titel-linje. Bruger-verificeret 27-10 ("det virker perfekt").
 
 **Committet + pushet:** `34bc5ba` — "Align CPU voltage tile and Automatic-while-in-game toggles" (main → origin/main).
+
+## Session findings (2026-10-27, fortsat) — Test-siden flyttet ind i About + Test-fane fjernet fra sidebaren
+
+**Brugerønske:** Hele "Test"-siden skal ligge nederst på About-siden, og Test-ikonet skal væk fra sidebaren.
+
+**Implementeret:**
+- `git mv Views/Settings/Pages/TestPage.xaml(.cs)` → **`TestSection.xaml(.cs)`** (historik bevaret). Klassen er omdøbt `TestPage` → `TestSection` (også i code-behind), og alle `{x:Type views:TestPage}`-bindinger peger nu på `TestSection`.
+- Siden er konverteret fra selvstændig side (ScrollViewer + `TemplatePage` med Hero/Cards) til en **sektion** efter samme mønster som `MonitorRowLayoutSection`: root er en `StackPanel` med et intro-kort (`StartsideSectionCardStyle`, titel "Debug / Test" + summary + forklaring) efterfulgt af de tidligere kort. Ingen ScrollViewer/TemplatePage i sektionen.
+- `TestSection.xaml` har fået `<UserControl.Resources>` med `ResourceDictionary Source="/Views/TemplateGuidelines.xaml"` — **kritisk**, se nedenfor.
+- `AboutPage.xaml`: hele indholdet er pakket i en `ScrollViewer` (About-siden havde ingen, så det lange indhold ville blive klippet), og `<views:TestSection />` er indsat nederst i `CardsContent` efter de to About-pladsholderkort.
+- `SettingsWindow.xaml`: `TestNavButton` (DBG-badge + "Test") fjernet fra sidebaren. `SettingsWindow.xaml.cs`: `TestNavButton_Click` fjernet. Sidebaren er nu Home / Shortcut icons / Layout / Hardware / Help / Gaming overlay / About.
+- Docs: `PROJECT_STRUCTURE.md` (TestSection + "embedded in About"), `README.md` (Test-rækken fjernet fra settings-tabellen; About-rækken + `trace.log`-rækken nævner nu Debug/Test-sektionen på About).
+
+**FUND (vigtigt, kostede en crash):** Første version krasjede ved klik på About:
+`XamlParseException: Cannot find resource named 'TemplateCardTitleStyle'` (TestSection.xaml linje 19) → "Fatal from dispatcher" → appen lukkede. Årsag: `TemplateCardTitleStyle` m.fl. ligger i `Views/TemplateGuidelines.xaml`, som kun er merget i `TemplatePage`s egne resources — en UserControl der instantieres under About-sidens BAML-load kan ikke slå dem op. `MonitorRowLayoutSection` løser det ved selv at merge `/Views/TemplateGuidelines.xaml`; samme linje er nu tilføjet i `TestSection.xaml`. `TemplateGuidelines.xaml` merger selv `/Views/StartsideStyles.xaml` (App-niveau), så alle tokens/stile er tilgængelige.
+**Debug-trick:** runtime-XAML-fejl logges i `%APPDATA%\IconGrid\trace.log` som "Fatal from dispatcher: System.Windows.Markup.XamlParseException ..." med fuld stak — tjek altid den fil efter UI-ændringer.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:30:44 (1.131.008 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`. `TestSection.xaml` 01:30:24 (inkl. TemplateGuidelines-merge). Ingen `TestPage`/`TestNavButton`-referencer tilbage i `Views`/`ViewModels`/`Helpers`/`Controls` (grep = 0 hits).
+**Ikke automatiskt UI-verificeret:** et harness-forsøg (`.local-state\ui-smoke`, slettet igen) kunne ikke indlæse App.xaml, fordi pack-URI'en `pack://application:,,,/Views/StartsideStyles.xaml` altid resolver mod *entry*-assemblyen, og `Application.ResourceAssembly` ikke kan ændres i et separat harness. Sektionsmønstret er dog identisk med det bruger-verificerede `MonitorRowLayoutSection`.
+
+**Test for brugeren:** Indstillinger → About. Nederst skal "Debug / Test" stå med alle de gamle kort (Current instance, IconGrid process overview, Startup diagnostics, UI ETW probe, Trace log, Notes), og sidebaren skal ikke længere have Test/DBG.
+
+### Rettelse (27-10 01:36) — 2 tomme kort fjernet + mørk-tema-tekst i Debug/Test
+
+**Symptom (bruger, med screenshot):** About-siden havde stadig **to tomme pladsholderkort** (MinHeight 160), og i "Debug / Test" var summary-linjen ("Mode: UI | Elevation: STANDARD | PID: …") næsten usynlig i mørkt tema (mørk tekst på mørk baggrund), mens resten af teksten var lys.
+
+**Rodårsag:** `TemplateSmallTextStyle`/`TemplateCardTitleStyle`/`TemplateHeroBodyStyle` sætter `Foreground="{Binding SettingsSubtextForeground}"` / `{Binding TopBarForeground}` **uden RelativeSource** — de forventer at DataContext er `MainViewModel`. `TestSection` satte `DataContext = this` i constructoren (arv fra den gamle TestPage), så de tre style-bindings fejlede og tekstfarven faldt tilbage til systemets mørke standardfarve. Kun de TextBlocks der havde en eksplicit `DataContext.SettingsSubtextForeground, RelativeSource=Window`-binding var læsbare.
+
+**Fix:**
+- `TestSection.xaml.cs`: `DataContext = this;` fjernet — alle bindinger i `TestSection.xaml` bruger i forvejen `RelativeSource` (`{x:Type views:TestSection}` eller `AncestorType=Window`), så sektionen arver nu `MainViewModel` fra SettingsWindow og template-stilene virker som på alle andre sider (verificeret: 0 `{Binding`-forekomster uden `RelativeSource` i filen).
+- `AboutPage.xaml`: de to tomme `MinHeight="160"`-pladsholderkort fjernet; About = hero-kort + Debug/Test-sektionen.
+
+**Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:35:55 (1.131.008 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`.
+
+**Test for brugeren:** About-siden skal nu vise hero + Debug/Test uden tomme kort, og summary-linjen skal være lys/læsbar i mørkt tema.
+
+
+**Ikke committet/pushet** (kræver separat godkendelse).
 

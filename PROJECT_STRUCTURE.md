@@ -255,7 +255,7 @@ Views\
     ├── SettingsWindowCoordinator.cs    # Reuse / placement / close of the settings window
     ├── Dialogs\
     │   └── PawnIoWarningWindow.xaml (.cs)   # PawnIO driver warning dialog
-    └── Pages\                          # One page per sidebar entry (DataContext = MainViewModel)
+    └── Pages\                          # Settings pages (DataContext = MainViewModel)
         ├── StartsidePage.xaml (.cs)         # Startup, hide modes, UI scale, language
         ├── GenvejsIkonerPage.xaml (.cs)     # Grid/carousel icon settings
         ├── LayoutPage.xaml (.cs)            # Layout presets and saved layouts
@@ -263,9 +263,9 @@ Views\
         ├── MonitorRowLayoutSection.xaml (.cs) # Monitor row gaps/dividers, overlay height, ping target (embedded in Home)
         ├── GamingOverlayPage.xaml (.cs)     # Overlay scale, position, transparency, FPS setup
         ├── GameResolutionPage.xaml (.cs)    # Per-game display resolution switching
-        ├── TestPage.xaml (.cs)              # Diagnostics: FPS/ETW status, trace-log cleanup
+        ├── TestSection.xaml (.cs)           # Diagnostics: FPS/ETW status, trace-log cleanup (embedded in About)
         ├── HjaelpPage.xaml (.cs)            # Help / troubleshooting
-        ├── AboutPage.xaml (.cs)             # Version info and credits
+        ├── AboutPage.xaml (.cs)             # Version info, credits, and the embedded Debug / Test section
         └── TemplatePage.xaml (.cs)          # Page template: HeroContent + CardsContent
 ```
 

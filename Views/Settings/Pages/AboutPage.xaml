@@ -8,28 +8,35 @@
              xmlns:views="clr-namespace:IconGrid.Views"
              mc:Ignorable="d"
              Background="Transparent">
-    <views:TemplatePage Margin="12">
-        <views:TemplatePage.HeroContent>
-            <StackPanel helpers:DevInspector.Metadata="Om hero card → Views/AboutPage.xaml">
-                <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
-                           Text="{Binding AboutTitleText}" />
-                <TextBlock Margin="0,8,0,0"
-                           Style="{StaticResource TemplateHeroBodyStyle}"
-                           Text="{Binding AboutIntroText}" />
-                <TextBlock Margin="0,16,0,0"
-                           Style="{StaticResource TemplateHeroBodyStyle}"
-                           Text="{x:Static helpersCommon:AppVersion.InformationalVersion}" />
-            </StackPanel>
-        </views:TemplatePage.HeroContent>
-        <views:TemplatePage.CardsContent>
-            <StackPanel>
-                <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        MinHeight="160"
-                        helpers:DevInspector.Metadata="About card → Views/AboutPage.xaml" />
-                <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        MinHeight="160"
-                        helpers:DevInspector.Metadata="About card 2 → Views/AboutPage.xaml" />
-            </StackPanel>
-        </views:TemplatePage.CardsContent>
-    </views:TemplatePage>
+    <ScrollViewer Margin="12"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+        </ScrollViewer.Resources>
+        <views:TemplatePage Margin="0,0,8,0">
+            <views:TemplatePage.HeroContent>
+                <StackPanel helpers:DevInspector.Metadata="Om hero card → Views/AboutPage.xaml">
+                    <TextBlock Style="{StaticResource TemplateHeroTitleStyle}"
+                               Text="{Binding AboutTitleText}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Style="{StaticResource TemplateHeroBodyStyle}"
+                               Text="{Binding AboutIntroText}" />
+                    <TextBlock Margin="0,16,0,0"
+                               Style="{StaticResource TemplateHeroBodyStyle}"
+                               Text="{x:Static helpersCommon:AppVersion.InformationalVersion}" />
+                </StackPanel>
+            </views:TemplatePage.HeroContent>
+            <views:TemplatePage.CardsContent>
+                <StackPanel>
+                    <!-- Debug / Test was its own sidebar page until 2026-10-27; it now lives here. -->
+                    <StackPanel helpers:DevInspector.Metadata="Test section → Views/TestSection.xaml">
+                        <views:TestSection />
+                    </StackPanel>
+                </StackPanel>
+            </views:TemplatePage.CardsContent>
+        </views:TemplatePage>
+    </ScrollViewer>
 </UserControl>
