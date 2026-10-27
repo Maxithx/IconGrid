@@ -1242,7 +1242,7 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 - Live `monitor-state.json`: `Index 0=D:, 1=F:, 2=E:, 3=G:, 4=C:` → ny rækkefølge bliver **C:, D:, E:, F:, G:**.
 - `.local-state\disk-smoke\Program.cs`: ny `VerifyDriveLetterOrdering()` bekræftede `primary` for `'E:, C:'` = C og ordren `#2 C | #4 C | #0 D | #1 F | #3 G | #5 -` (disk uden bogstav sidst).
 
-**Test for brugeren:** Hardware → Disks. C:-disken skal stå øverst, derefter D:, E:, F:, G:; chip ved disknavnet viser bogstaverne alfabetisk.
+**Test for brugeren:** Hardware → Disks. C:-disken skal stå øverst, derefter D:, E:, F:, G:; chip ved disknavnet viser bogstaverne alfabetisk. Bruger-verificeret 27-10 ("det virker perfekt").
 
-**Ikke committet/pushet** (kræver separat godkendelse).
+**Committet + pushet:** `61b1975` — "Sort Hardware Disks by drive letter (C: first)" (main → origin/main).
 
