@@ -1307,8 +1307,7 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Verificeret:** build 0 fejl; deployet — `IconGrid.dll` 27-10-2026 01:35:55 (1.131.008 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\icongrid`.
 
-**Test for brugeren:** About-siden skal nu vise hero + Debug/Test uden tomme kort, og summary-linjen skal være lys/læsbar i mørkt tema.
+**Test for brugeren:** About-siden skal nu vise hero + Debug/Test uden tomme kort, og summary-linjen skal være lys/læsbar i mørkt tema. Bruger-verificeret 27-10 ("perfekt alt spiller").
 
-
-**Ikke committet/pushet** (kræver separat godkendelse).
+**Committet + pushet:** `dc47eca` — "Move Test page into About and fix its dark-theme text" (main → origin/main). Omfatter Test→TestSection-omdøbelsen, About-indlejringen, sidebaren uden Test, docs og disse to rettelser.
 
