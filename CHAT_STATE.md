@@ -1461,3 +1461,8 @@ To nye flags, default `true` (eksisterende configs uændrede), ført gennem hele
 - **Committet og pushet (bruger-godkendt):** `3ae7261` — "Gaming overlay: add GPU core clock and frame time telemetry" (14 filer, +219/−3), pushet til `origin/main` (`82e03b4..3ae7261`).
 - Bruger har testet GPU-ur, FT-format (`FT: x.xms` før FPS) og de faste bredder — **alt godkendt**.
 - Noten er committet i en separat opfølgnings-commit (`Note: ...`) efter bruger-godkendelse.
+
+### Rettelse (23:13) — "Overlay content" foldet sammen som default
+- `Views/Settings/Pages/GamingOverlayPage.xaml`: `IsExpanded="False"` på "Overlay content"-expanderen (var `True`). Kortet følger nu samme default som de øvrige kort på siden (kun hero-kortet er åbent).
+- **Deployet 2026-11-09 23:13** — `IconGrid.dll` 1.158.656 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Committet og pushet efter bruger-godkendelse (bruger: "det spiller").

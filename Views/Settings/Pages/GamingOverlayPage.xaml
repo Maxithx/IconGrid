@@ -487,7 +487,7 @@
                 <StackPanel>
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
-                                  IsExpanded="True"
+                                  IsExpanded="False"
                                   helpers:DevInspector.Metadata="Overlay content card expander -> Views/GamingOverlayPage.xaml">
                             <Expander.Header>
                                 <StackPanel>
