@@ -1456,3 +1456,8 @@ To nye flags, default `true` (eksisterende configs uændrede), ført gennem hele
   - GPU-uret har fået **fast 58 px bredde** (højrejusteret), så skift fra 3 til 4 cifre (`835 MHz` → `1935 MHz`) ikke flytter rækken.
 - **Deployet 2026-11-09 20:08** — `IconGrid.dll` 1.158.656 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
 - **Kendt rest (valgfrit):** CPU/GPU-temperatur (`47°` → `100°`) og ping (`12ms` → `150ms`) kan stadig skifte bredde med ét tegn og dermed flytte rækken ganske lidt. Kan løses med samme faste felter, hvis det ønskes.
+
+### Commit + push (2026-11-09 ~20:12)
+- **Committet og pushet (bruger-godkendt):** `3ae7261` — "Gaming overlay: add GPU core clock and frame time telemetry" (14 filer, +219/−3), pushet til `origin/main` (`82e03b4..3ae7261`).
+- Bruger har testet GPU-ur, FT-format (`FT: x.xms` før FPS) og de faste bredder — **alt godkendt**.
+- Noten er committet i en separat opfølgnings-commit (`Note: ...`) efter bruger-godkendelse.
