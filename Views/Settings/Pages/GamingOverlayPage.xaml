@@ -609,6 +609,48 @@
                                                       Style="{StaticResource ToggleSwitchStyle}"
                                                       IsChecked="{Binding DataContext.GamingOverlayShowFps, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
                                     </Grid>
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentGpuClockTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentGpuClockIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowGpuClock, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentFrameTimeTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentFrameTimeIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowFrameTime, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>

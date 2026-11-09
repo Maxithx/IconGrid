@@ -1397,3 +1397,62 @@ Ny persistence-kæde for 5 booleans (alle default `true`, så eksisterende confi
 - **Mangler bruger-verifikation:** (a) kortet vises øverst med 5 kontakter; (b) slår man fx GPU fra, forsvinder GPU-temp + bar i preview OG i det åbne in-game overlay (bredden tilpasses); (c) indstillingen huskes efter genstart; (d) dividere efterlader ikke løse `|`.
 - Ikke committet/pushet (kræver separat godkendelse).
 - Stadig udskudt: CPU/GPU Voltage, GPU core MHz, frame time i overlayet (kan tilføjes som flere rækker i samme kort + nye blokke i baren).
+
+### Commit + push (2026-11-09 ~19:25)
+- **Committet og pushet (bruger-godkendt):** `82e03b4` — "Gaming overlay: extract bar control, add live preview and content toggles" (16 filer, +1130/−459), pushet til `origin/main` (`79f0663..82e03b4`).
+- Denne note er **ikke** committet (kræver separat godkendelse).
+
+## Session findings (2026-11-09, fortsat 2) — GPU core MHz + frame time i overlayet
+
+**Brugerønske:** tilføj GPU core MHz og frame time til gaming overlayet (første del af den udskudte telemetri; CPU/GPU voltage mangler stadig).
+
+### Datakilder (fandtes allerede — ingen ny capture-pipeline)
+- **GPU core MHz:** `HardwareSnapshotCollector.CaptureGpuClock()` → `SystemMonitor.GpuClock`. Tidligere formateret med `FormatClock` (GHz over 1000). Ny `FormatGpuClock()` viser **altid MHz** (`1935 MHz`), som undervolt-værktøjer gør. `GpuClock` blev ikke vist andre steder i UI (kun `CpuClock` bruges på Hardware-siden), så formatændringen er sikker.
+- **Frame time:** `SystemMonitor.FrameTimeStatus` (1000 / target-FPS). Var ikke bundet i UI før. Formatering ændret fra `F0` (heltal) til **`F1`** (fx `6.9`) for brugbar præcision. Vises som `{FrameTimeStatus} ms`.
+
+### Config (persisteret)
+To nye flags, default `true` (eksisterende configs uændrede), ført gennem hele kæden:
+`GamingOverlayShowGpuClock`, `GamingOverlayShowFrameTime` i `ConfigModel`, `MainViewModelConfigState`, `MainViewModelSettingsState`, `MainViewModelSettingsPersistence`, `ApplyConfig`/`ResetToDefaults`/`SaveSettingsToConfig`, backing fields i `MainViewModel.cs`.
+
+### VM (`MainViewModel.Overlay.cs`)
+- Nye properties `GamingOverlayShowGpuClock` / `GamingOverlayShowFrameTime` (gemmer via `SaveSettingsToConfig`).
+- Nye beregnede synligheder `GamingOverlayGpuClockVisible = ShowGpu && ShowGpuClock` og `GamingOverlayFrameTimeVisible = ShowFps && ShowFrameTime` → ingen "løse" værdier hvis GPU/FPS-blokken er slået fra. `ShowGpu`/`ShowFps`-setterne notificerer dem.
+
+### Overlay (`Views/Launcher/GamingOverlayBar.xaml`)
+- GPU-ur som `TextBlock` **inde i GPU-blokken** lige efter GPU-baren: `GPU: 62° [bar] 1935 MHz` (synlig via `GamingOverlayGpuClockVisible`).
+- Frame time som `TextBlock` **inde i FPS-blokken** lige efter FPS-tallet: `FPS: 144 6.9 ms` (synlig via `GamingOverlayFrameTimeVisible`). Ingen nye dividere → divider-logikken er uændret.
+- `GamingOverlayWindow.ViewModel_PropertyChanged` reagerer nu også på de to nye flags → `UpdateOverlayMetrics()`, så et åbent overlay skalerer straks.
+
+### Settings-UI (`GamingOverlayPage`)
+- To nye rækker i "Overlay-indhold"-kortet: **"GPU-ur (core MHz)"** og **"Frametid"** (samme Grid-mønster + `ToggleSwitchStyle`).
+- Lokalisering (da/en): `OverlayContentGpuClockTitleText/IntroText`, `OverlayContentFrameTimeTitleText/IntroText` — teksterne nævner at de kræver GPU hhv. FPS-blokken.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler.
+- **Deployet 2026-11-09 19:42** — `IconGrid.dll` 1.158.144 B i både build-mappe og `C:\IconGrid`.
+
+### Status / næste skridt
+- **Mangler bruger-verifikation:** (a) GPU-ur vises som MHz ved siden af GPU-temp; (b) frame time vises som `x.x ms` ved siden af FPS; (c) begge kan slås fra i "Overlay-indhold" og huskes; (d) preview opdateres live.
+- Næste telemetri: **CPU/GPU Voltage** (CPU-voltage findes allerede som `SystemMonitor.CpuVoltage`/snapshot `CpuVoltage`; GPU-voltage skal verificeres i LibreHardwareMonitor-sensoren).
+- Ikke committet/pushet (kræver separat godkendelse).
+
+### Opdatering (19:57) — FT før FPS + "FT: x.xms"-format
+- Brugerønske fra preview-screenshot: frame time skal stå **før** FPS og hedde **`FT: --ms`** (uden mellemrum før `ms`).
+- `Views/Launcher/GamingOverlayBar.xaml`: frame time er nu en fast-bredde `Grid` (80 px, kolonner 24 + `*`) med label `FT:` og værdien `{FrameTimeStatus}ms`, placeret **mellem GPU/FPS-divideren og FPS-grid'en** → rækkefølge: `... GPU: 34° ▮ 375 MHz | FT: 6.9ms FPS: 144`. Fast bredde forhindrer at FPS-tallet hopper når frame time skifter mellem fx `6.9ms` og `16.7ms`.
+- Lokalisering opdateret (da/en): frame time-introen nævner nu `FT: x.xms` og at den står foran FPS.
+- Synlighedslogik uændret: FT er stadig en del af FPS-gruppen (`GamingOverlayFrameTimeVisible = ShowFps && ShowFrameTime`), så der aldrig står en FT uden FPS-blok.
+- **Deployet 2026-11-09 19:57** — `IconGrid.dll` 1.158.656 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+
+### Rettelse (19:59) — FT-mellemrum ensrettet
+- Brugerfeedback: for stort mellemrum mellem `FT:` og `--ms` (den faste 80 px-grid med **højrejusteret** værdi gav et hul).
+- Fix: FT er nu et almindeligt `TextBlock` med tre `Run`s — `"FT: "` + værdi + `"ms"` — præcis som `CPU: 47°` / `Net: 12ms` / `GPU: 34°`. Margin `0,0,9,0` som naboerne.
+- Konsekvens: blokken er ikke længere fast-bredde, så FPS kan flytte sig ganske lidt når frame time skifter antal tegn (fx `6.9ms` → `16.7ms`). Det er accepteret til fordel for korrekt afstand.
+- **Deployet 2026-11-09 19:59** — `IconGrid.dll` 1.158.144 B i både build-mappe og `C:\IconGrid`.
+
+### Rettelse (20:08) — fast bredde på FT og GPU-ur (ingen ryk i overlayet)
+- Brugerfeedback: overlayet rykkede når FT gik fra 1 til 2 decimaler (`6.9ms` → `16.7ms`), fordi rækken er højrejusteret og bredden dermed ændrede sig.
+- Fix i `Views/Launcher/GamingOverlayBar.xaml`:
+  - FT er nu `StackPanel` med label `"FT: "` + værdi i et **fast 46 px felt, venstrejusteret** → afstanden efter kolon er konstant, og bredden ændrer sig ikke ved 1 vs. 2 decimaler.
+  - GPU-uret har fået **fast 58 px bredde** (højrejusteret), så skift fra 3 til 4 cifre (`835 MHz` → `1935 MHz`) ikke flytter rækken.
+- **Deployet 2026-11-09 20:08** — `IconGrid.dll` 1.158.656 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- **Kendt rest (valgfrit):** CPU/GPU-temperatur (`47°` → `100°`) og ping (`12ms` → `150ms`) kan stadig skifte bredde med ét tegn og dermed flytte rækken ganske lidt. Kan løses med samme faste felter, hvis det ønskes.

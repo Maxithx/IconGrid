@@ -85,6 +85,7 @@ namespace IconGrid.ViewModels
             {
                 if (SetField(ref _gamingOverlayShowGpu, value, nameof(GamingOverlayShowGpu)))
                 {
+                    OnPropertyChanged(nameof(GamingOverlayGpuClockVisible));
                     OnPropertyChanged(nameof(GamingOverlayDividerCpuGpuVisible));
                     OnPropertyChanged(nameof(GamingOverlayDividerGpuFpsVisible));
                     SaveSettingsToConfig();
@@ -102,11 +103,52 @@ namespace IconGrid.ViewModels
             {
                 if (SetField(ref _gamingOverlayShowFps, value, nameof(GamingOverlayShowFps)))
                 {
+                    OnPropertyChanged(nameof(GamingOverlayFrameTimeVisible));
                     OnPropertyChanged(nameof(GamingOverlayDividerGpuFpsVisible));
                     SaveSettingsToConfig();
                 }
             }
         }
+
+        /// <summary>
+        /// Shows the GPU core clock (MHz/GHz) next to the GPU temperature block.
+        /// Persisted in config. Only rendered while the GPU block itself is visible.
+        /// </summary>
+        public bool GamingOverlayShowGpuClock
+        {
+            get => _gamingOverlayShowGpuClock;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowGpuClock, value, nameof(GamingOverlayShowGpuClock)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayGpuClockVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the frame time (1000 / FPS, in ms) next to the FPS value.
+        /// Persisted in config. Only rendered while the FPS block itself is visible.
+        /// </summary>
+        public bool GamingOverlayShowFrameTime
+        {
+            get => _gamingOverlayShowFrameTime;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowFrameTime, value, nameof(GamingOverlayShowFrameTime)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayFrameTimeVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>GPU clock is part of the GPU block, so the block must be visible too.</summary>
+        public bool GamingOverlayGpuClockVisible => _gamingOverlayShowGpu && _gamingOverlayShowGpuClock;
+
+        /// <summary>Frame time is part of the FPS block, so the block must be visible too.</summary>
+        public bool GamingOverlayFrameTimeVisible => _gamingOverlayShowFps && _gamingOverlayShowFrameTime;
 
         // Dividers are only shown BETWEEN two visible blocks, so hiding a block never leaves
         // a dangling "|" at the start/end of the overlay row.

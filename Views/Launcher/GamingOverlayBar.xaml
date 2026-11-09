@@ -288,8 +288,27 @@
                                        RadiusY="2"
                                        Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
                         </Border>
+                        <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                   Width="58"
+                                   Margin="0,0,9,0"
+                                   TextAlignment="Right"
+                                   Visibility="{Binding GamingOverlayGpuClockVisible, Converter={StaticResource BoolToVisibility}}">
+                            <Run Text="{Binding SystemMonitor.GpuClock, Mode=OneWay}" />
+                        </TextBlock>
                         <TextBlock Style="{StaticResource MonitorDividerStyle}"
                                    Visibility="{Binding GamingOverlayDividerGpuFpsVisible, Converter={StaticResource BoolToVisibility}}" />
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,0,9,0"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding GamingOverlayFrameTimeVisible, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                       Text="FT: "
+                                       VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                       Width="46"
+                                       TextAlignment="Left"
+                                       VerticalAlignment="Center"><Run Text="{Binding SystemMonitor.FrameTimeStatus, Mode=OneWay}" /><Run Text="ms" /></TextBlock>
+                        </StackPanel>
                         <Grid Width="54"
                               Margin="0,0,10,0"
                               VerticalAlignment="Center"

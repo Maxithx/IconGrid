@@ -104,6 +104,10 @@ namespace IconGrid.Views
         private string _overlayContentGpuIntroText = string.Empty;
         private string _overlayContentFpsTitleText = string.Empty;
         private string _overlayContentFpsIntroText = string.Empty;
+        private string _overlayContentGpuClockTitleText = string.Empty;
+        private string _overlayContentGpuClockIntroText = string.Empty;
+        private string _overlayContentFrameTimeTitleText = string.Empty;
+        private string _overlayContentFrameTimeIntroText = string.Empty;
         private List<KeyValuePair<string, string>> _overlayPositionPresetItems = new();
         private List<KeyValuePair<string, string>> _gameLauncherBehaviorItems = new();
         private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
@@ -321,6 +325,14 @@ namespace IconGrid.Views
         public string OverlayContentFpsTitleText { get => _overlayContentFpsTitleText; private set => SetField(ref _overlayContentFpsTitleText, value); }
 
         public string OverlayContentFpsIntroText { get => _overlayContentFpsIntroText; private set => SetField(ref _overlayContentFpsIntroText, value); }
+
+        public string OverlayContentGpuClockTitleText { get => _overlayContentGpuClockTitleText; private set => SetField(ref _overlayContentGpuClockTitleText, value); }
+
+        public string OverlayContentGpuClockIntroText { get => _overlayContentGpuClockIntroText; private set => SetField(ref _overlayContentGpuClockIntroText, value); }
+
+        public string OverlayContentFrameTimeTitleText { get => _overlayContentFrameTimeTitleText; private set => SetField(ref _overlayContentFrameTimeTitleText, value); }
+
+        public string OverlayContentFrameTimeIntroText { get => _overlayContentFrameTimeIntroText; private set => SetField(ref _overlayContentFrameTimeIntroText, value); }
 
         public string GameAutoBehaviorTitleText
         {
@@ -753,6 +765,10 @@ namespace IconGrid.Views
                 OverlayContentGpuIntroText = "GPU-temperatur og belastningsbar.";
                 OverlayContentFpsTitleText = "FPS";
                 OverlayContentFpsIntroText = "Live FPS fra FPS-pipelinen.";
+                OverlayContentGpuClockTitleText = "GPU-ur (core MHz)";
+                OverlayContentGpuClockIntroText = "GPU-core-klokfrekvens ved siden af GPU-temperaturen. Kræver at GPU vises.";
+                OverlayContentFrameTimeTitleText = "Frametid";
+                OverlayContentFrameTimeIntroText = "Frame time i millisekunder (1000 / FPS) vist som \"FT: x.xms\" foran FPS-tallet. Kræver at FPS vises.";
             }
             else
             {
@@ -823,6 +839,10 @@ namespace IconGrid.Views
                 OverlayContentGpuIntroText = "GPU temperature and usage bar.";
                 OverlayContentFpsTitleText = "FPS";
                 OverlayContentFpsIntroText = "Live FPS from the FPS pipeline.";
+                OverlayContentGpuClockTitleText = "GPU clock (core MHz)";
+                OverlayContentGpuClockIntroText = "GPU core clock shown next to the GPU temperature. Requires GPU to be visible.";
+                OverlayContentFrameTimeTitleText = "Frame time";
+                OverlayContentFrameTimeIntroText = "Frame time in milliseconds (1000 / FPS) shown as \"FT: x.xms\" before the FPS value. Requires FPS to be visible.";
             }
         }
 

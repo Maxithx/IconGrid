@@ -1048,7 +1048,7 @@ namespace IconGrid.Helpers
 
             FpsStatus = (_displayedFpsInteger ?? targetDisplayValue).ToString("F0");
             FrameTimeStatus = _targetFpsValue.Value > 0
-                ? $"{Math.Round(1000.0 / _targetFpsValue.Value):F0}"
+                ? $"{1000.0 / _targetFpsValue.Value:F1}"
                 : "--";
         }
 

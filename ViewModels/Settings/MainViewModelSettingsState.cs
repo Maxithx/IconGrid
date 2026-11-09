@@ -21,6 +21,8 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayShowCpu { get; set; } = true;
         public bool GamingOverlayShowGpu { get; set; } = true;
         public bool GamingOverlayShowFps { get; set; } = true;
+        public bool GamingOverlayShowGpuClock { get; set; } = true;
+        public bool GamingOverlayShowFrameTime { get; set; } = true;
         public int GameLauncherAutoBehavior { get; set; }
         public bool AutoShowGamingOverlayOnGameStart { get; set; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; set; }

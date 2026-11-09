@@ -28,6 +28,8 @@ public class ConfigModel
     public bool GamingOverlayShowCpu { get; set; } = true;
     public bool GamingOverlayShowGpu { get; set; } = true;
     public bool GamingOverlayShowFps { get; set; } = true;
+    public bool GamingOverlayShowGpuClock { get; set; } = true;
+    public bool GamingOverlayShowFrameTime { get; set; } = true;
     public int GameLauncherAutoBehavior { get; set; } = 0;
     public bool AutoShowGamingOverlayOnGameStart { get; set; } = false;
     public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false;

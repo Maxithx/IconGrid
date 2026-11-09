@@ -31,6 +31,8 @@ namespace IconGrid.ViewModels
             _gamingOverlayShowCpu = state.GamingOverlayShowCpu;
             _gamingOverlayShowGpu = state.GamingOverlayShowGpu;
             _gamingOverlayShowFps = state.GamingOverlayShowFps;
+            _gamingOverlayShowGpuClock = state.GamingOverlayShowGpuClock;
+            _gamingOverlayShowFrameTime = state.GamingOverlayShowFrameTime;
             _gameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
             _autoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
             _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
@@ -105,6 +107,8 @@ namespace IconGrid.ViewModels
             _gamingOverlayShowCpu = true;
             _gamingOverlayShowGpu = true;
             _gamingOverlayShowFps = true;
+            _gamingOverlayShowGpuClock = true;
+            _gamingOverlayShowFrameTime = true;
             _gameLauncherAutoBehavior = 0;
             _autoShowGamingOverlayOnGameStart = false;
             _autoCloseGamingOverlayOnGameEnd = false;
@@ -160,6 +164,8 @@ namespace IconGrid.ViewModels
                 GamingOverlayShowCpu = _gamingOverlayShowCpu,
                 GamingOverlayShowGpu = _gamingOverlayShowGpu,
                 GamingOverlayShowFps = _gamingOverlayShowFps,
+                GamingOverlayShowGpuClock = _gamingOverlayShowGpuClock,
+                GamingOverlayShowFrameTime = _gamingOverlayShowFrameTime,
                 GameLauncherAutoBehavior = _gameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = _autoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = _autoCloseGamingOverlayOnGameEnd,

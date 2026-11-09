@@ -356,7 +356,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
                     .ThenByDescending(sensor => sensor.Value)
                     .FirstOrDefault();
 
-                return FormatClock(clockSensor?.Value);
+                return FormatGpuClock(clockSensor?.Value);
             }
         }
         catch
@@ -549,6 +549,20 @@ public sealed class HardwareSnapshotCollector : IDisposable
         if (value.Value >= 1000f)
         {
             return $"{value.Value / 1000f:F2} GHz";
+        }
+
+        return $"{value.Value:F0} MHz";
+    }
+
+    /// <summary>
+    /// GPU core clock is always shown in MHz (never GHz) so undervolt/clock tuning can be read
+    /// directly off the gaming overlay, the same way tuning tools display it.
+    /// </summary>
+    private static string? FormatGpuClock(float? value)
+    {
+        if (!value.HasValue || value.Value <= 0)
+        {
+            return null;
         }
 
         return $"{value.Value:F0} MHz";

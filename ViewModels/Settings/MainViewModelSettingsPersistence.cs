@@ -34,6 +34,8 @@ namespace IconGrid.ViewModels.Settings
                 config.GamingOverlayShowCpu = state.GamingOverlayShowCpu;
                 config.GamingOverlayShowGpu = state.GamingOverlayShowGpu;
                 config.GamingOverlayShowFps = state.GamingOverlayShowFps;
+                config.GamingOverlayShowGpuClock = state.GamingOverlayShowGpuClock;
+                config.GamingOverlayShowFrameTime = state.GamingOverlayShowFrameTime;
                 config.GameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
                 config.AutoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
                 config.AutoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;

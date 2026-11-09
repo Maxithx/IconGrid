@@ -617,7 +617,9 @@ namespace IconGrid.Views
                 || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowNetwork), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowCpu), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowGpu), StringComparison.OrdinalIgnoreCase)
-                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowFps), StringComparison.OrdinalIgnoreCase))
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowFps), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowGpuClock), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowFrameTime), StringComparison.OrdinalIgnoreCase))
             {
                 UpdateOverlayMetrics();
                 return;

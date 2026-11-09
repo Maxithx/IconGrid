@@ -24,6 +24,8 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayShowCpu { get; init; } = true;
         public bool GamingOverlayShowGpu { get; init; } = true;
         public bool GamingOverlayShowFps { get; init; } = true;
+        public bool GamingOverlayShowGpuClock { get; init; } = true;
+        public bool GamingOverlayShowFrameTime { get; init; } = true;
         public int GameLauncherAutoBehavior { get; init; }
         public bool AutoShowGamingOverlayOnGameStart { get; init; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; init; }
@@ -102,6 +104,8 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayShowCpu = config.GamingOverlayShowCpu,
                 GamingOverlayShowGpu = config.GamingOverlayShowGpu,
                 GamingOverlayShowFps = config.GamingOverlayShowFps,
+                GamingOverlayShowGpuClock = config.GamingOverlayShowGpuClock,
+                GamingOverlayShowFrameTime = config.GamingOverlayShowFrameTime,
                 GameLauncherAutoBehavior = config.GameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = config.AutoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = config.AutoCloseGamingOverlayOnGameEnd,
