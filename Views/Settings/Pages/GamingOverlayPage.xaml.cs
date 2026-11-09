@@ -87,6 +87,23 @@ namespace IconGrid.Views
         private string _gameLauncherBehaviorIntroText = string.Empty;
         private string _gameResolutionTitleText = string.Empty;
         private string _gameResolutionIntroText = string.Empty;
+        private string _overlayPreviewTitleText = string.Empty;
+        private string _overlayPreviewIntroText = string.Empty;
+        private string _showOverlayButtonText = "Show gaming overlay";
+        private string _showOverlayButtonIntroText = string.Empty;
+        private string _overlayContentTitleText = string.Empty;
+        private string _overlayContentIntroText = string.Empty;
+        private string _overlayContentHintText = string.Empty;
+        private string _overlayContentClockTitleText = string.Empty;
+        private string _overlayContentClockIntroText = string.Empty;
+        private string _overlayContentNetworkTitleText = string.Empty;
+        private string _overlayContentNetworkIntroText = string.Empty;
+        private string _overlayContentCpuTitleText = string.Empty;
+        private string _overlayContentCpuIntroText = string.Empty;
+        private string _overlayContentGpuTitleText = string.Empty;
+        private string _overlayContentGpuIntroText = string.Empty;
+        private string _overlayContentFpsTitleText = string.Empty;
+        private string _overlayContentFpsIntroText = string.Empty;
         private List<KeyValuePair<string, string>> _overlayPositionPresetItems = new();
         private List<KeyValuePair<string, string>> _gameLauncherBehaviorItems = new();
         private readonly ObservableCollection<ResolutionScaleEntry> _resolutionScaleEntries = new();
@@ -254,6 +271,56 @@ namespace IconGrid.Views
             get => _overlayPositionIntroText;
             private set => SetField(ref _overlayPositionIntroText, value);
         }
+
+        public string OverlayPreviewTitleText
+        {
+            get => _overlayPreviewTitleText;
+            private set => SetField(ref _overlayPreviewTitleText, value);
+        }
+
+        public string OverlayPreviewIntroText
+        {
+            get => _overlayPreviewIntroText;
+            private set => SetField(ref _overlayPreviewIntroText, value);
+        }
+
+        public string ShowOverlayButtonText
+        {
+            get => _showOverlayButtonText;
+            private set => SetField(ref _showOverlayButtonText, value);
+        }
+
+        public string ShowOverlayButtonIntroText
+        {
+            get => _showOverlayButtonIntroText;
+            private set => SetField(ref _showOverlayButtonIntroText, value);
+        }
+
+        public string OverlayContentTitleText { get => _overlayContentTitleText; private set => SetField(ref _overlayContentTitleText, value); }
+
+        public string OverlayContentIntroText { get => _overlayContentIntroText; private set => SetField(ref _overlayContentIntroText, value); }
+
+        public string OverlayContentHintText { get => _overlayContentHintText; private set => SetField(ref _overlayContentHintText, value); }
+
+        public string OverlayContentClockTitleText { get => _overlayContentClockTitleText; private set => SetField(ref _overlayContentClockTitleText, value); }
+
+        public string OverlayContentClockIntroText { get => _overlayContentClockIntroText; private set => SetField(ref _overlayContentClockIntroText, value); }
+
+        public string OverlayContentNetworkTitleText { get => _overlayContentNetworkTitleText; private set => SetField(ref _overlayContentNetworkTitleText, value); }
+
+        public string OverlayContentNetworkIntroText { get => _overlayContentNetworkIntroText; private set => SetField(ref _overlayContentNetworkIntroText, value); }
+
+        public string OverlayContentCpuTitleText { get => _overlayContentCpuTitleText; private set => SetField(ref _overlayContentCpuTitleText, value); }
+
+        public string OverlayContentCpuIntroText { get => _overlayContentCpuIntroText; private set => SetField(ref _overlayContentCpuIntroText, value); }
+
+        public string OverlayContentGpuTitleText { get => _overlayContentGpuTitleText; private set => SetField(ref _overlayContentGpuTitleText, value); }
+
+        public string OverlayContentGpuIntroText { get => _overlayContentGpuIntroText; private set => SetField(ref _overlayContentGpuIntroText, value); }
+
+        public string OverlayContentFpsTitleText { get => _overlayContentFpsTitleText; private set => SetField(ref _overlayContentFpsTitleText, value); }
+
+        public string OverlayContentFpsIntroText { get => _overlayContentFpsIntroText; private set => SetField(ref _overlayContentFpsIntroText, value); }
 
         public string GameAutoBehaviorTitleText
         {
@@ -669,6 +736,23 @@ namespace IconGrid.Views
                 };
                 GameResolutionTitleText = "Spilopløsning";
                 GameResolutionIntroText = "Vælg hvilken skærmopløsning IconGrid skal skifte til, før et spil startes fra dine genveje.";
+                OverlayPreviewTitleText = "Sådan ser overlayet ud";
+                OverlayPreviewIntroText = "Live forhåndsvisning af det rigtige gaming overlay. Tallene opdateres, mens du er på siden, og visningen følger dit tema, din tekstfarve og din overlay-størrelse.";
+                ShowOverlayButtonText = "Vis gaming overlay";
+                ShowOverlayButtonIntroText = "Åbn overlayet med det samme — også uden at et spil kører. Automatisk visning ved spilstart er uændret.";
+                OverlayContentTitleText = "Overlay-indhold";
+                OverlayContentIntroText = "Vælg hvilke oplysninger gaming overlayet skal vise.";
+                OverlayContentHintText = "Ændringerne slår igennem med det samme — også i forhåndsvisningen ovenfor. Skjuler du alt, vises kun overlayets egne knapper.";
+                OverlayContentClockTitleText = "Ur";
+                OverlayContentClockIntroText = "Klokkeslæt yderst til venstre i overlayet.";
+                OverlayContentNetworkTitleText = "Netværk og ping";
+                OverlayContentNetworkIntroText = "Ping-indikator og netværksstatus.";
+                OverlayContentCpuTitleText = "CPU";
+                OverlayContentCpuIntroText = "CPU-temperatur og belastningsbar.";
+                OverlayContentGpuTitleText = "GPU";
+                OverlayContentGpuIntroText = "GPU-temperatur og belastningsbar.";
+                OverlayContentFpsTitleText = "FPS";
+                OverlayContentFpsIntroText = "Live FPS fra FPS-pipelinen.";
             }
             else
             {
@@ -722,6 +806,23 @@ namespace IconGrid.Views
                 };
                 GameResolutionTitleText = "Game resolution";
                 GameResolutionIntroText = "Choose which display resolution IconGrid should switch to before launching a game from your shortcuts.";
+                OverlayPreviewTitleText = "Overlay preview";
+                OverlayPreviewIntroText = "Live preview of the real gaming overlay. The values update while you are on this page, and the preview follows your theme, text color and overlay scale.";
+                ShowOverlayButtonText = "Show gaming overlay";
+                ShowOverlayButtonIntroText = "Open the overlay right now — even without a game running. Automatic showing on game start is unchanged.";
+                OverlayContentTitleText = "Overlay content";
+                OverlayContentIntroText = "Choose which information the gaming overlay shows.";
+                OverlayContentHintText = "Changes take effect immediately — also in the preview above. If you hide everything, only the overlay's own buttons remain.";
+                OverlayContentClockTitleText = "Clock";
+                OverlayContentClockIntroText = "Time of day on the far left of the overlay.";
+                OverlayContentNetworkTitleText = "Network and ping";
+                OverlayContentNetworkIntroText = "Ping indicator and network status.";
+                OverlayContentCpuTitleText = "CPU";
+                OverlayContentCpuIntroText = "CPU temperature and usage bar.";
+                OverlayContentGpuTitleText = "GPU";
+                OverlayContentGpuIntroText = "GPU temperature and usage bar.";
+                OverlayContentFpsTitleText = "FPS";
+                OverlayContentFpsIntroText = "Live FPS from the FPS pipeline.";
             }
         }
 
@@ -756,6 +857,14 @@ namespace IconGrid.Views
 
             field = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void ShowOverlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Manual preview/show of the gaming overlay. This only asks the launcher window to
+            // open the overlay — it never touches the "automatic while in game" pipeline
+            // (GameLaunched / GameExited / launcher hide mode stay exactly as configured).
+            _mainViewModel?.RequestShowGamingOverlay();
         }
 
         private void GameResolutionCardExpander_Expanded(object sender, RoutedEventArgs e)

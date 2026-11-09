@@ -19,6 +19,11 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayAutoTransparentBackground { get; init; }
         public string GamingOverlayTextColor { get; init; } = "#FFFFFF";
         public string GamingOverlayPositionPreset { get; init; } = "TopRight";
+        public bool GamingOverlayShowClock { get; init; } = true;
+        public bool GamingOverlayShowNetwork { get; init; } = true;
+        public bool GamingOverlayShowCpu { get; init; } = true;
+        public bool GamingOverlayShowGpu { get; init; } = true;
+        public bool GamingOverlayShowFps { get; init; } = true;
         public int GameLauncherAutoBehavior { get; init; }
         public bool AutoShowGamingOverlayOnGameStart { get; init; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; init; }
@@ -92,6 +97,11 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayAutoTransparentBackground = config.GamingOverlayAutoTransparentBackground,
                 GamingOverlayTextColor = string.IsNullOrWhiteSpace(config.GamingOverlayTextColor) ? "#FFFFFF" : config.GamingOverlayTextColor,
                 GamingOverlayPositionPreset = string.IsNullOrWhiteSpace(config.GamingOverlayPositionPreset) ? "TopRight" : config.GamingOverlayPositionPreset,
+                GamingOverlayShowClock = config.GamingOverlayShowClock,
+                GamingOverlayShowNetwork = config.GamingOverlayShowNetwork,
+                GamingOverlayShowCpu = config.GamingOverlayShowCpu,
+                GamingOverlayShowGpu = config.GamingOverlayShowGpu,
+                GamingOverlayShowFps = config.GamingOverlayShowFps,
                 GameLauncherAutoBehavior = config.GameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = config.AutoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = config.AutoCloseGamingOverlayOnGameEnd,

@@ -94,6 +94,11 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayAutoTransparentBackground = false;
         private string _gamingOverlayTextColor = "#FFFFFF";
         private string _gamingOverlayPositionPreset = "TopRight";
+        private bool _gamingOverlayShowClock = true;
+        private bool _gamingOverlayShowNetwork = true;
+        private bool _gamingOverlayShowCpu = true;
+        private bool _gamingOverlayShowGpu = true;
+        private bool _gamingOverlayShowFps = true;
         private int _gameLauncherAutoBehavior = 0; // GameAutoBehaviorMode: 0=None, 1=AutoHide, 2=MinimizeToTaskbar
         private bool _autoShowGamingOverlayOnGameStart = false;
         private bool _autoCloseGamingOverlayOnGameEnd = false;
@@ -188,6 +193,21 @@ namespace IconGrid.ViewModels
         /// MainWindow subscribes to apply the configured auto-close/restore behavior.
         /// </summary>
         public event Action? GameExited;
+
+        /// <summary>
+        /// Raised when the user asks for the gaming overlay manually (Gaming overlay settings
+        /// page). MainWindow opens the overlay window without applying the in-game launcher
+        /// behavior, so this never interferes with the automatic GameLaunched/GameExited flow.
+        /// </summary>
+        public event Action? ShowGamingOverlayRequested;
+
+        /// <summary>
+        /// Requests a manual show of the gaming overlay. Must be called on the UI thread.
+        /// </summary>
+        public void RequestShowGamingOverlay()
+        {
+            ShowGamingOverlayRequested?.Invoke();
+        }
 
         private bool _wasInGame;
 

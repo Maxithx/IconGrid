@@ -436,6 +436,48 @@
                                             Click="OverlayCustomColorButton_Click"
                                             Content="{Binding OverlayCustomColorButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                                 </StackPanel>
+
+                                <TextBlock Margin="0,20,0,0"
+                                           Text="{Binding OverlayPreviewTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding OverlayPreviewIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <Border Margin="0,10,0,0"
+                                        Padding="12"
+                                        HorizontalAlignment="Stretch"
+                                        MaxHeight="140"
+                                        Background="{StaticResource GamingOverlayInsetSurfaceBrush}"
+                                        BorderBrush="{StaticResource GamingOverlayInsetBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{StaticResource GamingOverlayControlCornerRadius}"
+                                        ClipToBounds="True"
+                                        IsHitTestVisible="False">
+                                    <Viewbox Stretch="Uniform">
+                                        <views:GamingOverlayBar IsPreview="True"
+                                                                DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    </Viewbox>
+                                </Border>
+
+                                <TextBlock Margin="0,16,0,0"
+                                           Text="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Text="{Binding ShowOverlayButtonIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <Button Margin="0,10,0,0"
+                                        HorizontalAlignment="Left"
+                                        Style="{StaticResource OverlayActionButtonStyle}"
+                                        Click="ShowOverlayButton_Click"
+                                        Content="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                             </StackPanel>
                         </Expander.Content>
                     </Expander>
@@ -443,6 +485,135 @@
             </views:TemplatePage.HeroContent>
             <views:TemplatePage.CardsContent>
                 <StackPanel>
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
+                                  IsExpanded="True"
+                                  helpers:DevInspector.Metadata="Overlay content card expander -> Views/GamingOverlayPage.xaml">
+                            <Expander.Header>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding OverlayContentTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Text="{Binding OverlayContentIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding OverlayContentHintText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               Margin="0,12,0,0"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentClockTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentClockIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowClock, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentNetworkTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentNetworkIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowNetwork, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentCpuTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentCpuIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowCpu, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentGpuTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentGpuIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowGpu, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OverlayContentFpsTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBlock Margin="0,4,20,0"
+                                                       Text="{Binding OverlayContentFpsIntroText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                       TextWrapping="Wrap"
+                                                       FontSize="13"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GamingOverlayShowFps, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
+                    </Border>
+
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
                                   IsExpanded="False"

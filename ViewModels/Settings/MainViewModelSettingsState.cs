@@ -16,6 +16,11 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayAutoTransparentBackground { get; set; }
         public string GamingOverlayTextColor { get; set; } = "#FFFFFF";
         public string GamingOverlayPositionPreset { get; set; } = "TopRight";
+        public bool GamingOverlayShowClock { get; set; } = true;
+        public bool GamingOverlayShowNetwork { get; set; } = true;
+        public bool GamingOverlayShowCpu { get; set; } = true;
+        public bool GamingOverlayShowGpu { get; set; } = true;
+        public bool GamingOverlayShowFps { get; set; } = true;
         public int GameLauncherAutoBehavior { get; set; }
         public bool AutoShowGamingOverlayOnGameStart { get; set; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; set; }

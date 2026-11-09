@@ -86,6 +86,7 @@ namespace IconGrid.Views
             InitializeComponent();
             _viewModel = viewModel;
             DataContext = viewModel;
+            WireOverlayBar();
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
             UpdateOverlayMetrics();
             Loaded += GamingOverlayWindow_Loaded;
@@ -100,6 +101,29 @@ namespace IconGrid.Views
             UpdateOverlayMetrics();
             ApplyPositionPreset();
             ApplyLayout();
+        }
+
+        /// <summary>
+        /// Wires the interactions of the visual overlay control (<see cref="GamingOverlayBar"/>).
+        /// The bar itself contains no event handlers so the very same control can be embedded
+        /// as a read-only preview on the Gaming overlay settings page.
+        /// </summary>
+        private void WireOverlayBar()
+        {
+            if (OverlayBar == null)
+            {
+                return;
+            }
+
+            OverlayBar.OverlayRoot.MouseLeftButtonDown += OverlayRoot_MouseLeftButtonDown;
+            OverlayBar.SettingsMenuButton.Checked += SettingsMenuButton_Checked;
+            OverlayBar.SettingsMenuButton.Unchecked += SettingsMenuButton_Unchecked;
+            OverlayBar.CloseButton.Click += CloseButton_Click;
+            OverlayBar.ScaleMenuButton.Click += ScaleMenuButton_Click;
+            OverlayBar.OpenSettingsButton.Click += OpenGamingOverlaySettings_Click;
+            OverlayBar.PopupScaleSlider.PreviewMouseLeftButtonDown += PopupScaleSlider_PreviewMouseLeftButtonDown;
+            OverlayBar.PopupScaleSlider.PreviewMouseLeftButtonUp += PopupScaleSlider_PreviewMouseLeftButtonUp;
+            OverlayBar.PopupScaleSlider.LostMouseCapture += PopupScaleSlider_LostMouseCapture;
         }
 
         private void GamingOverlayWindow_Closed(object? sender, EventArgs e)
@@ -261,30 +285,30 @@ namespace IconGrid.Views
             var scale = GetEffectiveScale();
             LogTrace($"[GamingOverlay] ApplyWindowSize START: scale={scale:F3} Left={Left:F1} Top={Top:F1} Width={Width:F1} Height={Height:F1} preset={_viewModel.GamingOverlayPositionPreset}");
 
-            if (OverlayRoot != null)
+            if (OverlayBar.OverlayRoot != null)
             {
-                OverlayRoot.LayoutTransform = new ScaleTransform(scale, scale);
+                OverlayBar.OverlayRoot.LayoutTransform = new ScaleTransform(scale, scale);
             }
 
-            if (PopupPanelsRow != null)
+            if (OverlayBar.PopupPanelsRow != null)
             {
-                PopupPanelsRow.LayoutTransform = new ScaleTransform(scale, scale);
-                PopupPanelsRow.Margin = new Thickness(0, PopupRowSpacing * scale, 0, 0);
+                OverlayBar.PopupPanelsRow.LayoutTransform = new ScaleTransform(scale, scale);
+                OverlayBar.PopupPanelsRow.Margin = new Thickness(0, PopupRowSpacing * scale, 0, 0);
             }
 
-            if (SettingsMenuButton != null)
+            if (OverlayBar.SettingsMenuButton != null)
             {
-                SettingsMenuButton.Height = ActionButtonHeight;
-                SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
+                OverlayBar.SettingsMenuButton.Height = ActionButtonHeight;
+                OverlayBar.SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
             }
 
-            if (CloseButton != null)
+            if (OverlayBar.CloseButton != null)
             {
-                CloseButton.Height = ActionButtonHeight;
-                CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+                OverlayBar.CloseButton.Height = ActionButtonHeight;
+                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
             }
 
-            var extraHeight = SettingsMenuButton?.IsChecked == true
+            var extraHeight = OverlayBar.SettingsMenuButton?.IsChecked == true
                 ? (PopupRowSpacing + PopupRowHeight) * scale
                 : 0;
             Height = (BaseOverlayHeight * scale) + extraHeight;
@@ -327,25 +351,25 @@ namespace IconGrid.Views
             // the non-client area on AllowsTransparency windows, causing violent
             // shaking. The full size+position update happens once via SetWindowPos
             // in ApplyScaleSettled() when the user stops dragging.
-            if (OverlayRoot != null)
-                OverlayRoot.LayoutTransform = new ScaleTransform(scale, scale);
+            if (OverlayBar.OverlayRoot != null)
+                OverlayBar.OverlayRoot.LayoutTransform = new ScaleTransform(scale, scale);
 
-            if (PopupPanelsRow != null)
+            if (OverlayBar.PopupPanelsRow != null)
             {
-                PopupPanelsRow.LayoutTransform = new ScaleTransform(scale, scale);
-                PopupPanelsRow.Margin = new Thickness(0, PopupRowSpacing * scale, 0, 0);
+                OverlayBar.PopupPanelsRow.LayoutTransform = new ScaleTransform(scale, scale);
+                OverlayBar.PopupPanelsRow.Margin = new Thickness(0, PopupRowSpacing * scale, 0, 0);
             }
 
-            if (SettingsMenuButton != null)
+            if (OverlayBar.SettingsMenuButton != null)
             {
-                SettingsMenuButton.Height = ActionButtonHeight;
-                SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
+                OverlayBar.SettingsMenuButton.Height = ActionButtonHeight;
+                OverlayBar.SettingsMenuButton.Margin = new Thickness(0, 0, -4 * scale, 0);
             }
 
-            if (CloseButton != null)
+            if (OverlayBar.CloseButton != null)
             {
-                CloseButton.Height = ActionButtonHeight;
-                CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+                OverlayBar.CloseButton.Height = ActionButtonHeight;
+                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
             }
         }
 
@@ -373,15 +397,15 @@ namespace IconGrid.Views
         /// <summary>
         /// The overlay's ACTUAL scaled width. Single source of truth for BOTH the window
         /// sizing (ApplyWindowSize) and the preset anchoring (ApplyPositionPreset):
-        /// max(OverlayRoot, PopupPanelsRow) measured at base scale, times the chosen scale.
+        /// max(OverlayBar.OverlayRoot, OverlayBar.PopupPanelsRow) measured at base scale, times the chosen scale.
         /// Using one shared value prevents the preset from fighting the resize — which
         /// otherwise makes the scale slider jump violently between 150% and 100%.
         /// </summary>
         private double GetOverlayScaledWidth()
         {
-            var overlayWidth = MeasureElementWidth(OverlayRoot);
-            var popupWidth = PopupPanelsRow?.Visibility == Visibility.Visible
-                ? MeasureElementWidth(PopupPanelsRow)
+            var overlayWidth = MeasureElementWidth(OverlayBar.OverlayRoot);
+            var popupWidth = OverlayBar.PopupPanelsRow?.Visibility == Visibility.Visible
+                ? MeasureElementWidth(OverlayBar.PopupPanelsRow)
                 : 0;
             var targetWidth = Math.Max(overlayWidth, popupWidth);
             return targetWidth > 0 ? Math.Ceiling(targetWidth * GetEffectiveScale()) : 0;
@@ -584,6 +608,18 @@ namespace IconGrid.Views
             if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayPositionPreset), StringComparison.OrdinalIgnoreCase))
             {
                 ApplyPositionPreset();
+                return;
+            }
+
+            // Overlay content toggles (clock/network/CPU/GPU/FPS): the row width changes, so the
+            // window frame must follow immediately instead of waiting for a reopen.
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowClock), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowNetwork), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowCpu), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowGpu), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowFps), StringComparison.OrdinalIgnoreCase))
+            {
+                UpdateOverlayMetrics();
                 return;
             }
 
@@ -894,9 +930,9 @@ namespace IconGrid.Views
         {
             _isScaleMenuOpen = false;
 
-            if (SettingsMenuButton != null)
+            if (OverlayBar.SettingsMenuButton != null)
             {
-                SettingsMenuButton.IsChecked = false;
+                OverlayBar.SettingsMenuButton.IsChecked = false;
             }
 
             UpdatePopupPanels();
@@ -904,16 +940,16 @@ namespace IconGrid.Views
 
         private void UpdatePopupPanels()
         {
-            var isSettingsOpen = SettingsMenuButton?.IsChecked == true;
+            var isSettingsOpen = OverlayBar.SettingsMenuButton?.IsChecked == true;
 
-            if (PopupPanelsRow != null)
+            if (OverlayBar.PopupPanelsRow != null)
             {
-                PopupPanelsRow.Visibility = isSettingsOpen ? Visibility.Visible : Visibility.Collapsed;
+                OverlayBar.PopupPanelsRow.Visibility = isSettingsOpen ? Visibility.Visible : Visibility.Collapsed;
             }
 
-            if (ScalePopupPanel != null)
+            if (OverlayBar.ScalePopupPanel != null)
             {
-                ScalePopupPanel.Visibility = isSettingsOpen && _isScaleMenuOpen
+                OverlayBar.ScalePopupPanel.Visibility = isSettingsOpen && _isScaleMenuOpen
                     ? Visibility.Visible
                     : Visibility.Collapsed;
             }

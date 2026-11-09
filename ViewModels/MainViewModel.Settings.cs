@@ -26,6 +26,11 @@ namespace IconGrid.ViewModels
             _gamingOverlayAutoTransparentBackground = state.GamingOverlayAutoTransparentBackground;
             _gamingOverlayTextColor = string.IsNullOrWhiteSpace(state.GamingOverlayTextColor) ? "#FFFFFF" : state.GamingOverlayTextColor;
             _gamingOverlayPositionPreset = string.IsNullOrWhiteSpace(state.GamingOverlayPositionPreset) ? "TopRight" : state.GamingOverlayPositionPreset;
+            _gamingOverlayShowClock = state.GamingOverlayShowClock;
+            _gamingOverlayShowNetwork = state.GamingOverlayShowNetwork;
+            _gamingOverlayShowCpu = state.GamingOverlayShowCpu;
+            _gamingOverlayShowGpu = state.GamingOverlayShowGpu;
+            _gamingOverlayShowFps = state.GamingOverlayShowFps;
             _gameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
             _autoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
             _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
@@ -95,6 +100,11 @@ namespace IconGrid.ViewModels
             _gamingOverlayAutoTransparentBackground = false;
             _gamingOverlayTextColor = "#FFFFFF";
             _gamingOverlayPositionPreset = "TopRight";
+            _gamingOverlayShowClock = true;
+            _gamingOverlayShowNetwork = true;
+            _gamingOverlayShowCpu = true;
+            _gamingOverlayShowGpu = true;
+            _gamingOverlayShowFps = true;
             _gameLauncherAutoBehavior = 0;
             _autoShowGamingOverlayOnGameStart = false;
             _autoCloseGamingOverlayOnGameEnd = false;
@@ -145,6 +155,11 @@ namespace IconGrid.ViewModels
                 GamingOverlayAutoTransparentBackground = _gamingOverlayAutoTransparentBackground,
                 GamingOverlayTextColor = _gamingOverlayTextColor,
                 GamingOverlayPositionPreset = _gamingOverlayPositionPreset,
+                GamingOverlayShowClock = _gamingOverlayShowClock,
+                GamingOverlayShowNetwork = _gamingOverlayShowNetwork,
+                GamingOverlayShowCpu = _gamingOverlayShowCpu,
+                GamingOverlayShowGpu = _gamingOverlayShowGpu,
+                GamingOverlayShowFps = _gamingOverlayShowFps,
                 GameLauncherAutoBehavior = _gameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = _autoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = _autoCloseGamingOverlayOnGameEnd,

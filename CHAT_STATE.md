@@ -1311,3 +1311,89 @@ Hvis `[GameFlow] GameExited` udebliver, er det fase-1-problemet (explorer/DXGI-k
 
 **Committet + pushet:** `dc47eca` — "Move Test page into About and fix its dark-theme text" (main → origin/main). Omfatter Test→TestSection-omdøbelsen, About-indlejringen, sidebaren uden Test, docs og disse to rettelser.
 
+
+## Build + deploy (2026-11-09 16:47) — frisk build til bruger-test
+
+**Ændringer i koden:** ingen — dette var udelukkende et build/deploy-kald fra brugeren ("lav en ny build og deploy til C:\icongrid").
+
+**Kørt:**
+- `cmd /c "dotnet build IconGrid.csproj --nologo -v m > .local-state\build.log 2>&1"` → **Build succeeded**, 0 advarsler, 0 fejl (8,50 s). Log: `.local-state\build.log`.
+- `cmd /c "E:\IconGrid-GitHub\deploy-test.cmd > .local-state\deploy.log 2>&1"` → "Stopping IconGrid... Copying runtime files... Done. IconGrid deployed to C:\icongrid". Log: `.local-state\deploy.log`.
+
+**Verificeret:** `IconGrid.dll` er **09-11-2026 16:47** (1.131.008 B) i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\IconGrid` → deploy matcher build. Bevis: `.local-state\deploy-verify.txt`.
+
+**Ikke gjort:** intet committet/pushet (kræver separat bruger-godkendelse, jf. AGENT.md).
+
+
+## Session findings (2026-11-09) — Gaming overlay: udtræk af visuals + live preview + manuel vis-knap
+
+**Formål (brugerønske):** (1) vis en *ægte* visning af gaming overlayet på "Gaming overlay"-siden (ikke et screenshot), placeret nederst i top-kortet under al teksten/"Transparent while in game"; (2) en knap "Vis gaming overlay" der kan vise overlayet manuelt uden at forstyrre auto-flowet (spilstart → auto-vis → launcher hide). CPU/GPU Voltage, GPU core MHz og frame time i overlayet er udskudt til en senere session.
+
+### Trin 1a — `GamingOverlayBar` UserControl (adfærdsneutralt udtræk)
+- Ny `Views/Launcher/GamingOverlayBar.xaml(.cs)`: hele `Window.Resources` (converters, brushes, `MonitorTextStyle`, `MonitorDividerStyle`, `NetworkMonitorTextStyle`, `OverlayFpsTextStyle`, `OverlayCloseButtonStyle`, `OverlayToggleButtonStyle`) + indholds-Grid'en (bar + `PopupPanelsRow`) flyttet 1:1 via script (`.local-state/extract-overlay-bar.ps1`, backup i `.local-state/GamingOverlayWindow.xaml.bak`).
+- Alle 9 event-attributter fjernet fra XAML; `GamingOverlayWindow` wirer dem i `WireOverlayBar()` (drag, gear Checked/Unchecked, close, scale-menu, "open settings", slider Preview*/LostMouseCapture). `OverlayRoot`, `PopupPanelsRow`, `SettingsMenuButton`, `CloseButton`, `ScalePopupPanel`, `ScaleMenuButton`, `PopupScaleSlider`, `OpenSettingsButton` er tilgængelige som genererede felter.
+- `GamingOverlayWindow.xaml` er nu en tynd shell (34 linjer): Window-egenskaber + WindowChrome + `<views:GamingOverlayBar x:Name="OverlayBar" />`. Window code-behind uændret logik; kun `OverlayBar.`-prefix på elementreferencer (script: `.local-state/patch-overlay-refs.ps1`).
+- `ModernSliderStyle` ligger i `Views/StartsideStyles.xaml` (App-niveau) og virker derfor også i UserControl'en.
+
+### Trin 1b — Live preview på Gaming overlay-siden
+- `GamingOverlayBar.IsPreview` (CLR-prop, anvendes også i `Loaded` fordi XAML kan sætte den før børnene findes): skjuler gear + luk, kollapser `PopupPanelsRow`, nulstiller `LayoutTransform`.
+- `Views/Settings/Pages/GamingOverlayPage.xaml` (~linje 440-480, nederst i hero-kortets StackPanel): lokaliseret overskrift/intro + `Border` (inset-surface, `CornerRadius` 6, `MaxHeight` 140, `IsHitTestVisible="False"`) med `Viewbox Stretch="Uniform"` omkring `<views:GamingOverlayBar IsPreview="True" DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />`.
+- **Vigtigt fund:** elementer inde i `<views:TemplatePage.HeroContent>` ligger i `TemplatePage`s namescope → `x:Name` gav `MC3093` (navn kan ikke registreres). Løsning: ingen x:Name; sæt `IsPreview` i XAML og bind DataContext til vinduets VM (SettingsWindow.DataContext = MainViewModel). Siden har selv `DataContext = this`.
+- Preview'et er live (FPS/CPU/GPU/ping opdateres) og følger tema/tekstfarve/overlay-scale via de eksisterende `RelativeSource AncestorType=Window`-triggere.
+- Forbehold: "Transparent while in game" gælder kun under et spil, så preview uden for spil viser baren med baggrund.
+
+### Trin 2 — Knappen "Vis gaming overlay"
+- `MainViewModel`: nyt `event Action? ShowGamingOverlayRequested` + `RequestShowGamingOverlay()` (ved `GameLaunched`/`GameExited`).
+- `MainWindow`: subscribe i ctor, `OnShowGamingOverlayRequested()` → `LogTrace(...)` + `ShowGamingOverlay(GamingOverlayLayout.Horizontal)`; **ingen** `HideForGame`, ingen game-state, ingen ændring af auto-indstillinger. Unsubscribe i teardown.
+- `GamingOverlayPage`: `ShowOverlayButton_Click` → `_mainViewModel?.RequestShowGamingOverlay()`; knap med eksisterende `OverlayActionButtonStyle` + lokaliseret titel/intro i både `da` og `en` (`RefreshLocalizedText`). Nye strenge: `OverlayPreviewTitleText`, `OverlayPreviewIntroText`, `ShowOverlayButtonText`, `ShowOverlayButtonIntroText`.
+- Auto-flowet er urørt: auto-vis sker kun i `OnGameLaunched`, auto-luk kun i `OnGameExited`, og `RestoreLauncherFromGame` kaldes fortsat (idempotent) når overlayet lukkes.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler (flere delbyg undervejs; CS0104 `UserControl`-ambiguitet mod WinForms og manglende `System.Windows.Media` blev rettet i `GamingOverlayBar.xaml.cs`).
+- **Deployet 2026-11-09 17:19** til `C:\IconGrid` — `IconGrid.dll` 1.137.664 B i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\IconGrid`.
+- Appen startet manuelt 17:20:32 (`trace.log`: "OnStartup begin"/"Starting launcher UI. Elevated=False"), ingen fatal.
+
+### Status / næste skridt
+- **Mangler bruger-verifikation** (runtime-test kan ikke gøres fra agenten): (a) overlayet i spil er visuelt identisk (drag, gear-popup, scale-slider, X, "Open gaming overlay settings"); (b) preview vises i top-kortet med live-tal; (c) "Vis gaming overlay"-knappen åbner overlayet uden at skjule/minimere launcher'en; (d) spilstart → auto-vis + launcher hide uændret; spilluk → auto-luk + launcher-genopretning uændret.
+- Ikke committet/pushet (kræver separat godkendelse).
+- Næste feature (udskudt): CPU/GPU Voltage, GPU core MHz, frame time i overlayet — preview'et arver dem automatisk, fordi det er samme kontrol.
+
+### Opdatering (17:22) — to robusthedsrettelser efter første deploy
+- `GamingOverlayBar.xaml`: `Background="Transparent"` fjernet fra UserControl-roden (undgår en ekstra hit-test-flade over hele overlay-vinduet).
+- `GamingOverlayBar.ApplyPreviewState()`: `PopupPanelsRow` kollapses nu kun når `IsPreview=true` (så et åbent gear-popup i det in-game overlay ikke kan blive lukket af `Loaded`).
+- **Ny deploy: 2026-11-09 17:22** — `IconGrid.dll` 1.137.664 B i både build-mappen og `C:\IconGrid` (build 0 fejl/0 advarsler).
+
+## Session findings (2026-11-09, fortsat) — Overlay-indhold: vælg hvad overlayet viser
+
+**Brugerønske:** en liste over overlayets elementer med til/fra, så man selv vælger hvad der vises (fx GPU-temp eller ej) — i sit **eget kort** på Gaming overlay-siden (bekræftet: egen sektion/hero-card).
+
+### Datamodel (persisteret i config)
+Ny persistence-kæde for 5 booleans (alle default `true`, så eksisterende configs er uændrede):
+- `Models/ConfigModel.cs`: `GamingOverlayShowClock/Network/Cpu/Gpu/Fps`
+- `ViewModels/Settings/MainViewModelConfigState.cs`: init-props + mapping i `FromConfig`
+- `ViewModels/Settings/MainViewModelSettingsState.cs`: props
+- `ViewModels/Settings/MainViewModelSettingsPersistence.cs`: skriv til `config.*`
+- `ViewModels/MainViewModel.Settings.cs`: `ApplyConfig` + `ResetToDefaults` + `SaveSettingsToConfig`
+- `ViewModels/MainViewModel.cs`: backing fields
+- `ViewModels/MainViewModel.Overlay.cs`: public properties (gemmer via `SaveSettingsToConfig`) + 4 beregnede divider-flags:
+  `GamingOverlayDividerClockNetworkVisible`, `...NetworkCpu...`, `...CpuGpu...`, `...GpuFps...` (kun divider mellem to synlige blokke → ingen løse `|`).
+
+### Overlay (`Views/Launcher/GamingOverlayBar.xaml`)
+- `BooleanToVisibilityConverter` (`BoolToVisibility`) tilføjet i resource-dictionary.
+- Synlighed bundet pr. blok: clock, ping-prik + netværkslabel, CPU-temp + CPU-bar, GPU-temp + GPU-bar, FPS-grid. Dividerne binder til de beregnede par-flags.
+- `GamingOverlayWindow.ViewModel_PropertyChanged`: reagerer nu også på de 5 visnings-flags → `UpdateOverlayMetrics()`, så et **åbent** overlay straks får ny bredde (før blev bredden kun sat ved scale/preset-ændringer).
+
+### Settings-UI (`Views/Settings/Pages/GamingOverlayPage.xaml`)
+- Nyt kort **"Overlay-indhold"** som FØRSTE kort i `CardsContent` (lige under hero-kortet), `IsExpanded="True"` og samme `StartsideSectionCardStyle` + `GamingOverlayHeroExpanderStyle` som de øvrige kort.
+- 5 rækker i præcis samme Grid-mønster som resten af siden (titel + beskrivelse i `*`, `ToggleSwitchStyle` i `Auto`), to-vejs bundet til `DataContext.GamingOverlayShow*` via `RelativeSource AncestorType=Window`.
+- Lokalisering (legacy side-mønster, både `da` og `en`): `OverlayContentTitleText`, `OverlayContentIntroText`, `OverlayContentHintText` + `OverlayContent{Clock,Network,Cpu,Gpu,Fps}TitleText/IntroText`.
+- Fordi preview'et i hero-kortet er den samme kontrol, opdateres forhåndsvisningen **live** når man slår ting fra/til.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler (to deploys: 19:17 og **19:18**).
+- **Deployet 2026-11-09 19:18** — `IconGrid.dll` 1.152.512 B i både `bin\Debug\net10.0-windows10.0.22621.0` og `C:\IconGrid`.
+
+### Status / næste skridt
+- **Mangler bruger-verifikation:** (a) kortet vises øverst med 5 kontakter; (b) slår man fx GPU fra, forsvinder GPU-temp + bar i preview OG i det åbne in-game overlay (bredden tilpasses); (c) indstillingen huskes efter genstart; (d) dividere efterlader ikke løse `|`.
+- Ikke committet/pushet (kræver separat godkendelse).
+- Stadig udskudt: CPU/GPU Voltage, GPU core MHz, frame time i overlayet (kan tilføjes som flere rækker i samme kort + nye blokke i baren).

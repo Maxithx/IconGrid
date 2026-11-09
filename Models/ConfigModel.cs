@@ -21,6 +21,13 @@ public class ConfigModel
     public bool GamingOverlayAutoTransparentBackground { get; set; } = false;
     public string GamingOverlayTextColor { get; set; } = "#FFFFFF";
     public string GamingOverlayPositionPreset { get; set; } = "TopRight";
+    // Which blocks the gaming overlay shows. All default to true so an existing config
+    // (where the properties do not exist yet) keeps the current overlay content untouched.
+    public bool GamingOverlayShowClock { get; set; } = true;
+    public bool GamingOverlayShowNetwork { get; set; } = true;
+    public bool GamingOverlayShowCpu { get; set; } = true;
+    public bool GamingOverlayShowGpu { get; set; } = true;
+    public bool GamingOverlayShowFps { get; set; } = true;
     public int GameLauncherAutoBehavior { get; set; } = 0;
     public bool AutoShowGamingOverlayOnGameStart { get; set; } = false;
     public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false;

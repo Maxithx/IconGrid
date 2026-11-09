@@ -249,7 +249,9 @@ Views\
 ├── TemplateGuidelines.xaml             # Settings-page style set (hero/card/section/body styles)
 ├── Launcher\
 │   ├── MainWindow.xaml (.cs)           # Launcher shell (composition only — no feature UI)
-│   └── GamingOverlayWindow.xaml (.cs)  # Always-on-top in-game overlay
+│   ├── GamingOverlayWindow.xaml (.cs)  # Always-on-top in-game overlay window (shell only)
+│   └── GamingOverlayBar.xaml (.cs)     # Overlay visuals (monitor row + popups), reused as
+│                                       # read-only preview on the Gaming overlay page
 └── Settings\
     ├── SettingsWindow.xaml (.cs)       # Settings shell: sidebar navigation + page host
     ├── SettingsWindowCoordinator.cs    # Reuse / placement / close of the settings window

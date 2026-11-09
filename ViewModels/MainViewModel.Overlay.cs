@@ -26,6 +26,99 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Shows the clock block in the gaming overlay. Persisted in config.
+        /// </summary>
+        public bool GamingOverlayShowClock
+        {
+            get => _gamingOverlayShowClock;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowClock, value, nameof(GamingOverlayShowClock)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayDividerClockNetworkVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the ping dot + network status block in the gaming overlay. Persisted in config.
+        /// </summary>
+        public bool GamingOverlayShowNetwork
+        {
+            get => _gamingOverlayShowNetwork;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowNetwork, value, nameof(GamingOverlayShowNetwork)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayDividerClockNetworkVisible));
+                    OnPropertyChanged(nameof(GamingOverlayDividerNetworkCpuVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the CPU block (temperature + usage bar) in the gaming overlay. Persisted in config.
+        /// </summary>
+        public bool GamingOverlayShowCpu
+        {
+            get => _gamingOverlayShowCpu;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowCpu, value, nameof(GamingOverlayShowCpu)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayDividerNetworkCpuVisible));
+                    OnPropertyChanged(nameof(GamingOverlayDividerCpuGpuVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the GPU block (temperature + usage bar) in the gaming overlay. Persisted in config.
+        /// </summary>
+        public bool GamingOverlayShowGpu
+        {
+            get => _gamingOverlayShowGpu;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowGpu, value, nameof(GamingOverlayShowGpu)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayDividerCpuGpuVisible));
+                    OnPropertyChanged(nameof(GamingOverlayDividerGpuFpsVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Shows the FPS block in the gaming overlay. Persisted in config.
+        /// </summary>
+        public bool GamingOverlayShowFps
+        {
+            get => _gamingOverlayShowFps;
+            set
+            {
+                if (SetField(ref _gamingOverlayShowFps, value, nameof(GamingOverlayShowFps)))
+                {
+                    OnPropertyChanged(nameof(GamingOverlayDividerGpuFpsVisible));
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        // Dividers are only shown BETWEEN two visible blocks, so hiding a block never leaves
+        // a dangling "|" at the start/end of the overlay row.
+        public bool GamingOverlayDividerClockNetworkVisible => _gamingOverlayShowClock && _gamingOverlayShowNetwork;
+
+        public bool GamingOverlayDividerNetworkCpuVisible => _gamingOverlayShowNetwork && _gamingOverlayShowCpu;
+
+        public bool GamingOverlayDividerCpuGpuVisible => _gamingOverlayShowCpu && _gamingOverlayShowGpu;
+
+        public bool GamingOverlayDividerGpuFpsVisible => _gamingOverlayShowGpu && _gamingOverlayShowFps;
+
+        /// <summary>
         /// Launcher behavior while a game is running: 0=None, 1=AutoHide, 2=MinimizeToTaskbar.
         /// Persisted in config.
         /// </summary>

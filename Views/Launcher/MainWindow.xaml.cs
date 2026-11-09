@@ -122,6 +122,7 @@ namespace IconGrid.Views.Launcher
 
             _viewModel.GameLaunched += OnGameLaunched;
             _viewModel.GameExited += OnGameExited;
+            _viewModel.ShowGamingOverlayRequested += OnShowGamingOverlayRequested;
             _gamingOverlayWindowCoordinator.OverlayClosed += OnGamingOverlayClosed;
             _monitorPollingController.Start();
             _pawnIoWarningController.Update();
@@ -904,6 +905,17 @@ namespace IconGrid.Views.Launcher
             }
         }
 
+        /// <summary>
+        /// Manual "Show gaming overlay" request from the Gaming overlay settings page.
+        /// Deliberately does NOT call HideForGame or touch any game state, so the automatic
+        /// show-on-game-start / close-on-game-exit pipeline stays exactly as configured.
+        /// </summary>
+        private void OnShowGamingOverlayRequested()
+        {
+            LogTrace("[GameFlow] Manual gaming overlay show requested from settings page");
+            ShowGamingOverlay(GamingOverlayLayout.Horizontal);
+        }
+
         private void OnGameExited()
         {
             LogTrace($"[GameFlow] GameExited: autoCloseOverlay={_viewModel.AutoCloseGamingOverlayOnGameEnd} gameHideActive={_windowModeController?.IsGameHideActive} hidden={_windowModeController?.IsHidden}");
@@ -1066,6 +1078,7 @@ namespace IconGrid.Views.Launcher
             {
                 _viewModel.GameLaunched -= OnGameLaunched;
                 _viewModel.GameExited -= OnGameExited;
+                _viewModel.ShowGamingOverlayRequested -= OnShowGamingOverlayRequested;
                 _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
                 _viewModel.SystemMonitor.Dispose();
             }
