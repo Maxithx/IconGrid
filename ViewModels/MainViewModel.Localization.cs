@@ -43,6 +43,36 @@ namespace IconGrid.ViewModels
         public string LayoutsLabel => _localizationState.Get(Language, "MoreLayouts");
         public string MoreSettingsLabel => _localizationState.Get(Language, "MoreSettings");
         public string HelpLabel => _localizationState.Get(Language, "MoreHelp");
+
+        // ---------- Skin Studio ----------
+        public string SkinStudioNavTitleText => _localizationState.Get(Language, "SkinStudioNavTitle");
+        public string SkinStudioTitleText => _localizationState.Get(Language, "SkinStudioTitle");
+        public string SkinStudioIntroText => _localizationState.Get(Language, "SkinStudioIntro");
+        public string SkinStudioPreviewTitleText => _localizationState.Get(Language, "SkinStudioPreviewTitle");
+        public string SkinStudioPresetsTitleText => _localizationState.Get(Language, "SkinStudioPresetsTitle");
+        public string SkinStudioPresetsIntroText => _localizationState.Get(Language, "SkinStudioPresetsIntro");
+        public string SkinStudioColorsTitleText => _localizationState.Get(Language, "SkinStudioColorsTitle");
+        public string SkinStudioColorsIntroText => _localizationState.Get(Language, "SkinStudioColorsIntro");
+        public string SkinStudioBarColorLabelText => _localizationState.Get(Language, "SkinStudioBarColorLabel");
+        public string SkinStudioPopupColorLabelText => _localizationState.Get(Language, "SkinStudioPopupColorLabel");
+        public string SkinStudioTextColorLabelText => _localizationState.Get(Language, "SkinStudioTextColorLabel");
+        public string SkinStudioAccentColorLabelText => _localizationState.Get(Language, "SkinStudioAccentColorLabel");
+        public string SkinStudioCpuColorLabelText => _localizationState.Get(Language, "SkinStudioCpuColorLabel");
+        public string SkinStudioGpuColorLabelText => _localizationState.Get(Language, "SkinStudioGpuColorLabel");
+        public string SkinStudioDividerLabelText => _localizationState.Get(Language, "SkinStudioDividerLabel");
+        public string SkinStudioFontsTitleText => _localizationState.Get(Language, "SkinStudioFontsTitle");
+        public string SkinStudioFontLabelText => _localizationState.Get(Language, "SkinStudioFontLabel");
+        public string SkinStudioMonoFontLabelText => _localizationState.Get(Language, "SkinStudioMonoFontLabel");
+        public string SkinStudioRadiusLabelText => _localizationState.Get(Language, "SkinStudioRadiusLabel");
+        public string SkinStudioFromImagesTitleText => _localizationState.Get(Language, "SkinStudioFromImagesTitle");
+        public string SkinStudioFromImagesIntroText => _localizationState.Get(Language, "SkinStudioFromImagesIntro");
+        public string SkinStudioPickColorLabelText => _localizationState.Get(Language, "SkinStudioPickColor");
+        public string SkinStudioDividerColorLabelText => _localizationState.Get(Language, "SkinStudioDividerColorLabel");
+        public string SkinStudioDividerOpacityLabelText => _localizationState.Get(Language, "SkinStudioDividerOpacityLabel");
+        public string SkinStudioDividerHeightLabelText => _localizationState.Get(Language, "SkinStudioDividerHeightLabel");
+        public string SkinStudioImportImagesLabelText => _localizationState.Get(Language, "SkinStudioImportImages");
+        public string SkinStudioShowOverlayButtonText => _localizationState.Get(Language, "SkinStudioShowOverlayButton");
+        public string SkinStudioShowOverlayIntroText => _localizationState.Get(Language, "SkinStudioShowOverlayIntro");
         public string AboutLabel => _localizationState.Get(Language, "MoreAbout");
         public string MonitorNetworkLabel => _localizationState.Get(Language, "MonitorNetworkLabel");
         public string MonitorDownloadLabel => _localizationState.Get(Language, "MonitorDownloadLabel");
@@ -200,8 +230,41 @@ namespace IconGrid.ViewModels
 
         public string PawnIoDownloadLink => _localizationState.PawnIoDownloadLink;
 
+        private void NotifySkinStudioPropertiesChanged()
+        {
+            OnPropertyChanged(nameof(SkinStudioNavTitleText));
+            OnPropertyChanged(nameof(SkinStudioTitleText));
+            OnPropertyChanged(nameof(SkinStudioIntroText));
+            OnPropertyChanged(nameof(SkinStudioPreviewTitleText));
+            OnPropertyChanged(nameof(SkinStudioPresetsTitleText));
+            OnPropertyChanged(nameof(SkinStudioPresetsIntroText));
+            OnPropertyChanged(nameof(SkinStudioColorsTitleText));
+            OnPropertyChanged(nameof(SkinStudioColorsIntroText));
+            OnPropertyChanged(nameof(SkinStudioBarColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioPopupColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioTextColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioAccentColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioCpuColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioGpuColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioDividerLabelText));
+            OnPropertyChanged(nameof(SkinStudioFontsTitleText));
+            OnPropertyChanged(nameof(SkinStudioFontLabelText));
+            OnPropertyChanged(nameof(SkinStudioMonoFontLabelText));
+            OnPropertyChanged(nameof(SkinStudioRadiusLabelText));
+            OnPropertyChanged(nameof(SkinStudioFromImagesTitleText));
+            OnPropertyChanged(nameof(SkinStudioFromImagesIntroText));
+            OnPropertyChanged(nameof(SkinStudioPickColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioDividerColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioDividerOpacityLabelText));
+            OnPropertyChanged(nameof(SkinStudioDividerHeightLabelText));
+            OnPropertyChanged(nameof(SkinStudioImportImagesLabelText));
+            OnPropertyChanged(nameof(SkinStudioShowOverlayButtonText));
+            OnPropertyChanged(nameof(SkinStudioShowOverlayIntroText));
+        }
+
         private void NotifyLocalizationPropertiesChanged()
         {
+            NotifySkinStudioPropertiesChanged();
             OnPropertyChanged(nameof(SettingsTitle));
             OnPropertyChanged(nameof(IconsPerRowLabel));
             OnPropertyChanged(nameof(IconRowSpacingLabel));

@@ -16,30 +16,43 @@
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
-        <SolidColorBrush x:Key="OverlayFpsBrush" Color="#7CFF6B" />
-        <SolidColorBrush x:Key="OverlayFpsLightBrush" Color="#16A34A" />
-        <SolidColorBrush x:Key="OverlayCloseHoverLight" Color="#1A000000" />
-        <SolidColorBrush x:Key="OverlayClosePressedLight" Color="#33000000" />
         <SolidColorBrush x:Key="OverlayCloseHoverDark" Color="#14FFFFFF" />
         <SolidColorBrush x:Key="OverlayClosePressedDark" Color="#21FFFFFF" />
         <SolidColorBrush x:Key="OverlayMenuBorderBrush" Color="#33FFFFFF" />
+        <!--
+            The gaming overlay always uses its own skin (never the Windows/app theme). All colours,
+            the fonts and the corner radius come from MainViewModel.GamingOverlaySkin, which the
+            Skin Studio page edits. Layout (slots, order, spacing, scale) is owned by the monitor
+            row settings and is never part of a skin.
+        -->
 
         <Style x:Key="MonitorTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="{Binding GamingOverlaySkin.TextBrush}" />
+            <Setter Property="FontFamily" Value="{Binding GamingOverlaySkin.FontFamily}" />
+            <Setter Property="FontWeight" Value="{Binding GamingOverlaySkin.FontWeightValue}" />
+            <Setter Property="FontSize" Value="{Binding GamingOverlaySkin.FontSizeValue}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Foreground" Value="#111" />
-                </DataTrigger>
                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="MonitorDividerStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
-            <Setter Property="Text" Value="|" />
+        <Style x:Key="OverlayDividerStyle" TargetType="Border">
+            <Setter Property="Width" Value="{Binding GamingOverlaySkin.DividerWidthValue}" />
+            <Setter Property="Height" Value="{Binding GamingOverlaySkin.DividerHeightValue}" />
             <Setter Property="Margin" Value="0,0,12,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Opacity" Value="0.4" />
+            <Setter Property="Background" Value="{Binding GamingOverlaySkin.DividerBrush}" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="UseLayoutRounding" Value="True" />
+            <!-- Without Aliased edge mode a 1 DIP line lands on half device pixels at 125%/150%
+                 scaling, so some dividers rendered 1 px and others 2 px wide. -->
+            <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="NetworkMonitorTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
             <Style.Triggers>
@@ -49,127 +62,82 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="OverlayFpsTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
-            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontFamily" Value="{Binding GamingOverlaySkin.MonoFontFamily}" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource OverlayFpsBrush}" />
+            <Setter Property="FontSize" Value="{Binding GamingOverlaySkin.MonoFontSizeValue}" />
+            <Setter Property="Foreground" Value="{Binding GamingOverlaySkin.AccentBrush}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource OverlayFpsLightBrush}" />
-                </DataTrigger>
                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="OverlayCloseButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="Background" Value="{Binding GamingOverlaySkin.ButtonBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{Binding GamingOverlaySkin.ButtonBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{Binding GamingOverlaySkin.TextBrush}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Root"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="2">
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{Binding GamingOverlaySkin.ButtonCornerRadiusValue}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverLight}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Root"
-                                        Background="{TemplateBinding Background}"
-                                        CornerRadius="2">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </DataTrigger>
                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="OverlayToggleButtonStyle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Foreground" Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="Background" Value="{Binding GamingOverlaySkin.ButtonBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{Binding GamingOverlaySkin.ButtonBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{Binding GamingOverlaySkin.TextBrush}" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border x:Name="Root"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="2">
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{Binding GamingOverlaySkin.ButtonCornerRadiusValue}">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverLight}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedLight}" />
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.IsDarkTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ToggleButton">
-                                <Border x:Name="Root"
-                                        Background="{TemplateBinding Background}"
-                                        CornerRadius="2">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center" />
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayCloseHoverDark}" />
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
-                                    </Trigger>
-                                    <Trigger Property="IsChecked" Value="True">
-                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource OverlayClosePressedDark}" />
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </DataTrigger>
                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
@@ -188,11 +156,11 @@
             <Border x:Name="OverlayRoot"
                     Grid.Row="0"
                     BorderThickness="0"
-                    CornerRadius="8"
+                    CornerRadius="{Binding GamingOverlaySkin.CornerRadiusValue}"
                     Padding="0">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                        <Setter Property="Background" Value="{Binding GamingOverlaySkin.BarBackgroundBrush}" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                 <Setter Property="Background" Value="Transparent" />
@@ -205,18 +173,81 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <Border Grid.ColumnSpan="2"
+                            Background="{Binding GamingOverlaySkin.BackgroundImageBrush}"
+                            Opacity="{Binding GamingOverlaySkin.BackgroundImageOpacity}"
+                            Visibility="{Binding GamingOverlaySkin.HasBackgroundImage, Converter={StaticResource BoolToVisibility}}" />
+                    <Border Grid.ColumnSpan="2"
+                            Background="{Binding GamingOverlaySkin.BackgroundTintBrush}"
+                            Opacity="{Binding GamingOverlaySkin.BackgroundTintOpacity}" />
+                    <Border Grid.ColumnSpan="2"
+                            Background="{Binding GamingOverlaySkin.PatternBrush}"
+                            Opacity="{Binding GamingOverlaySkin.PatternOpacity}"
+                            Visibility="{Binding GamingOverlaySkin.HasPattern, Converter={StaticResource BoolToVisibility}}" />
 
                     <StackPanel Grid.Column="0"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 Margin="14,0,0,0">
+                        <Border VerticalAlignment="Stretch"
+                                Margin="0,0,10,0"
+                                Padding="10,2"
+                                Background="{Binding GamingOverlaySkin.PatternBrush}"
+                                BorderBrush="{Binding GamingOverlaySkin.CalloutAccentBrush}"
+                                BorderThickness="0,0,1,0"
+                                Visibility="{Binding GamingOverlaySkin.HasCalloutTag, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding GamingOverlaySkin.CalloutTopText}"
+                                               FontFamily="{Binding GamingOverlaySkin.FontFamily}"
+                                               FontWeight="Bold"
+                                               FontSize="{Binding GamingOverlaySkin.FontSizeValue}"
+                                               Foreground="{Binding GamingOverlaySkin.TextBrush}"
+                                               VerticalAlignment="Center" />
+                                    <Ellipse Width="6" Height="6"
+                                             Margin="3,0,0,0"
+                                             VerticalAlignment="Center"
+                                             Fill="{Binding GamingOverlaySkin.CalloutAccentBrush}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding GamingOverlaySkin.CalloutBottomText}"
+                                           FontFamily="{Binding GamingOverlaySkin.FontFamily}"
+                                           FontWeight="Bold"
+                                           FontSize="9"
+                                           Foreground="{Binding GamingOverlaySkin.CalloutAccentBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border VerticalAlignment="Center"
+                                Margin="0,0,10,0"
+                                Padding="8,0"
+                                CornerRadius="2"
+                                Background="#1A00FF66"
+                                BorderBrush="{Binding GamingOverlaySkin.BrandBrush}"
+                                BorderThickness="0,0,2,0"
+                                Visibility="{Binding GamingOverlaySkin.HasBrand, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{Binding GamingOverlaySkin.BrandText}"
+                                       FontFamily="{Binding GamingOverlaySkin.FontFamily}"
+                                       FontWeight="Bold"
+                                       FontSize="{Binding GamingOverlaySkin.BrandFontSizeValue}"
+                                       Foreground="{Binding GamingOverlaySkin.BrandBrush}"
+                                       VerticalAlignment="Center"
+                                       Effect="{Binding GamingOverlaySkin.AccentGlowEffect}" />
+                        </Border>
+
+                        <Image MaxHeight="{Binding GamingOverlayBackgroundHeight}"
+                               Margin="0,0,10,0"
+                               VerticalAlignment="Center"
+                               Stretch="Uniform"
+                               Width="{Binding GamingOverlaySkin.LogoWidthValue}"
+                               Source="{Binding GamingOverlaySkin.LogoImageSource}"
+                               Visibility="{Binding GamingOverlaySkin.HasLogo, Converter={StaticResource BoolToVisibility}}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
                                    Margin="0,0,9,0"
                                    Visibility="{Binding GamingOverlayShowClock, Converter={StaticResource BoolToVisibility}}">
                             <Run Text="{Binding SystemMonitor.ClockText, Mode=OneWay}" />
                         </TextBlock>
-                        <TextBlock Style="{StaticResource MonitorDividerStyle}"
+                        <Border Style="{StaticResource OverlayDividerStyle}"
                                    Visibility="{Binding GamingOverlayDividerClockNetworkVisible, Converter={StaticResource BoolToVisibility}}" />
                         <Border Width="10"
                                 Height="10"
@@ -233,61 +264,89 @@
                             <Run Text=": " />
                             <Run Text="{Binding SystemMonitor.NetworkStatus, Mode=OneWay}" />
                         </TextBlock>
-                        <TextBlock Style="{StaticResource MonitorDividerStyle}"
+                        <Border Style="{StaticResource OverlayDividerStyle}"
                                    Visibility="{Binding GamingOverlayDividerNetworkCpuVisible, Converter={StaticResource BoolToVisibility}}" />
-                        <TextBlock Style="{StaticResource MonitorTextStyle}"
-                                   Margin="0,0,9,0"
-                                   TextAlignment="Right"
-                                   Visibility="{Binding GamingOverlayShowCpu, Converter={StaticResource BoolToVisibility}}"
-                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
-                            <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" />
-                            <Run Text=": " />
-                            <Run Text="{Binding SystemMonitor.CpuTemp, Mode=OneWay}" />
-                        </TextBlock>
-                        <Border Width="12"
-                                Height="14"
+                        <Border Background="{Binding GamingOverlaySkin.ChipBackgroundBrush}"
+                                BorderBrush="{Binding GamingOverlaySkin.ChipBorderBrush}"
+                                BorderThickness="{Binding GamingOverlaySkin.ChipBorderThickness}"
+                                CornerRadius="{Binding GamingOverlaySkin.ChipCornerRadiusValue}"
+                                Padding="{Binding GamingOverlaySkin.ChipPaddingThickness}"
                                 Margin="0,0,9,0"
-                                Visibility="{Binding GamingOverlayShowCpu, Converter={StaticResource BoolToVisibility}}"
-                                Background="#22000000"
-                                BorderBrush="#80FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="2"
-                                ToolTip="{Binding SystemMonitor.CpuUsage}">
-                            <Rectangle Fill="#22C55E"
-                                       HorizontalAlignment="Stretch"
-                                       VerticalAlignment="Bottom"
-                                       RadiusX="2"
-                                       RadiusY="2"
-                                       Height="{Binding SystemMonitor.CpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
+                                VerticalAlignment="Center"
+                                Visibility="{Binding GamingOverlayShowCpu, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                           Margin="0,0,6,0"
+                                           TextAlignment="Right"
+                                           ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                                    <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" />
+                                    <Run Text=": " />
+                                    <Run Text="{Binding SystemMonitor.CpuTemp, Mode=OneWay}" />
+                                </TextBlock>
+                                <Border Width="12"
+                                        Height="14"
+                                        Background="#22000000"
+                                        BorderBrush="{Binding GamingOverlaySkin.CpuMeterBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        ToolTip="{Binding SystemMonitor.CpuUsage}">
+                                    <Grid ClipToBounds="True">
+                                        <Rectangle Fill="{Binding GamingOverlaySkin.CpuMeterBrush}"
+                                                   HorizontalAlignment="Stretch"
+                                                   VerticalAlignment="Bottom"
+                                                   RadiusX="2"
+                                                   RadiusY="2"
+                                                   Height="{Binding SystemMonitor.CpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
+                                        <Border Background="{Binding GamingOverlaySkin.MeterSegmentsBrush}" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
                         </Border>
-                        <TextBlock Style="{StaticResource MonitorDividerStyle}"
+                        <Border Style="{StaticResource OverlayDividerStyle}"
                                    Visibility="{Binding GamingOverlayDividerCpuGpuVisible, Converter={StaticResource BoolToVisibility}}" />
-                        <TextBlock Style="{StaticResource MonitorTextStyle}"
-                                   Margin="0,0,9,0"
-                                   TextAlignment="Right"
-                                   Visibility="{Binding GamingOverlayShowGpu, Converter={StaticResource BoolToVisibility}}"
-                                   ToolTip="{Binding SystemMonitor.GpuName}"
-                                   ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
-                            <Run Text="{Binding MonitorGpuLabel, Mode=OneWay}" />
-                            <Run Text=": " />
-                            <Run Text="{Binding SystemMonitor.GpuTemp, Mode=OneWay}" />
-                        </TextBlock>
-                        <Border Width="12"
+                        <Border Background="{Binding GamingOverlaySkin.ChipBackgroundBrush}"
+                                BorderBrush="{Binding GamingOverlaySkin.ChipBorderBrush}"
+                                BorderThickness="{Binding GamingOverlaySkin.ChipBorderThickness}"
+                                CornerRadius="{Binding GamingOverlaySkin.ChipCornerRadiusValue}"
+                                Padding="{Binding GamingOverlaySkin.ChipPaddingThickness}"
+                                Margin="0,0,9,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding GamingOverlayShowGpu, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource MonitorTextStyle}"
+                                           Margin="0,0,6,0"
+                                           TextAlignment="Right"
+                                           ToolTip="{Binding SystemMonitor.GpuName}"
+                                           ToolTipService.IsEnabled="{Binding ShowDevOverlay, Converter={StaticResource InverseBoolConverter}}">
+                                    <Run Text="{Binding MonitorGpuLabel, Mode=OneWay}" />
+                                    <Run Text=": " />
+                                    <Run Text="{Binding SystemMonitor.GpuTemp, Mode=OneWay}" />
+                                </TextBlock>
+                                <Border Width="12"
+                                        Height="14"
+                                        Background="#22000000"
+                                        BorderBrush="{Binding GamingOverlaySkin.GpuMeterBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        ToolTip="{Binding SystemMonitor.GpuUsage}">
+                                    <Grid ClipToBounds="True">
+                                        <Rectangle Fill="{Binding GamingOverlaySkin.GpuMeterBrush}"
+                                                   HorizontalAlignment="Stretch"
+                                                   VerticalAlignment="Bottom"
+                                                   RadiusX="2"
+                                                   RadiusY="2"
+                                                   Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
+                                        <Border Background="{Binding GamingOverlaySkin.MeterSegmentsBrush}" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Border Width="2"
                                 Height="14"
                                 Margin="0,0,9,0"
-                                Visibility="{Binding GamingOverlayShowGpu, Converter={StaticResource BoolToVisibility}}"
-                                Background="#22000000"
-                                BorderBrush="#80FFFFFF"
-                                BorderThickness="1"
-                                CornerRadius="2"
-                                ToolTip="{Binding SystemMonitor.GpuUsage}">
-                            <Rectangle Fill="#A855F7"
-                                       HorizontalAlignment="Stretch"
-                                       VerticalAlignment="Bottom"
-                                       RadiusX="2"
-                                       RadiusY="2"
-                                       Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
-                        </Border>
+                                VerticalAlignment="Center"
+                                Background="{Binding GamingOverlaySkin.GpuAccentLineBrush}"
+                                Visibility="{Binding GamingOverlaySkin.HasGpuAccentLine, Converter={StaticResource BoolToVisibility}}" />
                         <TextBlock Style="{StaticResource MonitorTextStyle}"
                                    Width="58"
                                    Margin="0,0,9,0"
@@ -295,7 +354,7 @@
                                    Visibility="{Binding GamingOverlayGpuClockVisible, Converter={StaticResource BoolToVisibility}}">
                             <Run Text="{Binding SystemMonitor.GpuClock, Mode=OneWay}" />
                         </TextBlock>
-                        <TextBlock Style="{StaticResource MonitorDividerStyle}"
+                        <Border Style="{StaticResource OverlayDividerStyle}"
                                    Visibility="{Binding GamingOverlayDividerGpuFpsVisible, Converter={StaticResource BoolToVisibility}}" />
                         <StackPanel Orientation="Horizontal"
                                     Margin="0,0,9,0"
@@ -307,7 +366,7 @@
                             <TextBlock Style="{StaticResource MonitorTextStyle}"
                                        Width="46"
                                        TextAlignment="Left"
-                                       VerticalAlignment="Center"><Run Text="{Binding SystemMonitor.FrameTimeStatus, Mode=OneWay}" /><Run Text="ms" /></TextBlock>
+                                       VerticalAlignment="Center"><Run Text="{Binding SystemMonitor.FrameTimeDisplay, Mode=OneWay}" /></TextBlock>
                         </StackPanel>
                         <Grid Width="54"
                               Margin="0,0,10,0"
@@ -328,7 +387,8 @@
                                        Text="{Binding SystemMonitor.FpsStatus, Mode=OneWay}"
                                        VerticalAlignment="Center"
                                        Margin="-2,0,0,0"
-                                       TextAlignment="Right" />
+                                       TextAlignment="Right"
+                                       Effect="{Binding GamingOverlaySkin.AccentGlowEffect}" />
                         </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="1"
@@ -382,10 +442,10 @@
                         Padding="12"
                         BorderBrush="{StaticResource OverlayMenuBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="8">
+                        CornerRadius="{Binding GamingOverlaySkin.CornerRadiusValue}">
                     <Border.Style>
                         <Style TargetType="Border">
-                            <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Setter Property="Background" Value="{Binding GamingOverlaySkin.PopupBackgroundBrush}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                     <Setter Property="Background" Value="Transparent" />
@@ -424,10 +484,10 @@
                         Padding="12"
                         BorderBrush="{StaticResource OverlayMenuBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="8">
+                        CornerRadius="{Binding GamingOverlaySkin.CornerRadiusValue}">
                     <Border.Style>
                         <Style TargetType="Border">
-                            <Setter Property="Background" Value="{Binding DataContext.TopBarBackground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <Setter Property="Background" Value="{Binding GamingOverlaySkin.PopupBackgroundBrush}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                     <Setter Property="Background" Value="Transparent" />

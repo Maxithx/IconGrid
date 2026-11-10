@@ -33,6 +33,8 @@ namespace IconGrid.ViewModels
             _gamingOverlayShowFps = state.GamingOverlayShowFps;
             _gamingOverlayShowGpuClock = state.GamingOverlayShowGpuClock;
             _gamingOverlayShowFrameTime = state.GamingOverlayShowFrameTime;
+            _gamingOverlaySkin = GamingOverlaySkin.FromJson(state.GamingOverlaySkinJson);
+            _gamingOverlaySkin.Name = state.GamingOverlaySkinName;
             _gameLauncherAutoBehavior = state.GameLauncherAutoBehavior;
             _autoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
             _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
@@ -109,6 +111,7 @@ namespace IconGrid.ViewModels
             _gamingOverlayShowFps = true;
             _gamingOverlayShowGpuClock = true;
             _gamingOverlayShowFrameTime = true;
+            _gamingOverlaySkin = GamingOverlaySkin.CreateDefault();
             _gameLauncherAutoBehavior = 0;
             _autoShowGamingOverlayOnGameStart = false;
             _autoCloseGamingOverlayOnGameEnd = false;
@@ -166,6 +169,8 @@ namespace IconGrid.ViewModels
                 GamingOverlayShowFps = _gamingOverlayShowFps,
                 GamingOverlayShowGpuClock = _gamingOverlayShowGpuClock,
                 GamingOverlayShowFrameTime = _gamingOverlayShowFrameTime,
+                GamingOverlaySkinName = _gamingOverlaySkin.Name,
+                GamingOverlaySkinJson = _gamingOverlaySkin.ToJson(),
                 GameLauncherAutoBehavior = _gameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = _autoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = _autoCloseGamingOverlayOnGameEnd,

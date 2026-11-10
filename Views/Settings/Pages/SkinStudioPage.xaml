@@ -1,0 +1,386 @@
+<UserControl x:Class="IconGrid.Views.SkinStudioPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             mc:Ignorable="d"
+             Background="Transparent"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+    <ScrollViewer Margin="12"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+        </ScrollViewer.Resources>
+        <StackPanel>
+            <Border Style="{StaticResource StartsideSectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SkinStudioTitleText}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding SkinStudioIntroText}"
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+
+                    <TextBlock Margin="0,16,0,0"
+                               Text="{Binding SkinStudioPreviewTitleText}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <Border Margin="0,8,0,0"
+                            Padding="12"
+                            HorizontalAlignment="Stretch"
+                            MaxHeight="140"
+                            Background="#242424"
+                            BorderBrush="#3A3A3A"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            ClipToBounds="True"
+                            IsHitTestVisible="False">
+                        <Viewbox Stretch="Uniform">
+                            <views:GamingOverlayBar IsPreview="True"
+                                                    DataContext="{Binding}" />
+                        </Viewbox>
+                    </Border>
+
+                    <TextBlock Margin="0,16,0,0"
+                               Text="{Binding SkinStudioShowOverlayButtonText}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding SkinStudioShowOverlayIntroText}"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <Button Margin="0,10,0,0"
+                            Padding="14,8"
+                            HorizontalAlignment="Left"
+                            Background="#FF0078D4"
+                            BorderBrush="#FF0078D4"
+                            BorderThickness="0"
+                            Foreground="White"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Click="ShowOverlayButton_Click"
+                            Content="{Binding SkinStudioShowOverlayButtonText}" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StartsideSectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SkinStudioPresetsTitleText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding SkinStudioPresetsIntroText}"
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <ItemsControl Margin="0,12,0,0"
+                                  ItemsSource="{Binding Presets, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Margin="0,0,8,8"
+                                        Padding="12,6"
+                                        Tag="{Binding}"
+                                        Click="PresetButton_Click"
+                                        Content="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StartsideSectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SkinStudioColorsTitleText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding SkinStudioColorsIntroText}"
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioBarColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.BarBackgroundBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="BarBackgroundColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioPopupColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.PopupBackgroundBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="PopupBackgroundColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioTextColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.TextBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="TextColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioAccentColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.AccentBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="AccentColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioCpuColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.CpuBarBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="CpuBarColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioGpuColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.GpuBarBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="GpuBarColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding SkinStudioDividerColorLabelText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding TopBarForeground}" />
+                        <Border Grid.Column="1"
+                                Width="28" Height="28"
+                                Margin="12,0,12,0"
+                                CornerRadius="4"
+                                BorderBrush="#808080"
+                                BorderThickness="1"
+                                Background="{Binding GamingOverlaySkin.DividerBrush}" />
+                        <Button Grid.Column="2"
+                                Padding="10,4"
+                                Tag="DividerColor"
+                                Click="ColorButton_Click"
+                                Content="{Binding SkinStudioPickColorLabelText}" />
+                    </Grid>
+
+                    <TextBlock Margin="0,14,0,0"
+                               Text="{Binding SkinStudioDividerOpacityLabelText}"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <Slider Margin="0,6,0,0"
+                            Width="280"
+                            HorizontalAlignment="Left"
+                            Minimum="0.6"
+                            Maximum="1.0"
+                            TickFrequency="0.05"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GamingOverlaySkin.DividerOpacity, Mode=TwoWay}"
+                            Style="{StaticResource ModernSliderStyle}"
+                            ValueChanged="DividerOpacitySlider_ValueChanged" />
+
+                    <TextBlock Margin="0,14,0,0"
+                               Text="{Binding SkinStudioDividerHeightLabelText}"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <Slider Margin="0,6,0,0"
+                            Width="280"
+                            HorizontalAlignment="Left"
+                            Minimum="8"
+                            Maximum="40"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GamingOverlaySkin.DividerHeight, Mode=TwoWay}"
+                            Style="{StaticResource ModernSliderStyle}"
+                            ValueChanged="DividerOpacitySlider_ValueChanged" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StartsideSectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SkinStudioFontsTitleText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+
+                    <TextBlock Margin="0,14,0,0"
+                               Text="{Binding SkinStudioFontLabelText}"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <ComboBox Margin="0,6,0,0"
+                              MaxWidth="280"
+                              HorizontalAlignment="Left"
+                              ItemsSource="{Binding FontOptions, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}"
+                              SelectedItem="{Binding GamingOverlaySkin.FontFamily, Mode=TwoWay}"
+                              SelectionChanged="FontSelectionChanged" />
+
+                    <TextBlock Margin="0,14,0,0"
+                               Text="{Binding SkinStudioMonoFontLabelText}"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <ComboBox Margin="0,6,0,0"
+                              MaxWidth="280"
+                              HorizontalAlignment="Left"
+                              ItemsSource="{Binding MonoFontOptions, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}"
+                              SelectedItem="{Binding GamingOverlaySkin.MonoFontFamily, Mode=TwoWay}"
+                              SelectionChanged="FontSelectionChanged" />
+
+                    <TextBlock Margin="0,14,0,0"
+                               Text="{Binding SkinStudioRadiusLabelText}"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <Slider Margin="0,6,0,0"
+                            Width="280"
+                            HorizontalAlignment="Left"
+                            Minimum="0"
+                            Maximum="24"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GamingOverlaySkin.CornerRadius, Mode=TwoWay}"
+                            Style="{StaticResource ModernSliderStyle}"
+                            ValueChanged="RadiusSlider_ValueChanged" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource StartsideSectionCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SkinStudioFromImagesTitleText}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{Binding TopBarForeground}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding SkinStudioFromImagesIntroText}"
+                               TextWrapping="Wrap"
+                               Foreground="{Binding SettingsSubtextForeground}" />
+                    <Button Margin="0,12,0,0"
+                            Padding="12,6"
+                            HorizontalAlignment="Left"
+                            Click="ImportImages_Click"
+                            Content="{Binding SkinStudioImportImagesLabelText}" />
+                    <ItemsControl Margin="0,12,0,0"
+                                  ItemsSource="{Binding ExtractedSwatches, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="28" Height="28"
+                                        Margin="0,0,6,6"
+                                        CornerRadius="4"
+                                        BorderBrush="#808080"
+                                        BorderThickness="1"
+                                        Background="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

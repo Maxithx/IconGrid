@@ -30,6 +30,10 @@ public class ConfigModel
     public bool GamingOverlayShowFps { get; set; } = true;
     public bool GamingOverlayShowGpuClock { get; set; } = true;
     public bool GamingOverlayShowFrameTime { get; set; } = true;
+    // Gaming overlay skin (Skin Studio). The JSON carries the full token set; the name is shown in
+    // the UI. Empty/invalid JSON falls back to the built-in "Night Ops" default.
+    public string GamingOverlaySkinName { get; set; } = GamingOverlaySkin.DefaultName;
+    public string GamingOverlaySkinJson { get; set; } = string.Empty;
     public int GameLauncherAutoBehavior { get; set; } = 0;
     public bool AutoShowGamingOverlayOnGameStart { get; set; } = false;
     public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false;

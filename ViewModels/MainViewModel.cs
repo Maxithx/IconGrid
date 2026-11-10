@@ -101,6 +101,7 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayShowFps = true;
         private bool _gamingOverlayShowGpuClock = true;
         private bool _gamingOverlayShowFrameTime = true;
+        private GamingOverlaySkin _gamingOverlaySkin = GamingOverlaySkin.CreateDefault();
         private int _gameLauncherAutoBehavior = 0; // GameAutoBehaviorMode: 0=None, 1=AutoHide, 2=MinimizeToTaskbar
         private bool _autoShowGamingOverlayOnGameStart = false;
         private bool _autoCloseGamingOverlayOnGameEnd = false;

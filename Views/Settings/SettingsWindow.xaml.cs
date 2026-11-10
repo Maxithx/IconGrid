@@ -217,6 +217,11 @@ namespace IconGrid.Views
             ShowGamingOverlayPage();
         }
 
+        private void SkinStudioNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowSkinStudioPage();
+        }
+
         private void AboutNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowPage(new AboutPage(), AboutNavButton);
@@ -441,6 +446,11 @@ namespace IconGrid.Views
         private void ShowGamingOverlayPage()
         {
             ShowPage(new GamingOverlayPage(), GamingOverlayNavButton);
+        }
+
+        private void ShowSkinStudioPage()
+        {
+            ShowPage(new SkinStudioPage(), SkinStudioNavButton);
         }
 
         private static FrameworkElement? FindFrameworkElement(DependencyObject? source)

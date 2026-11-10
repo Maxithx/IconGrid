@@ -213,7 +213,16 @@ namespace IconGrid.Helpers
         /// as soon as the game exits.
         /// </summary>
         public bool IsInGame => _inGame;
-        public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); } }
+        public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(FrameTimeDisplay)); } }
+
+        /// <summary>
+        /// Frame time as shown in the gaming overlay: "7.0ms" when a value exists, plain "--"
+        /// when there is no data ("--ms" looked wrong in the overlay).
+        /// </summary>
+        public string FrameTimeDisplay =>
+            string.IsNullOrWhiteSpace(_frameTimeStatus) || _frameTimeStatus == "--"
+                ? "--"
+                : $"{_frameTimeStatus}ms";
         public double FpsDisplayResponsiveness
         {
             get => _fpsDisplayResponsiveness;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using IconGrid.Helpers.Launcher;
+using IconGrid.Models;
 
 namespace IconGrid.ViewModels
 {
@@ -159,6 +160,39 @@ namespace IconGrid.ViewModels
         public bool GamingOverlayDividerCpuGpuVisible => _gamingOverlayShowCpu && _gamingOverlayShowGpu;
 
         public bool GamingOverlayDividerGpuFpsVisible => _gamingOverlayShowGpu && _gamingOverlayShowFps;
+
+        /// <summary>
+        /// Active gaming overlay skin (colours + fonts only — never layout). Bindings inside
+        /// GamingOverlayBar read straight from this instance, so editing it updates the overlay and
+        /// the settings preview live.
+        /// </summary>
+        public GamingOverlaySkin GamingOverlaySkin => _gamingOverlaySkin;
+
+        /// <summary>
+        /// Applies another skin (preset or imported) onto the active instance and persists it.
+        /// Copying into the existing instance keeps all nested bindings alive.
+        /// </summary>
+        public void ApplyGamingOverlaySkin(GamingOverlaySkin skin, bool save)
+        {
+            if (skin == null)
+            {
+                return;
+            }
+
+            _gamingOverlaySkin.CopyFrom(skin);
+
+            if (save)
+            {
+                SaveSettingsToConfig();
+            }
+
+            OnPropertyChanged(nameof(GamingOverlaySkin));
+        }
+
+        /// <summary>
+        /// Persists the current skin after an edit in the Skin Studio page.
+        /// </summary>
+        public void SaveGamingOverlaySkin() => SaveSettingsToConfig();
 
         /// <summary>
         /// Launcher behavior while a game is running: 0=None, 1=AutoHide, 2=MinimizeToTaskbar.

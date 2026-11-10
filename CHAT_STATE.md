@@ -1466,3 +1466,231 @@ To nye flags, default `true` (eksisterende configs uændrede), ført gennem hele
 - `Views/Settings/Pages/GamingOverlayPage.xaml`: `IsExpanded="False"` på "Overlay content"-expanderen (var `True`). Kortet følger nu samme default som de øvrige kort på siden (kun hero-kortet er åbent).
 - **Deployet 2026-11-09 23:13** — `IconGrid.dll` 1.158.656 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
 - Committet og pushet efter bruger-godkendelse (bruger: "det spiller").
+
+## Session findings (2026-11-09, fortsat 3) — Overlayet har nu fast mørk skin (uafhængig af Windows-tema)
+
+**Brugerønske:** gaming overlayet (og preview'et på Gaming overlay-siden) må **ikke** følge Windows-temaet — det skal altid se ud som nu (mørkt). Baggrund: der kommer en **Skin Studio**-side senere.
+
+### Ændringer (`Views/Launcher/GamingOverlayBar.xaml` — den eneste fil)
+- **Fjernet alle tema-afhængigheder** i kontrollen:
+  - `MonitorTextStyle`: `IsLightTheme`-trigger (der satte tekst til `#111`) er slettet → tekst er altid hvid (og stadig bruger-valgt tekstfarve når transparens er aktiv).
+  - `OverlayFpsTextStyle`: `IsLightTheme`-trigger slettet → FPS er altid `#7CFF6B` (`OverlayFpsBrush`).
+  - `OverlayCloseButtonStyle` + `OverlayToggleButtonStyle`: de temastyrede light/dark-templates er erstattet af **én** mørk template (hover `#14FFFFFF`, pressed/checked `#21FFFFFF`) og `Foreground` er nu den faste `OverlayBarForegroundBrush` i stedet for `TopBarForeground`.
+  - `OverlayRoot` + begge popup-paneler: `{Binding DataContext.TopBarBackground ...}` → `{StaticResource OverlayBarBackgroundBrush}` (3 steder). Transparens-triggerne (Transparent baggrund / kun under spil) er **bevaret** — de er funktionelle, ikke tema.
+- **Nye, centraliserede skin-brushes** (klar til Skin Studio): `OverlayBarBackgroundBrush` (#202020), `OverlayBarForegroundBrush` (#E5E5E5). Sammen med `OverlayFpsBrush`, `OverlayMenuBorderBrush`, `OverlayCloseHoverDark`, `OverlayClosePressedDark`, `MonitorHighPingColor` udgør de hele paletten.
+- Ubrugte brushes fjernet: `OverlayFpsLightBrush`, `OverlayCloseHoverLight`, `OverlayClosePressedLight`.
+- Verificeret: 0 forekomster af `TopBarBackground`, `IsLightTheme`/`IsDarkTheme` og `*Light`-brushes i filen (kun en forklarende kommentar nævner tema).
+- Preview'et på settings-siden bruger samme kontrol → er automatisk mørkt uanset tema.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler.
+- **Deployet 2026-11-09 23:24** — `IconGrid.dll` 1.156.608 B i både build-mappe og `C:\IconGrid`.
+
+### Status / næste skridt
+- **Mangler bruger-verifikation:** (a) overlayet er mørkt også når Windows/app er i lyst tema; (b) preview'et på settings-siden er mørkt; (c) gear/scale-popup og knap-hover ser stadig rigtige ud.
+- **Skin Studio (planlagt, ikke startet):** alle skin-værdier ligger nu i `GamingOverlayBar`'s resource-blok. Næste skridt vil være at flytte dem til config-drevne brushes (fx `GamingOverlaySkin*` i `ConfigModel`) og binde dem i stedet for `StaticResource`, så en dedikeret side kan styre dem uden at røre overlayets layout.
+- Ikke committet/pushet (kræver separat godkendelse).
+
+## Session findings (2026-11-10) — Skin Studio (fase 1): skin-tokens, editor og billede-import
+
+**Brugerønske:** Skin Studio-side i sidebar'en; overlayet skal kunne skifte "skin" (farver, skrifttype, form) — og skin skal kunne udledes fra brugerens egne spil-billeder (CoD MW4, PoE-league osv.). **Layoutet (monitor-rækkens pladser/orden/mellemrum/skalering) må aldrig ændres af et skin.**
+
+### Skin-model (`Models/GamingOverlaySkin.cs` — ny)
+- Tokens: `Name`, `BarBackgroundColor`, `PopupBackgroundColor`, `TextColor`, `AccentColor` (FPS/slider), `CpuBarColor`, `GpuBarColor`, `DividerOpacity`, `FontFamily`, `MonoFontFamily`, `CornerRadius`.
+- Afledte brushes (`BarBackgroundBrush`, `PopupBackgroundBrush`, `TextBrush`, `AccentBrush`, `CpuBarBrush`, `GpuBarBrush`, `DividerBrush`, `CornerRadiusValue`) + INotifyPropertyChanged, `ToJson`/`FromJson`/`Clone`/`CopyFrom`.
+- 5 indbyggede presets: **Night Ops** (nuværende look), **Tactical Olive**, **Cyber Cyan**, **Ember**, **Arctic**. Neutralt navngivet (ingen tredjeparts-branding i det offentlige repo).
+- Fontlister: `AvailableFonts` (Segoe UI, Bahnschrift, Bahnschrift SemiCondensed, Consolas, Cascadia Mono, Impact, Arial Narrow, Tahoma) og `AvailableMonoFonts` — kun installerede Windows-fonte, intet bundlet.
+
+### Persistering
+`ConfigModel.GamingOverlaySkinName` + `GamingOverlaySkinJson` → `MainViewModelConfigState`/`MainViewModelSettingsState`/`MainViewModelSettingsPersistence` → `ApplyConfig`/`ResetToDefaults`/`SaveSettingsToConfig`. `MainViewModel.Overlay.cs`: `GamingOverlaySkin`, `ApplyGamingOverlaySkin(skin, save)`, `SaveGamingOverlaySkin()`.
+
+### Overlay (`Views/Launcher/GamingOverlayBar.xaml`)
+- Alle tidligere faste farver/fonte bindes nu til `GamingOverlaySkin`: tekstfarve+font, FPS-farve+mono-font, divider-brush+opacity, bar-/popup-baggrund, CPU-/GPU-bar-farve, knap-ikonfarve, corner radius (bar + popups).
+- Ubrugte ressourcer fjernet (`OverlayFpsBrush`, `OverlayBarBackgroundBrush/ForegroundBrush`). Ingen tema-triggers tilbage — skin er uafhængig af Windows-tema.
+
+### Skin Studio-siden (`Views/Settings/Pages/SkinStudioPage.xaml(.cs)` — ny)
+- Sidebar-knap `SkinStudioNavButton` (Segoe Fluent-ikon `&#xE790;`, da der ikke findes et figma-ikon) + `SkinStudioNavButton_Click`/`ShowSkinStudioPage()` i `SettingsWindow`.
+- Kort: **Live preview** (samme `GamingOverlayBar` med `IsPreview`), **Presets** (knapper), **Farver** (6 farvevælgere via `Forms.ColorDialog`), **Skrifter og form** (to fonte + radius-slider), **Fra dine egne billeder** (import + swatch-stribe).
+- Alt gemmes automatisk ved ændring (`SaveGamingOverlaySkin()`).
+- Lokalisering: 23 nye nøgler i `LocalizationHelper` (en + da), properties + `NotifySkinStudioPropertiesChanged()` i `MainViewModel.Localization.cs` (centraliseret mønster, ikke legacy).
+
+### Billede-analyzer (`Helpers/Skin/SkinPaletteAnalyzer.cs` — ny)
+- Lokal, uden AI/API: indlæser 1-N billeder (DecodePixelWidth 160), bucket-tæller farver (5 bit/kanal), vælger klynge → baggrund (mørkeste), popup (lidt lysere), tekst (lyseste, med kontrast-guard), accent/CPU/GPU (mest mættede, brightness-guard). Returnerer også 8 swatches.
+- Bevidst designet så en senere **vision-model** kan erstatte/berige den bag samme `Result`-type (reference-drevet analyse, ikke generisk tekstur-prompt).
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler (CS0104-ambiguiteter `Color`/`Button`/`UserControl` mod WinForms løst med aliases).
+- **Deployet 2026-11-09 23:48 (fundament) og 23:52 (Skin Studio)** — `IconGrid.dll` 1.192.448 B i både build-mappe og `C:\IconGrid`.
+
+### Status / næste skridt
+- **Mangler bruger-verifikation:** (a) Skin Studio i sidebar; (b) presets + farvevælgere + fonte + radius slår igennem live i preview og i det åbne overlay; (c) "Importér billeder" udtrækker palette fra CoD/PoE-referencer; (d) indstillingerne huskes efter genstart.
+- **Ikke bygget endnu:** AI/vision-analyse (reference → JSON-tokens), img2img-baggrundsplade, `.iconskin` eksport/import, auto-skin pr. spil, baggrundsbillede som token.
+- Ikke committet/pushet (kræver separat godkendelse).
+
+## Session findings (2026-11-10, fortsat) — Lag-baseret skin-design (chips, art, logo, typografi)
+
+**Brugerfeedback:** farve-tokens alene er "ikke rigtig skin design" (reference: Gemini-illustration med camo-baggrund, grønne/lilla CPU/GPU-chips, rammer om gear/X, MW4-logo, fed typografi). Ønske: kunne lave samme look med kode.
+
+### Nye design-tokens i `Models/GamingOverlaySkin.cs`
+- **Chips:** `ShowChips`, `ChipBackgroundColor` (ARGB understøttet), `ChipBorderColor`, `ChipCornerRadius`, `ChipPadding` + afledte `ChipPaddingThickness`/`ChipBorderThickness`/`ChipBackgroundBrush` (transparent når chips er slået fra → layout uændret).
+- **Knapper:** `ButtonBackgroundColor`, `ButtonBorderColor`, `ButtonCornerRadius` (+ `ButtonCornerRadiusValue`).
+- **Typografi:** `FontWeight` (Normal/SemiBold/Bold) + `FontWeightValue`.
+- **Baggrundsart:** `BackgroundImagePath`, `BackgroundImageOpacity`, `BackgroundTintColor`, `BackgroundTintOpacity` (+ `BackgroundImageBrush` som `ImageBrush` med `UniformToFill`, `HasBackgroundImage`). Billedet indlæses via `BitmapImage` med `OnLoad` og fryses.
+- **Logo-slot:** `LogoImagePath`, `LogoWidth` (+ `LogoImageSource`, `HasLogo`).
+- `CopyFrom` opdateret med alle nye tokens (bevarer live bindings).
+
+### Bar (`Views/Launcher/GamingOverlayBar.xaml`)
+- Baggrundslag: to `Border`s bag indholdet (`BackgroundImageBrush` + `BackgroundTintBrush` med opacity) — `Grid.ColumnDefinitions` flyttet op før indhold (ellers XAML-fejl "property elements cannot be in the middle of content").
+- **Logo** som første element i monitor-rækken (kun synlig når `HasLogo`).
+- **Chips** omkring CPU- og GPU-gruppen (temp + belastningsbar) — præcis som referencebilledet; GPU-ur/FT/FPS står uden chip.
+- Knap-styles: baggrund/kant/radius fra skin (`ButtonBackgroundBrush`, `ButtonBorderBrush`, `ButtonCornerRadiusValue`), stadig med hover/pressed-triggers.
+- `MonitorTextStyle` bruger nu også `FontWeightValue`.
+
+### Vigtig fejl fanget undervejs
+Et script, der skulle erstatte knap-baggrunde, ramte **5** forekomster i stedet for 2 — inkl. de tre transparens-triggere ("Transparent baggrund"/"kun under spil"). Rettet med et linje-baseret script, der kun ændrer sætningen når forgænger-linjen indeholder `GamingOverlayTransparentBackgroundEffective`. Verificeret: 3 gendannet, 2 tilbage (knapperne).
+
+### Presets
+**Tactical Olive** bruger nu de nye lag: chips (mørk oliven-fill + lys oliven-kant), `Bold` Bahnschrift, rammede knapper, tint. Night Ops er stadig rent/fladt som før.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler.
+- **Deployet 2026-11-10 00:17** — `IconGrid.dll` 1.200.640 B i både build-mappe og `C:\IconGrid`.
+
+### Status / næste skridt
+- **Mangler:** Skin Studio-UI til de nye tokens (chip-farver/padding, knap-farver, font-vægt, **vælg baggrundsbillede**, tint-opacity, **vælg logo** + bredde, "fjern"-knapper), samt kopiering af brugerens billeder til `%APPDATA%\IconGrid\skins\` så stien er stabil.
+- Så kan brugeren genskabe MW4-looket med egen camo-tekstur + eget logo (intet tredjeparts-grafik i repoet).
+- Ikke committet/pushet.
+
+## Session findings (2026-11-10, fortsat 2) — Gemini HTML-reference gennemgået + effekt-lag implementeret
+
+**Input:** `E:\IconGrid-GitHub\gaming-overlay-html-test\cod_mw4_gaming_overlay.html` (Gemini-mockup). Bruger: "vi skal kun bruge overlayet" (ikke sandbox/modal/knapper udenom).
+
+### Gennemgang af HTML'ens overlay-greb → WPF
+| HTML | WPF | Status |
+|---|---|---|
+| `.camo-pattern` (4× `radial-gradient` i tiles) | `SkinPatternFactory.CreateCamoBrush` → `DrawingBrush` (Tile, 60 px, 4 blobs) | ✅ implementeret |
+| Hex-mønster | `CreateHexBrush` (stregter polygon-tile) | ✅ |
+| CRT scanlines | `CreateScanlineBrush` (statisk, ingen animation) | ✅ |
+| Digitale segmenter i meter-bar | `CreateMeterSegmentsBrush` (tile 4 px lodrette linjer) | ✅ |
+| `bg-gradient-to-r from-emerald-600 to-mw-green` | `LinearGradientBrush` (`CpuMeterBrush`/`GpuMeterBrush`) | ✅ |
+| `text-shadow`/`box-shadow` glow | `DropShadowEffect` (`ShadowDepth=0`) — **kun på FPS-tallet** for at beskytte FPS | ✅ |
+| `from-amber-700 via-amber-900 to-zinc-900` + gold-frame | vertikal `LinearGradientBrush` + `ButtonBorderBrush` | ✅ (uden bevel) |
+| `clip-path` polygoner (chamfer/bevel) | kræver `Path`-geometri + `Clip` beregnet på `SizeChanged` | ⏳ næste skridt |
+| Orbitron / Chakra Petch / Share Tech Mono | Google Fonts = OFL → må bundles | ⏳ kræver at bruger downloader `.ttf` (agenten kan ikke hente binære filer) |
+| Gear-roterer-på-hover | `RotateTransform` + Storyboard-trigger | ⏳ kosmetisk, senere |
+
+### Nye tokens (`GamingOverlaySkin`)
+`PatternKind` (None/Camo/Hex/Scanlines), `PatternColorA/B/C`, `PatternLineColor`, `PatternOpacity`, `MeterGradient`, `MeterGradientStartColor/EndColor`, `MeterSegments`, `MeterSegmentColor`, `GlowEnabled`, `GlowColor`, `GlowRadius`, `ButtonGradient`, `ButtonGradientTopColor/BottomColor`. Alle med afledte brushes/effekt: `PatternBrush`, `HasPattern`, `CpuMeterBrush`, `GpuMeterBrush`, `MeterSegmentsBrush`, `AccentGlowEffect`; `ButtonBackgroundBrush` bliver gradient når `ButtonGradient=true`. `CopyFrom` opdateret.
+
+### Bar (`GamingOverlayBar.xaml`)
+- Nyt mønster-lag mellem tint og indhold (`PatternBrush` + `PatternOpacity`, synligt via `HasPattern`).
+- CPU/GPU-metre: gradient-fill (`CpuMeterBrush`/`GpuMeterBrush`) + segment-overlay (`MeterSegmentsBrush`) i `Grid ClipToBounds`.
+- FPS-tallet har `Effect="{Binding GamingOverlaySkin.AccentGlowEffect}"`.
+
+### Preset
+**Tactical Olive** aktiverer nu hele effekt-laget: camo-mønster, glow (#00FF66, radius 8), gradient-metre, segmenter og metal-gradient knapper (amber→zinc) — dvs. tæt på HTML-referencen.
+
+### Build/deploy
+- Build 0 fejl / 0 advarsler (CS0104-ambiguiteter `Brush`/`Pen`/`Point`/`ColorConverter`/`Brushes` mod `System.Drawing` løst med aliases).
+- **Deployet 2026-11-10 00:45** — `IconGrid.dll` 1.210.368 B i både build-mappe og `C:\IconGrid`.
+
+### Status
+- **Mangler bruger-verifikation:** vælg Tactical Olive → camo + glow + gradient-metre + metal-knapper i preview og i spil.
+- **Ikke bygget:** chamfer/bevel-clip, bundlede fonter (afventer `.ttf`), hover-rotation, Skin Studio-UI til de nye tokens (PatternKind-dropdown, farver, glow-slider, meter-toggles), billede/logo-vælger.
+- Ydeevne: kun ét `DropShadowEffect` i brug (FPS) — bevidst for at undgå FPS-tab i spil.
+- Ikke committet/pushet.
+
+### Rettelse (00:49) — dividerne er nu hvide og tydelige
+- **Problem:** dividerne (`|`) blev tegnet med tekstfarven × `DividerOpacity` (0.35-0.45 i presets) → usynlige på camo/mørk baggrund, så monitor-felterne flød sammen.
+- **Fix i `GamingOverlaySkin`:**
+  - Nyt token `DividerColor` (default `#FFFFFF`), uafhængigt af `TextColor`.
+  - `DividerBrush` bruger nu `DividerColor` i stedet for tekstfarven.
+  - `DividerOpacity` default hævet 0.4 → **0.8**, og setter'en clamper til **min. 0.6** (læsbarheds-guard). Eksisterende gemte skins med 0.35-0.45 bliver dermed automatisk løftet til 0.6 ved indlæsning.
+  - Presets opdateret: Tactical Olive 0.85, Cyber Cyan/Ember/Arctic 0.75 — alle med `DividerColor = "#FFFFFF"`.
+- Bemærk: når transparens er aktiv, følger divideren stadig brugerens valgte tekstfarve (eksisterende trigger) — det er tilsigtet.
+- **Deployet 2026-11-10 00:49** — `IconGrid.dll` 1.210.880 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Ikke committet/pushet.
+
+### Session (00:55) — "MW4"-preset: 1:1-forsøg på Gemini/HUD-referencen
+Bruger ville have designet 1:1 og et preset kaldet **MW4**.
+
+**Nye tokens i `GamingOverlaySkin`:**
+- Typografi: `FontSize`, `MonoFontSize` (+ `FontSizeValue`, `MonoFontSizeValue`, `BrandFontSizeValue` = 1.7×).
+- Brand: `ShowBrand`, `BrandText` ("MW4"), `BrandColor` (+ `HasBrand`, `BrandBrush`).
+- Callout-tag: `ShowCalloutTag`, `CalloutTopText` ("X-01"), `CalloutBottomText` ("BLACK SITE"), `CalloutAccentColor`.
+- Metre: `CpuMeterBorderColor`, `GpuMeterBorderColor`.
+- GPU-accentlinje: `ShowGpuAccentLine`, `GpuAccentLineColor` (den lilla streg i referencen).
+- Afskårne hjørner: `ChamferSize` (+ `ChamferSizeValue`).
+- `CopyFrom` opdateret med alle.
+
+**Bar (`GamingOverlayBar.xaml` / `.xaml.cs`):**
+- Venstre callout-tag: camo-baggrund, "X-01" + guld-prik, "BLACK SITE" i guld, højre accentkant.
+- Brand-blok: "MW4" i grøn med glød, mørkegrøn baggrund og grøn bundkant.
+- Ur-ikon (Segoe MDL2 `E823`) foran klokkeslættet.
+- Metre har nu skin-styrede rammefarver (grøn CPU / lilla GPU).
+- Lilla accentlinje efter GPU-chippen.
+- **Chamfer-clip:** `ApplyChamfer()` bygger en `StreamGeometry` (top-højre + bund-venstre hjørne skåret) på `SizeChanged` og når `ChamferSize` ændres — WPF kan ikke lave CSS-`clip-path` i XAML.
+- Fontstørrelser bindes nu fra skin (labels + FPS/mono).
+
+**Nyt preset "MW4"** (i preset-listen): camo, chips, grøn glød (#00FF66, radius 10), segmenterede gradient-metre, guld-gradient knapper med `#C5A059`-kant, chamfer 14, `FontSize 14`, fontstakke `"Chakra Petch, Bahnschrift, Segoe UI"` og `"Share Tech Mono, Consolas"` (falder tilbage til Windows-fonte hvis Google-fontene ikke er installeret).
+
+**Ikke 1:1 endnu:** knap-bevel (oktagon-klip), callout-taggens skrå højrekant, og de tre Google-fonte (OFL) er ikke bundlet — de skal downloades som `.ttf` af brugeren.
+
+**Deployet 2026-11-10 00:55** — `IconGrid.dll` 1.219.584 B i både build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler). Ikke committet.
+
+### Rettelse (01:09) — FT uden "ms" når der ikke er data
+- `SystemMonitor.FrameTimeDisplay` (ny): `"--"` når `FrameTimeStatus` er tom/`--`, ellers `"{værdi}ms"`. `FrameTimeStatus`-setter'en notificerer også `FrameTimeDisplay`.
+- `GamingOverlayBar.xaml`: FT viser nu `FrameTimeDisplay` i stedet for `FrameTimeStatus` + fast `ms`-run → **`FT: --`** uden data, **`FT: 7.0ms`** med data.
+- Ønskes enheden fjernet helt (også ved tal), er det blot at binde `FrameTimeStatus` uden `ms`-run igen (én linje).
+- **Deployet 2026-11-10 01:09** — `IconGrid.dll` 1.219.584 B i build-mappe og `C:\IconGrid` (build 0 fejl).
+
+### Rettelse (01:17) — dividerne var sorte pga. Freeze-bug + nu farve/opacity i Skin Studio
+- **Rodårsag (vigtig):** `GamingOverlaySkin.DividerBrush` kaldte `CreateBrush()` (som **fryser** brush'en) og satte derefter `Opacity`. Ændring af en frossen `Freezable` kaster `InvalidOperationException`, WPF-bindings fejlede tavst, og dividerne faldt tilbage til arvet (mørk) forgrund — derfor var de "sorte" uanset `DividerColor`/`DividerOpacity`.
+- **Fix:** brush'en bygges nu lokalt (`new SolidColorBrush(color) { Opacity = _dividerOpacity }`) og **fryses først bagefter**. Fallback til `Brushes.White` ved parse-fejl.
+- **Skin Studio:** nye kontroller i Farver-kortet:
+  - **Divider-farve** (farvevælger, `Tag="DividerColor"` + swatch der viser `DividerBrush`)
+  - **Divider-gennemsigtighed** slider (0.6-1.0, `DividerOpacity`)
+- Lokalisering (en+da): `SkinStudioDividerColorLabel`, `SkinStudioDividerOpacityLabel` + properties + notify.
+- **Deployet 2026-11-10 01:17** — `IconGrid.dll` 1.222.144 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Ikke committet/pushet.
+
+### Rettelse (01:21-01:22) — dividerne er nu tegnede linjer (perfekt lodret centrering)
+- **Problem:** dividerne var tekst-glyffen `|`, så deres optiske centrum afhang af font/baseline/size — de sad ikke på linje med tallene.
+- **Fix:** `MonitorDividerStyle` (TextBlock) er erstattet af **`OverlayDividerStyle` (Border)** — en tegnet hvid streg (`Width`/`Height`/`Background` fra skin), `VerticalAlignment=Center`, `SnapsToDevicePixels=True`. Alle 4 divider-elementer konverteret (`TextBlock` → `Border`). Transparens-trigger bevaret (divider følger tekstfarven når transparens er aktiv).
+- **Nye tokens:** `DividerWidth` (1-6 px, default 1) og `DividerHeight` (4-40 px, default 18) + `DividerWidthValue`/`DividerHeightValue`; med i `CopyFrom`.
+- **Skin Studio:** ny slider **"Divider-højde"** (8-40) ved siden af divider-farve og -gennemsigtighed.
+- Lokalisering (en+da): `SkinStudioDividerHeightLabel`.
+- **Deployet 2026-11-10 01:22** — `IconGrid.dll` 1.223.680 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Ikke committet/pushet.
+
+### Rettelse (01:25) — divider-højde sat ned til 12 px
+- Brugeren bad ikke om at ændre højden (min default 18 px var for høj) → **default er nu 12 px**.
+- **Migrering:** `FromJson` løfter/sænker kun præcis værdien 18 til 12 (den gamle default), så eksisterende gemte skins ikke skal rettes manuelt. Alle andre eksplicitte værdier bevares.
+- MW4-presettet sætter eksplicit `DividerHeight = 12`.
+- Slideren "Divider-højde" (8-40) er stadig tilgængelig for finjustering.
+- **Deployet 2026-11-10 01:25** — `IconGrid.dll` 1.223.680 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+
+### Tilføjelse (01:30) — "Vis gaming overlay"-knap på Skin Studio-siden
+- Knappen ligger nu under live-preview'et i hero-kortet på Skin Studio (samme placering som på Gaming overlay-siden): titel + hjælpetekst + blå handlingsknap.
+- Kalder `MainViewModel.RequestShowGamingOverlay()` — samme manuelle sti som på Gaming overlay-siden, dvs. **uden** at røre auto-vis/auto-luk-flowet.
+- Lokalisering (en+da): `SkinStudioShowOverlayButton`, `SkinStudioShowOverlayIntro` + properties + notify i `MainViewModel.Localization.cs`.
+- **Deployet 2026-11-10 01:30** — `IconGrid.dll` 1.225.728 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Ikke committet/pushet.
+
+### Rettelse (01:33) — ur-ikonet foran klokkeslættet fjernet
+- `GamingOverlayBar.xaml`: Segoe MDL2 clock-glyph (`&#xE823;`) fjernet; klokkeslættet står nu alene med samme margin som før.
+- **Deployet 2026-11-10 01:33** — `IconGrid.dll` 1.225.216 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+
+### Rettelse (01:36) — divider-bredde: pixel-snapning mod DPI-halvpixels
+- **Observation fra bruger:** nogle dividere så bredere ud end andre.
+- **Årsag:** alle dividere har `Width = 1` DIP, men ved 125 %/150 % skalering svarer 1 DIP til 1,25/1,5 fysiske pixel. Uden edge-snap kan en linje derfor blive tegnet som 1 px eller 2 px afhængigt af dens subpixel-position → visuelt forskellig bredde.
+- **Fix i `OverlayDividerStyle`:** `RenderOptions.EdgeMode="Aliased"` + `UseLayoutRounding="True"` (ud over `SnapsToDevicePixels`), så kanterne snappes deterministisk til enhedspixels.
+- Hvis det stadig varierer på en given DPI, er næste skridt at gøre bredden DPI-eksakt (1 enhedspixel = 1/`DpiScaleX` DIP) via kode i `GamingOverlayBar`; skin-token `DividerWidth` findes allerede.
+- **Deployet 2026-11-10 01:36** — `IconGrid.dll` 1.225.216 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+
+### Rettelse (01:40) — dividerbredde gjort DPI-eksakt (1 enhedspixel)
+- `EdgeMode="Aliased"` var ikke nok: 1 DIP er ikke et helt antal enhedspixels ved 125 %/150 %, så identiske dividere kunne stadig blive 1 eller 2 px.
+- **Ny metode `ApplyDividerThickness()` i `GamingOverlayBar`:** finder alle dividere (Border med `OverlayDividerStyle`) via visuelt træ og sætter `Width = round(DividerWidth) / DpiScaleX` → **præcis N enhedspixels** uanset skalering. Kaldes ved `Loaded`, `OnDpiChanged` og når `DividerWidth`-tokenet ændres.
+- `using System.Collections.Generic` tilføjet; `EnumerateDividers` recurser visuelt træ og matcher style-instansen.
+- **Deployet 2026-11-10 01:40** — `IconGrid.dll` 1.227.776 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Hvis der stadig opfattes forskel, er næste skridt at sætte `DividerWidth` til 2 (så 1 vs. 2 px-afrunding ikke kan ses); token/slider findes allerede.

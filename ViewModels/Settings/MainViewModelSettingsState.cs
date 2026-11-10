@@ -23,6 +23,8 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayShowFps { get; set; } = true;
         public bool GamingOverlayShowGpuClock { get; set; } = true;
         public bool GamingOverlayShowFrameTime { get; set; } = true;
+        public string GamingOverlaySkinName { get; set; } = GamingOverlaySkin.DefaultName;
+        public string GamingOverlaySkinJson { get; set; } = string.Empty;
         public int GameLauncherAutoBehavior { get; set; }
         public bool AutoShowGamingOverlayOnGameStart { get; set; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; set; }

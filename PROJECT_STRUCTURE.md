@@ -178,6 +178,9 @@ Helpers\
 │   ├── PawnIoHelper.cs                   # PawnIO driver helper (hardware sensor access)
 │   ├── StartupTaskManager.cs             # Windows startup / scheduled task registration
 │   └── ThemeHelper.cs                    # Light/dark theme resolution
+└── Skin\                             # Gaming overlay skin engine (no UI)
+    ├── SkinPaletteAnalyzer.cs            # Derives a palette from user-supplied game images (local, no AI)
+    └── SkinPatternFactory.cs             # Procedural camo/hex/scanline/meter brushes (DrawingBrush, no assets)
 ```
 
 ## Models\ (data contracts and enums)
@@ -188,6 +191,7 @@ Models\
 ├── CustomLayoutSlot.cs               # Custom layout slot definition
 ├── GameAutoBehaviorMode.cs           # Overlay/launcher auto behaviour when a game runs
 ├── GamingOverlayPositionPreset.cs    # Top/Bottom × Left/Center/Right + Custom presets
+├── GamingOverlaySkin.cs              # Gaming overlay skin tokens (colours, fonts, chips, patterns, chamfer)
 ├── LauncherHideMode.cs               # AlwaysVisible / ManualHide / AutoHide
 ├── LauncherItem.cs                   # Shortcut: DisplayName, Path, Category, GameResolution, icon
 ├── MonitorLayoutDefaultsSnapshot.cs  # "My default" snapshot for the monitor row layout page
@@ -262,6 +266,7 @@ Views\
         ├── GenvejsIkonerPage.xaml (.cs)     # Grid/carousel icon settings
         ├── LayoutPage.xaml (.cs)            # Layout presets and saved layouts
         ├── HardwarePage.xaml (.cs)          # CPU/GPU/RAM/motherboard diagnostics
+        ├── SkinStudioPage.xaml (.cs)        # Overlay skin editor (colours/fonts/radius + image palette)
         ├── MonitorRowLayoutSection.xaml (.cs) # Monitor row gaps/dividers, overlay height, ping target (embedded in Home)
         ├── GamingOverlayPage.xaml (.cs)     # Overlay scale, position, transparency, FPS setup
         ├── GameResolutionPage.xaml (.cs)    # Per-game display resolution switching
