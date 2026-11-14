@@ -1921,3 +1921,30 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - `GridSplitter` (ResizeBehavior=PreviousAndNext, ShowsPreview, SizeWE-cursor) -> brugeren kan traekke panelet bredere/smallere.
 - Knap-raekker i Snippet- og Template-sektionerne er nu WrapPanel med marginer, saa de ombrydes i stedet for at blive klippet ved smal bredde.
 - Deployet 20:27, DLL 1.316.864 B (identisk begge steder), build 0/0.
+
+### Close-knap bredde = 36 px som standard (21:39)
+- `OverlayBlock.ButtonWidthValue` default er nu 36 for BAADE settings og close (foer 44 for close). Props `buttonWidth` overskriver stadig pr. knap.
+- Deployet 21:39, DLL 1.316.864 B (identisk begge steder), build 0/0.
+
+### Knap-kant kan fjernes (21:50)
+- Nye chrome-props pr. knap: `borderThickness` (default 1, 0 = ingen ramme) og `borderColor` (hex, ellers skin). `OverlayBlock` har ButtonBorderThicknessValue/ButtonBorderThickness/HasBorderColor/BorderColorBrush; `GetDoubleOr` tillader 0 (i modsaetning til GetPositive).
+- Baren: knapperne har nu inline Style BasedOn den gamle knap-stil, som saetter BorderThickness fra prop og BorderBrush via DataTrigger naar borderColor er sat (TemplateBinding i templaten goer resten).
+- Skin Studio > Overlay button: nye felter "Kant (px, 0 = ingen ramme)" og "Kant-farve (hex)".
+- Deployet 21:43, DLL 1.319.936 B (identisk begge steder), build 0/0.
+
+### Knap-baggrund + overlay-baggrund som lag (22:05)
+- Chrome-props: `background` (hex eller "transparent") -> ButtonBackgroundBrush/HasButtonBackground; baren saetter Background via DataTrigger i knappens inline Style.
+- Nyt chrome-lag `background` ("Overlay background") oprettes foerst i Chrome af EnsureChrome; IsChromeButton daekker nu background/settings/close, ny IsBackgroundLayer + IsButtonLayer.
+- Valg af baggrundslaget viser "Overlay background"-sektion (Bar-farve -> skin.BarBackgroundColor, Hjoerneradius -> skin.CornerRadius) og skjuler den generiske Label/Colour-boks; aendringer gemmes via SaveGamingOverlaySkin().
+- Buttons-sektionen har nu ogsaa feltet Baggrund (hex eller transparent).
+- Deployet 21:51, DLL 1.324.544 B (identisk begge steder), build 0/0.
+
+### Lag-raekkefoelge: knapper oeverst, baggrund nederst (22:03)
+- `GamingOverlayLayerItems` bygger nu listen som: Settings button, Close button -> moduler i omvendt raekkefoelge -> Overlay background. Matcher lag-stakken (knapper ligger over raekken, baggrunden under).
+
+### Show/hide (oeje) paa alle chrome-lag (22:06)
+- Oejet er tilbage paa Settings button, Close button og Overlay background (DataTrigger for IsChromeButton fjernet).
+- Knapperne: `ApplyPreviewState()` saetter Visibility ud fra `GamingOverlaySettingsButton.IsVisible` / `GamingOverlayCloseButton.IsVisible`, og `ViewModel_PropertyChanged` genanvender den naar de properties (eller LayerItems) aendres -> skjul virker live i baade overlay og preview.
+- Baggrunden: `OverlayRoot`-stilen har ny DataTrigger paa `GamingOverlayBackgroundLayer.IsHidden` -> Background=Transparent (kun barens flade skjules, modulerne bliver).
+- Sletning er stadig blokeret for chrome-lag; skjulte knapper kan altid vises igen via oejet i panelet.
+- Deployet 22:06, DLL 1.325.568 B (identisk begge steder), build 0/0.

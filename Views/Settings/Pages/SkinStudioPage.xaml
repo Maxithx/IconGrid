@@ -304,10 +304,6 @@
                                 <DataTrigger Binding="{Binding IsHidden}" Value="True">
                                     <Setter TargetName="EyeGlyph" Property="Opacity" Value="0.25" />
                                 </DataTrigger>
-                                <!-- Fixed chrome buttons cannot be hidden from the panel. -->
-                                <DataTrigger Binding="{Binding IsChromeButton}" Value="True">
-                                    <Setter TargetName="EyeButton" Property="Visibility" Value="Hidden" />
-                                </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -324,12 +320,14 @@
                         <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
                                    Foreground="#E6EDF3" Margin="0,0,0,8" />
                         <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />
-                        <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />
-                        <TextBox x:Name="PropLabelBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
-                                 BorderBrush="#33373D" LostFocus="PropLabelBox_LostFocus" />
-                        <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Colour (hex)" />
-                        <TextBox x:Name="PropColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
-                                 BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
+                        <StackPanel x:Name="GenericColorSection">
+                            <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />
+                            <TextBox x:Name="PropLabelBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="PropLabelBox_LostFocus" />
+                            <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Colour (hex)" />
+                            <TextBox x:Name="PropColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
+                        </StackPanel>
 
                         <!-- Gauge (CPU / GPU usage) appearance: only visible for gauge modules. -->
                         <StackPanel x:Name="GaugeSection" Visibility="Collapsed" Margin="0,14,0,0">
@@ -391,6 +389,28 @@
                                 <TextBox x:Name="ButtonHeightBox" Grid.Column="2" Padding="6,4" Background="#1E2126"
                                          Foreground="#D7DCE2" BorderBrush="#33373D" LostFocus="ButtonHeightBox_LostFocus" />
                             </Grid>
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioButtonBorderLabelText}" />
+                            <TextBox x:Name="ButtonBorderBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="ButtonBorderBox_LostFocus" />
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioButtonBorderColorLabelText}" />
+                            <TextBox x:Name="ButtonBorderColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="ButtonBorderColorBox_LostFocus" />
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioButtonBackgroundLabelText}" />
+                            <TextBox x:Name="ButtonBackgroundBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="ButtonBackgroundBox_LostFocus" />
+                        </StackPanel>
+
+                        <!-- Overlay background (the bar itself) — edits the skin tokens. -->
+                        <StackPanel x:Name="BackgroundSection" Visibility="Collapsed" Margin="0,14,0,0">
+                            <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
+                            <TextBlock Text="{Binding SkinStudioBackgroundTitleText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#E6EDF3" Margin="0,0,0,6" />
+                            <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioBackgroundColorLabelText}" />
+                            <TextBox x:Name="BackgroundColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="BackgroundColorBox_LostFocus" />
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioBackgroundRadiusLabelText}" />
+                            <TextBox x:Name="BackgroundRadiusBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="BackgroundRadiusBox_LostFocus" />
                         </StackPanel>
                         <!-- Code snippet for the selected module: a JSON property patch. -->
                         <StackPanel Margin="0,14,0,0">

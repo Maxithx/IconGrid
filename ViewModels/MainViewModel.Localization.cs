@@ -106,6 +106,12 @@ namespace IconGrid.ViewModels
         public string SkinStudioButtonTitleText => _localizationState.Get(Language, "SkinStudioButtonTitle");
         public string SkinStudioButtonIconLabelText => _localizationState.Get(Language, "SkinStudioButtonIconLabel");
         public string SkinStudioButtonSizeLabelText => _localizationState.Get(Language, "SkinStudioButtonSizeLabel");
+        public string SkinStudioButtonBorderLabelText => _localizationState.Get(Language, "SkinStudioButtonBorderLabel");
+        public string SkinStudioButtonBorderColorLabelText => _localizationState.Get(Language, "SkinStudioButtonBorderColorLabel");
+        public string SkinStudioButtonBackgroundLabelText => _localizationState.Get(Language, "SkinStudioButtonBackgroundLabel");
+        public string SkinStudioBackgroundTitleText => _localizationState.Get(Language, "SkinStudioBackgroundTitle");
+        public string SkinStudioBackgroundColorLabelText => _localizationState.Get(Language, "SkinStudioBackgroundColorLabel");
+        public string SkinStudioBackgroundRadiusLabelText => _localizationState.Get(Language, "SkinStudioBackgroundRadiusLabel");
         public string SkinStudioTemplateTitleText => _localizationState.Get(Language, "SkinStudioTemplateTitle");
         public string SkinStudioTemplateHintText => _localizationState.Get(Language, "SkinStudioTemplateHint");
         public string SkinStudioTemplateLoadCodeText => _localizationState.Get(Language, "SkinStudioTemplateLoadCode");
@@ -333,6 +339,12 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioButtonTitleText));
             OnPropertyChanged(nameof(SkinStudioButtonIconLabelText));
             OnPropertyChanged(nameof(SkinStudioButtonSizeLabelText));
+            OnPropertyChanged(nameof(SkinStudioButtonBorderLabelText));
+            OnPropertyChanged(nameof(SkinStudioButtonBorderColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioButtonBackgroundLabelText));
+            OnPropertyChanged(nameof(SkinStudioBackgroundTitleText));
+            OnPropertyChanged(nameof(SkinStudioBackgroundColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioBackgroundRadiusLabelText));
             OnPropertyChanged(nameof(SkinStudioTemplateTitleText));
             OnPropertyChanged(nameof(SkinStudioTemplateHintText));
             OnPropertyChanged(nameof(SkinStudioTemplateLoadCodeText));

@@ -388,12 +388,18 @@ namespace IconGrid.ViewModels
         {
             get
             {
-                var items = new List<OverlayBlock>(_gamingOverlayBlueprint.Layout);
-                items.Reverse();
+                var items = new List<OverlayBlock>();
 
-                // The settings/close buttons are styled like modules, so they belong in the layer
-                // list too — pinned at the bottom because they sit at the right edge of the bar.
-                items.AddRange(_gamingOverlayBlueprint.Chrome);
+                // Top of the list = closest to the viewer: the fixed action buttons sit above the
+                // module row, so they come first, then the modules (last module first), and the
+                // bar background ends up at the bottom like a Photoshop background layer.
+                items.AddRange(_gamingOverlayBlueprint.Chrome.Where(block => block.IsButtonLayer));
+
+                var blocks = new List<OverlayBlock>(_gamingOverlayBlueprint.Layout);
+                blocks.Reverse();
+                items.AddRange(blocks);
+
+                items.AddRange(_gamingOverlayBlueprint.Chrome.Where(block => block.IsBackgroundLayer));
 
                 return items;
             }
@@ -408,6 +414,11 @@ namespace IconGrid.ViewModels
         public OverlayBlock? GamingOverlayCloseButton =>
             _gamingOverlayBlueprint.Chrome.FirstOrDefault(block =>
                 string.Equals(block.Block, "close", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>Blueprint chrome block for the overlay bar background (eye = hide the bar fill).</summary>
+        public OverlayBlock? GamingOverlayBackgroundLayer =>
+            _gamingOverlayBlueprint.Chrome.FirstOrDefault(block =>
+                string.Equals(block.Block, "background", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Sets the opacity of one module (0..1, stored in props["opacity"]).</summary>
         public void SetGamingOverlayModuleOpacity(OverlayBlock? block, double opacity)
@@ -579,6 +590,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayLayerItems));
             OnPropertyChanged(nameof(GamingOverlaySettingsButton));
             OnPropertyChanged(nameof(GamingOverlayCloseButton));
+            OnPropertyChanged(nameof(GamingOverlayBackgroundLayer));
             SaveSettingsToConfig();
         }
 

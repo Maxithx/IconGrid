@@ -688,6 +688,11 @@
                     <Style TargetType="Border">
                         <Setter Property="Background" Value="{Binding GamingOverlaySkin.BarBackgroundBrush}" />
                         <Style.Triggers>
+                            <!-- Eye toggle on the "Overlay background" layer: hide the bar fill only,
+                                 the modules keep rendering on top of the game. -->
+                            <DataTrigger Binding="{Binding GamingOverlayBackgroundLayer.IsHidden}" Value="True">
+                                <Setter Property="Background" Value="Transparent" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                 <Setter Property="Background" Value="Transparent" />
                             </DataTrigger>
@@ -788,13 +793,25 @@
                                 VerticalAlignment="Center"
                                 Margin="0,0,12,0">
                         <ToggleButton x:Name="SettingsMenuButton"
-                                      Style="{StaticResource OverlayToggleButtonStyle}"
                                       Width="{Binding GamingOverlaySettingsButton.ButtonWidthValue}"
                                       Height="{Binding GamingOverlaySettingsButton.ButtonHeightValue}"
                                       Opacity="{Binding GamingOverlaySettingsButton.OpacityValue}"
                                       Margin="0,0,4,0"
                                       Padding="0"
                                       ToolTip="Overlay settings">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton" BasedOn="{StaticResource OverlayToggleButtonStyle}">
+                                    <Setter Property="BorderThickness" Value="{Binding GamingOverlaySettingsButton.ButtonBorderThickness}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding GamingOverlaySettingsButton.HasButtonBackground}" Value="True">
+                                            <Setter Property="Background" Value="{Binding GamingOverlaySettingsButton.ButtonBackgroundBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding GamingOverlaySettingsButton.HasBorderColor}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{Binding GamingOverlaySettingsButton.BorderColorBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        Text="{Binding GamingOverlaySettingsButton.ButtonGlyph}"
                                        FontSize="12"
@@ -812,13 +829,25 @@
                             </TextBlock>
                         </ToggleButton>
                         <Button x:Name="CloseButton"
-                                Style="{StaticResource OverlayCloseButtonStyle}"
                                 Width="{Binding GamingOverlayCloseButton.ButtonWidthValue}"
                                 Height="{Binding GamingOverlayCloseButton.ButtonHeightValue}"
                                 Opacity="{Binding GamingOverlayCloseButton.OpacityValue}"
                                 Padding="0"
                                 VerticalAlignment="Center"
                                 ToolTip="Close">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource OverlayCloseButtonStyle}">
+                                    <Setter Property="BorderThickness" Value="{Binding GamingOverlayCloseButton.ButtonBorderThickness}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding GamingOverlayCloseButton.HasButtonBackground}" Value="True">
+                                            <Setter Property="Background" Value="{Binding GamingOverlayCloseButton.ButtonBackgroundBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding GamingOverlayCloseButton.HasBorderColor}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{Binding GamingOverlayCloseButton.BorderColorBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        Text="{Binding GamingOverlayCloseButton.ButtonGlyph}"
                                        FontSize="12"

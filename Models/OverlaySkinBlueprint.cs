@@ -80,6 +80,11 @@ namespace IconGrid.Models
         {
             var result = chrome ?? new List<OverlayBlock>();
 
+            if (result.All(block => block.Block != "background"))
+            {
+                result.Insert(0, new OverlayBlock { Block = "background" });
+            }
+
             if (result.All(block => block.Block != "settings"))
             {
                 result.Add(new OverlayBlock { Block = "settings" });
@@ -346,9 +351,21 @@ namespace IconGrid.Models
 
         // ---------- Overlay chrome (settings / close buttons) ----------
 
-        /// <summary>True for the fixed overlay chrome buttons.</summary>
+        /// <summary>True for the fixed overlay chrome entries (background + buttons).</summary>
         [JsonIgnore]
         public bool IsChromeButton =>
+            string.Equals(Block, "settings", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Block, "close", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Block, "background", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>True for the layer-panel entry that represents the overlay background.</summary>
+        [JsonIgnore]
+        public bool IsBackgroundLayer =>
+            string.Equals(Block, "background", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>True for the two action buttons (settings + close).</summary>
+        [JsonIgnore]
+        public bool IsButtonLayer =>
             string.Equals(Block, "settings", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(Block, "close", StringComparison.OrdinalIgnoreCase);
 
@@ -370,14 +387,63 @@ namespace IconGrid.Models
             }
         }
 
-        /// <summary>Button width in DIPs (props["width"], defaults match the shipped buttons).</summary>
+        /// <summary>Button width in DIPs (props["buttonWidth"]); both overlay buttons default to 36.</summary>
         [JsonIgnore]
-        public double ButtonWidthValue =>
-            GetPositive("buttonWidth", string.Equals(Block, "close", StringComparison.OrdinalIgnoreCase) ? 44 : 36);
+        public double ButtonWidthValue => GetPositive("buttonWidth", 36);
 
         /// <summary>Button height in DIPs (props["buttonHeight"], default 32).</summary>
         [JsonIgnore]
         public double ButtonHeightValue => GetPositive("buttonHeight", 32);
+
+        /// <summary>
+        /// Border thickness in DIPs (props["borderThickness"], default 1). Set it to 0 to remove the
+        /// frame around the button; the skin's button border colour is used unless
+        /// props["borderColor"] overrides it.
+        /// </summary>
+        [JsonIgnore]
+        public double ButtonBorderThicknessValue => GetDoubleOr("borderThickness", 1);
+
+        /// <summary>Border thickness as a WPF <see cref="System.Windows.Thickness"/> for binding.</summary>
+        [JsonIgnore]
+        public System.Windows.Thickness ButtonBorderThickness =>
+            new(Math.Max(0, ButtonBorderThicknessValue));
+
+        /// <summary>Per-button border colour override (props["borderColor"]).</summary>
+        [JsonIgnore]
+        public System.Windows.Media.Brush? BorderColorBrush =>
+            IconGrid.Helpers.Skin.OverlayBlockBrushes.FromHex(Get("borderColor"));
+
+        /// <summary>True when the button defines its own border colour.</summary>
+        [JsonIgnore]
+        public bool HasBorderColor => BorderColorBrush != null;
+
+        /// <summary>
+        /// Background override (props["background"]): a hex colour or "transparent". Null means the
+        /// skin's button background brush is used.
+        /// </summary>
+        [JsonIgnore]
+        public System.Windows.Media.Brush? ButtonBackgroundBrush
+        {
+            get
+            {
+                var raw = Get("background").Trim();
+                if (raw.Length == 0)
+                {
+                    return null;
+                }
+
+                if (string.Equals(raw, "transparent", StringComparison.OrdinalIgnoreCase))
+                {
+                    return System.Windows.Media.Brushes.Transparent;
+                }
+
+                return IconGrid.Helpers.Skin.OverlayBlockBrushes.FromHex(raw);
+            }
+        }
+
+        /// <summary>True when the button sets its own background (including "transparent").</summary>
+        [JsonIgnore]
+        public bool HasButtonBackground => ButtonBackgroundBrush != null;
 
         /// <summary>Parsed glyph colour override, or null when the skin text button brush is used.</summary>
         [JsonIgnore]
@@ -404,6 +470,7 @@ namespace IconGrid.Models
             "temp" => $"{CpuGpuLabel} (Temp)",
             "settings" => "Settings button",
             "close" => "Close button",
+            "background" => "Overlay background",
             "stat" => DataKey switch
             {
                 "gpuClock" => "GPU clock",
@@ -440,6 +507,19 @@ namespace IconGrid.Models
         {
             var parsed = GetDouble(key);
             return parsed > 0 ? parsed : fallback;
+        }
+
+        private double GetDoubleOr(string key, double fallback)
+        {
+            if (Props == null || !Props.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw))
+            {
+                return fallback;
+            }
+
+            return double.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+                ? parsed
+                : fallback;
         }
     }
 }

@@ -95,6 +95,7 @@ namespace IconGrid.Views
                 _suppressPropertyPanels = true;
                 GaugeSection.Visibility = Visibility.Collapsed;
                 ChromeSection.Visibility = Visibility.Collapsed;
+                BackgroundSection.Visibility = Visibility.Collapsed;
                 SnippetLibraryBox.ItemsSource = null;
                 SnippetEditorBox.Text = string.Empty;
                 SnippetStatusText.Text = string.Empty;
@@ -117,7 +118,9 @@ namespace IconGrid.Views
             try
             {
                 LoadGaugePanel(block);
+                GenericColorSection.Visibility = Visibility.Visible;
                 LoadChromePanel(block);
+                LoadBackgroundPanel(block);
                 LoadSnippetPanel(block);
                 LoadTemplatePanel(block);
             }
@@ -158,8 +161,8 @@ namespace IconGrid.Views
         /// <summary>Fills the chrome section (icon glyph + button size) for the fixed buttons.</summary>
         private void LoadChromePanel(OverlayBlock block)
         {
-            ChromeSection.Visibility = block.IsChromeButton ? Visibility.Visible : Visibility.Collapsed;
-            if (!block.IsChromeButton)
+            ChromeSection.Visibility = block.IsButtonLayer ? Visibility.Visible : Visibility.Collapsed;
+            if (!block.IsButtonLayer)
             {
                 return;
             }
@@ -169,7 +172,68 @@ namespace IconGrid.Views
                 : string.Empty;
             ButtonWidthBox.Text = block.ButtonWidthValue.ToString("0.#");
             ButtonHeightBox.Text = block.ButtonHeightValue.ToString("0.#");
+            ButtonBorderBox.Text = block.ButtonBorderThicknessValue.ToString("0.#");
+            ButtonBorderColorBox.Text = block.Props != null && block.Props.TryGetValue("borderColor", out var borderColor)
+                ? borderColor
+                : string.Empty;
+            ButtonBackgroundBox.Text = block.Props != null && block.Props.TryGetValue("background", out var background)
+                ? background
+                : string.Empty;
         }
+
+        /// <summary>The background layer edits the skin tokens that paint the whole overlay bar.</summary>
+        private void LoadBackgroundPanel(OverlayBlock block)
+        {
+            BackgroundSection.Visibility = block.IsBackgroundLayer ? Visibility.Visible : Visibility.Collapsed;
+            if (!block.IsBackgroundLayer)
+            {
+                return;
+            }
+
+            var skin = ViewModel?.GamingOverlaySkin;
+            if (skin == null)
+            {
+                return;
+            }
+
+            // The background has its own colour field; the generic label/colour pair does not apply.
+            GenericColorSection.Visibility = Visibility.Collapsed;
+            BackgroundColorBox.Text = skin.BarBackgroundColor;
+            BackgroundRadiusBox.Text = skin.CornerRadius.ToString("0.#");
+        }
+
+        private void BackgroundColorBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var skin = ViewModel?.GamingOverlaySkin;
+            var value = BackgroundColorBox.Text?.Trim();
+            if (skin == null || string.IsNullOrWhiteSpace(value) || value == skin.BarBackgroundColor)
+            {
+                return;
+            }
+
+            skin.BarBackgroundColor = value;
+            ViewModel?.SaveGamingOverlaySkin();
+        }
+
+        private void BackgroundRadiusBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var skin = ViewModel?.GamingOverlaySkin;
+            if (skin == null || !double.TryParse(BackgroundRadiusBox.Text?.Trim(), out var radius) || radius < 0)
+            {
+                return;
+            }
+
+            if (Math.Abs(skin.CornerRadius - radius) < 0.01)
+            {
+                return;
+            }
+
+            skin.CornerRadius = radius;
+            ViewModel?.SaveGamingOverlaySkin();
+        }
+
+        private void ButtonBackgroundBox_LostFocus(object sender, RoutedEventArgs e) =>
+            ApplyTextProperty("background", ButtonBackgroundBox.Text);
 
         private void ButtonIconBox_LostFocus(object sender, RoutedEventArgs e) =>
             ApplyTextProperty("icon", ButtonIconBox.Text);
@@ -179,6 +243,12 @@ namespace IconGrid.Views
 
         private void ButtonHeightBox_LostFocus(object sender, RoutedEventArgs e) =>
             ApplyTextProperty("buttonHeight", ButtonHeightBox.Text, numeric: true);
+
+        private void ButtonBorderBox_LostFocus(object sender, RoutedEventArgs e) =>
+            ApplyTextProperty("borderThickness", ButtonBorderBox.Text, numeric: true);
+
+        private void ButtonBorderColorBox_LostFocus(object sender, RoutedEventArgs e) =>
+            ApplyTextProperty("borderColor", ButtonBorderColorBox.Text);
 
         private void PropLabelBox_LostFocus(object sender, RoutedEventArgs e)
         {

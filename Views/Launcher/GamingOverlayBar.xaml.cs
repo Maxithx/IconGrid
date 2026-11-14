@@ -154,6 +154,15 @@ namespace IconGrid.Views
                 string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayBackgroundHeight), StringComparison.Ordinal))
             {
                 ApplyPreviewState();
+                return;
+            }
+
+            // Eye toggles on the chrome layers must reach the buttons immediately.
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlaySettingsButton), StringComparison.Ordinal) ||
+                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayCloseButton), StringComparison.Ordinal) ||
+                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayLayerItems), StringComparison.Ordinal))
+            {
+                ApplyPreviewState();
             }
         }
 
@@ -202,7 +211,9 @@ namespace IconGrid.Views
 
             if (SettingsMenuButton != null)
             {
-                SettingsMenuButton.Visibility = Visibility.Visible;
+                SettingsMenuButton.Visibility = _viewModel?.GamingOverlaySettingsButton?.IsVisible == false
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
                 SettingsMenuButton.IsHitTestVisible = !_isPreview;
                 SettingsMenuButton.Focusable = !_isPreview;
 
@@ -214,7 +225,9 @@ namespace IconGrid.Views
 
             if (CloseButton != null)
             {
-                CloseButton.Visibility = Visibility.Visible;
+                CloseButton.Visibility = _viewModel?.GamingOverlayCloseButton?.IsVisible == false
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
                 CloseButton.IsHitTestVisible = !_isPreview;
                 CloseButton.Focusable = !_isPreview;
 
