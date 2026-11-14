@@ -73,6 +73,19 @@ namespace IconGrid.ViewModels
         public string SkinStudioImportImagesLabelText => _localizationState.Get(Language, "SkinStudioImportImages");
         public string SkinStudioShowOverlayButtonText => _localizationState.Get(Language, "SkinStudioShowOverlayButton");
         public string SkinStudioShowOverlayIntroText => _localizationState.Get(Language, "SkinStudioShowOverlayIntro");
+        public string SkinStudioBlueprintTitleText => _localizationState.Get(Language, "SkinStudioBlueprintTitle");
+        public string SkinStudioBlueprintIntroText => _localizationState.Get(Language, "SkinStudioBlueprintIntro");
+        public string SkinStudioBlueprintApplyText => _localizationState.Get(Language, "SkinStudioBlueprintApply");
+        public string SkinStudioBlueprintResetText => _localizationState.Get(Language, "SkinStudioBlueprintReset");
+        public string SkinStudioBlueprintAppliedText => _localizationState.Get(Language, "SkinStudioBlueprintApplied");
+        public string SkinStudioBlueprintInvalidText => _localizationState.Get(Language, "SkinStudioBlueprintInvalid");
+        public string SkinStudioModulesTitleText => _localizationState.Get(Language, "SkinStudioModulesTitle");
+        public string SkinStudioModulesIntroText => _localizationState.Get(Language, "SkinStudioModulesIntro");
+        public string SkinStudioToolsTitleText => _localizationState.Get(Language, "SkinStudioToolsTitle");
+        public string SkinStudioModuleLibraryTitleText => _localizationState.Get(Language, "SkinStudioModuleLibraryTitle");
+        public string SkinStudioLayersTitleText => _localizationState.Get(Language, "SkinStudioLayersTitle");
+        public string SkinStudioPropertiesTitleText => _localizationState.Get(Language, "SkinStudioPropertiesTitle");
+        public string SkinStudioCanvasResetText => _localizationState.Get(Language, "SkinStudioCanvasReset");
         public string AboutLabel => _localizationState.Get(Language, "MoreAbout");
         public string MonitorNetworkLabel => _localizationState.Get(Language, "MonitorNetworkLabel");
         public string MonitorDownloadLabel => _localizationState.Get(Language, "MonitorDownloadLabel");
@@ -260,6 +273,19 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioImportImagesLabelText));
             OnPropertyChanged(nameof(SkinStudioShowOverlayButtonText));
             OnPropertyChanged(nameof(SkinStudioShowOverlayIntroText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintTitleText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintIntroText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintApplyText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintResetText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintAppliedText));
+            OnPropertyChanged(nameof(SkinStudioBlueprintInvalidText));
+            OnPropertyChanged(nameof(SkinStudioModulesTitleText));
+            OnPropertyChanged(nameof(SkinStudioModulesIntroText));
+            OnPropertyChanged(nameof(SkinStudioToolsTitleText));
+            OnPropertyChanged(nameof(SkinStudioModuleLibraryTitleText));
+            OnPropertyChanged(nameof(SkinStudioLayersTitleText));
+            OnPropertyChanged(nameof(SkinStudioPropertiesTitleText));
+            OnPropertyChanged(nameof(SkinStudioCanvasResetText));
         }
 
         private void NotifyLocalizationPropertiesChanged()

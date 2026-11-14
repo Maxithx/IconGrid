@@ -18,6 +18,7 @@ using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
+using IconGrid.Helpers.Skin;
 using IconGrid.Models;
 using IconGrid.ViewModels.Launcher;
 using IconGrid.ViewModels.Settings;
@@ -102,6 +103,7 @@ namespace IconGrid.ViewModels
         private bool _gamingOverlayShowGpuClock = true;
         private bool _gamingOverlayShowFrameTime = true;
         private GamingOverlaySkin _gamingOverlaySkin = GamingOverlaySkin.CreateDefault();
+        private OverlaySkinBlueprint _gamingOverlayBlueprint = OverlayBlueprintDefaults.CreateClassic();
         private int _gameLauncherAutoBehavior = 0; // GameAutoBehaviorMode: 0=None, 1=AutoHide, 2=MinimizeToTaskbar
         private bool _autoShowGamingOverlayOnGameStart = false;
         private bool _autoCloseGamingOverlayOnGameEnd = false;

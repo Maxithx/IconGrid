@@ -1694,3 +1694,119 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - `using System.Collections.Generic` tilføjet; `EnumerateDividers` recurser visuelt træ og matcher style-instansen.
 - **Deployet 2026-11-10 01:40** — `IconGrid.dll` 1.227.776 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
 - Hvis der stadig opfattes forskel, er næste skridt at sætte `DividerWidth` til 2 (så 1 vs. 2 px-afrunding ikke kan ses); token/slider findes allerede.
+
+## Session (2026-11-10, fortsat 3) — Modulært blueprint-system (fundament)
+
+**Brugerønske:** byg Gemini's arkitektur (lag + blokke + skin-JSON) i vores WPF-løsning, 100 % copy af HTML-overlayet.
+
+### Nyt (`Models/OverlaySkinBlueprint.cs`)
+- `OverlaySkinBlueprint`: `SkinId`, `Name`, `Theme` (PrimaryColor/AccentColor/CamoImage/FontFamily), `Layers` (List<OverlayLayer>), `Layout` (List<OverlayBlock>) + `ToJson`/`FromJson`/`Clone` + `LayoutView` (synlige blokke).
+- `OverlayLayer`: Type (solid/gradient/camo/pattern/image/scanlines), Enabled, Opacity, BlendMode, Color/Color2, Source, PatternKind.
+- `OverlayBlock`: `Block` (type) + `Props` (Dictionary<string,string>) med convenience-accessors (`Id`, `Label`, `Text`, `Sub`, `Code`, `ColorHex`, `VramColor`, `Source`, `DataKey`, `Highlight`, `ShowDot`, `HasGrid`, `Width`, `IsVisible`).
+
+### Defaults (`Helpers/Skin/OverlayBlueprintDefaults.cs`)
+`CreateMw4()` = 1:1 blueprint af HTML-referencen: lag (solid #0B0D0F → camo 0.85 overlay → scanlines) og layout:
+`tag(X-01/BLACK SITE) → logo(MW4) → clock → divider → ping(Net) → divider → gauge(cpu) → divider → gauge(gpu, vramIndicator) → divider → stat(gpuClock) → divider → stat(frameTime/FT) → divider → stat(fps, highlight) → controls(gold-octagon)`.
+
+### Persistering + VM
+- `ConfigModel.GamingOverlayBlueprintJson` → `MainViewModelConfigState`/`MainViewModelSettingsState`/`MainViewModelSettingsPersistence` → `ApplyConfig`/`ResetToDefaults`/`SaveSettingsToConfig`.
+- `MainViewModel.Overlay.cs`: `GamingOverlayBlueprint`, `GamingOverlayBlueprintJson`, `ApplyGamingOverlayBlueprintJson(json)` (validerer, returnerer false ved fejl), `ResetGamingOverlayBlueprint()`.
+
+### Skin Studio
+- Nyt kort **"Blueprint (moduler og lag)"**: JSON-editor (Consolas, 220 px), **"Anvend blueprint"** (grøn/rød feedback + lokaliseret status) og **"Nulstil til MW4"**.
+- 7 nye lokaliseringsnøgler (en+da) + properties + notify.
+
+### Status (vigtigt)
+- **Blueprintet gemmes, valideres og kan redigeres — men baren renderer stadig den faste XAML.** Næste skridt er rendereren: `ItemsControl` bundet til `LayoutView` med `DataTemplateSelector` (tag/logo/clock/ping/gauge/stat/divider/controls) + databinding til `SystemMonitor`, så JSON'en faktisk styrer rækkefølge/indhold.
+- **Deployet 2026-11-10 01:57** — `IconGrid.dll` 1.242.112 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Ikke committet/pushet.
+
+## Session (2026-11-13, fortsat 4) — Modul-renderer: "split i moduler og sæt sammen igen"
+
+**Brugerønske:** divider skal stadig findes (som modul), og vi skal bruge den nuværende standard-overlay som test: skil den ad i moduler, sæt dem sammen igen og verificér at det ligner 1:1.
+
+### Implementeret
+- **`OverlayBlueprintDefaults.CreateClassic()`**: klassisk blueprint med præcis den hidtidige modulrækkefølge: `clock → divider → ping → divider → gauge(cpu) → divider → gauge(gpu) → stat(gpuClock) → divider → stat(frameTime) → stat(fps)`. Bruges nu som default/reset (i stedet for MW4, som stadig kan indsættes via JSON-editoren).
+- **`OverlayBlockTemplateSelector`** (`Helpers/Skin/`): vælger DataTemplate pr. blok — `clock`, `ping`, `gauge` (cpu/gpu splittet), `stat` (gpuClock/frameTime/fps), `divider`.
+- **`GamingOverlayBar.xaml`:** de ~148 linjer håndbyggede monitor-elementer er erstattet af ét `ItemsControl` bundet til `GamingOverlayLayoutBlocks` med `OverlayBlockTemplateSelector`. Templates har VM som DataContext (via `ItemsControl`-ancestor), så alle eksisterende skin-bindings virker uændret. Udseende (chips, metre, FT/FPS-bredder, divider-style) er genbrugt 1:1.
+- **`MainViewModel.Overlay.cs`:** `GamingOverlayLayoutBlocks` = blueprint-rækkefølge filtreret af de eksisterende "Overlay-indhold"-kontakter (clock/net/cpu/gpu/gpu-ur/ft/fps) + oprydning af løse dividere (ingen dobbelt/leading/trailing). Der notificeres fra alle relevante sættere og ved blueprint-apply/reset.
+- `divider` er nu **et modul** som alle andre (kan fjernes/flyttes/erstattes i JSON).
+
+### Verifikation
+- Build 0 fejl / 0 advarsler.
+- **Deployet 2026-11-13 00:16** — `IconGrid.dll` 1.246.208 B i build-mappe og `C:\IconGrid`.
+- **Mangler bruger-test:** overlayet skal se identisk ud (rækkefølge, chips, dividere, FT/FPS-bredder) og "Overlay-indhold"-kontakterne skal stadig slå moduler til/fra.
+
+### Næste skridt
+- Canvas-editoren (fase 1): 3-panels UI, guide-rammer, drag/drop af moduler, lag-panel, baggrundsform. Rendereren er nu på plads, så canvas'et redigerer noget der faktisk virker.
+- Ikke committet/pushet.
+
+### Rettelse (00:19) — "IconGrid.Models.OverlayBlock" i overlayet + manglende dividere
+- **Symptom (brugerbillede):** overlay/preview viste teksten `IconGrid.Models.OverlayBlock` i stedet for Ur/FPS, og dividerne var væk.
+- **Årsager:**
+  1. Brugerens gemte blueprint var stadig **MW4**-varianten med `tag`, `logo`, `controls` — bloktyper som rendereren endnu ikke har templates til → WPF faldt tilbage til `ToString()`.
+  2. `OverlayDividerBlockTemplate` satte ikke DataContext til VM, så `OverlayDividerStyle`'s bindings (`DividerHeightValue`, `DividerBrush`) fejlede → bredde/baggrund 0 → usynlige dividere.
+- **Fix:**
+  - Divider-template binder nu `DataContext` til ViewModel (via `ItemsControl`-ancestor) som de øvrige templates.
+  - `GamingOverlayLayoutBlocks` filtrerer nu **kun understøttede bloktyper** (clock, ping, gauge, stat, divider) — ukendte skippes i stedet for at blive vist som rå objekter.
+  - **Migrering:** gemte blueprints med `skinId = cod_mw4_tactical_v1` indlæses som **Classic** (indtil tag/logo/controls får templates i canvas-fasen).
+- **Deployet 2026-11-13 00:19** — `IconGrid.dll` 1.246.208 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler).
+- Mangler bruger-verifikation: overlay + preview skal nu vise Ur/Net/CPU/GPU/ur/FT/FPS med hvide dividere — ingen `IconGrid.Models...`-tekst.
+
+### Fase 1 (del 1) — Modul-bygger i Skin Studio (00:22)
+- **VM-operationer** (`MainViewModel.Overlay.cs`): `AddGamingOverlayModule(type, id?)`, `RemoveGamingOverlayModule(block)`, `MoveGamingOverlayModule(block, delta)`, `ToggleGamingOverlayModuleHidden(block)` + `CommitBlueprintLayout(...)` der kopierer layoutet til en **ny liste** (så `ItemsControl` refresher), notificerer `GamingOverlayBlueprint`/`...Json`/`GamingOverlayLayoutBlocks` og gemmer.
+  - Nye moduler får fornuftige defaults (ping→label Net+dot, gauge→label CPU/GPU+grid, stat→data fps/frameTime/gpuClock).
+- **`OverlayBlock.DisplayName`**: menneskelæsbare navne til modul-listen (Clock, Divider, Net, CPU, GPU, GPU clock, FT, FPS).
+- **Skin Studio — nyt kort "Modul-bygger"**: bibliotek med 8 tilføj-knapper (Clock, Divider, Ping, CPU, GPU, GPU clock, FT, FPS) + liste over blueprintets moduler med **▲ ▼ ◉ ✕** pr. række. Alt opdaterer preview/overlay live og spejles i JSON-editoren.
+- Lokalisering: `SkinStudioModulesTitle`, `SkinStudioModulesIntro` (en+da).
+- **Deployet 2026-11-13 00:22** — `IconGrid.dll` 1.253.376 B i build-mappe og `C:\IconGrid`.
+
+### Næste (fase 1, del 2 — canvas)
+- 3-panels layout i Skin Studio (værktøjer | canvas med guides/grid | lag + egenskaber).
+- Drag/drop af moduler ind på canvas + snapping; lag-panel med lås/synlighed.
+- Templates for `tag`, `logo`, `controls` så MW4-blueprintet kan bruges igen.
+- Baggrundsform pr. hjørne (radius/chamfer/polygon) — genbrug af chamfer-geometrien.
+- Ikke committet/pushet.
+
+### Omskrivning (00:28) — Skin Studio er nu en 3-panels canvas-editor (gammel UI fjernet)
+- **Brugerfeedback:** den gamle kort-baserede side (presets/farvekort/JSON-editor) var forkert; det skal være som Gemini-illustrationen: sidebar i **begge** sider af et canvas. Gamle skins/presets fjernet fra UI'en.
+- **`SkinStudioPage.xaml` skrevet helt om** til et 3-kolonne layout:
+  - **Venstre (230 px):** "Værktøjer" (Move, Node edit, Chamfer/radius, Polygon, Text, Weld, Reset) + **Modul-bibliotek** (Clock, Divider, Ping, CPU, GPU, GPU clock, FT, FPS → klik tilføjer).
+  - **Midten:** canvas med **20 px grid-baggrund** (DrawingBrush), **guide-rammer** (Standard Horizontal 900×48 + Vertical 48×400, magenta stiplede), og **den ægte overlay-kontrol** (`GamingOverlayBar`, IsPreview) placeret oven på guiden → live 1:1.
+  - **Højre (300 px):** **Lag**-liste (blueprintets moduler med ▲ ▼ ◉ ✕ pr. række), **Egenskaber** for valgt modul (Label + Colour hex, gemmes on lost focus) og **Nulstil til classic**.
+- **Fjernet fra UI:** preset-galleri, farvekort, font-kort, billede-import, JSON-editor og "Vis gaming overlay"-knappen på Skin Studio (den findes fortsat på Gaming overlay-siden).
+- **VM:** ny `SetGamingOverlayModuleProperty(block, key, value)` til egenskabs-panelet.
+- Lokalisering: `SkinStudioToolsTitle`, `SkinStudioModuleLibraryTitle`, `SkinStudioLayersTitle`, `SkinStudioPropertiesTitle`, `SkinStudioCanvasReset` (en+da).
+- **Deployet 2026-11-13 00:28** — `IconGrid.dll` 1.245.696 B i build-mappe og `C:\IconGrid`.
+
+### Næste
+- Drag/drop + markering af moduler direkte på canvas (selector-håndtag), snapping til guiden.
+- Egenskaber udvides pr. modultype (farve, meter-type, bredde).
+- Templates for `tag`, `logo`, `controls`; baggrundsform pr. hjørne (radius/chamfer/polygon).
+- Ikke committet/pushet.
+
+### Lag-panel omskrevet til Photoshop-stil (14-11 16:54)
+**Brugerbillede:** nuværende lag-liste var for "primitiv"; ønsket er Photoshop-layout (blend/opacity-header, ikonrække, øje-kolonne, omvendt rækkefølge, cyan markering, bund-toolbar).
+
+**Implementeret (`SkinStudioPage.xaml`, højre kolonne):**
+- Header: **Layers** + ☰-ikon.
+- **Blend**-dropdown ("Normal", disabled — WPF har ingen blend modes) + **Opacity**-slider + %-label.
+- **Layer:**-ikonrække (✎ paint, ✒ path, ＋ add divider, 🔒 lock).
+- **Lag-liste i omvendt rækkefølge** (øverste lag øverst, som Photoshop) via ny VM-property `GamingOverlayLayerItems`; samme `OverlayBlock`-objekter, så redigering rammer blueprintet.
+  - Øje-knap pr. række (dæmpet når skjult via `IsHidden`-trigger), navn, ☰-håndtag.
+  - Egen `ListBoxItem`-template: hover #1F2429, **selected #123A5A med #2FA8D8-kant**.
+- **Bund-toolbar**: 📁 gruppe, ＋ tilføj modul (divider), 🗑 slet valgt.
+- **Properties** under: valgt modul, Label, Colour (hex), Reset til classic.
+
+**Ny funktionalitet:**
+- **Per-modul opacity virker nu i selve overlayet**: `OverlayBlock.OpacityValue` (props["opacity"]) + `ItemsControl.ItemContainerStyle` binder `Opacity` på hver container. Opacity-slideren skriver til det valgte modul og gemmes.
+- `SetGamingOverlayModuleOpacity(block, 0..1)` i VM; ▲/▼ i panelet er vendt, så "op" = senere i rækken.
+
+**Deployet 2026-11-14 16:54** — `IconGrid.dll` 1.249.792 B i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler). Ikke committet.
+ 
+### Lag-panel UI-fixes (17:00) 
+
+- Blend-dropdown: lys baggrund + SORT tekst (#111) via IsHitTestVisible=False (IsEnabled=False gav graa tekst).
+- Opacity: 5-kolonne grid (blend | luft | label | slider 90px | pct), label og slider overlapper ikke laengere; pct opdateres live.
+- Layer:-label, ikoner og lagnavne sat til lys tekst (#C9D1D9 / #E6EDF3) + HorizontalContentAlignment=Stretch.
+- Deployet 17:00, DLL 1.250.304 B (identisk i build-mappe og C:\IconGrid).

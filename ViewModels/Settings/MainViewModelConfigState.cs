@@ -28,6 +28,7 @@ namespace IconGrid.ViewModels.Settings
         public bool GamingOverlayShowFrameTime { get; init; } = true;
         public string GamingOverlaySkinName { get; init; } = GamingOverlaySkin.DefaultName;
         public string GamingOverlaySkinJson { get; init; } = string.Empty;
+        public string GamingOverlayBlueprintJson { get; init; } = string.Empty;
         public int GameLauncherAutoBehavior { get; init; }
         public bool AutoShowGamingOverlayOnGameStart { get; init; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; init; }
@@ -110,6 +111,7 @@ namespace IconGrid.ViewModels.Settings
                 GamingOverlayShowFrameTime = config.GamingOverlayShowFrameTime,
                 GamingOverlaySkinName = string.IsNullOrWhiteSpace(config.GamingOverlaySkinName) ? GamingOverlaySkin.DefaultName : config.GamingOverlaySkinName,
                 GamingOverlaySkinJson = config.GamingOverlaySkinJson ?? string.Empty,
+                GamingOverlayBlueprintJson = config.GamingOverlayBlueprintJson ?? string.Empty,
                 GameLauncherAutoBehavior = config.GameLauncherAutoBehavior,
                 AutoShowGamingOverlayOnGameStart = config.AutoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = config.AutoCloseGamingOverlayOnGameEnd,

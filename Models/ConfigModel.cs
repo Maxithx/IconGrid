@@ -34,6 +34,8 @@ public class ConfigModel
     // the UI. Empty/invalid JSON falls back to the built-in "Night Ops" default.
     public string GamingOverlaySkinName { get; set; } = GamingOverlaySkin.DefaultName;
     public string GamingOverlaySkinJson { get; set; } = string.Empty;
+    // Data-driven overlay blueprint (layers + modular block layout). Empty = built-in MW4.
+    public string GamingOverlayBlueprintJson { get; set; } = string.Empty;
     public int GameLauncherAutoBehavior { get; set; } = 0;
     public bool AutoShowGamingOverlayOnGameStart { get; set; } = false;
     public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false;

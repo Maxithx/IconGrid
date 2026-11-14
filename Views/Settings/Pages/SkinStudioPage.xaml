@@ -8,379 +8,278 @@
              Background="Transparent"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
-    <ScrollViewer Margin="12"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="False"
-                  PanningMode="VerticalOnly">
-        <ScrollViewer.Resources>
-            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
-        </ScrollViewer.Resources>
-        <StackPanel>
-            <Border Style="{StaticResource StartsideSectionCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="{Binding SkinStudioTitleText}"
-                               FontSize="20"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding SkinStudioIntroText}"
-                               TextWrapping="Wrap"
-                               Foreground="{Binding SettingsSubtextForeground}" />
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
-                    <TextBlock Margin="0,16,0,0"
-                               Text="{Binding SkinStudioPreviewTitleText}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <Border Margin="0,8,0,0"
-                            Padding="12"
-                            HorizontalAlignment="Stretch"
-                            MaxHeight="140"
-                            Background="#242424"
-                            BorderBrush="#3A3A3A"
-                            BorderThickness="1"
-                            CornerRadius="6"
-                            ClipToBounds="True"
-                            IsHitTestVisible="False">
-                        <Viewbox Stretch="Uniform">
-                            <views:GamingOverlayBar IsPreview="True"
-                                                    DataContext="{Binding}" />
-                        </Viewbox>
-                    </Border>
+        <!-- Canvas grid: dark surface with 20 px lines (Photoshop-like work area). -->
+        <DrawingBrush x:Key="CanvasGridBrush" TileMode="Tile"
+                      Viewport="0,0,20,20" ViewportUnits="Absolute"
+                      Viewbox="0,0,20,20" ViewboxUnits="Absolute">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#1B1D20" Geometry="M0,0 H20 V20 H0 Z" />
+                    <GeometryDrawing>
+                        <GeometryDrawing.Pen>
+                            <Pen Brush="#26292D" Thickness="1" />
+                        </GeometryDrawing.Pen>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <LineGeometry StartPoint="0,0" EndPoint="20,0" />
+                                <LineGeometry StartPoint="0,0" EndPoint="0,20" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
 
-                    <TextBlock Margin="0,16,0,0"
-                               Text="{Binding SkinStudioShowOverlayButtonText}"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Margin="0,4,0,0"
-                               Text="{Binding SkinStudioShowOverlayIntroText}"
-                               TextWrapping="Wrap"
-                               FontSize="13"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <Button Margin="0,10,0,0"
-                            Padding="14,8"
-                            HorizontalAlignment="Left"
-                            Background="#FF0078D4"
-                            BorderBrush="#FF0078D4"
-                            BorderThickness="0"
-                            Foreground="White"
-                            FontSize="14"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
-                            Click="ShowOverlayButton_Click"
-                            Content="{Binding SkinStudioShowOverlayButtonText}" />
+        <Style x:Key="PanelTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#8B949E" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+
+        <Style x:Key="ToolButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="#22252A" />
+            <Setter Property="Foreground" Value="#D7DCE2" />
+            <Setter Property="BorderBrush" Value="#33373D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="LibraryButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="100" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Background" Value="#22252A" />
+            <Setter Property="Foreground" Value="#D7DCE2" />
+            <Setter Property="BorderBrush" Value="#33373D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="LayerRowButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#9AA4B0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="300" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ============ LEFT: tools + module library ============ -->
+        <Border Grid.Column="0" Background="#161719" BorderBrush="#2A2D31" BorderThickness="0,0,1,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="14">
+                    <TextBlock Text="{Binding SkinStudioToolsTitleText}" Style="{StaticResource PanelTitleStyle}" />
+                    <WrapPanel>
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Move / Select" Content="✥" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Node edit" Content="⌗" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Chamfer / radius" Content="◢" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Polygon maker" Content="⬠" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Add text" Content="T" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Weld modules" Content="⛓" />
+                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Reset section" Content="↺" Click="ResetBlueprint_Click" />
+                    </WrapPanel>
+
+                    <TextBlock Margin="0,14,0,0" Text="{Binding SkinStudioModuleLibraryTitleText}" Style="{StaticResource PanelTitleStyle}" />
+                    <WrapPanel>
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="clock" Click="AddModule_Click" Content="Clock" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="divider" Click="AddModule_Click" Content="Divider" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="ping" Click="AddModule_Click" Content="Ping" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="gauge:cpu" Click="AddModule_Click" Content="CPU" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="gauge:gpu" Click="AddModule_Click" Content="GPU" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:gpuClock" Click="AddModule_Click" Content="GPU clock" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:frameTime" Click="AddModule_Click" Content="FT" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:fps" Click="AddModule_Click" Content="FPS" />
+                    </WrapPanel>
                 </StackPanel>
+            </ScrollViewer>
+        </Border>
+        <!-- ============ CENTER: canvas with grid + guides ============ -->
+        <Grid Grid.Column="1" Background="{StaticResource CanvasGridBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#141518" BorderBrush="#2A2D31" BorderThickness="0,0,0,1" Padding="16,8">
+                <TextBlock Text="{Binding GamingOverlayBlueprint.Name}" Foreground="#C9D1D9" FontSize="12" />
             </Border>
 
-            <Border Style="{StaticResource StartsideSectionCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="{Binding SkinStudioPresetsTitleText}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding SkinStudioPresetsIntroText}"
-                               TextWrapping="Wrap"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <ItemsControl Margin="0,12,0,0"
-                                  ItemsSource="{Binding Presets, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Margin="0,0,8,8"
-                                        Padding="12,6"
-                                        Tag="{Binding}"
-                                        Click="PresetButton_Click"
-                                        Content="{Binding Name}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+            <ScrollViewer Grid.Row="1"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto"
+                          Background="Transparent">
+                <Canvas x:Name="DesignCanvas" Width="1040" Height="620" Margin="20">
+                    <!-- Horizontal guide (design frame, not part of the overlay) -->
+                    <TextBlock Canvas.Left="40" Canvas.Top="64" Foreground="#B0438C" FontSize="11"
+                               Text="Standard Horizontal — 900 x 48" />
+                    <Border Canvas.Left="40" Canvas.Top="82" Width="900" Height="48"
+                            BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
+                    <views:GamingOverlayBar x:Name="CanvasOverlay"
+                                            Canvas.Left="40" Canvas.Top="82"
+                                            IsPreview="True"
+                                            DataContext="{Binding}" />
+
+                    <!-- Vertical guide -->
+                    <TextBlock Canvas.Left="960" Canvas.Top="150" Foreground="#B0438C" FontSize="11"
+                               Text="Vertical — 48 x 400" />
+                    <Border Canvas.Left="960" Canvas.Top="168" Width="48" Height="400"
+                            BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
+                </Canvas>
+            </ScrollViewer>
+        </Grid>
+        <!-- ============ RIGHT: layers + properties ============ -->
+        <Border Grid.Column="2" Background="#141518" BorderBrush="#2A2D31" BorderThickness="1,0,0,0">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding SkinStudioLayersTitleText}" FontSize="13" FontWeight="SemiBold" Foreground="#E6EDF3" />
+                    <TextBlock Grid.Column="1" Text="☰" Foreground="#8B949E" />
+                </Grid>
+
+                <Grid Grid.Row="1" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="88" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Read-only "blend mode" field: WPF has no real blend modes yet, but it must
+                         look like a normal light dropdown with dark text. -->
+                    <ComboBox Grid.Column="0" Height="24"
+                              Background="#E9ECEF" Foreground="#111111" BorderBrush="#9AA4B0"
+                              IsHitTestVisible="False" Focusable="False">
+                        <ComboBoxItem Foreground="#111111" Content="Normal" IsSelected="True" />
+                    </ComboBox>
+
+                    <TextBlock Grid.Column="2" Text="Opacity:" Foreground="#C9D1D9" FontSize="11"
+                               VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <Slider x:Name="OpacitySlider" Grid.Column="3" VerticalAlignment="Center"
+                            Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                            ValueChanged="OpacitySlider_ValueChanged" />
+                    <TextBlock x:Name="OpacityValueText" Grid.Column="4" Text="100%" Foreground="#C9D1D9" FontSize="11"
+                               VerticalAlignment="Center" Margin="6,0,0,0" />
+                </Grid>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock Text="Layer:" Foreground="#C9D1D9" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="✎" ToolTip="Paint" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="✒" ToolTip="Path" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="＋" ToolTip="Add layer" Click="AddModule_Click" Tag="divider" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🔒" ToolTip="Lock" Foreground="#C9D1D9" />
                 </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StartsideSectionCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="{Binding SkinStudioColorsTitleText}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding SkinStudioColorsIntroText}"
-                               TextWrapping="Wrap"
-                               Foreground="{Binding SettingsSubtextForeground}" />
+                <ListBox x:Name="LayersList" Grid.Row="3"
+                         Background="Transparent" BorderThickness="0" Foreground="#E6EDF3"
+                         ItemsSource="{Binding GamingOverlayLayerItems}"
+                         SelectionChanged="LayersList_SelectionChanged"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Foreground" Value="#E6EDF3" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Row" Background="Transparent" BorderBrush="Transparent"
+                                                BorderThickness="1" Padding="4,3">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="#1F2429" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="#123A5A" />
+                                                <Setter TargetName="Row" Property="BorderBrush" Value="#2FA8D8" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button Style="{StaticResource LayerRowButtonStyle}" Tag="{Binding}"
+                                        Click="ToggleModuleHidden_Click" ToolTip="Show / hide">
+                                    <TextBlock x:Name="EyeGlyph" Text="👁" FontSize="12" />
+                                </Button>
+                                <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Margin="4,0,0,0"
+                                           Foreground="#E6EDF3" VerticalAlignment="Center" FontSize="12" />
+                                <TextBlock Grid.Column="2" Text="☰" Foreground="#5C6672" FontSize="11"
+                                           VerticalAlignment="Center" Margin="6,0,0,0" />
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsHidden}" Value="True">
+                                    <Setter TargetName="EyeGlyph" Property="Opacity" Value="0.25" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
-                    <Grid Margin="0,14,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioBarColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.BarBackgroundBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="BarBackgroundColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioPopupColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.PopupBackgroundBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="PopupBackgroundColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioTextColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.TextBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="TextColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioAccentColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.AccentBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="AccentColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioCpuColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.CpuBarBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="CpuBarColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioGpuColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.GpuBarBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="GpuBarColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding SkinStudioDividerColorLabelText}"
-                                   VerticalAlignment="Center"
-                                   Foreground="{Binding TopBarForeground}" />
-                        <Border Grid.Column="1"
-                                Width="28" Height="28"
-                                Margin="12,0,12,0"
-                                CornerRadius="4"
-                                BorderBrush="#808080"
-                                BorderThickness="1"
-                                Background="{Binding GamingOverlaySkin.DividerBrush}" />
-                        <Button Grid.Column="2"
-                                Padding="10,4"
-                                Tag="DividerColor"
-                                Click="ColorButton_Click"
-                                Content="{Binding SkinStudioPickColorLabelText}" />
-                    </Grid>
-
-                    <TextBlock Margin="0,14,0,0"
-                               Text="{Binding SkinStudioDividerOpacityLabelText}"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <Slider Margin="0,6,0,0"
-                            Width="280"
-                            HorizontalAlignment="Left"
-                            Minimum="0.6"
-                            Maximum="1.0"
-                            TickFrequency="0.05"
-                            IsSnapToTickEnabled="True"
-                            Value="{Binding GamingOverlaySkin.DividerOpacity, Mode=TwoWay}"
-                            Style="{StaticResource ModernSliderStyle}"
-                            ValueChanged="DividerOpacitySlider_ValueChanged" />
-
-                    <TextBlock Margin="0,14,0,0"
-                               Text="{Binding SkinStudioDividerHeightLabelText}"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <Slider Margin="0,6,0,0"
-                            Width="280"
-                            HorizontalAlignment="Left"
-                            Minimum="8"
-                            Maximum="40"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            Value="{Binding GamingOverlaySkin.DividerHeight, Mode=TwoWay}"
-                            Style="{StaticResource ModernSliderStyle}"
-                            ValueChanged="DividerOpacitySlider_ValueChanged" />
+                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,10">
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="📁" ToolTip="New group" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Tag="clock" Click="AddModule_Click" Content="＋" ToolTip="Add module" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer" Click="DeleteSelectedModule_Click" />
                 </StackPanel>
-            </Border>
-            <Border Style="{StaticResource StartsideSectionCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="{Binding SkinStudioFontsTitleText}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
 
-                    <TextBlock Margin="0,14,0,0"
-                               Text="{Binding SkinStudioFontLabelText}"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <ComboBox Margin="0,6,0,0"
-                              MaxWidth="280"
-                              HorizontalAlignment="Left"
-                              ItemsSource="{Binding FontOptions, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}"
-                              SelectedItem="{Binding GamingOverlaySkin.FontFamily, Mode=TwoWay}"
-                              SelectionChanged="FontSelectionChanged" />
-
-                    <TextBlock Margin="0,14,0,0"
-                               Text="{Binding SkinStudioMonoFontLabelText}"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <ComboBox Margin="0,6,0,0"
-                              MaxWidth="280"
-                              HorizontalAlignment="Left"
-                              ItemsSource="{Binding MonoFontOptions, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}"
-                              SelectedItem="{Binding GamingOverlaySkin.MonoFontFamily, Mode=TwoWay}"
-                              SelectionChanged="FontSelectionChanged" />
-
-                    <TextBlock Margin="0,14,0,0"
-                               Text="{Binding SkinStudioRadiusLabelText}"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <Slider Margin="0,6,0,0"
-                            Width="280"
-                            HorizontalAlignment="Left"
-                            Minimum="0"
-                            Maximum="24"
-                            TickFrequency="1"
-                            IsSnapToTickEnabled="True"
-                            Value="{Binding GamingOverlaySkin.CornerRadius, Mode=TwoWay}"
-                            Style="{StaticResource ModernSliderStyle}"
-                            ValueChanged="RadiusSlider_ValueChanged" />
+                <StackPanel Grid.Row="5">
+                    <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="#E6EDF3" Margin="0,0,0,8" />
+                    <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />
+                    <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />
+                    <TextBox x:Name="PropLabelBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                             BorderBrush="#33373D" LostFocus="PropLabelBox_LostFocus" />
+                    <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Colour (hex)" />
+                    <TextBox x:Name="PropColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                             BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
+                    <Button Margin="0,14,0,0" Padding="12,6" HorizontalAlignment="Left"
+                            Click="ResetBlueprint_Click"
+                            Content="{Binding SkinStudioCanvasResetText}" />
                 </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource StartsideSectionCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="{Binding SkinStudioFromImagesTitleText}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Foreground="{Binding TopBarForeground}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding SkinStudioFromImagesIntroText}"
-                               TextWrapping="Wrap"
-                               Foreground="{Binding SettingsSubtextForeground}" />
-                    <Button Margin="0,12,0,0"
-                            Padding="12,6"
-                            HorizontalAlignment="Left"
-                            Click="ImportImages_Click"
-                            Content="{Binding SkinStudioImportImagesLabelText}" />
-                    <ItemsControl Margin="0,12,0,0"
-                                  ItemsSource="{Binding ExtractedSwatches, RelativeSource={RelativeSource AncestorType={x:Type views:SkinStudioPage}}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Width="28" Height="28"
-                                        Margin="0,0,6,6"
-                                        CornerRadius="4"
-                                        BorderBrush="#808080"
-                                        BorderThickness="1"
-                                        Background="{Binding}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

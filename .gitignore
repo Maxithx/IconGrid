@@ -20,6 +20,9 @@ logs/
 fps-overlay-1.7.0-beta/
 publish/
 
+# Reference-mockups med tredjeparts-branding (COD m.fl.) — må ikke i offentligt repo
+gaming-overlay-html-test/
+
 # Gemte logs og data
 trace.log
 error.log
