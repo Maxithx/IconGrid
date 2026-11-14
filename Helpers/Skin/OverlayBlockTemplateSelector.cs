@@ -13,11 +13,14 @@ namespace IconGrid.Helpers.Skin
     {
         public DataTemplate? Clock { get; set; }
         public DataTemplate? Ping { get; set; }
-        public DataTemplate? GaugeCpu { get; set; }
-        public DataTemplate? GaugeGpu { get; set; }
+        public DataTemplate? GaugeBar { get; set; }
+        public DataTemplate? GaugeRing { get; set; }
+        public DataTemplate? GaugeSegments { get; set; }
+        public DataTemplate? GaugeText { get; set; }
         public DataTemplate? StatGpuClock { get; set; }
         public DataTemplate? StatFrameTime { get; set; }
         public DataTemplate? StatFps { get; set; }
+        public DataTemplate? Temp { get; set; }
         public DataTemplate? Divider { get; set; }
 
         public override DataTemplate? SelectTemplate(object item, DependencyObject container)
@@ -32,7 +35,14 @@ namespace IconGrid.Helpers.Skin
                 "clock" => Clock,
                 "ping" => Ping,
                 "divider" => Divider,
-                "gauge" => string.Equals(block.Id, "gpu", System.StringComparison.OrdinalIgnoreCase) ? GaugeGpu : GaugeCpu,
+                "gauge" or "usage" => block.MeterStyle switch
+                {
+                    "ring" => GaugeRing,
+                    "segments" => GaugeSegments,
+                    "text" => GaugeText,
+                    _ => GaugeBar
+                },
+                "temp" => Temp,
                 "stat" => block.DataKey switch
                 {
                     "gpuClock" => StatGpuClock,

@@ -282,6 +282,14 @@ namespace IconGrid.ViewModels
                     props["label"] = string.Equals(id, "gpu", StringComparison.OrdinalIgnoreCase) ? "GPU" : "CPU";
                     props["hasGrid"] = "true";
                     break;
+                case "usage":
+                    props["id"] = string.Equals(id, "gpu", StringComparison.OrdinalIgnoreCase) ? "gpu" : "cpu";
+                    props["label"] = string.Equals(id, "gpu", StringComparison.OrdinalIgnoreCase) ? "GPU" : "CPU";
+                    break;
+                case "temp":
+                    props["id"] = string.Equals(id, "gpu", StringComparison.OrdinalIgnoreCase) ? "gpu" : "cpu";
+                    props["label"] = string.Equals(id, "gpu", StringComparison.OrdinalIgnoreCase) ? "GPU" : "CPU";
+                    break;
                 case "stat" when string.Equals(id, "frameTime", StringComparison.OrdinalIgnoreCase):
                     props["data"] = "frameTime";
                     props["label"] = "FT";
@@ -382,9 +390,24 @@ namespace IconGrid.ViewModels
             {
                 var items = new List<OverlayBlock>(_gamingOverlayBlueprint.Layout);
                 items.Reverse();
+
+                // The settings/close buttons are styled like modules, so they belong in the layer
+                // list too — pinned at the bottom because they sit at the right edge of the bar.
+                items.AddRange(_gamingOverlayBlueprint.Chrome);
+
                 return items;
             }
         }
+
+        /// <summary>Blueprint chrome block for the overlay settings (cog) button.</summary>
+        public OverlayBlock? GamingOverlaySettingsButton =>
+            _gamingOverlayBlueprint.Chrome.FirstOrDefault(block =>
+                string.Equals(block.Block, "settings", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>Blueprint chrome block for the overlay close button.</summary>
+        public OverlayBlock? GamingOverlayCloseButton =>
+            _gamingOverlayBlueprint.Chrome.FirstOrDefault(block =>
+                string.Equals(block.Block, "close", StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Sets the opacity of one module (0..1, stored in props["opacity"]).</summary>
         public void SetGamingOverlayModuleOpacity(OverlayBlock? block, double opacity)
@@ -396,6 +419,113 @@ namespace IconGrid.ViewModels
 
             var clamped = Math.Max(0.0, Math.Min(1.0, opacity));
             SetGamingOverlayModuleProperty(block, "opacity", clamped.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Applies a code snippet to one module. A snippet is a JSON object of property patches
+        /// (for example {"meter":"ring","showPercent":"true"}), so it can only write the same
+        /// values as the properties panel — it never executes code. The text is kept on the block
+        /// so the Skin Studio can show and reset it later.
+        /// </summary>
+        public bool TryApplyGamingOverlaySnippet(OverlayBlock? block, string? json, out string error)
+        {
+            error = string.Empty;
+
+            if (block == null)
+            {
+                error = "no-module";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                error = "empty";
+                return false;
+            }
+
+            Newtonsoft.Json.Linq.JObject patch;
+            try
+            {
+                patch = Newtonsoft.Json.Linq.JObject.Parse(json);
+            }
+            catch
+            {
+                error = "invalid";
+                return false;
+            }
+
+            if (patch.Count == 0)
+            {
+                error = "empty";
+                return false;
+            }
+
+            var applied = new Dictionary<string, string>();
+            foreach (var property in patch.Properties())
+            {
+                var value = property.Value is Newtonsoft.Json.Linq.JValue scalar
+                    ? scalar.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : property.Value.ToString(Newtonsoft.Json.Formatting.None);
+                applied[property.Name] = value ?? string.Empty;
+            }
+
+            CommitBlueprintLayout(_ =>
+            {
+                block.Props ??= new Dictionary<string, string>();
+                foreach (var pair in applied)
+                {
+                    if (string.IsNullOrWhiteSpace(pair.Value))
+                    {
+                        block.Props.Remove(pair.Key);
+                    }
+                    else
+                    {
+                        block.Props[pair.Key] = pair.Value;
+                    }
+                }
+
+                block.Snippet = json.Trim();
+            });
+
+            return true;
+        }
+
+        /// <summary>
+        /// Undoes the last snippet on a module by removing exactly the properties it had set
+        /// (read back from the stored snippet text) and clearing the snippet itself.
+        /// </summary>
+        public void ResetGamingOverlaySnippet(OverlayBlock? block)
+        {
+            if (block == null)
+            {
+                return;
+            }
+
+            var keys = new List<string>();
+            if (!string.IsNullOrWhiteSpace(block.Snippet))
+            {
+                try
+                {
+                    keys.AddRange(Newtonsoft.Json.Linq.JObject.Parse(block.Snippet).Properties().Select(p => p.Name));
+                }
+                catch
+                {
+                    // Unparsable stored snippet: just drop the text.
+                }
+            }
+
+            CommitBlueprintLayout(_ =>
+            {
+                if (block.Props != null)
+                {
+                    foreach (var key in keys)
+                    {
+                        block.Props.Remove(key);
+                    }
+                }
+
+                block.Snippet = null;
+            });
         }
 
         private void CommitBlueprintLayout(Action<List<OverlayBlock>> mutate)
@@ -410,6 +540,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayBlueprintJson));
             OnPropertyChanged(nameof(GamingOverlayLayoutBlocks));
             OnPropertyChanged(nameof(GamingOverlayLayerItems));
+            OnPropertyChanged(nameof(GamingOverlaySettingsButton));
+            OnPropertyChanged(nameof(GamingOverlayCloseButton));
             SaveSettingsToConfig();
         }
 

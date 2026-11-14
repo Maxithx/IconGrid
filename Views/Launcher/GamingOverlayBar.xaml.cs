@@ -132,6 +132,7 @@ namespace IconGrid.Views
             if (_viewModel != null)
             {
                 _viewModel.GamingOverlaySkin.PropertyChanged -= Skin_PropertyChanged;
+                _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
             }
 
             _viewModel = e.NewValue as MainViewModel;
@@ -139,9 +140,21 @@ namespace IconGrid.Views
             if (_viewModel != null)
             {
                 _viewModel.GamingOverlaySkin.PropertyChanged += Skin_PropertyChanged;
+                _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
 
             ApplyChamfer();
+            ApplyPreviewState();
+        }
+
+        /// <summary>Keeps the preview at the same overlay scale as the live window.</summary>
+        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayUiScale), StringComparison.Ordinal) ||
+                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayBackgroundHeight), StringComparison.Ordinal))
+            {
+                ApplyPreviewState();
+            }
         }
 
         private void Skin_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -180,14 +193,35 @@ namespace IconGrid.Views
 
         private void ApplyPreviewState()
         {
+            // The chrome buttons are styleable layers now, so the preview shows them exactly as in
+            // game — but without hit testing, so the settings page cannot toggle the overlay menu.
+            // The live window clamps both buttons to the bar height (a 32 px button would stick out
+            // of a 20 px bar); the preview must apply the same clamp or it looks clipped/wrong.
+            var barHeight = _viewModel?.GamingOverlayBackgroundHeight ?? 44.0;
+            var buttonHeight = Math.Min(32.0, barHeight);
+
             if (SettingsMenuButton != null)
             {
-                SettingsMenuButton.Visibility = _isPreview ? Visibility.Collapsed : Visibility.Visible;
+                SettingsMenuButton.Visibility = Visibility.Visible;
+                SettingsMenuButton.IsHitTestVisible = !_isPreview;
+                SettingsMenuButton.Focusable = !_isPreview;
+
+                if (_isPreview)
+                {
+                    SettingsMenuButton.Height = buttonHeight;
+                }
             }
 
             if (CloseButton != null)
             {
-                CloseButton.Visibility = _isPreview ? Visibility.Collapsed : Visibility.Visible;
+                CloseButton.Visibility = Visibility.Visible;
+                CloseButton.IsHitTestVisible = !_isPreview;
+                CloseButton.Focusable = !_isPreview;
+
+                if (_isPreview)
+                {
+                    CloseButton.Height = buttonHeight;
+                }
             }
 
             if (PopupPanelsRow != null && _isPreview)
@@ -195,11 +229,18 @@ namespace IconGrid.Views
                 PopupPanelsRow.Visibility = Visibility.Collapsed;
             }
 
-            // The preview host controls the visual scale (Viewbox), so the control must not
-            // apply the window's LayoutTransform on top of it.
+            // 1:1 with the live overlay: the window scales the bar with the overlay scale and sizes
+            // itself to that scaled content. The preview does the same instead of forcing 1.0,
+            // otherwise preview and game show different sizes (and can clip the action buttons).
             if (_isPreview && OverlayRoot != null)
             {
-                OverlayRoot.LayoutTransform = Transform.Identity;
+                var scale = _viewModel?.GamingOverlayUiScale ?? 1.0;
+                if (scale <= 0)
+                {
+                    scale = 1.0;
+                }
+
+                OverlayRoot.LayoutTransform = new ScaleTransform(scale, scale);
             }
         }
     }

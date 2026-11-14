@@ -1810,3 +1810,92 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Opacity: 5-kolonne grid (blend | luft | label | slider 90px | pct), label og slider overlapper ikke laengere; pct opdateres live.
 - Layer:-label, ikoner og lagnavne sat til lys tekst (#C9D1D9 / #E6EDF3) + HorizontalContentAlignment=Stretch.
 - Deployet 17:00, DLL 1.250.304 B (identisk i build-mappe og C:\IconGrid).
+
+### Commit + push (17:10)
+- Commit `77ef584` � "Skin Studio: blueprint-driven overlay + Photoshop-style layer panel" (17 filer, +1329/-625).
+- Pushet: `16dd1a5..77ef584 main -> main` til github.com/Maxithx/IconGrid. Working tree clean.
+- `gaming-overlay-html-test/` tilfoejet .gitignore og er IKKE i repoet (COD-branding).
+- Naeste: klik-selektion paa canvas, flyt/snap med haandtag, egenskaber pr. modultype, tag/logo/controls-templates, baggrundsform.
+
+### Gauge-udseende + kode-snippets pr. modul (17:21)
+
+**Formaal:** brugeren skal kunne aendre udseendet af CPU/GPU usage-modulerne og indsaette kode-snippets pr. modul (niveau A = JSON prop-patch, valgt efter aftale).
+
+#### Gauge-moduler (CPU/GPU) faar props
+- `meter`: bar | ring | segments | text. 4 nye DataTemplates i `GamingOverlayBar.xaml` (�n pr. stil, CPU+GPU i samme template via IsGpu-grupper).
+- `meterColor` (falder tilbage til legacy `color` -> skin-brush), `meterWidth`, `meterHeight` (default afhaenger af stil: bar 12x14, segments 56x10, ring 16).
+- `showTemp`, `showPercent`, `hasGrid` styrer temp-tekst, procent-tekst og segmentlinjer.
+- `OverlayBlock`: nye accessors MeterStyle/IsGpu/DisplayLabel/ShowTemp/ShowPercent/MeterWidthValue/MeterHeightValue/MeterColorHex/MeterBrush/HasMeterColor.
+- Nye helpers: `PercentToLengthConverter` (IValueConverter + IMultiValueConverter), `PercentToArcGeometryConverter` (ring-arc), `OverlayBlockBrushes` (hex->frozen brush med cache). `PercentToHeightConverter` er nu en tom subklasse (bruges af MainWindow).
+- Validering: Freeze kun efter alle properties er sat (jf. tidligere brush-bug).
+
+#### Kode-snippets (niveau A)
+- `OverlayBlock.Snippet` (JSON, NullValueHandling.Ignore) gemmer senest anvendte snippet.
+- `OverlaySnippetLibrary` med 10 faerdige snippets (gauge/ping/stat/any) + `ForBlock()` filtrering.
+- VM: `TryApplyGamingOverlaySnippet(block, json, out error)` (JObject -> props) og `ResetGamingOverlaySnippet(block)` (fjerner praecis de noegler snippettet satte).
+- UI i hoejre panel under Properties: meter-type, maaler-farve, bredde x hoejde, 3 checkboxes + snippet-bibliotek, editor (Consolas), Anvend/Nulstil + statuslinje.
+- `KeepSelection()` genvaelger modulet efter commit (lag-listen bliver en ny liste, ellers mistede panelet sin selection ved hver aendring).
+- 18 nye lokaliseringsnoegler (en+da).
+
+**Deployet 2026-11-14 17:21** - `IconGrid.dll` 1.288.704 B identisk i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler). Ikke committet.
+
+**Naeste:** niveau B (fri XAML DataTemplate pr. modul via XamlReader + fallback), klik-selektion paa canvas, drag/snap.
+
+### Lag-panel navne (17:32)
+- `OverlayBlock.DisplayName` (kun panel-tekst): gauge -> "CPU (Temp)" / "GPU (Temp)", ping -> "Net (Ping)" (eller "{label} (Ping)").
+- Overlayet bruger fortsat `DisplayLabel`, saa suffikserne vises IKKE i gaming overlayet.
+- Deployet 17:32, DLL 1.289.216 B (identisk begge steder).
+
+### Lag-panel navne v2 (17:37)
+- Gauge hedder nu "CPU (Usage + Temp)" / "GPU (Usage + Temp)" (kun "(Usage)" hvis showTemp=false).
+- Ny `OverlayBlock.GaugeDisplayName`; overlayet bruger fortsat `DisplayLabel` (CPU/GPU).
+
+### Separate usage/temp moduler (17:52)
+- Nye bloktyper: `usage` (maaler + valgfri %) og `temp` (kun temperatur-chip). `gauge` bevares som kombineret (Usage + Temp) for bagudkompatibilitet.
+- `OverlayBlock`: IsGpu daekker gauge/usage/temp, ny IsMeterModule + CpuGpuLabel; ShowTemp er fast false for usage og true for temp. DisplayName: "CPU (Usage)", "CPU (Temp)", "CPU (Usage + Temp)".
+- Selector: "gauge" og "usage" deler de 4 maaler-templates; "temp" har ny `OverlayTempBlockTemplate` (CPU/GPU-grupper).
+- Modul-bibliotek: CPU usage / GPU usage / CPU temp / GPU temp knapper.
+- Maaler-egenskaber (meter-type, farve, stoerrelse, %, grid) vises ogsaa for usage-moduler via IsMeterModule.
+- Snippet-bibliotek: +2 usage-snippets og 1 temp-snippet.
+- Deployet 17:52, DLL 1.293.312 B (identisk begge steder), build 0/0.
+
+### Dropdown-fix i Skin Studio (17:58)
+- Ny `StudioComboBoxStyle` (lys baggrund #E9ECEF + sort tekst #111111 + ComboBoxItem-stil) brugt af Blend (Normal), Meter style og Snippet-bibliotek. Popup-listen var hvid med lys tekst = ulaeselig.
+
+### Overlay-knapper som stylebare lag (18:10)
+- `OverlaySkinBlueprint.Chrome` (List<OverlayBlock>) med blokkene "settings" og "close"; EnsureChrome() opretter dem for gamle blueprints (FromJson).
+- Modul-bibliotekets knapper ligger fast i hoejre side af baren, men kan nu styles: `icon` (Segoe MDL2-glyph, tom = default), `buttonWidth`/`buttonHeight` (default 36x32 / 44x32), `color` (glyph-farve) og opacity.
+- `OverlayBlock`: IsChromeButton, ButtonGlyph, ButtonWidthValue, ButtonHeightValue, ColorBrush, HasColor; DisplayName = "Settings button"/"Close button".
+- Baren: knapperne binder Width/Height/Opacity/glyph (+ farve-trigger) til `GamingOverlaySettingsButton` / `GamingOverlayCloseButton` fra VM. Klik/menu-adfaerd er uaendret.
+- Skin Studio: begge vises nederst i lag-listen (oeje-knappen skjult, sletning blokeret), og Properties faar en "Overlay button"-sektion med ikon + stoerrelse.
+- 3 nye lokaliseringsnoegler (en+da).
+- Deployet 18:05, DLL 1.299.456 B (identisk begge steder), build 0/0.
+
+- 18:12: `ApplyPreviewState` viser nu knapperne i Skin Studio-canvasen (IsHitTestVisible=False i preview), saa de kan designes. DLL 1.299.968 B, deployet 18:06 (identisk begge steder).
+
+### Canvas-guide + knap-clip fix (18:20)
+- Gear-knappen havde `Margin="0,0,-4,0"` -> X-knappen floej 4 px ud over OverlayRoots CornerRadius-clip. Nu `0,0,4,0` og hoejre gruppe-margin 6 -> begge knapper er helt inde.
+- Skin Studio-guiden var hardcoded 900x48 mens overlay-baren er indholdsstyret (~630x44). Guiden (baade label og ramme) binder nu til `CanvasOverlay.ActualWidth/ActualHeight`, saa skabelon og overlay altid matcher.
+
+### Preview-klipping af X-knap (18:30)
+- Aarsag: naar baren hostes med uendelig bredde (Canvas/Viewbox) bliver den indholdsmaalt og rapporterer et par px for lidt -> X-knappen floej ud over barens hoejre kant og blev klippet. I GamingOverlayWindow (fast 720x44) var alt korrekt.
+- Fix: begge previews faar nu samme faste ramme som vinduet - Skin Studio: `Width=720 Height={GamingOverlayBackgroundHeight}`; Gaming-overlay-siden: `Border Width=720` med hoejde bundet til samme property, inde i Viewbox.
+- Guiden i Skin Studio binder fortsat til ActualWidth/ActualHeight, saa den viser 720 x 44 (den reelle ramme).
+- Deployet 18:30, build 0/0.
+
+### Preview = 1:1 med gaming overlay (18:47) - LOEST
+**Symptom:** gear/X blev "skaaret" i Gaming overlay-sidens preview og i Skin Studio-canvasen, men saa korrekt ud paa skrivebordet.
+
+**Maaling (midlertidig log i `GamingOverlayBar`):** `bar actual=909x27, root actual=673x20, close 44x32, settings 36x32, dpi scale=1`.
+
+**Aarsag:** baren er kun 20 DIP hoej, men knapperne var 32 DIP hoeje i preview. `GamingOverlayWindow` klamper `ActionButtonHeight = Math.Min(32, GamingOverlayBackgroundHeight)`; preview sprang den over -> knapperne floej ud over barens top/bund og blev skaaret.
+
+**Fix (3 dele):**
+1. `ApplyPreviewState()` anvender nu samme knap-hoejde-klamp som vinduet (~20 DIP i stedet for 32).
+2. Preview skalerer som vinduet: `OverlayRoot.LayoutTransform = ScaleTransform(GamingOverlayUiScale)` + reagerer paa aendringer i UiScale/BackgroundHeight (ny `ViewModel_PropertyChanged`).
+3. Begge hosts er auto-sized igen (fast 720-ramme og Viewbox fjernet) -> praecis samme maaling som vinduet, 1:1 i stoerrelse.
+- Guide i Skin Studio binder til ActualWidth/ActualHeight -> viser fx 909 x 27.
+- 12 px luft mellem gear og X (positiv margin; den gamle -4 margin skubbede X ud over kanten).
+- Midlertidig maale-log fjernet igen.
+
+**Deployet 2026-11-14 18:47** - `IconGrid.dll` 1.300.480 B identisk i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler). Ikke committet.

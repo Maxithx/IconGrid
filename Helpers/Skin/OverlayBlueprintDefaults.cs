@@ -21,6 +21,7 @@ namespace IconGrid.Helpers.Skin
             {
                 SkinId = "icongrid_classic_v1",
                 Name = "IconGrid Classic",
+                Chrome = new List<OverlayBlock>(),
                 Theme = new OverlaySkinTheme
                 {
                     PrimaryColor = "#7CFF6B",
@@ -53,6 +54,7 @@ namespace IconGrid.Helpers.Skin
             {
                 SkinId = "cod_mw4_tactical_v1",
                 Name = "Modern Warfare 4 Gold Edition",
+                Chrome = new List<OverlayBlock>(),
                 Theme = new OverlaySkinTheme
                 {
                     PrimaryColor = "#00FF66",

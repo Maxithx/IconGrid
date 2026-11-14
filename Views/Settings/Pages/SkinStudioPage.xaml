@@ -75,6 +75,26 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
+
+        <!--
+            Dropdowns in the studio panels: the popup renders on the system (light) background, so a
+            dark panel foreground made the items unreadable. Fixed light field + dark text.
+        -->
+        <Style x:Key="StudioComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Background" Value="#E9ECEF" />
+            <Setter Property="Foreground" Value="#111111" />
+            <Setter Property="BorderBrush" Value="#9AA4B0" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="#111111" />
+                        <Setter Property="Padding" Value="6,2" />
+                        <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -105,6 +125,10 @@
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="ping" Click="AddModule_Click" Content="Ping" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="gauge:cpu" Click="AddModule_Click" Content="CPU" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="gauge:gpu" Click="AddModule_Click" Content="GPU" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="usage:cpu" Click="AddModule_Click" Content="CPU usage" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="usage:gpu" Click="AddModule_Click" Content="GPU usage" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="temp:cpu" Click="AddModule_Click" Content="CPU temp" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="temp:gpu" Click="AddModule_Click" Content="GPU temp" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:gpuClock" Click="AddModule_Click" Content="GPU clock" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:frameTime" Click="AddModule_Click" Content="FT" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:fps" Click="AddModule_Click" Content="FPS" />
@@ -128,11 +152,22 @@
                           VerticalScrollBarVisibility="Auto"
                           Background="Transparent">
                 <Canvas x:Name="DesignCanvas" Width="1040" Height="620" Margin="20">
-                    <!-- Horizontal guide (design frame, not part of the overlay) -->
-                    <TextBlock Canvas.Left="40" Canvas.Top="64" Foreground="#B0438C" FontSize="11"
-                               Text="Standard Horizontal — 900 x 48" />
-                    <Border Canvas.Left="40" Canvas.Top="82" Width="900" Height="48"
+                    <!-- Horizontal guide: follows the real size of the overlay bar (content driven,
+                         so it changes when modules are added/removed). -->
+                    <TextBlock Canvas.Left="40" Canvas.Top="64" Foreground="#B0438C" FontSize="11">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="Standard Horizontal — {0:0} x {1:0}">
+                                <Binding Path="ActualWidth" ElementName="CanvasOverlay" />
+                                <Binding Path="ActualHeight" ElementName="CanvasOverlay" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <Border Canvas.Left="40" Canvas.Top="82"
+                            Width="{Binding ActualWidth, ElementName=CanvasOverlay}"
+                            Height="{Binding ActualHeight, ElementName=CanvasOverlay}"
                             BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
+                    <!-- The bar scales itself exactly like the live overlay window (overlay scale),
+                         so the preview is 1:1 and sizes to the scaled content. -->
                     <views:GamingOverlayBar x:Name="CanvasOverlay"
                                             Canvas.Left="40" Canvas.Top="82"
                                             IsPreview="True"
@@ -178,10 +213,9 @@
 
                     <!-- Read-only "blend mode" field: WPF has no real blend modes yet, but it must
                          look like a normal light dropdown with dark text. -->
-                    <ComboBox Grid.Column="0" Height="24"
-                              Background="#E9ECEF" Foreground="#111111" BorderBrush="#9AA4B0"
+                    <ComboBox Grid.Column="0" Style="{StaticResource StudioComboBoxStyle}"
                               IsHitTestVisible="False" Focusable="False">
-                        <ComboBoxItem Foreground="#111111" Content="Normal" IsSelected="True" />
+                        <ComboBoxItem Content="Normal" IsSelected="True" />
                     </ComboBox>
 
                     <TextBlock Grid.Column="2" Text="Opacity:" Foreground="#C9D1D9" FontSize="11"
@@ -241,7 +275,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Button Style="{StaticResource LayerRowButtonStyle}" Tag="{Binding}"
+                                <Button x:Name="EyeButton" Style="{StaticResource LayerRowButtonStyle}" Tag="{Binding}"
                                         Click="ToggleModuleHidden_Click" ToolTip="Show / hide">
                                     <TextBlock x:Name="EyeGlyph" Text="👁" FontSize="12" />
                                 </Button>
@@ -254,6 +288,10 @@
                                 <DataTrigger Binding="{Binding IsHidden}" Value="True">
                                     <Setter TargetName="EyeGlyph" Property="Opacity" Value="0.25" />
                                 </DataTrigger>
+                                <!-- Fixed chrome buttons cannot be hidden from the panel. -->
+                                <DataTrigger Binding="{Binding IsChromeButton}" Value="True">
+                                    <Setter TargetName="EyeButton" Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -265,20 +303,113 @@
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer" Click="DeleteSelectedModule_Click" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="5">
-                    <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
-                               Foreground="#E6EDF3" Margin="0,0,0,8" />
-                    <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />
-                    <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />
-                    <TextBox x:Name="PropLabelBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
-                             BorderBrush="#33373D" LostFocus="PropLabelBox_LostFocus" />
-                    <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Colour (hex)" />
-                    <TextBox x:Name="PropColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
-                             BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
-                    <Button Margin="0,14,0,0" Padding="12,6" HorizontalAlignment="Left"
-                            Click="ResetBlueprint_Click"
-                            Content="{Binding SkinStudioCanvasResetText}" />
-                </StackPanel>
+                <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" MaxHeight="430">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="#E6EDF3" Margin="0,0,0,8" />
+                        <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />
+                        <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />
+                        <TextBox x:Name="PropLabelBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                 BorderBrush="#33373D" LostFocus="PropLabelBox_LostFocus" />
+                        <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Colour (hex)" />
+                        <TextBox x:Name="PropColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                 BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
+
+                        <!-- Gauge (CPU / GPU usage) appearance: only visible for gauge modules. -->
+                        <StackPanel x:Name="GaugeSection" Visibility="Collapsed" Margin="0,14,0,0">
+                            <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
+                            <TextBlock Text="{Binding SkinStudioGaugeTitleText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#E6EDF3" Margin="0,0,0,6" />
+
+                            <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioMeterStyleLabelText}" />
+                            <ComboBox x:Name="MeterStyleBox" Style="{StaticResource StudioComboBoxStyle}"
+                                      SelectionChanged="MeterStyleBox_SelectionChanged">
+                                <ComboBoxItem Content="Bar" Tag="bar" />
+                                <ComboBoxItem Content="Ring" Tag="ring" />
+                                <ComboBoxItem Content="Segments" Tag="segments" />
+                                <ComboBoxItem Content="Text" Tag="text" />
+                            </ComboBox>
+
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioMeterColorLabelText}" />
+                            <TextBox x:Name="MeterColorBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="MeterColorBox_LostFocus" />
+
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioMeterSizeLabelText}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="MeterWidthBox" Grid.Column="0" Padding="6,4" Background="#1E2126"
+                                         Foreground="#D7DCE2" BorderBrush="#33373D" LostFocus="MeterWidthBox_LostFocus" />
+                                <TextBox x:Name="MeterHeightBox" Grid.Column="2" Padding="6,4" Background="#1E2126"
+                                         Foreground="#D7DCE2" BorderBrush="#33373D" LostFocus="MeterHeightBox_LostFocus" />
+                            </Grid>
+
+                            <CheckBox x:Name="ShowTempBox" Margin="0,10,0,0" Foreground="#C9D1D9" Click="GaugeToggle_Click"
+                                      Tag="showTemp" Content="{Binding SkinStudioMeterTempLabelText}" />
+                            <CheckBox x:Name="ShowPercentBox" Margin="0,6,0,0" Foreground="#C9D1D9" Click="GaugeToggle_Click"
+                                      Tag="showPercent" Content="{Binding SkinStudioMeterPercentLabelText}" />
+                            <CheckBox x:Name="ShowGridBox" Margin="0,6,0,0" Foreground="#C9D1D9" Click="GaugeToggle_Click"
+                                      Tag="hasGrid" Content="{Binding SkinStudioMeterGridLabelText}" />
+                        </StackPanel>
+
+                        <!-- Overlay chrome (settings / close button) styling. -->
+                        <StackPanel x:Name="ChromeSection" Visibility="Collapsed" Margin="0,14,0,0">
+                            <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
+                            <TextBlock Text="{Binding SkinStudioButtonTitleText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#E6EDF3" Margin="0,0,0,6" />
+                            <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioButtonIconLabelText}" />
+                            <TextBox x:Name="ButtonIconBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="ButtonIconBox_LostFocus" />
+                            <TextBlock Margin="0,8,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioButtonSizeLabelText}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="ButtonWidthBox" Grid.Column="0" Padding="6,4" Background="#1E2126"
+                                         Foreground="#D7DCE2" BorderBrush="#33373D" LostFocus="ButtonWidthBox_LostFocus" />
+                                <TextBox x:Name="ButtonHeightBox" Grid.Column="2" Padding="6,4" Background="#1E2126"
+                                         Foreground="#D7DCE2" BorderBrush="#33373D" LostFocus="ButtonHeightBox_LostFocus" />
+                            </Grid>
+                        </StackPanel>
+                        <!-- Code snippet for the selected module: a JSON property patch. -->
+                        <StackPanel Margin="0,14,0,0">
+                            <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
+                            <TextBlock Text="{Binding SkinStudioSnippetTitleText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#E6EDF3" Margin="0,0,0,6" />
+                            <TextBlock Text="{Binding SkinStudioSnippetHintText}" Foreground="#8B949E" FontSize="10"
+                                       TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="SnippetLibraryBox" Style="{StaticResource StudioComboBoxStyle}"
+                                          DisplayMemberPath="Title"
+                                          SelectionChanged="SnippetLibraryBox_SelectionChanged" />
+                                <Button Grid.Column="1" Margin="6,0,0,0" Padding="10,2" Click="SnippetInsert_Click"
+                                        Content="{Binding SkinStudioSnippetInsertText}" />
+                            </Grid>
+                            <TextBox x:Name="SnippetEditorBox" Margin="0,8,0,0" Padding="6,4" Height="96"
+                                     Background="#1E2126" Foreground="#C9D1D9" BorderBrush="#33373D"
+                                     FontFamily="Consolas" FontSize="11" AcceptsReturn="True" AcceptsTab="True"
+                                     TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Padding="12,4" Click="SnippetApply_Click"
+                                        Content="{Binding SkinStudioSnippetApplyText}" />
+                                <Button Margin="8,0,0,0" Padding="12,4" Click="SnippetReset_Click"
+                                        Content="{Binding SkinStudioSnippetResetText}" />
+                            </StackPanel>
+                            <TextBlock x:Name="SnippetStatusText" Margin="0,6,0,0" FontSize="11" Foreground="#8B949E"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
         </Border>
     </Grid>

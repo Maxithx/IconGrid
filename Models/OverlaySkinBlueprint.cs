@@ -25,6 +25,7 @@ namespace IconGrid.Models
         private OverlaySkinTheme _theme = new();
         private List<OverlayLayer> _layers = new();
         private List<OverlayBlock> _layout = new();
+        private List<OverlayBlock> _chrome = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -64,6 +65,34 @@ namespace IconGrid.Models
             }
         }
 
+        /// <summary>
+        /// Fixed overlay chrome (the settings and close buttons). They are styled like modules —
+        /// icon, size, colour, opacity — but they are never part of the scrollable module row, so
+        /// they stay pinned to the right edge of the overlay.
+        /// </summary>
+        public List<OverlayBlock> Chrome
+        {
+            get => _chrome;
+            set => SetField(ref _chrome, EnsureChrome(value));
+        }
+
+        private static List<OverlayBlock> EnsureChrome(List<OverlayBlock>? chrome)
+        {
+            var result = chrome ?? new List<OverlayBlock>();
+
+            if (result.All(block => block.Block != "settings"))
+            {
+                result.Add(new OverlayBlock { Block = "settings" });
+            }
+
+            if (result.All(block => block.Block != "close"))
+            {
+                result.Add(new OverlayBlock { Block = "close" });
+            }
+
+            return result;
+        }
+
         /// <summary>Blocks that should actually be rendered (visible + known type).</summary>
         [JsonIgnore]
         public IReadOnlyList<OverlayBlock> LayoutView =>
@@ -93,6 +122,10 @@ namespace IconGrid.Models
                 {
                     return OverlayBlueprintDefaults.CreateClassic();
                 }
+
+                // Older blueprints have no "chrome" section: the settings/close buttons were
+                // hardcoded. Materialise the two default chrome blocks so they show up as layers.
+                blueprint.Chrome = EnsureChrome(blueprint.Chrome);
 
                 return blueprint;
             }
@@ -154,6 +187,13 @@ namespace IconGrid.Models
         public string Block { get; set; } = "stat";
         public Dictionary<string, string> Props { get; set; } = new();
 
+        /// <summary>
+        /// Last code snippet applied to this module (a JSON property patch). Kept so the Skin Studio
+        /// can show and re-edit it. The properties themselves live in <see cref="Props"/>.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Snippet { get; set; }
+
         // ---------- Convenience accessors used by the WPF templates ----------
 
         [JsonIgnore] public string Id => Get("id");
@@ -189,19 +229,178 @@ namespace IconGrid.Models
         [JsonIgnore]
         public bool IsHidden => !IsVisible;
 
-        /// <summary>Human readable module name for the Skin Studio module list.</summary>
+        /// <summary>
+        /// Panel-only name for a gauge: shows what the module actually contains (usage meter and,
+        /// when enabled, temperature). Kept out of <see cref="DisplayLabel"/>, so the overlay chip
+        /// still reads just "CPU" / "GPU".
+        /// </summary>
+        [JsonIgnore]
+        public string GaugeDisplayName =>
+            $"{CpuGpuLabel}{(ShowTemp ? " (Usage + Temp)" : " (Usage)")}";
+
+        /// <summary>"CPU" or "GPU" for the gauge/usage/temp family.</summary>
+        [JsonIgnore]
+        public string CpuGpuLabel => IsGpu ? "GPU" : "CPU";
+
+        // ---------- Gauge module appearance (CPU / GPU usage) ----------
+
+        /// <summary>Meter rendering style for gauge blocks: bar | ring | segments | text.</summary>
+        [JsonIgnore]
+        public string MeterStyle
+        {
+            get
+            {
+                var raw = Get("meter").Trim().ToLowerInvariant();
+                return raw is "ring" or "segments" or "text" ? raw : "bar";
+            }
+        }
+
+        /// <summary>True for the GPU gauge/temp/usage module so one template can serve CPU and GPU.</summary>
+        [JsonIgnore]
+        public bool IsGpu =>
+            (string.Equals(Block, "gauge", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(Block, "usage", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(Block, "temp", StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(Id, "gpu", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>True for modules that render a usage meter (gauge = combined, usage = meter only).</summary>
+        [JsonIgnore]
+        public bool IsMeterModule =>
+            string.Equals(Block, "gauge", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Block, "usage", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Label shown in the overlay chip; falls back to CPU/GPU when the label is empty.</summary>
+        [JsonIgnore]
+        public string DisplayLabel
+        {
+            get
+            {
+                var label = Label;
+                if (!string.IsNullOrWhiteSpace(label))
+                {
+                    return label;
+                }
+
+                return Block switch
+                {
+                    "gauge" or "usage" or "temp" => CpuGpuLabel,
+                    "ping" => "Net",
+                    _ => string.Empty
+                };
+            }
+        }
+
+        /// <summary>
+        /// Show the temperature next to the meter. A "usage" module never shows it (that lives in
+        /// its own "temp" module), a "temp" module always does.
+        /// </summary>
+        [JsonIgnore]
+        public bool ShowTemp => Block switch
+        {
+            "usage" => false,
+            "temp" => true,
+            _ => GetBool("showTemp", true)
+        };
+
+        /// <summary>Show the usage percentage as text (gauge blocks).</summary>
+        [JsonIgnore]
+        public bool ShowPercent => GetBool("showPercent");
+
+        /// <summary>Meter width in DIPs (props["meterWidth"]); default depends on the meter style.</summary>
+        [JsonIgnore]
+        public double MeterWidthValue =>
+            GetPositive("meterWidth", MeterStyle switch { "segments" => 56, "ring" => 16, _ => 12 });
+
+        /// <summary>Meter height in DIPs (props["meterHeight"]); default depends on the meter style.</summary>
+        [JsonIgnore]
+        public double MeterHeightValue =>
+            GetPositive("meterHeight", MeterStyle switch { "segments" => 10, "ring" => 16, _ => 14 });
+
+        /// <summary>Per-module meter colour override (props["meterColor"] or legacy props["color"]).</summary>
+        [JsonIgnore]
+        public string MeterColorHex
+        {
+            get
+            {
+                var explicitColor = Get("meterColor");
+                return string.IsNullOrWhiteSpace(explicitColor) ? ColorHex : explicitColor;
+            }
+        }
+
+        /// <summary>Parsed meter colour, or null when the module inherits the skin meter brush.</summary>
+        [JsonIgnore]
+        public System.Windows.Media.Brush? MeterBrush =>
+            IconGrid.Helpers.Skin.OverlayBlockBrushes.FromHex(MeterColorHex);
+
+        /// <summary>True when a valid per-module meter colour was set (templates then skip the skin brush).</summary>
+        [JsonIgnore]
+        public bool HasMeterColor => MeterBrush != null;
+
+        // ---------- Overlay chrome (settings / close buttons) ----------
+
+        /// <summary>True for the fixed overlay chrome buttons.</summary>
+        [JsonIgnore]
+        public bool IsChromeButton =>
+            string.Equals(Block, "settings", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Block, "close", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Segoe MDL2 glyph for a chrome button (props["icon"], else the built-in glyph).</summary>
+        [JsonIgnore]
+        public string ButtonGlyph
+        {
+            get
+            {
+                var icon = Get("icon");
+                if (!string.IsNullOrWhiteSpace(icon))
+                {
+                    return icon;
+                }
+
+                return string.Equals(Block, "settings", StringComparison.OrdinalIgnoreCase)
+                    ? "\uE713"
+                    : "\uE8BB";
+            }
+        }
+
+        /// <summary>Button width in DIPs (props["width"], defaults match the shipped buttons).</summary>
+        [JsonIgnore]
+        public double ButtonWidthValue =>
+            GetPositive("buttonWidth", string.Equals(Block, "close", StringComparison.OrdinalIgnoreCase) ? 44 : 36);
+
+        /// <summary>Button height in DIPs (props["buttonHeight"], default 32).</summary>
+        [JsonIgnore]
+        public double ButtonHeightValue => GetPositive("buttonHeight", 32);
+
+        /// <summary>Parsed glyph colour override, or null when the skin text button brush is used.</summary>
+        [JsonIgnore]
+        public System.Windows.Media.Brush? ColorBrush =>
+            IconGrid.Helpers.Skin.OverlayBlockBrushes.FromHex(ColorHex);
+
+        /// <summary>True when the module sets its own colour.</summary>
+        [JsonIgnore]
+        public bool HasColor => ColorBrush != null;
+
+        /// <summary>
+        /// Human readable module name for the Skin Studio module list. This is panel-only text:
+        /// the overlay itself renders <see cref="DisplayLabel"/>, so suffixes like "(Temp)" and
+        /// "(Ping)" never leak into the gaming overlay.
+        /// </summary>
         [JsonIgnore]
         public string DisplayName => Block switch
         {
             "clock" => "Clock",
             "divider" => "Divider",
-            "ping" => string.IsNullOrEmpty(Label) ? "Net" : Label,
-            "gauge" => string.Equals(Id, "gpu", System.StringComparison.OrdinalIgnoreCase) ? "GPU" : "CPU",
+            "ping" => string.IsNullOrWhiteSpace(Label) ? "Net (Ping)" : $"{Label} (Ping)",
+            "gauge" => GaugeDisplayName,
+            "usage" => $"{CpuGpuLabel} (Usage)",
+            "temp" => $"{CpuGpuLabel} (Temp)",
+            "settings" => "Settings button",
+            "close" => "Close button",
             "stat" => DataKey switch
             {
                 "gpuClock" => "GPU clock",
-                "frameTime" => string.IsNullOrEmpty(Label) ? "FT" : Label,
-                "fps" => string.IsNullOrEmpty(Label) ? "FPS" : Label,
+                "frameTime" => string.IsNullOrWhiteSpace(Label) ? "FT" : Label,
+                "fps" => string.IsNullOrWhiteSpace(Label) ? "FPS" : Label,
                 _ => "Stat"
             },
             _ => Block
@@ -227,6 +426,12 @@ namespace IconGrid.Models
             }
 
             return double.TryParse(raw, out var parsed) ? parsed : 0;
+        }
+
+        private double GetPositive(string key, double fallback)
+        {
+            var parsed = GetDouble(key);
+            return parsed > 0 ? parsed : fallback;
         }
     }
 }

@@ -457,10 +457,10 @@
                                         CornerRadius="{StaticResource GamingOverlayControlCornerRadius}"
                                         ClipToBounds="True"
                                         IsHitTestVisible="False">
-                                    <Viewbox Stretch="Uniform">
-                                        <views:GamingOverlayBar IsPreview="True"
-                                                                DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    </Viewbox>
+                                    <!-- No Viewbox: the bar applies the same overlay scale as the
+                                         live window, so the preview is 1:1 in size. -->
+                                    <views:GamingOverlayBar IsPreview="True"
+                                                            DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 </Border>
 
                                 <TextBlock Margin="0,16,0,0"

@@ -86,6 +86,26 @@ namespace IconGrid.ViewModels
         public string SkinStudioLayersTitleText => _localizationState.Get(Language, "SkinStudioLayersTitle");
         public string SkinStudioPropertiesTitleText => _localizationState.Get(Language, "SkinStudioPropertiesTitle");
         public string SkinStudioCanvasResetText => _localizationState.Get(Language, "SkinStudioCanvasReset");
+        public string SkinStudioGaugeTitleText => _localizationState.Get(Language, "SkinStudioGaugeTitle");
+        public string SkinStudioMeterStyleLabelText => _localizationState.Get(Language, "SkinStudioMeterStyleLabel");
+        public string SkinStudioMeterColorLabelText => _localizationState.Get(Language, "SkinStudioMeterColorLabel");
+        public string SkinStudioMeterSizeLabelText => _localizationState.Get(Language, "SkinStudioMeterSizeLabel");
+        public string SkinStudioMeterTempLabelText => _localizationState.Get(Language, "SkinStudioMeterTempLabel");
+        public string SkinStudioMeterPercentLabelText => _localizationState.Get(Language, "SkinStudioMeterPercentLabel");
+        public string SkinStudioMeterGridLabelText => _localizationState.Get(Language, "SkinStudioMeterGridLabel");
+        public string SkinStudioSnippetTitleText => _localizationState.Get(Language, "SkinStudioSnippetTitle");
+        public string SkinStudioSnippetHintText => _localizationState.Get(Language, "SkinStudioSnippetHint");
+        public string SkinStudioSnippetInsertText => _localizationState.Get(Language, "SkinStudioSnippetInsert");
+        public string SkinStudioSnippetApplyText => _localizationState.Get(Language, "SkinStudioSnippetApply");
+        public string SkinStudioSnippetResetText => _localizationState.Get(Language, "SkinStudioSnippetReset");
+        public string SkinStudioSnippetAppliedText => _localizationState.Get(Language, "SkinStudioSnippetApplied");
+        public string SkinStudioSnippetResetDoneText => _localizationState.Get(Language, "SkinStudioSnippetResetDone");
+        public string SkinStudioSnippetEmptyText => _localizationState.Get(Language, "SkinStudioSnippetEmpty");
+        public string SkinStudioSnippetInvalidText => _localizationState.Get(Language, "SkinStudioSnippetInvalid");
+        public string SkinStudioSnippetNoModuleText => _localizationState.Get(Language, "SkinStudioSnippetNoModule");
+        public string SkinStudioButtonTitleText => _localizationState.Get(Language, "SkinStudioButtonTitle");
+        public string SkinStudioButtonIconLabelText => _localizationState.Get(Language, "SkinStudioButtonIconLabel");
+        public string SkinStudioButtonSizeLabelText => _localizationState.Get(Language, "SkinStudioButtonSizeLabel");
         public string AboutLabel => _localizationState.Get(Language, "MoreAbout");
         public string MonitorNetworkLabel => _localizationState.Get(Language, "MonitorNetworkLabel");
         public string MonitorDownloadLabel => _localizationState.Get(Language, "MonitorDownloadLabel");
@@ -286,6 +306,26 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioLayersTitleText));
             OnPropertyChanged(nameof(SkinStudioPropertiesTitleText));
             OnPropertyChanged(nameof(SkinStudioCanvasResetText));
+            OnPropertyChanged(nameof(SkinStudioGaugeTitleText));
+            OnPropertyChanged(nameof(SkinStudioMeterStyleLabelText));
+            OnPropertyChanged(nameof(SkinStudioMeterColorLabelText));
+            OnPropertyChanged(nameof(SkinStudioMeterSizeLabelText));
+            OnPropertyChanged(nameof(SkinStudioMeterTempLabelText));
+            OnPropertyChanged(nameof(SkinStudioMeterPercentLabelText));
+            OnPropertyChanged(nameof(SkinStudioMeterGridLabelText));
+            OnPropertyChanged(nameof(SkinStudioSnippetTitleText));
+            OnPropertyChanged(nameof(SkinStudioSnippetHintText));
+            OnPropertyChanged(nameof(SkinStudioSnippetInsertText));
+            OnPropertyChanged(nameof(SkinStudioSnippetApplyText));
+            OnPropertyChanged(nameof(SkinStudioSnippetResetText));
+            OnPropertyChanged(nameof(SkinStudioSnippetAppliedText));
+            OnPropertyChanged(nameof(SkinStudioSnippetResetDoneText));
+            OnPropertyChanged(nameof(SkinStudioSnippetEmptyText));
+            OnPropertyChanged(nameof(SkinStudioSnippetInvalidText));
+            OnPropertyChanged(nameof(SkinStudioSnippetNoModuleText));
+            OnPropertyChanged(nameof(SkinStudioButtonTitleText));
+            OnPropertyChanged(nameof(SkinStudioButtonIconLabelText));
+            OnPropertyChanged(nameof(SkinStudioButtonSizeLabelText));
         }
 
         private void NotifyLocalizationPropertiesChanged()

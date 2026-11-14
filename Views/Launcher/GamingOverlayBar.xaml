@@ -15,6 +15,8 @@
         <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
         <helpers:PingSeverityToBrushConverter x:Key="PingSeverityBrush" />
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
+        <helpers:PercentToLengthConverter x:Key="PercentToLength" />
+        <helpers:PercentToArcGeometryConverter x:Key="PercentToArcGeometry" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
         <SolidColorBrush x:Key="OverlayCloseHoverDark" Color="#14FFFFFF" />
@@ -170,67 +172,453 @@
             </StackPanel>
         </DataTemplate>
 
-        <DataTemplate x:Key="OverlayGaugeCpuBlockTemplate">
-            <Border Background="{Binding GamingOverlaySkin.ChipBackgroundBrush}"
-                    BorderBrush="{Binding GamingOverlaySkin.ChipBorderBrush}"
-                    BorderThickness="{Binding GamingOverlaySkin.ChipBorderThickness}"
-                    CornerRadius="{Binding GamingOverlaySkin.ChipCornerRadiusValue}"
-                    Padding="{Binding GamingOverlaySkin.ChipPaddingThickness}"
-                    Margin="0,0,9,0" VerticalAlignment="Center"
-                    DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource MonitorTextStyle}" Margin="0,0,6,0">
-                        <Run Text="{Binding MonitorCpuLabel, Mode=OneWay}" />
-                        <Run Text=": " />
-                        <Run Text="{Binding SystemMonitor.CpuTemp, Mode=OneWay}" />
-                    </TextBlock>
-                    <Border Width="12" Height="14" Background="#22000000"
-                            BorderBrush="{Binding GamingOverlaySkin.CpuMeterBorderBrush}"
-                            BorderThickness="1" CornerRadius="2">
-                        <Grid ClipToBounds="True">
-                            <Rectangle Fill="{Binding GamingOverlaySkin.CpuMeterBrush}"
-                                       HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
-                                       RadiusX="2" RadiusY="2"
-                                       Height="{Binding SystemMonitor.CpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
-                            <Border Background="{Binding GamingOverlaySkin.MeterSegmentsBrush}" />
-                        </Grid>
+        <!--
+            Gauge blocks (CPU / GPU usage). The DataContext here is the OverlayBlock, so every
+            per-module prop (label, meter style, colour, size, temp/percent toggles) drives the
+            look. Skin colours and telemetry are reached through the hosting ItemsControl, which
+            keeps one template usable for both the overlay and the Skin Studio canvas.
+        -->
+        <Style x:Key="OverlayMeterTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlaySkin.TextBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+            <Setter Property="FontFamily" Value="{Binding DataContext.GamingOverlaySkin.FontFamily, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+            <Setter Property="FontWeight" Value="{Binding DataContext.GamingOverlaySkin.FontWeightValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+            <Setter Property="FontSize" Value="{Binding DataContext.GamingOverlaySkin.FontSizeValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Foreground" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="OverlayGaugeBarBlockTemplate">
+            <Grid VerticalAlignment="Center">
+                <StackPanel x:Name="CpuGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Border Width="{Binding MeterWidthValue}" Height="{Binding MeterHeightValue}"
+                                    Background="#22000000"
+                                    BorderBrush="{Binding DataContext.GamingOverlaySkin.CpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    BorderThickness="1" CornerRadius="2">
+                                <Grid ClipToBounds="True">
+                                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Bottom" RadiusX="2" RadiusY="2">
+                                        <Rectangle.Style>
+                                            <Style TargetType="Rectangle">
+                                                <Setter Property="Fill" Value="{Binding DataContext.GamingOverlaySkin.CpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                        <Setter Property="Fill" Value="{Binding MeterBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Rectangle.Style>
+                                        <Rectangle.Height>
+                                            <MultiBinding Converter="{StaticResource PercentToLength}">
+                                                <Binding Path="DataContext.SystemMonitor.CpuUsagePercent" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                <Binding Path="MeterHeightValue" />
+                                            </MultiBinding>
+                                        </Rectangle.Height>
+                                    </Rectangle>
+                                    <Border Background="{Binding DataContext.GamingOverlaySkin.MeterSegmentsBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Visibility="{Binding HasGrid, Converter={StaticResource BoolToVisibility}}" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
-            </Border>
+                <StackPanel x:Name="GpuGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Border Width="{Binding MeterWidthValue}" Height="{Binding MeterHeightValue}"
+                                    Background="#22000000"
+                                    BorderBrush="{Binding DataContext.GamingOverlaySkin.GpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    BorderThickness="1" CornerRadius="2">
+                                <Grid ClipToBounds="True">
+                                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Bottom" RadiusX="2" RadiusY="2">
+                                        <Rectangle.Style>
+                                            <Style TargetType="Rectangle">
+                                                <Setter Property="Fill" Value="{Binding DataContext.GamingOverlaySkin.GpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                        <Setter Property="Fill" Value="{Binding MeterBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Rectangle.Style>
+                                        <Rectangle.Height>
+                                            <MultiBinding Converter="{StaticResource PercentToLength}">
+                                                <Binding Path="DataContext.SystemMonitor.GpuUsagePercent" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                <Binding Path="MeterHeightValue" />
+                                            </MultiBinding>
+                                        </Rectangle.Height>
+                                    </Rectangle>
+                                    <Border Background="{Binding DataContext.GamingOverlaySkin.MeterSegmentsBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Visibility="{Binding HasGrid, Converter={StaticResource BoolToVisibility}}" />
+                                </Grid>
+                            </Border>
+                            <Border Width="2" Height="14" Margin="0,0,9,0" VerticalAlignment="Center"
+                                    Background="{Binding DataContext.GamingOverlaySkin.GpuAccentLineBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    Visibility="{Binding DataContext.GamingOverlaySkin.HasGpuAccentLine, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsGpu}" Value="True">
+                    <Setter TargetName="GpuGroup" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CpuGroup" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
-        <DataTemplate x:Key="OverlayGaugeGpuBlockTemplate">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                        DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
-                <Border Background="{Binding GamingOverlaySkin.ChipBackgroundBrush}"
-                        BorderBrush="{Binding GamingOverlaySkin.ChipBorderBrush}"
-                        BorderThickness="{Binding GamingOverlaySkin.ChipBorderThickness}"
-                        CornerRadius="{Binding GamingOverlaySkin.ChipCornerRadiusValue}"
-                        Padding="{Binding GamingOverlaySkin.ChipPaddingThickness}"
-                        Margin="0,0,9,0" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Style="{StaticResource MonitorTextStyle}" Margin="0,0,6,0">
-                            <Run Text="{Binding MonitorGpuLabel, Mode=OneWay}" />
-                            <Run Text=": " />
-                            <Run Text="{Binding SystemMonitor.GpuTemp, Mode=OneWay}" />
-                        </TextBlock>
-                        <Border Width="12" Height="14" Background="#22000000"
-                                BorderBrush="{Binding GamingOverlaySkin.GpuMeterBorderBrush}"
-                                BorderThickness="1" CornerRadius="2">
-                            <Grid ClipToBounds="True">
-                                <Rectangle Fill="{Binding GamingOverlaySkin.GpuMeterBrush}"
-                                           HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
-                                           RadiusX="2" RadiusY="2"
-                                           Height="{Binding SystemMonitor.GpuUsagePercent, Converter={StaticResource PercentToHeightConverter}, ConverterParameter=12}" />
-                                <Border Background="{Binding GamingOverlaySkin.MeterSegmentsBrush}" />
+        <DataTemplate x:Key="OverlayGaugeRingBlockTemplate">
+            <Grid VerticalAlignment="Center">
+                <StackPanel x:Name="CpuGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                <Ellipse Stroke="{Binding DataContext.GamingOverlaySkin.CpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                         StrokeThickness="2" />
+                                <Path Width="16" Height="16" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Stroke" Value="{Binding DataContext.GamingOverlaySkin.CpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                    <Setter Property="Stroke" Value="{Binding MeterBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                    <Path.Data>
+                                        <Binding Path="DataContext.SystemMonitor.CpuUsagePercent"
+                                                 RelativeSource="{RelativeSource AncestorType=ItemsControl}"
+                                                 Converter="{StaticResource PercentToArcGeometry}"
+                                                 ConverterParameter="16" />
+                                    </Path.Data>
+                                </Path>
                             </Grid>
-                        </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="GpuGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Grid Width="16" Height="16" VerticalAlignment="Center">
+                                <Ellipse Stroke="{Binding DataContext.GamingOverlaySkin.GpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                         StrokeThickness="2" />
+                                <Path Width="16" Height="16" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Stroke" Value="{Binding DataContext.GamingOverlaySkin.GpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                    <Setter Property="Stroke" Value="{Binding MeterBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                    <Path.Data>
+                                        <Binding Path="DataContext.SystemMonitor.GpuUsagePercent"
+                                                 RelativeSource="{RelativeSource AncestorType=ItemsControl}"
+                                                 Converter="{StaticResource PercentToArcGeometry}"
+                                                 ConverterParameter="16" />
+                                    </Path.Data>
+                                </Path>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsGpu}" Value="True">
+                    <Setter TargetName="GpuGroup" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CpuGroup" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <DataTemplate x:Key="OverlayGaugeSegmentsBlockTemplate">
+            <Grid VerticalAlignment="Center">
+                <StackPanel x:Name="CpuGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Border Width="{Binding MeterWidthValue}" Height="{Binding MeterHeightValue}"
+                                    Background="#22000000" ClipToBounds="True"
+                                    BorderBrush="{Binding DataContext.GamingOverlaySkin.CpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    BorderThickness="1" CornerRadius="2">
+                                <Grid ClipToBounds="True">
+                                    <Border HorizontalAlignment="Left">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{Binding DataContext.GamingOverlaySkin.CpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                        <Setter Property="Background" Value="{Binding MeterBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.Width>
+                                            <MultiBinding Converter="{StaticResource PercentToLength}">
+                                                <Binding Path="DataContext.SystemMonitor.CpuUsagePercent" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                <Binding Path="MeterWidthValue" />
+                                            </MultiBinding>
+                                        </Border.Width>
+                                    </Border>
+                                    <Rectangle>
+                                        <Rectangle.Fill>
+                                            <DrawingBrush TileMode="Tile" Viewport="0,0,5,6" ViewportUnits="Absolute" Stretch="None">
+                                                <DrawingBrush.Drawing>
+                                                    <GeometryDrawing Brush="#40000000">
+                                                        <GeometryDrawing.Geometry>
+                                                            <RectangleGeometry Rect="4,0,1,6" />
+                                                        </GeometryDrawing.Geometry>
+                                                    </GeometryDrawing>
+                                                </DrawingBrush.Drawing>
+                                            </DrawingBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="GpuGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                       Visibility="{Binding ShowPercent, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}" />
+                            <Border Width="{Binding MeterWidthValue}" Height="{Binding MeterHeightValue}"
+                                    Background="#22000000" ClipToBounds="True"
+                                    BorderBrush="{Binding DataContext.GamingOverlaySkin.GpuMeterBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    BorderThickness="1" CornerRadius="2">
+                                <Grid ClipToBounds="True">
+                                    <Border HorizontalAlignment="Left">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{Binding DataContext.GamingOverlaySkin.GpuMeterBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                        <Setter Property="Background" Value="{Binding MeterBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Border.Width>
+                                            <MultiBinding Converter="{StaticResource PercentToLength}">
+                                                <Binding Path="DataContext.SystemMonitor.GpuUsagePercent" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                <Binding Path="MeterWidthValue" />
+                                            </MultiBinding>
+                                        </Border.Width>
+                                    </Border>
+                                    <Rectangle>
+                                        <Rectangle.Fill>
+                                            <DrawingBrush TileMode="Tile" Viewport="0,0,5,6" ViewportUnits="Absolute" Stretch="None">
+                                                <DrawingBrush.Drawing>
+                                                    <GeometryDrawing Brush="#40000000">
+                                                        <GeometryDrawing.Geometry>
+                                                            <RectangleGeometry Rect="4,0,1,6" />
+                                                        </GeometryDrawing.Geometry>
+                                                    </GeometryDrawing>
+                                                </DrawingBrush.Drawing>
+                                            </DrawingBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsGpu}" Value="True">
+                    <Setter TargetName="GpuGroup" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CpuGroup" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <DataTemplate x:Key="OverlayGaugeTextBlockTemplate">
+            <Grid VerticalAlignment="Center">
+                <StackPanel x:Name="CpuGroup" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,4,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay}" />
+                            <TextBlock Margin="0,0,6,0"
+                                       Text="{Binding DataContext.SystemMonitor.CpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource OverlayMeterTextStyle}">
+                                        <Setter Property="FontWeight" Value="Bold" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding MeterBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="GpuGroup" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                    <Border Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Margin="0,0,9,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,4,0"
+                                       Text="{Binding DisplayLabel, Mode=OneWay}" />
+                            <TextBlock Margin="0,0,6,0"
+                                       Text="{Binding DataContext.SystemMonitor.GpuUsagePercent, RelativeSource={RelativeSource AncestorType=ItemsControl}, StringFormat={}{0:0}%}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource OverlayMeterTextStyle}">
+                                        <Setter Property="FontWeight" Value="Bold" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasMeterColor}" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding MeterBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource OverlayMeterTextStyle}"
+                                       Visibility="{Binding ShowTemp, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsGpu}" Value="True">
+                    <Setter TargetName="GpuGroup" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CpuGroup" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <!-- Temperature-only module: one chip with the CPU or GPU temperature. -->
+        <DataTemplate x:Key="OverlayTempBlockTemplate">
+            <Grid VerticalAlignment="Center">
+                <Border x:Name="CpuGroup"
+                        Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        Margin="0,0,9,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                   Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                        <TextBlock Style="{StaticResource OverlayMeterTextStyle}"
+                                   Text="{Binding DataContext.SystemMonitor.CpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
                     </StackPanel>
                 </Border>
-                <Border Width="2" Height="14" Margin="0,0,9,0" VerticalAlignment="Center"
-                        Background="{Binding GamingOverlaySkin.GpuAccentLineBrush}"
-                        Visibility="{Binding GamingOverlaySkin.HasGpuAccentLine, Converter={StaticResource BoolToVisibility}}" />
-            </StackPanel>
+                <Border x:Name="GpuGroup" Visibility="Collapsed"
+                        Background="{Binding DataContext.GamingOverlaySkin.ChipBackgroundBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        BorderBrush="{Binding DataContext.GamingOverlaySkin.ChipBorderBrush, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        BorderThickness="{Binding DataContext.GamingOverlaySkin.ChipBorderThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CornerRadius="{Binding DataContext.GamingOverlaySkin.ChipCornerRadiusValue, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        Padding="{Binding DataContext.GamingOverlaySkin.ChipPaddingThickness, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        Margin="0,0,9,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource OverlayMeterTextStyle}" Margin="0,0,6,0"
+                                   Text="{Binding DisplayLabel, Mode=OneWay, StringFormat={}{0}:}" />
+                        <TextBlock Style="{StaticResource OverlayMeterTextStyle}"
+                                   Text="{Binding DataContext.SystemMonitor.GpuTemp, RelativeSource={RelativeSource AncestorType=ItemsControl}, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsGpu}" Value="True">
+                    <Setter TargetName="GpuGroup" Property="Visibility" Value="Visible" />
+                    <Setter TargetName="CpuGroup" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
+
         <DataTemplate x:Key="OverlayStatGpuClockBlockTemplate">
             <TextBlock Style="{StaticResource MonitorTextStyle}" Width="58" Margin="0,0,9,0" TextAlignment="Right"
                        DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
@@ -272,11 +660,14 @@
         <skin:OverlayBlockTemplateSelector x:Key="OverlayBlockTemplateSelector"
                                               Clock="{StaticResource OverlayClockBlockTemplate}"
                                               Ping="{StaticResource OverlayPingBlockTemplate}"
-                                              GaugeCpu="{StaticResource OverlayGaugeCpuBlockTemplate}"
-                                              GaugeGpu="{StaticResource OverlayGaugeGpuBlockTemplate}"
+                                              GaugeBar="{StaticResource OverlayGaugeBarBlockTemplate}"
+                                              GaugeRing="{StaticResource OverlayGaugeRingBlockTemplate}"
+                                              GaugeSegments="{StaticResource OverlayGaugeSegmentsBlockTemplate}"
+                                              GaugeText="{StaticResource OverlayGaugeTextBlockTemplate}"
                                               StatGpuClock="{StaticResource OverlayStatGpuClockBlockTemplate}"
                                               StatFrameTime="{StaticResource OverlayStatFrameTimeBlockTemplate}"
                                               StatFps="{StaticResource OverlayStatFpsBlockTemplate}"
+                                              Temp="{StaticResource OverlayTempBlockTemplate}"
                                               Divider="{StaticResource OverlayDividerBlockTemplate}" />
     </UserControl.Resources>
 
@@ -395,32 +786,54 @@
                     <StackPanel Grid.Column="1"
                                 Orientation="Horizontal"
                                 VerticalAlignment="Center"
-                                Margin="0,0,2,0">
+                                Margin="0,0,12,0">
                         <ToggleButton x:Name="SettingsMenuButton"
                                       Style="{StaticResource OverlayToggleButtonStyle}"
-                                      Width="36"
-                                      Height="32"
-                                      Margin="0,0,-4,0"
+                                      Width="{Binding GamingOverlaySettingsButton.ButtonWidthValue}"
+                                      Height="{Binding GamingOverlaySettingsButton.ButtonHeightValue}"
+                                      Opacity="{Binding GamingOverlaySettingsButton.OpacityValue}"
+                                      Margin="0,0,4,0"
                                       Padding="0"
                                       ToolTip="Overlay settings">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       Text="&#xE713;"
+                                       Text="{Binding GamingOverlaySettingsButton.ButtonGlyph}"
                                        FontSize="12"
                                        VerticalAlignment="Center"
-                                       HorizontalAlignment="Center" />
+                                       HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GamingOverlaySettingsButton.HasColor}" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding GamingOverlaySettingsButton.ColorBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </ToggleButton>
                         <Button x:Name="CloseButton"
                                 Style="{StaticResource OverlayCloseButtonStyle}"
-                                Width="44"
-                                Height="32"
+                                Width="{Binding GamingOverlayCloseButton.ButtonWidthValue}"
+                                Height="{Binding GamingOverlayCloseButton.ButtonHeightValue}"
+                                Opacity="{Binding GamingOverlayCloseButton.OpacityValue}"
                                 Padding="0"
                                 VerticalAlignment="Center"
                                 ToolTip="Close">
                             <TextBlock FontFamily="Segoe MDL2 Assets"
-                                       Text="&#xE8BB;"
+                                       Text="{Binding GamingOverlayCloseButton.ButtonGlyph}"
                                        FontSize="12"
                                        VerticalAlignment="Center"
-                                       HorizontalAlignment="Center" />
+                                       HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GamingOverlayCloseButton.HasColor}" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding GamingOverlayCloseButton.ColorBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Button>
                     </StackPanel>
                 </Grid>
