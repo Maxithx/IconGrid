@@ -30,6 +30,15 @@ namespace IconGrid.Helpers.Skin
                 return base.SelectTemplate(item, container);
             }
 
+            // Niveau B: a module can carry its own XAML template. Invalid markup is ignored here and
+            // the built-in template below wins, so a bad snippet can never break the overlay.
+            if (!string.IsNullOrWhiteSpace(block.Template) &&
+                OverlaySnippetTemplateFactory.TryBuild(block.Template, out var custom, out _) &&
+                custom != null)
+            {
+                return custom;
+            }
+
             return block.Block switch
             {
                 "clock" => Clock,

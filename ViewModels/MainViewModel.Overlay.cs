@@ -528,6 +528,43 @@ namespace IconGrid.ViewModels
             });
         }
 
+        /// <summary>
+        /// Niveau B: gives one module its own XAML DataTemplate. The markup is validated before it
+        /// is stored, so the overlay only ever sees a template that parsed successfully; everything
+        /// else is rejected with an error key ("empty", "too-long", "blocked", "invalid").
+        /// </summary>
+        public bool TryApplyGamingOverlayTemplate(OverlayBlock? block, string? xaml, out string error)
+        {
+            error = string.Empty;
+
+            if (block == null)
+            {
+                error = "no-module";
+                return false;
+            }
+
+            if (!IconGrid.Helpers.Skin.OverlaySnippetTemplateFactory.TryBuild(xaml, out var template, out error) ||
+                template == null)
+            {
+                return false;
+            }
+
+            var text = xaml!.Trim();
+            CommitBlueprintLayout(_ => block.Template = text);
+            return true;
+        }
+
+        /// <summary>Removes a module's custom template so the built-in one renders again.</summary>
+        public void ResetGamingOverlayTemplate(OverlayBlock? block)
+        {
+            if (block == null || string.IsNullOrWhiteSpace(block.Template))
+            {
+                return;
+            }
+
+            CommitBlueprintLayout(_ => block.Template = null);
+        }
+
         private void CommitBlueprintLayout(Action<List<OverlayBlock>> mutate)
         {
             // Work on a copy and assign a NEW list: the ItemsControl only refreshes its item

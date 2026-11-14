@@ -106,6 +106,13 @@ namespace IconGrid.ViewModels
         public string SkinStudioButtonTitleText => _localizationState.Get(Language, "SkinStudioButtonTitle");
         public string SkinStudioButtonIconLabelText => _localizationState.Get(Language, "SkinStudioButtonIconLabel");
         public string SkinStudioButtonSizeLabelText => _localizationState.Get(Language, "SkinStudioButtonSizeLabel");
+        public string SkinStudioTemplateTitleText => _localizationState.Get(Language, "SkinStudioTemplateTitle");
+        public string SkinStudioTemplateHintText => _localizationState.Get(Language, "SkinStudioTemplateHint");
+        public string SkinStudioTemplateLoadCodeText => _localizationState.Get(Language, "SkinStudioTemplateLoadCode");
+        public string SkinStudioTemplateStarterHintText => _localizationState.Get(Language, "SkinStudioTemplateStarterHint");
+        public string SkinStudioTemplateAppliedText => _localizationState.Get(Language, "SkinStudioTemplateApplied");
+        public string SkinStudioTemplateResetDoneText => _localizationState.Get(Language, "SkinStudioTemplateResetDone");
+        public string SkinStudioTemplateInvalidText => _localizationState.Get(Language, "SkinStudioTemplateInvalid");
         public string AboutLabel => _localizationState.Get(Language, "MoreAbout");
         public string MonitorNetworkLabel => _localizationState.Get(Language, "MonitorNetworkLabel");
         public string MonitorDownloadLabel => _localizationState.Get(Language, "MonitorDownloadLabel");
@@ -326,6 +333,13 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioButtonTitleText));
             OnPropertyChanged(nameof(SkinStudioButtonIconLabelText));
             OnPropertyChanged(nameof(SkinStudioButtonSizeLabelText));
+            OnPropertyChanged(nameof(SkinStudioTemplateTitleText));
+            OnPropertyChanged(nameof(SkinStudioTemplateHintText));
+            OnPropertyChanged(nameof(SkinStudioTemplateLoadCodeText));
+            OnPropertyChanged(nameof(SkinStudioTemplateStarterHintText));
+            OnPropertyChanged(nameof(SkinStudioTemplateAppliedText));
+            OnPropertyChanged(nameof(SkinStudioTemplateResetDoneText));
+            OnPropertyChanged(nameof(SkinStudioTemplateInvalidText));
         }
 
         private void NotifyLocalizationPropertiesChanged()

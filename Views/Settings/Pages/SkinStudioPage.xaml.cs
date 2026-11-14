@@ -30,6 +30,7 @@ namespace IconGrid.Views
         private bool _suppressOpacityUpdate;
         private bool _suppressPropertyPanels;
         private OverlayBlock? _snippetBlock;
+        private OverlayBlock? _templateBlock;
 
         private void AddModule_Click(object sender, RoutedEventArgs e)
         {
@@ -97,6 +98,8 @@ namespace IconGrid.Views
                 SnippetLibraryBox.ItemsSource = null;
                 SnippetEditorBox.Text = string.Empty;
                 SnippetStatusText.Text = string.Empty;
+                TemplateEditorBox.Text = string.Empty;
+                TemplateStatusText.Text = string.Empty;
                 _suppressPropertyPanels = false;
                 return;
             }
@@ -116,6 +119,7 @@ namespace IconGrid.Views
                 LoadGaugePanel(block);
                 LoadChromePanel(block);
                 LoadSnippetPanel(block);
+                LoadTemplatePanel(block);
             }
             finally
             {
@@ -355,6 +359,87 @@ namespace IconGrid.Views
             _suppressPropertyPanels = true;
             LoadGaugePanel(block);
             _suppressPropertyPanels = false;
+            KeepSelection(block);
+        }
+
+        // ---------- Niveau B: custom XAML template ----------
+
+        private void LoadTemplatePanel(OverlayBlock block)
+        {
+            var isNewBlock = !ReferenceEquals(_templateBlock, block);
+            _templateBlock = block;
+
+            // Show the module's own template when it has one, otherwise the matching starting code,
+            // so the editor always explains what data this module exposes.
+            if (string.IsNullOrWhiteSpace(block.Template))
+            {
+                TemplateEditorBox.Text = OverlayTemplateCatalog.GetStarter(block);
+                if (isNewBlock)
+                {
+                    TemplateStatusText.Text = ViewModel?.SkinStudioTemplateStarterHintText ?? string.Empty;
+                }
+            }
+            else
+            {
+                TemplateEditorBox.Text = block.Template;
+                if (isNewBlock)
+                {
+                    TemplateStatusText.Text = string.Empty;
+                }
+            }
+        }
+
+        private void TemplateLoadCode_Click(object sender, RoutedEventArgs e)
+        {
+            if (LayersList?.SelectedItem is not OverlayBlock block)
+            {
+                return;
+            }
+
+            TemplateEditorBox.Text = OverlayTemplateCatalog.GetStarter(block);
+            TemplateStatusText.Text = ViewModel?.SkinStudioTemplateStarterHintText ?? string.Empty;
+            TemplateEditorBox.Focus();
+        }
+
+        private void TemplateApply_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm == null)
+            {
+                return;
+            }
+
+            if (LayersList?.SelectedItem is not OverlayBlock block)
+            {
+                TemplateStatusText.Text = vm.SkinStudioSnippetNoModuleText;
+                return;
+            }
+
+            if (!vm.TryApplyGamingOverlayTemplate(block, TemplateEditorBox.Text, out var error))
+            {
+                TemplateStatusText.Text = error switch
+                {
+                    "empty" => vm.SkinStudioSnippetEmptyText,
+                    _ => vm.SkinStudioTemplateInvalidText
+                };
+                return;
+            }
+
+            TemplateStatusText.Text = vm.SkinStudioTemplateAppliedText;
+            KeepSelection(block);
+        }
+
+        private void TemplateReset_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm == null || LayersList?.SelectedItem is not OverlayBlock block)
+            {
+                return;
+            }
+
+            vm.ResetGamingOverlayTemplate(block);
+            TemplateEditorBox.Text = string.Empty;
+            TemplateStatusText.Text = vm.SkinStudioTemplateResetDoneText;
             KeepSelection(block);
         }
 

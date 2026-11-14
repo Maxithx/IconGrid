@@ -1899,3 +1899,25 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Midlertidig maale-log fjernet igen.
 
 **Deployet 2026-11-14 18:47** - `IconGrid.dll` 1.300.480 B identisk i build-mappe og `C:\IconGrid` (build 0 fejl/0 advarsler). Ikke committet.
+
+### Niveau B: fri XAML-template pr. modul (18:55)
+- `OverlayBlock.Template` (JSON "template", NullValueHandling.Ignore) gemmer modulets egen XAML.
+- `Helpers/Skin/OverlaySnippetTemplateFactory`: wrapper markup i `<DataTemplate>` (eller accepterer en fuld DataTemplate og injicerer xmlns), `XamlReader.Parse`, cache pr. streng, max 6000 tegn, blokerer x:Class/x:Code/ObjectDataProvider/Assembly=/EventSetter/Process.Start. Returnerer fejlnoegler: empty / too-long / blocked / invalid.
+- `OverlayBlockTemplateSelector` returnerer den brugerdefinerede template naar den kan bygges; ellers falder den tilbage til standard-templaten (daarlig markup kan ikke braekke overlayet).
+- VM: `TryApplyGamingOverlayTemplate(block, xaml, out error)` + `ResetGamingOverlayTemplate(block)`.
+- Skin Studio: ny Expander "Custom template (advanced)" nederst i Properties med editor, Inds�t eksempel / Anvend / Nulstil + statuslinje.
+- 6 nye lokaliseringsnoegler (en+da).
+- DataContext i templates = OverlayBlock; telemetri/skin naas via `RelativeSource AncestorType=ItemsControl`.
+- Deployet 18:52, DLL 1.310.720 B (identisk begge steder), build 0/0.
+
+### Niveau B+ : modulets egen kode i editoren (20:20)
+- Ny `Helpers/Skin/OverlayTemplateCatalog.GetStarter(block)`: returnerer startkode der matcher modulets data - gauge/usage (bar+ProgressBar eller text), temp, clock, ping, divider, stat (fps/ft/gpuClock). Skin-farver og telemetri naas via bindings (ingen StaticResource/convertere, da templaten parses for den er i traeet).
+- Skin Studio: naar et modul vaelges uden egen template, indlaeses startkoden automatisk + status "Standardkoden ... er indlaest". Knappen "Indlaes modulets kode" genindlaeser den.
+- Verificeret med en STA-test (uden for repoet): alle 11 startkoder parser OK via XamlReader.
+- Deployet 20:20, DLL 1.316.864 B (identisk begge steder), build 0/0.
+
+### Traekbar hoejre-panel i Skin Studio (20:30)
+- Nyt 3. kolonne-grid: 230 (vaerktoejer) | * (canvas, min 320) | 5 px GridSplitter | 340 (lag+egenskaber, min 280 / max 720).
+- `GridSplitter` (ResizeBehavior=PreviousAndNext, ShowsPreview, SizeWE-cursor) -> brugeren kan traekke panelet bredere/smallere.
+- Knap-raekker i Snippet- og Template-sektionerne er nu WrapPanel med marginer, saa de ombrydes i stedet for at blive klippet ved smal bredde.
+- Deployet 20:27, DLL 1.316.864 B (identisk begge steder), build 0/0.

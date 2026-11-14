@@ -98,9 +98,10 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="230" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="230" MinWidth="180" />
+            <ColumnDefinition Width="*" MinWidth="320" />
+            <ColumnDefinition Width="5" />
+            <ColumnDefinition Width="340" MinWidth="280" MaxWidth="720" />
         </Grid.ColumnDefinitions>
 
         <!-- ============ LEFT: tools + module library ============ -->
@@ -136,6 +137,21 @@
                 </StackPanel>
             </ScrollViewer>
         </Border>
+
+        <!-- Drag to resize the layers/properties panel. -->
+        <GridSplitter Grid.Column="2"
+                      Width="5"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Background="#1E2126"
+                      BorderBrush="#2A2D31"
+                      BorderThickness="1,0,1,0"
+                      ResizeBehavior="PreviousAndNext"
+                      ResizeDirection="Columns"
+                      ShowsPreview="True"
+                      Cursor="SizeWE"
+                      ToolTip="Drag to resize" />
+
         <!-- ============ CENTER: canvas with grid + guides ============ -->
         <Grid Grid.Column="1" Background="{StaticResource CanvasGridBrush}">
             <Grid.RowDefinitions>
@@ -182,7 +198,7 @@
             </ScrollViewer>
         </Grid>
         <!-- ============ RIGHT: layers + properties ============ -->
-        <Border Grid.Column="2" Background="#141518" BorderBrush="#2A2D31" BorderThickness="1,0,0,0">
+        <Border Grid.Column="3" Background="#141518" BorderBrush="#2A2D31" BorderThickness="1,0,0,0">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -399,15 +415,39 @@
                                      FontFamily="Consolas" FontSize="11" AcceptsReturn="True" AcceptsTab="True"
                                      TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
                                      HorizontalScrollBarVisibility="Auto" />
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Padding="12,4" Click="SnippetApply_Click"
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Padding="12,4" Margin="0,0,6,4" Click="SnippetApply_Click"
                                         Content="{Binding SkinStudioSnippetApplyText}" />
-                                <Button Margin="8,0,0,0" Padding="12,4" Click="SnippetReset_Click"
+                                <Button Padding="12,4" Margin="0,0,6,4" Click="SnippetReset_Click"
                                         Content="{Binding SkinStudioSnippetResetText}" />
-                            </StackPanel>
+                            </WrapPanel>
                             <TextBlock x:Name="SnippetStatusText" Margin="0,6,0,0" FontSize="11" Foreground="#8B949E"
                                        TextWrapping="Wrap" />
                         </StackPanel>
+
+                        <!-- Niveau B: a free XAML template that replaces this module's built-in look. -->
+                        <Expander Margin="0,12,0,0" Foreground="#E6EDF3" IsExpanded="False"
+                                  Header="{Binding SkinStudioTemplateTitleText}">
+                            <StackPanel Margin="0,8,0,0">
+                                <TextBlock Text="{Binding SkinStudioTemplateHintText}" Foreground="#8B949E"
+                                           FontSize="10" TextWrapping="Wrap" Margin="0,0,0,6" />
+                                <TextBox x:Name="TemplateEditorBox" Height="140" Padding="6,4"
+                                         Background="#1E2126" Foreground="#C9D1D9" BorderBrush="#33373D"
+                                         FontFamily="Consolas" FontSize="11" AcceptsReturn="True" AcceptsTab="True"
+                                         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto" />
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateLoadCode_Click"
+                                            Content="{Binding SkinStudioTemplateLoadCodeText}" />
+                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateApply_Click"
+                                            Content="{Binding SkinStudioSnippetApplyText}" />
+                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateReset_Click"
+                                            Content="{Binding SkinStudioSnippetResetText}" />
+                                </WrapPanel>
+                                <TextBlock x:Name="TemplateStatusText" Margin="0,6,0,0" FontSize="11"
+                                           Foreground="#8B949E" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

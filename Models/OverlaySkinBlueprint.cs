@@ -194,6 +194,14 @@ namespace IconGrid.Models
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? Snippet { get; set; }
 
+        /// <summary>
+        /// Optional custom XAML DataTemplate (niveau B snippet) that replaces the built-in template
+        /// for this module. Parsed by <c>OverlaySnippetTemplateFactory</c>; invalid markup falls back
+        /// to the standard template.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Template { get; set; }
+
         // ---------- Convenience accessors used by the WPF templates ----------
 
         [JsonIgnore] public string Id => Get("id");
