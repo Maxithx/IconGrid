@@ -513,6 +513,91 @@ namespace IconGrid.Views
             KeepSelection(block);
         }
 
+        // ---------- Floating tool rail ----------
+
+        private double _toolRailLeft = 12;
+        private double _toolRailTop = 86;
+
+        private void ToolRailGrip_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            var maxLeft = Math.Max(0, ToolRailLayer.ActualWidth - ToolRail.ActualWidth);
+            var maxTop = Math.Max(0, ToolRailLayer.ActualHeight - ToolRail.ActualHeight);
+
+            _toolRailLeft = Math.Clamp(_toolRailLeft + e.HorizontalChange, 0, maxLeft);
+            _toolRailTop = Math.Clamp(_toolRailTop + e.VerticalChange, 0, maxTop);
+
+            System.Windows.Controls.Canvas.SetLeft(ToolRail, _toolRailLeft);
+            System.Windows.Controls.Canvas.SetTop(ToolRail, _toolRailTop);
+        }
+
+        private void ToolRailGrip_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _toolRailLeft = 12;
+            _toolRailTop = 86;
+            System.Windows.Controls.Canvas.SetLeft(ToolRail, _toolRailLeft);
+            System.Windows.Controls.Canvas.SetTop(ToolRail, _toolRailTop);
+        }
+
+        private bool _toolRailHorizontal;
+
+        private void ToolRailOrientation_Click(object sender, RoutedEventArgs e)
+        {
+            _toolRailHorizontal = !_toolRailHorizontal;
+            ApplyToolRailOrientation();
+        }
+
+        /// <summary>Switches the tool rail between the vertical and horizontal layout.</summary>
+        private void ApplyToolRailOrientation()
+        {
+            if (_toolRailHorizontal)
+            {
+                ToolRail.Width = double.NaN;
+                ToolRail.Padding = new Thickness(6, 4, 6, 4);
+                ToolRailPanel.Orientation = System.Windows.Controls.Orientation.Horizontal;
+                ToolRailOrientationButton.Content = "⇅";
+            }
+            else
+            {
+                ToolRail.Width = 56;
+                ToolRail.Padding = new Thickness(5, 4, 5, 4);
+                ToolRailPanel.Orientation = System.Windows.Controls.Orientation.Vertical;
+                ToolRailOrientationButton.Content = "⇄";
+            }
+
+            foreach (var child in ToolRailPanel.Children)
+            {
+                if (child is not System.Windows.Shapes.Rectangle { Tag: "separator" } separator)
+                {
+                    continue;
+                }
+
+                if (_toolRailHorizontal)
+                {
+                    separator.Width = 1;
+                    separator.Height = 24;
+                    separator.Margin = new Thickness(8, 0, 8, 0);
+                    separator.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                    separator.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+                }
+                else
+                {
+                    separator.Width = double.NaN;
+                    separator.Height = 1;
+                    separator.Margin = new Thickness(2, 2, 2, 8);
+                    separator.HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
+                    separator.VerticalAlignment = System.Windows.VerticalAlignment.Stretch;
+                }
+            }
+
+            // Keep the rail inside the canvas after its size changed.
+            var maxLeft = Math.Max(0, ToolRailLayer.ActualWidth - ToolRail.ActualWidth);
+            var maxTop = Math.Max(0, ToolRailLayer.ActualHeight - ToolRail.ActualHeight);
+            _toolRailLeft = Math.Clamp(_toolRailLeft, 0, maxLeft);
+            _toolRailTop = Math.Clamp(_toolRailTop, 0, maxTop);
+            System.Windows.Controls.Canvas.SetLeft(ToolRail, _toolRailLeft);
+            System.Windows.Controls.Canvas.SetTop(ToolRail, _toolRailTop);
+        }
+
         /// <summary>
         /// Re-selects the module after a commit replaced the layer list. Without this the ListBox
         /// would clear its selection on every edit, which would close the properties panel.

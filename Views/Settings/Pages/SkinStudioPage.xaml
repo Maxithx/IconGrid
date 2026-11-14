@@ -52,6 +52,35 @@
             <Setter Property="Cursor" Value="Hand" />
         </Style>
 
+        <Style x:Key="ToolRailButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#E6EDF3" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#2A2F35" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#3A424A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="LibraryButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="100" />
             <Setter Property="Height" Value="34" />
@@ -104,22 +133,11 @@
             <ColumnDefinition Width="340" MinWidth="280" MaxWidth="720" />
         </Grid.ColumnDefinitions>
 
-        <!-- ============ LEFT: tools + module library ============ -->
+        <!-- ============ LEFT: module library ============ -->
         <Border Grid.Column="0" Background="#161719" BorderBrush="#2A2D31" BorderThickness="0,0,1,0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="14">
-                    <TextBlock Text="{Binding SkinStudioToolsTitleText}" Style="{StaticResource PanelTitleStyle}" />
-                    <WrapPanel>
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Move / Select" Content="✥" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Node edit" Content="⌗" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Chamfer / radius" Content="◢" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Polygon maker" Content="⬠" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Add text" Content="T" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Weld modules" Content="⛓" />
-                        <Button Style="{StaticResource ToolButtonStyle}" ToolTip="Reset section" Content="↺" Click="ResetBlueprint_Click" />
-                    </WrapPanel>
-
-                    <TextBlock Margin="0,14,0,0" Text="{Binding SkinStudioModuleLibraryTitleText}" Style="{StaticResource PanelTitleStyle}" />
+                    <TextBlock Text="{Binding SkinStudioModuleLibraryTitleText}" Style="{StaticResource PanelTitleStyle}" />
                     <WrapPanel>
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="clock" Click="AddModule_Click" Content="Clock" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="divider" Click="AddModule_Click" Content="Divider" />
@@ -196,6 +214,61 @@
                             BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
                 </Canvas>
             </ScrollViewer>
+
+            <!-- Floating tool rail: drag the grip to move it anywhere over the canvas. -->
+            <Canvas x:Name="ToolRailLayer" Grid.RowSpan="2">
+                <Border x:Name="ToolRail"
+                        Canvas.Left="12" Canvas.Top="86"
+                        Width="56"
+                        Background="#1B1D20"
+                        BorderBrush="#2A2D31"
+                        BorderThickness="1"
+                        CornerRadius="7"
+                        Padding="5,4">
+                    <StackPanel>
+                        <StackPanel x:Name="ToolRailHeader" Orientation="Horizontal">
+                            <Thumb x:Name="ToolRailGrip"
+                                   Width="26"
+                                   Height="22"
+                                   Cursor="SizeAll"
+                                   ToolTip="Drag to move the toolbar (double-click to reset)"
+                                   DragDelta="ToolRailGrip_DragDelta"
+                                   MouseDoubleClick="ToolRailGrip_MouseDoubleClick">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="Transparent">
+                                            <TextBlock Text="⠿" FontSize="16" Foreground="#6E7681"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                            <Button x:Name="ToolRailOrientationButton"
+                                    Width="26" Height="22" Margin="2,0,0,0" Padding="0" FontSize="13"
+                                    Background="Transparent" Foreground="#9AA4B0" BorderThickness="0"
+                                    Cursor="Hand"
+                                    Content="⇄"
+                                    ToolTip="Switch between vertical and horizontal layout"
+                                    Click="ToolRailOrientation_Click" />
+                        </StackPanel>
+                        <Rectangle Height="1" Fill="#2A2D31" Margin="2,2,2,8" Tag="separator" />
+
+                        <StackPanel x:Name="ToolRailPanel" Orientation="Vertical">
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Move / Select" Content="✥" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Node edit" Content="⌗" />
+                            <Rectangle Height="1" Fill="#2A2D31" Margin="2,6,2,8" Tag="separator" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Chamfer / radius" Content="◢" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Polygon maker" Content="⬠" />
+                            <Rectangle Height="1" Fill="#2A2D31" Margin="2,6,2,8" Tag="separator" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Add text" Content="T" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Weld modules" Content="⛓" />
+                            <Rectangle Height="1" Fill="#2A2D31" Margin="2,6,2,8" Tag="separator" />
+                            <Button Style="{StaticResource ToolRailButtonStyle}" ToolTip="Reset to classic"
+                                    Content="↺" Click="ResetBlueprint_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Canvas>
         </Grid>
         <!-- ============ RIGHT: layers + properties ============ -->
         <Border Grid.Column="3" Background="#141518" BorderBrush="#2A2D31" BorderThickness="1,0,0,0">

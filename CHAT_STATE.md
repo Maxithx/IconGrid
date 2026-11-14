@@ -1948,3 +1948,16 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Baggrunden: `OverlayRoot`-stilen har ny DataTrigger paa `GamingOverlayBackgroundLayer.IsHidden` -> Background=Transparent (kun barens flade skjules, modulerne bliver).
 - Sletning er stadig blokeret for chrome-lag; skjulte knapper kan altid vises igen via oejet i panelet.
 - Deployet 22:06, DLL 1.325.568 B (identisk begge steder), build 0/0.
+
+### Flytbar vaerktoejsbjaelke (22:53)
+- Tools er flyttet ud af venstre panel (nu kun Modul-bibliotek) og ind som en lodret, flydende rail oven paa canvaset.
+- Ny ToolRailButtonStyle: 44x42 knapper, FontSize 20, hover/pressed-highlight - ikonerne er markant stoerre end de gamle.
+- Rail (56 px bred med grip) ligger i en Canvas over center-grid; grip = Thumb med DragDelta (flyt), dobbeltklik nulstiller til 12,86. Positionen klemmes til canvas-omraadet.
+- Grupper med separators: Move/Node | Chamfer/Polygon | Text/Weld | Reset.
+- Deployet 22:53, DLL 1.328.128 B (identisk begge steder), build 0/0.
+
+### Toolbar kan vises horisontalt (22:56)
+- Ny orienterings-knap i railens header (? / ?). Klik skifter mellem lodret (56 px bred) og vandret (auto bredde) layout.
+- `ApplyToolRailOrientation()` saetter ToolRail.Width/Padding, ToolRailPanel.Orientation og omformer separatorerne (1x24 lodret-justeret i vandret mode, 1 px hoejde i lodret mode), og klemmer railen ind i canvas-omraadet bagefter.
+- Grippet er nu 26x22 i en header-raekke sammen med orienterings-knappen.
+- Deployet 22:56, DLL 1.329.664 B (identisk begge steder), build 0/0.
