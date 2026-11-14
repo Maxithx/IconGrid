@@ -1961,3 +1961,21 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - `ApplyToolRailOrientation()` saetter ToolRail.Width/Padding, ToolRailPanel.Orientation og omformer separatorerne (1x24 lodret-justeret i vandret mode, 1 px hoejde i lodret mode), og klemmer railen ind i canvas-omraadet bagefter.
 - Grippet er nu 26x22 i en header-raekke sammen med orienterings-knappen.
 - Deployet 22:56, DLL 1.329.664 B (identisk begge steder), build 0/0.
+
+### Startside-dropdowns ved sprogskift (23:07)
+- Launcher visibility, Auto-hide delay, Peek activation og Language brugte default WPF ComboBox uden bredde -> boksen krympede til den valgte teksts bredde (og arvede systemets lyse/hvide stil), saa teksten blev klippet efter sprogskift.
+- Alle fire bruger nu den delte `TemplateComboBoxStyle` (220 px, 32 h, lys flade + moerk tekst + ComboBoxItem-stil). Launcher visibility har Width=280, Peek activation Width=300 (lange tekster), Auto-hide delay og Language bruger 220.
+- Deployet 23:07, DLL 1.330.176 B (identisk begge steder), build 0/0.
+
+### Sprogskift toemte dropdown-valget (23:09)
+- Naar ItemsSource blev udskiftet ved sprogskift, clearede ComboBox sin selection og den synkrone PropertyChanged-gennotifikation kom for tidligt -> boksen stod tom.
+- `RefreshLocalizedText()` gennotificerer nu SelectedLauncherHideMode/SelectedAutoHideDelay/SelectedPeekActivationMode via `Dispatcher.BeginInvoke(DispatcherPriority.Background)`, saa bindingen re-vaelger item efter ItemsSource-reset.
+- Deployet 23:09, build 0/0.
+
+### Sprogskift: dropdown beholder valget (23:14) - DEFINITIV
+- Rod-aarsag: ved sprogskift blev ItemsSource UDSKIFTET (ny List), og WPF-clearede derfor selection -> tom boks. Dispatcher-fix (23:09) var ikke nok.
+- Ny `StartsidePage.LauncherOption` (Key + Display, INotifyPropertyChanged). De tre lister er nu `ObservableCollection<LauncherOption>` der oprettes ÉN gang (noegler faste: 0/1/2, 1/2/3/5/10, 0/1).
+- Sprogskift kalder `UpdateOptions(...)` som kun skriver nye Display-tekster -> ingen ItemsSource-reset, selection bevares, teksten skifter sprog live.
+- XAML: DisplayMemberPath="Value" -> "Display" paa de tre dropdowns; SelectedValuePath="Key" uaendret.
+- Verificeret at `LauncherOption` findes i den deployede DLL.
+- Deployet 23:14, build 0/0.

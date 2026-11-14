@@ -18,9 +18,27 @@ namespace IconGrid.Views
         private string _autoHideDelayDescriptionText = string.Empty;
         private string _peekActivationLabelText = "Peek activation";
         private string _peekActivationDescriptionText = string.Empty;
-        private List<KeyValuePair<string, string>> _launcherHideModeItems = new();
-        private List<KeyValuePair<string, string>> _autoHideDelayItems = new();
-        private List<KeyValuePair<string, string>> _peekActivationItems = new();
+        private readonly System.Collections.ObjectModel.ObservableCollection<LauncherOption> _launcherHideModeItems = new()
+        {
+            new("0", "Always visible"),
+            new("1", "Manual hide"),
+            new("2", "Auto-hide")
+        };
+
+        private readonly System.Collections.ObjectModel.ObservableCollection<LauncherOption> _autoHideDelayItems = new()
+        {
+            new("1", "1 second"),
+            new("2", "2 seconds"),
+            new("3", "3 seconds"),
+            new("5", "5 seconds"),
+            new("10", "10 seconds")
+        };
+
+        private readonly System.Collections.ObjectModel.ObservableCollection<LauncherOption> _peekActivationItems = new()
+        {
+            new("0", "On hover (mouse near top edge)"),
+            new("1", "On click on the strip")
+        };
 
         public StartsidePage()
         {
@@ -86,22 +104,45 @@ namespace IconGrid.Views
             private set => SetField(ref _peekActivationDescriptionText, value);
         }
 
-        public List<KeyValuePair<string, string>> LauncherHideModeItems
-        {
-            get => _launcherHideModeItems;
-            private set => SetField(ref _launcherHideModeItems, value);
-        }
+        public System.Collections.ObjectModel.ObservableCollection<LauncherOption> LauncherHideModeItems => _launcherHideModeItems;
 
-        public List<KeyValuePair<string, string>> AutoHideDelayItems
-        {
-            get => _autoHideDelayItems;
-            private set => SetField(ref _autoHideDelayItems, value);
-        }
+        public System.Collections.ObjectModel.ObservableCollection<LauncherOption> AutoHideDelayItems => _autoHideDelayItems;
 
-        public List<KeyValuePair<string, string>> PeekActivationItems
+        public System.Collections.ObjectModel.ObservableCollection<LauncherOption> PeekActivationItems => _peekActivationItems;
+
+        /// <summary>
+        /// One dropdown entry. The collection is created once and only the display text changes when
+        /// the language switches — replacing ItemsSource cleared the ComboBox selection, which made
+        /// the selected value disappear from the closed box.
+        /// </summary>
+        public sealed class LauncherOption : INotifyPropertyChanged
         {
-            get => _peekActivationItems;
-            private set => SetField(ref _peekActivationItems, value);
+            private string _display;
+
+            public LauncherOption(string key, string display)
+            {
+                Key = key;
+                _display = display;
+            }
+
+            public event PropertyChangedEventHandler? PropertyChanged;
+
+            public string Key { get; }
+
+            public string Display
+            {
+                get => _display;
+                set
+                {
+                    if (string.Equals(_display, value, System.StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+
+                    _display = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Display)));
+                }
+            }
         }
 
         public string SelectedLauncherHideMode
@@ -228,25 +269,9 @@ namespace IconGrid.Views
                 AutoHideDelayDescriptionText = "Antal sekunder før launcheren automatisk skjules efter musen forlader vinduet";
                 PeekActivationLabelText = "Peek aktivering";
                 PeekActivationDescriptionText = "Vælg om launcheren skal vises når musen nærmer sig toppen af skærmen, eller kun når der klikkes på den synlige stribe";
-                LauncherHideModeItems = new List<KeyValuePair<string, string>>
-                {
-                    new("0", "Altid synlig"),
-                    new("1", "Manuel skjul"),
-                    new("2", "Auto-skjul")
-                };
-                AutoHideDelayItems = new List<KeyValuePair<string, string>>
-                {
-                    new("1", "1 sekund"),
-                    new("2", "2 sekunder"),
-                    new("3", "3 sekunder"),
-                    new("5", "5 sekunder"),
-                    new("10", "10 sekunder")
-                };
-                PeekActivationItems = new List<KeyValuePair<string, string>>
-                {
-                    new("0", "Ved hover (mus nær topkant)"),
-                    new("1", "Ved klik på striben")
-                };
+                UpdateOptions(_launcherHideModeItems, "Altid synlig", "Manuel skjul", "Auto-skjul");
+                UpdateOptions(_autoHideDelayItems, "1 sekund", "2 sekunder", "3 sekunder", "5 sekunder", "10 sekunder");
+                UpdateOptions(_peekActivationItems, "Ved hover (mus nær topkant)", "Ved klik på striben");
             }
             else
             {
@@ -256,32 +281,26 @@ namespace IconGrid.Views
                 AutoHideDelayDescriptionText = "Number of seconds before the launcher automatically hides after the mouse leaves the window";
                 PeekActivationLabelText = "Peek activation";
                 PeekActivationDescriptionText = "Choose whether the launcher shows when the mouse approaches the top of the screen, or only when clicking the visible strip";
-                LauncherHideModeItems = new List<KeyValuePair<string, string>>
-                {
-                    new("0", "Always visible"),
-                    new("1", "Manual hide"),
-                    new("2", "Auto-hide")
-                };
-                AutoHideDelayItems = new List<KeyValuePair<string, string>>
-                {
-                    new("1", "1 second"),
-                    new("2", "2 seconds"),
-                    new("3", "3 seconds"),
-                    new("5", "5 seconds"),
-                    new("10", "10 seconds")
-                };
-                PeekActivationItems = new List<KeyValuePair<string, string>>
-                {
-                    new("0", "On hover (mouse near top edge)"),
-                    new("1", "On click on the strip")
-                };
+                UpdateOptions(_launcherHideModeItems, "Always visible", "Manual hide", "Auto-hide");
+                UpdateOptions(_autoHideDelayItems, "1 second", "2 seconds", "3 seconds", "5 seconds", "10 seconds");
+                UpdateOptions(_peekActivationItems, "On hover (mouse near top edge)", "On click on the strip");
             }
 
-            // Notify the ComboBox to re-read its SelectedValue after rebuilding items.
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedLauncherHideMode)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedAutoHideDelay)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedPeekActivationMode)));
             RefreshModeDescription();
+        }
+
+        /// <summary>
+        /// Rewrites the option texts in place. The collection instance never changes, so the open
+        /// ComboBox keeps its SelectedValue and simply shows the new language.
+        /// </summary>
+        private static void UpdateOptions(
+            System.Collections.ObjectModel.ObservableCollection<LauncherOption> options,
+            params string[] texts)
+        {
+            for (var i = 0; i < options.Count && i < texts.Length; i++)
+            {
+                options[i].Display = texts[i];
+            }
         }
 
         private void SetField(ref string field, string value, [CallerMemberName] string? propertyName = null)
