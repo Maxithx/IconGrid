@@ -1996,3 +1996,9 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Brugerens config (AppData\Roaming\IconGrid\config.json) havde `"CornerRadius": 18.0` i GamingOverlaySkinJson, saa migreringen 8->4 ramte ikke.
 - Migrationen daekker nu BEGGE legacy-defaults (8 og 18) -> 4; andre vaerdier roeres ikke.
 - Deployet 01:45, DLL 1.330.688 B (identisk begge steder), build 0/0.
+
+### Ens hover-effekt paa action-knapper (01:50)
+- `TemplateActionButtonStyle` (TemplateGuidelines.xaml) havde ingen Template -> WPF standard-hover saa grim ud (Startside: "Aabn indstillinger for gaming overlay").
+- Stilen har nu samme ControlTemplate som OverlayActionButtonStyle ("Vis gaming overlay"): Background via TemplateBinding, CornerRadius 4, hover #FF3E3E3E, pressed #FF2B2D31, disabled opacity 0.55, Cursor=Hand.
+- Virker for alle sider der bruger TemplateActionButtonStyle.
+- Deployet 01:50, DLL 1.331.712 B (identisk begge steder), build 0/0.
