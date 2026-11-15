@@ -623,6 +623,10 @@
                     <StackPanel Margin="0,0,2,0">
                         <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
                                    Foreground="#E6EDF3" Margin="0,0,0,8" />
+                        <!-- Keeps the overlay's FPS/FT slots readable while designing on an idle PC. -->
+                        <CheckBox Content="{Binding SkinStudioSimulateTelemetryText}"
+                                  IsChecked="{Binding GamingOverlaySimulateTelemetry, Mode=TwoWay}"
+                                  Foreground="#8B949E" FontSize="11" Margin="0,0,0,8" />
                         <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />
                         <StackPanel x:Name="GenericColorSection">
                             <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11" Text="Label" />

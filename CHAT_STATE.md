@@ -2234,6 +2234,18 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Fix: `HorizontalContentAlignment="Left"` + `VerticalContentAlignment="Top"` paa ScrollViewer og `HorizontalAlignment/VerticalAlignment="Left/Top"` paa `DesignCanvas`.
 - Build 0/0, deployet 05:16 (DLL 1.378.304 B, identisk begge steder). Ikke committet.
 
+### Simulering af FPS / frame time i Skin Studio (05:27)
+- `SystemMonitor`: ny `SimulateOverlayTelemetry` + `OverlayFpsStatus` / `OverlayFrameTimeDisplay`. Naar simuleringen er slaaet til, kommer vaerdierne fra en 400 ms DispatcherTimer med random walk: FPS 95-240, FT = 1000/FPS +/- 0.3 ms (fx "187" og "5.3ms"). Reel telemetri koerer uaendret.
+- `FpsStatus`/`FrameTimeStatus`-setterne notificerer ogsaa de nye Overlay*-properties, saa rigtige data virker naar simuleringen er slukket.
+- `GamingOverlayBar.xaml`: FPS- og FT-skabelonerne binder nu `SystemMonitor.OverlayFpsStatus` / `OverlayFrameTimeDisplay`.
+- VM: `GamingOverlaySimulateTelemetry` (forwarder til SystemMonitor). UI: checkbox "Simuler FPS / FT" oeverst i Egenskaber-panelet (ny noegle `SkinStudioSimulateTelemetry`, en+da).
+- Ikke persisteret i config (runtime-only); virker baade i studio-canvas og i live-overlayet mens den er slaaet til.
+- Build 0/0, deployet 05:27 (DLL 1.380.352 B, identisk begge steder). Ikke committet.
+
+### Committet og pushet (05:30)
+- Commit med FPS/FT-simuleringen (SystemMonitor + bar-templates + checkbox i Egenskaber) og note-opdateringer.
+- Deploy fra 05:27 ligger i `C:\IconGrid` (DLL 1.380.352 B).
+
 ### Committet og pushet (05:20)
 - En commit med hele bunken: canvas File/Edit-menu, systemgruppe-beskyttelse, chrome som gruppe-lag + biblioteksknapper, én bar pr. gruppe paa canvas, flyt bar med musen, canvas-origo/centrering-fix og note-opdateringer.
 - Deploy fra 05:16 ligger i `C:\IconGrid` (DLL 1.378.304 B).

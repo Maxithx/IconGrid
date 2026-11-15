@@ -200,7 +200,93 @@ namespace IconGrid.Helpers
             {
                 _fpsStatus = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(OverlayFpsStatus));
             }
+        }
+
+        // ---------- Overlay telemetry simulation (Skin Studio preview) ----------
+        //
+        // The studio canvas shows the real overlay, so an idle PC shows "FPS: --" and "FT: --".
+        // The simulation feeding those two slots makes the preview readable while designing.
+        // It only replaces the *display* values; real telemetry keeps running untouched.
+
+        private bool _simulateOverlayTelemetry;
+        private DispatcherTimer? _simulationTimer;
+        private readonly Random _simulationRandom = new();
+        private double _simulatedFps = 144;
+        private string _simulatedFpsText = "144";
+        private string _simulatedFrameTimeText = "6.9ms";
+
+        /// <summary>When true, the overlay FPS/frame-time slots show simulated values.</summary>
+        public bool SimulateOverlayTelemetry
+        {
+            get => _simulateOverlayTelemetry;
+            set
+            {
+                if (_simulateOverlayTelemetry == value)
+                {
+                    return;
+                }
+
+                _simulateOverlayTelemetry = value;
+
+                if (value)
+                {
+                    StartTelemetrySimulation();
+                }
+                else
+                {
+                    StopTelemetrySimulation();
+                }
+
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(OverlayFpsStatus));
+                OnPropertyChanged(nameof(OverlayFrameTimeDisplay));
+            }
+        }
+
+        /// <summary>FPS text used by the overlay: simulated when the simulation is on.</summary>
+        public string OverlayFpsStatus => _simulateOverlayTelemetry ? _simulatedFpsText : FpsStatus;
+
+        /// <summary>Frame-time text used by the overlay: simulated when the simulation is on.</summary>
+        public string OverlayFrameTimeDisplay => _simulateOverlayTelemetry ? _simulatedFrameTimeText : FrameTimeDisplay;
+
+        private void StartTelemetrySimulation()
+        {
+            if (_simulationTimer == null)
+            {
+                _simulationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+                _simulationTimer.Tick += (_, _) => StepTelemetrySimulation();
+            }
+
+            StepTelemetrySimulation();
+            _simulationTimer.Start();
+        }
+
+        private void StopTelemetrySimulation()
+        {
+            _simulationTimer?.Stop();
+        }
+
+        /// <summary>
+        /// Random walk between ~95 and ~240 FPS so the numbers move like a real game; the frame
+        /// time follows (1000 / fps) with a little jitter, so both slots stay plausible.
+        /// </summary>
+        private void StepTelemetrySimulation()
+        {
+            var drift = (_simulationRandom.NextDouble() - 0.5) * 24;
+            _simulatedFps = Math.Clamp(_simulatedFps + drift, 95, 240);
+
+            var fps = (int)Math.Round(_simulatedFps);
+            var frameTime = 1000.0 / Math.Max(1.0, _simulatedFps);
+            frameTime += (_simulationRandom.NextDouble() - 0.5) * 0.6;
+            frameTime = Math.Max(0.1, frameTime);
+
+            _simulatedFpsText = fps.ToString(CultureInfo.InvariantCulture);
+            _simulatedFrameTimeText = frameTime.ToString("0.0", CultureInfo.InvariantCulture) + "ms";
+
+            OnPropertyChanged(nameof(OverlayFpsStatus));
+            OnPropertyChanged(nameof(OverlayFrameTimeDisplay));
         }
 
         /// <summary>
@@ -213,7 +299,7 @@ namespace IconGrid.Helpers
         /// as soon as the game exits.
         /// </summary>
         public bool IsInGame => _inGame;
-        public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(FrameTimeDisplay)); } }
+        public string FrameTimeStatus { get => _frameTimeStatus; private set { _frameTimeStatus = value; OnPropertyChanged(); OnPropertyChanged(nameof(FrameTimeDisplay)); OnPropertyChanged(nameof(OverlayFrameTimeDisplay)); } }
 
         /// <summary>
         /// Frame time as shown in the gaming overlay: "7.0ms" when a value exists, plain "--"

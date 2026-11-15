@@ -336,6 +336,25 @@ namespace IconGrid.ViewModels
         // ---------- Module builder operations (Skin Studio) ----------
 
         /// <summary>
+        /// Feeds the overlay's FPS / frame-time slots with simulated values so the Skin Studio
+        /// canvas looks alive on an idle PC. Purely a display switch — real telemetry keeps running.
+        /// </summary>
+        public bool GamingOverlaySimulateTelemetry
+        {
+            get => SystemMonitor.SimulateOverlayTelemetry;
+            set
+            {
+                if (SystemMonitor.SimulateOverlayTelemetry == value)
+                {
+                    return;
+                }
+
+                SystemMonitor.SimulateOverlayTelemetry = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
         /// Adds a module of the given type at the end of the row, inside <paramref name="groupId"/>.
         /// New layers are never placed in the protected standard group: an explicit request for it
         /// is redirected to the first custom group (a fresh one is created when the user has none).

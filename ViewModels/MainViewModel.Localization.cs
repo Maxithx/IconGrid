@@ -133,6 +133,7 @@ namespace IconGrid.ViewModels
         public string SkinStudioMenuLockText => _localizationState.Get(Language, "SkinStudioMenuLock");
         public string SkinStudioMenuDeleteText => _localizationState.Get(Language, "SkinStudioMenuDelete");
         public string SkinStudioMenuSavedText => _localizationState.Get(Language, "SkinStudioMenuSaved");
+        public string SkinStudioSimulateTelemetryText => _localizationState.Get(Language, "SkinStudioSimulateTelemetry");
         public string SkinStudioTemplateStarterHintText => _localizationState.Get(Language, "SkinStudioTemplateStarterHint");
         public string SkinStudioTemplateAppliedText => _localizationState.Get(Language, "SkinStudioTemplateApplied");
         public string SkinStudioTemplateResetDoneText => _localizationState.Get(Language, "SkinStudioTemplateResetDone");
@@ -384,6 +385,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioMenuLockText));
             OnPropertyChanged(nameof(SkinStudioMenuDeleteText));
             OnPropertyChanged(nameof(SkinStudioMenuSavedText));
+            OnPropertyChanged(nameof(SkinStudioSimulateTelemetryText));
             OnPropertyChanged(nameof(SkinStudioTemplateStarterHintText));
             OnPropertyChanged(nameof(SkinStudioTemplateAppliedText));
             OnPropertyChanged(nameof(SkinStudioTemplateResetDoneText));
