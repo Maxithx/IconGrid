@@ -31,6 +31,8 @@ namespace IconGrid.Views
         private bool _suppressPropertyPanels;
         private OverlayBlock? _snippetBlock;
         private OverlayBlock? _templateBlock;
+        private System.Windows.Point _layerDragStart;
+        private OverlayBlock? _layerDragCandidate;
 
         private void AddModule_Click(object sender, RoutedEventArgs e)
         {
@@ -62,6 +64,236 @@ namespace IconGrid.Views
             }
         }
 
+        // ---------- Drag & drop in the layer list ----------
+
+        private void LayersList_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _layerDragStart = e.GetPosition(LayersList);
+            _layerDragCandidate = FindLayerBlock(e.OriginalSource as System.Windows.DependencyObject);
+        }
+
+        private void LayersList_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (e.LeftButton != System.Windows.Input.MouseButtonState.Pressed || _layerDragCandidate == null)
+            {
+                return;
+            }
+
+            var position = e.GetPosition(LayersList);
+            if (Math.Abs(position.X - _layerDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(position.Y - _layerDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+            {
+                return;
+            }
+
+            var block = _layerDragCandidate;
+            _layerDragCandidate = null;
+
+            // Folders are not draggable.
+            if (block.IsGroupLayer)
+            {
+                return;
+            }
+
+            System.Windows.DragDrop.DoDragDrop(LayersList, block, System.Windows.DragDropEffects.Move);
+        }
+
+        private void LayersList_DragOver(object sender, System.Windows.DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(typeof(OverlayBlock))
+                ? System.Windows.DragDropEffects.Move
+                : System.Windows.DragDropEffects.None;
+            e.Handled = true;
+
+            UpdateDropIndicator(e.OriginalSource as System.Windows.DependencyObject, e.GetPosition(LayersList));
+        }
+
+        private void LayersList_DragLeave(object sender, System.Windows.DragEventArgs e)
+        {
+            HideDropIndicator();
+        }
+
+        /// <summary>
+        /// Places the light-blue insertion line at the row under the pointer: above/below a module
+        /// (depending on which half is hovered) or right under a folder header (= into that group).
+        /// </summary>
+        private void UpdateDropIndicator(System.Windows.DependencyObject? hit, System.Windows.Point position)
+        {
+            var target = FindLayerBlock(hit);
+            var container = target == null ? null : LayersList.ItemContainerGenerator.ContainerFromItem(target) as System.Windows.Controls.ListBoxItem;
+
+            if (target == null || container == null)
+            {
+                HideDropIndicator();
+                return;
+            }
+
+            var top = container.TranslatePoint(new System.Windows.Point(0, 0), LayersList).Y;
+            var bottom = top + container.ActualHeight;
+
+            var y = target.IsGroupLayer
+                ? bottom                                   // dropped into the folder
+                : position.Y < top + (container.ActualHeight / 2) ? top : bottom;
+
+            LayerDropIndicator.Visibility = Visibility.Visible;
+            LayerDropIndicatorTransform.Y = y - 1;
+        }
+
+        private void HideDropIndicator()
+        {
+            if (LayerDropIndicator != null)
+            {
+                LayerDropIndicator.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void LayersList_Drop(object sender, System.Windows.DragEventArgs e)
+        {
+            HideDropIndicator();
+
+            if (e.Data.GetData(typeof(OverlayBlock)) is not OverlayBlock dragged)
+            {
+                return;
+            }
+
+            var target = FindLayerBlock(e.OriginalSource as System.Windows.DependencyObject);
+            var vm = ViewModel;
+            if (vm == null || target == null || ReferenceEquals(target, dragged))
+            {
+                return;
+            }
+
+            // Dropped on a folder row -> move the layer into that group.
+            if (target.IsGroupLayer)
+            {
+                vm.SetGamingOverlayModuleGroup(dragged, target.GroupId);
+                KeepSelection(dragged);
+                return;
+            }
+
+            // Chrome (settings/close/background) is fixed in the bar: it can only change group.
+            if (dragged.IsChromeButton)
+            {
+                vm.SetGamingOverlayModuleGroup(dragged, target.GroupId);
+                KeepSelection(dragged);
+                return;
+            }
+
+            if (target.IsChromeButton)
+            {
+                return;
+            }
+
+            // Dropped on another module -> reorder, honouring which half of the row was hovered.
+            var below = IsLowerHalf(target, e.GetPosition(LayersList));
+            vm.MoveGamingOverlayModuleBefore(dragged, target, below);
+            KeepSelection(dragged);
+        }
+
+        /// <summary>True when the pointer is in the lower half of the given layer row.</summary>
+        private bool IsLowerHalf(OverlayBlock block, System.Windows.Point position)
+        {
+            if (LayersList.ItemContainerGenerator.ContainerFromItem(block) is not System.Windows.Controls.ListBoxItem container)
+            {
+                return false;
+            }
+
+            var top = container.TranslatePoint(new System.Windows.Point(0, 0), LayersList).Y;
+            return position.Y > top + (container.ActualHeight / 2);
+        }
+
+        /// <summary>Walks up from a hit element to the layer row's OverlayBlock.</summary>
+        private OverlayBlock? FindLayerBlock(System.Windows.DependencyObject? source)
+        {
+            var current = source;
+            while (current != null)
+            {
+                if (current is System.Windows.Controls.ListBoxItem { DataContext: OverlayBlock block })
+                {
+                    return block;
+                }
+
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
+        }
+
+        // ---------- Layer groups ----------
+
+        private void NewGroup_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.AddGamingOverlayGroup();
+        }
+
+        private void UndoLayer_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.UndoGamingOverlayLayout();
+        }
+
+        /// <summary>Group folder selected -> rename field; module selected -> group picker.</summary>
+        private void LoadGroupPanel(OverlayBlock block)
+        {
+            GroupNameSection.Visibility = block.IsGroupLayer ? Visibility.Visible : Visibility.Collapsed;
+
+            var isModule = !block.IsGroupLayer;
+            ModuleGroupSection.Visibility = isModule ? Visibility.Visible : Visibility.Collapsed;
+            ModuleGroupBox.IsEnabled = isModule;
+
+            // A folder is not a module: no code snippet / custom template for it.
+            SnippetSection.Visibility = block.IsGroupLayer ? Visibility.Collapsed : Visibility.Visible;
+            TemplateSection.Visibility = block.IsGroupLayer ? Visibility.Collapsed : Visibility.Visible;
+
+            if (block.IsGroupLayer)
+            {
+                // A folder has no label/colour of its own.
+                GenericColorSection.Visibility = Visibility.Collapsed;
+                GroupNameBox.Text = block.GroupName;
+                return;
+            }
+
+            if (!isModule)
+            {
+                return;
+            }
+
+            var groups = ViewModel?.GamingOverlayGroups;
+            ModuleGroupBox.ItemsSource = groups;
+            if (groups == null || groups.Count == 0)
+            {
+                return;
+            }
+
+            // Chrome rows can be organised too; they simply start in the standard (first) group.
+            var current = groups.FirstOrDefault(group =>
+                              string.Equals(group.Id, block.GroupId, StringComparison.OrdinalIgnoreCase))
+                          ?? groups[0];
+            ModuleGroupBox.SelectedItem = current;
+        }
+
+        private void GroupNameBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (LayersList?.SelectedItem is OverlayBlock { IsGroupLayer: true } header)
+            {
+                ViewModel?.RenameGamingOverlayGroup(header.GroupId, GroupNameBox.Text);
+                KeepSelection(header);
+            }
+        }
+
+        private void ModuleGroupBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_suppressPropertyPanels || ModuleGroupBox.SelectedItem is not OverlayLayerGroup group)
+            {
+                return;
+            }
+
+            if (LayersList?.SelectedItem is OverlayBlock block && !block.IsGroupLayer)
+            {
+                ViewModel?.SetGamingOverlayModuleGroup(block, group.Id);
+                KeepSelection(block);
+            }
+        }
+
         // The layer list is reversed (topmost first), so "up" in the panel = later in the row.
         private void MoveModuleUp_Click(object sender, RoutedEventArgs e)
         {
@@ -81,9 +313,26 @@ namespace IconGrid.Views
 
         private void ToggleModuleHidden_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button { Tag: OverlayBlock block } && ViewModel != null)
+            if (sender is not Button { Tag: OverlayBlock block } || ViewModel == null)
             {
-                ViewModel.ToggleGamingOverlayModuleHidden(block);
+                return;
+            }
+
+            // The eye on a group folder hides/shows every module inside it.
+            if (block.IsGroupLayer)
+            {
+                ViewModel.ToggleGamingOverlayGroupHidden(block);
+                return;
+            }
+
+            ViewModel.ToggleGamingOverlayModuleHidden(block);
+        }
+
+        private void ToggleGroupCollapsed_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: OverlayBlock block })
+            {
+                ViewModel?.ToggleGamingOverlayGroupCollapsed(block);
             }
         }
 
@@ -115,6 +364,8 @@ namespace IconGrid.Views
                 GaugeSection.Visibility = Visibility.Collapsed;
                 ChromeSection.Visibility = Visibility.Collapsed;
                 BackgroundSection.Visibility = Visibility.Collapsed;
+                GroupNameSection.Visibility = Visibility.Collapsed;
+                ModuleGroupSection.Visibility = Visibility.Collapsed;
                 SnippetLibraryBox.ItemsSource = null;
                 SnippetEditorBox.Text = string.Empty;
                 SnippetStatusText.Text = string.Empty;
@@ -140,6 +391,7 @@ namespace IconGrid.Views
                 GenericColorSection.Visibility = Visibility.Visible;
                 LoadChromePanel(block);
                 LoadBackgroundPanel(block);
+                LoadGroupPanel(block);
                 LoadSnippetPanel(block);
                 LoadTemplatePanel(block);
             }
@@ -169,7 +421,19 @@ namespace IconGrid.Views
 
         private void DeleteSelectedModule_Click(object sender, RoutedEventArgs e)
         {
-            if (LayersList?.SelectedItem is OverlayBlock block && !block.IsChromeButton)
+            if (LayersList?.SelectedItem is not OverlayBlock block)
+            {
+                return;
+            }
+
+            // A group row deletes the whole folder (its modules move to the first group).
+            if (block.IsGroupLayer)
+            {
+                ViewModel?.RemoveGamingOverlayGroup(block.GroupId);
+                return;
+            }
+
+            if (!block.IsChromeButton)
             {
                 ViewModel?.RemoveGamingOverlayModule(block);
             }

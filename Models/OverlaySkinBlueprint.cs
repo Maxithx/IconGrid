@@ -25,6 +25,7 @@ namespace IconGrid.Models
         private OverlaySkinTheme _theme = new();
         private List<OverlayLayer> _layers = new();
         private List<OverlayBlock> _layout = new();
+        private List<OverlayLayerGroup> _groups = new();
         private List<OverlayBlock> _chrome = new();
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -98,6 +99,26 @@ namespace IconGrid.Models
             return result;
         }
 
+        /// <summary>
+        /// Folders for the layer panel. Always has at least one group so every module has a home.
+        /// </summary>
+        public List<OverlayLayerGroup> Groups
+        {
+            get => _groups;
+            set => SetField(ref _groups, EnsureGroups(value));
+        }
+
+        private static List<OverlayLayerGroup> EnsureGroups(List<OverlayLayerGroup>? groups)
+        {
+            var result = groups ?? new List<OverlayLayerGroup>();
+            if (result.Count == 0)
+            {
+                result.Add(new OverlayLayerGroup());
+            }
+
+            return result;
+        }
+
         /// <summary>Blocks that should actually be rendered (visible + known type).</summary>
         [JsonIgnore]
         public IReadOnlyList<OverlayBlock> LayoutView =>
@@ -131,6 +152,10 @@ namespace IconGrid.Models
                 // Older blueprints have no "chrome" section: the settings/close buttons were
                 // hardcoded. Materialise the two default chrome blocks so they show up as layers.
                 blueprint.Chrome = EnsureChrome(blueprint.Chrome);
+
+                // Older blueprints have no layer groups: give them the default "Gaming overlay"
+                // group so every module belongs to a folder in the panel.
+                blueprint.Groups = EnsureGroups(blueprint.Groups);
 
                 return blueprint;
             }
@@ -181,6 +206,19 @@ namespace IconGrid.Models
         public string Color2 { get; set; } = "#000000";
         public string Source { get; set; } = string.Empty;
         public string PatternKind { get; set; } = "camo";
+    }
+
+    /// <summary>
+    /// A folder in the layer panel. Pure organisation: it groups modules so the layer list stays
+    /// readable (e.g. everything from the shipped overlay in one "Gaming overlay" group).
+    /// </summary>
+    public sealed class OverlayLayerGroup
+    {
+        public string Id { get; set; } = "main";
+        public string Name { get; set; } = "Gaming overlay";
+
+        /// <summary>Eye on the folder: hides every module in the group without deleting it.</summary>
+        public bool IsHidden { get; set; }
     }
 
     /// <summary>
@@ -363,6 +401,29 @@ namespace IconGrid.Models
         public bool IsBackgroundLayer =>
             string.Equals(Block, "background", StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>True for a layer-panel group header (a folder, not a module).</summary>
+        [JsonIgnore]
+        public bool IsGroupLayer => string.Equals(Block, "group", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Group this module belongs to (props["group"]); empty means the first group.</summary>
+        [JsonIgnore]
+        public string GroupId => Get("group");
+
+        /// <summary>Display name of a group header row.</summary>
+        [JsonIgnore]
+        public string GroupName => Get("name");
+
+        /// <summary>True when a group folder is collapsed in the layer panel.</summary>
+        [JsonIgnore]
+        public bool IsCollapsed => GetBool("collapsed");
+
+        /// <summary>
+        /// Panel-only: the owning group is hidden, so the row is dimmed even though this module is
+        /// not hidden itself. Never serialized — it is recomputed when the layer list is built.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsGroupHidden { get; set; }
+
         /// <summary>True for the two action buttons (settings + close).</summary>
         [JsonIgnore]
         public bool IsButtonLayer =>
@@ -471,6 +532,7 @@ namespace IconGrid.Models
             "settings" => "Settings button",
             "close" => "Close button",
             "background" => "Overlay background",
+            "group" => GroupName,
             "stat" => DataKey switch
             {
                 "gpuClock" => "GPU clock",

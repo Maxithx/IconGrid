@@ -231,7 +231,8 @@ namespace IconGrid.Views
 
             if (SettingsMenuButton != null)
             {
-                SettingsMenuButton.Visibility = _viewModel?.GamingOverlaySettingsButton?.IsVisible == false
+                SettingsMenuButton.Visibility = _viewModel?.GamingOverlaySettingsButton?.IsVisible == false ||
+                                                _viewModel?.GamingOverlayFirstGroupHidden == true
                     ? Visibility.Collapsed
                     : Visibility.Visible;
                 SettingsMenuButton.IsHitTestVisible = !_isPreview;
@@ -245,7 +246,8 @@ namespace IconGrid.Views
 
             if (CloseButton != null)
             {
-                CloseButton.Visibility = _viewModel?.GamingOverlayCloseButton?.IsVisible == false
+                CloseButton.Visibility = _viewModel?.GamingOverlayCloseButton?.IsVisible == false ||
+                                         _viewModel?.GamingOverlayFirstGroupHidden == true
                     ? Visibility.Collapsed
                     : Visibility.Visible;
                 CloseButton.IsHitTestVisible = !_isPreview;

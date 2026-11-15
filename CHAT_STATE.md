@@ -2015,3 +2015,89 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Nye VM-properties: GamingOverlayHasCombinedGauges, GamingOverlayHasMergeableGauges (+ notifikation i CommitBlueprintLayout).
 - Handleren hedder nu ToggleGauges_Click og vaelger split/merge ud fra tilstanden.
 - Deployet 02:01, DLL 1.335.296 B (identisk begge steder), build 0/0.
+
+### Laggrupper i Skin Studio (02:15)
+- Model: `OverlayLayerGroup { Id, Name }` + `OverlaySkinBlueprint.Groups` med `EnsureGroups()` (mindst �n gruppe, default "Gaming overlay"). FromJson sikrer gruppen for gamle blueprints, saa alle eksisterende moduler lander i den.
+- `OverlayBlock`: GroupId (props["group"], tom = foerste gruppe), IsGroupLayer, GroupName; DisplayName for "group" = gruppens navn.
+- VM: `GamingOverlayLayerItems` viser nu knapper -> [grupp header + gruppens moduler (omvendt)] -> baggrund. Headere er stabile pseudo-blocks (cache pr. gruppe-id). Nye metoder: AddGamingOverlayGroup(), RenameGamingOverlayGroup(), SetGamingOverlayModuleGroup(); GamingOverlayGroups eksponeres.
+- UI: gruppe-raekker er fede med skjult oeje; ??-knappen nederst opretter en tom gruppe; Properties viser "Laggruppe > Gruppenavn" for en header og "Flyt til gruppe"-combo for et modul. Sletning er blokeret for gruppe-headere.
+- 3 nye lokaliseringsnoegler (en+da).
+- Deployet 02:15, DLL 1.341.952 B (identisk begge steder), build 0/0.
+
+### Slet en laggruppe (02:18)
+- Ny `RemoveGamingOverlayGroup(groupId)`: modulerne i gruppen flyttes til den foerste tilbagevaerende gruppe (intet lag gaar tabt), og den sidste gruppe kan ikke slettes.
+- ??-knappen sletter nu gruppen naar en gruppe-raekke er valgt (ellers som foer modulet). Tooltip: "Delete layer or group".
+
+### Gruppe-sletning fix + knapper til venstre (02:23)
+- BUG: gruppe-headerens props brugte noeglen "groupId", men `OverlayBlock.GroupId` laeser "group" -> sletning/omdoeb fik tom id. Headeren skriver nu "group" (samme noegle som moduler).
+- De tre bundknapper (Make group / Add module / Delete) er flyttet fra hoejre til VENSTRE side af lag-panelet.
+
+### Gruppe = mappe: ingen snippet/template (02:27)
+- `SnippetSection` og `TemplateSection` har faaet navne og skjules naar en gruppe-raekke er valgt (LoadGroupPanel); de vises igen for moduler/chrome.
+- En gruppe viser nu kun "Laggruppe > Gruppenavn".
+- Deployet 02:27, DLL 1.343.488 B (identisk begge steder), build 0/0.
+
+### Alle lag inde i gruppen (02:29)
+- `GamingOverlayLayerItems` laegger nu OGSAA chrome-raekkerne ind i den foerste gruppe: Settings button + Close button i toppen, Overlay background i bunden. Ingen raekker ligger uden for en mappe.
+- Moduler uden `group`-prop hoerer (som foer) til foerste gruppe, saa eksisterende layouts er uaendrede i data.
+
+### Gruppe-hierarki: mappe-ikon, indrykning, oeje, sammenklap (02:37)
+- Gruppe-raekker: ??-ikon + fedt navn, indrykkede modulnavne (18 px) og et chevron (v/?) i stedet for drag-haandtag. Chevron klik = fold gruppen sammen/ud (huskes i sessionen).
+- Gruppens OEJE skjuler alle moduler i gruppen: `OverlayLayerGroup.IsHidden` filtreres i GamingOverlayLayoutBlocks; raekkerne daempes via transient `OverlayBlock.IsGroupHidden` (ikke serialiseret).
+- Chrome (Settings/Close/Overlay background) hoerer til foerste gruppe: knapperne skjules i baren via `GamingOverlayFirstGroupHidden`, baggrunden faar Transparent-trigger.
+- Deployet 02:37, DLL 1.346.560 B (identisk begge steder), build 0/0.
+
+### Indrykning af moduler i gruppe (02:43)
+- Fejl: Margin blev sat som LOKAL vaerdi paa NamePanel (18), og lokale vaerdier vinder over DataTemplate-triggere -> gruppe og modul fik samme indrykning.
+- Nu to triggers: IsGroupLayer=True -> Margin 2, IsGroupLayer=False -> Margin 24 (Photoshop-agtig indrykning).
+- Deployet 02:43, DLL 1.347.072 B (identisk begge steder), build 0/0.
+
+### Chrome uden for gruppen igen + ingen indrykning (02:47)
+- Settings button, Close button og Overlay background er chrome og ligger nu igen UDEN for grupperne (knapper oeverst, baggrund nederst).
+- Indrykning: IsGroupLayer=False -> 24 px, men en efterfoelgende IsChromeButton=True-trigger saetter 2 px, saa chrome-raekker ikke ser ud som gruppe-medlemmer.
+- GamingOverlayFirstGroupHidden fjernet igen (chrome paavirkes ikke af gruppens oeje).
+- Deployet 02:47, DLL 1.346.560 B (identisk begge steder), build 0/0.
+
+### Chrome hoe rer til standardgruppen (02:50)
+- De tre chrome-lag (Settings button, Close button, Overlay background) er igen en del af den foerste gruppe "Gaming overlay": knapper oeverst, baggrund nederst, og de indrykkes som gruppe-medlemmer (24 px).
+- Gruppens oeje skjuler nu ogsaa chrome: knapperne via GamingOverlayFirstGroupHidden i baren, baggrunden via DataTrigger (Background=Transparent).
+- IsChromeButton-indryknings-trigger fjernet igen (chrome er i gruppen).
+- Deployet 02:50, DLL 1.347.072 B (identisk begge steder), build 0/0.
+
+### Chevron viste forkert tilstand (02:53)
+- Samme WPF-faelde som indrykningen: ChevronGlyph havde lokal Text="v" som vandt over triggeren -> gruppen kunne vaere sammenfoldet (moduler skjult) mens pilen stadig viste udfoldet.
+- Nu to triggere (IsCollapsed true -> pil hoejre, false -> pil ned) og ingen lokal Text.
+- Sammenfoldet gruppe viser kun sin egen raekke (chrome inkluderet).
+- Deployet 02:53, DLL 1.347.072 B (identisk begge steder), build 0/0.
+
+### Label: "Flyt til gruppe" -> "Laggruppe" (02:57)
+- Neutral label for modulets gruppe-combo, saa den ogsaa passer naar modulet allerede ligger i en gruppe. en: "Layer group", da: "Laggruppe".
+- Deployet 02:57, DLL 1.347.072 B (identisk begge steder), build 0/0.
+
+### Gruppe-info for chrome + drag & drop i lag-listen (03:03)
+- Chrome-raekker (Overlay background, Settings button, Close button) viser nu ogsaa "Laggruppe" i Properties, laast til den foerste gruppe (combo disabled).
+- Drag & drop i lag-listen: traek et modul og slip paa en gruppe-raekke = flyt til gruppen; slip paa et andet modul = saet det lige over det (og overtag dets gruppe). Folder- og chrome-raekker kan ikke traekkes.
+- VM: ny `MoveGamingOverlayModuleBefore(block, target)` (panel er omvendt -> indsaet efter target i Layout).
+- Deployet 03:03, DLL 1.348.608 B (identisk begge steder), build 0/0.
+
+### Blaa indsaetnings-linje ved drag i lag-listen (03:12)
+- ListBox er wrappet i en Grid med `LayerDropIndicator` (2 px, #2FA8D8, IsHitTestVisible=False) + TranslateTransform.
+- `UpdateDropIndicator` (kaldes fra DragOver) placerer linjen: over/under et modul afhaengigt af hvilken halvdel musen er i, eller lige under en gruppe-header (= ind i gruppen). DragLeave/Drop skjuler den.
+- Deployet 03:12, DLL 1.349.632 B (identisk begge steder), build 0/0.
+
+### Chrome kan flyttes mellem grupper (03:16)
+- Chrome-raekkerne (Settings/Close/Overlay background) opfoerer sig nu som moduler i lag-panelet: de har deres egen `group`-prop, kan traekkes og slippes paa en gruppe (og viser gruppen i Properties med aktiv combo).
+- `GamingOverlayLayerItems` placerer chrome pr. gruppe (knapper i toppen, baggrund i bunden af DEN gruppe den hoerer til); `GroupOf()` helper.
+- `SetGamingOverlayModuleGroup` tillader nu chrome; `RemoveGamingOverlayGroup` flytter ogsaa chrome til fallback-gruppen.
+- Render er uaendret: knapperne sidder stadig fast i hoejre side og baggrunden bag indholdet.
+- Deployet 03:16, DLL 1.350.144 B (identisk begge steder), build 0/0.
+
+### Drag nedad fix + undo i lag-panelet (03:21)
+- BUG: drop indsatte altid laget OVER maalet, saa man kun kunne flytte opad. `MoveGamingOverlayModuleBefore(block, target, placeBelow)` + `IsLowerHalf()` -> nederste halvdel = indsaet under.
+- Undo: `_undoSnapshots` (max 40 JSON-snapshots) pushes i `CommitBlueprintLayout` (springes over under restore). `UndoGamingOverlayLayout()` deserialiserer snapshot, notificerer alt og gemmer.
+- UI: ?-knap i lag-toolbaren, disabled naar der ikke er noget at fortryde (CanUndoGamingOverlayLayout).
+- Deployet 03:21, DLL 1.351.680 B (identisk begge steder), build 0/0.
+
+### Moerk hover paa lag-toolbar-knapperne (03:26)
+- `LayerRowButtonStyle` har nu en ControlTemplate med moerk hover (#2A2F35), pressed (#3A424A), hvidere foreground ved hover og opacity 0.4 naar disabled - i stedet for WPF-standardens lyse boks.
+- Deployet 03:26, build 0/0.

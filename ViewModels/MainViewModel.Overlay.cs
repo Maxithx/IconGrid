@@ -208,6 +208,73 @@ namespace IconGrid.ViewModels
         /// </summary>
         public OverlaySkinBlueprint GamingOverlayBlueprint => _gamingOverlayBlueprint;
 
+        /// <summary>Stable pseudo blocks for the layer-panel group rows (keyed by group id).</summary>
+        private readonly Dictionary<string, OverlayBlock> _groupHeaders = new(StringComparer.Ordinal);
+
+        // ---------- Undo for the layer panel ----------
+
+        private const int MaxUndoSnapshots = 40;
+        private readonly List<string> _undoSnapshots = new();
+        private bool _isRestoringUndo;
+
+        /// <summary>True when there is at least one layer-panel change to undo.</summary>
+        public bool CanUndoGamingOverlayLayout => _undoSnapshots.Count > 0;
+
+        /// <summary>Stores the current blueprint JSON before a change, so it can be undone.</summary>
+        private void PushUndoSnapshot()
+        {
+            if (_isRestoringUndo)
+            {
+                return;
+            }
+
+            _undoSnapshots.Add(_gamingOverlayBlueprint.ToJson());
+            if (_undoSnapshots.Count > MaxUndoSnapshots)
+            {
+                _undoSnapshots.RemoveAt(0);
+            }
+
+            OnPropertyChanged(nameof(CanUndoGamingOverlayLayout));
+        }
+
+        /// <summary>Reverts the last layer-panel change (add/move/delete/group/eye/...).</summary>
+        public bool UndoGamingOverlayLayout()
+        {
+            if (_undoSnapshots.Count == 0)
+            {
+                return false;
+            }
+
+            var json = _undoSnapshots[^1];
+            _undoSnapshots.RemoveAt(_undoSnapshots.Count - 1);
+
+            _isRestoringUndo = true;
+            try
+            {
+                _gamingOverlayBlueprint = OverlaySkinBlueprint.FromJson(json);
+
+                OnPropertyChanged(nameof(GamingOverlayBlueprint));
+                OnPropertyChanged(nameof(GamingOverlayBlueprintJson));
+                OnPropertyChanged(nameof(GamingOverlayLayoutBlocks));
+                OnPropertyChanged(nameof(GamingOverlayLayerItems));
+                OnPropertyChanged(nameof(GamingOverlayGroups));
+                OnPropertyChanged(nameof(GamingOverlaySettingsButton));
+                OnPropertyChanged(nameof(GamingOverlayCloseButton));
+                OnPropertyChanged(nameof(GamingOverlayBackgroundLayer));
+                OnPropertyChanged(nameof(GamingOverlayHasCombinedGauges));
+                OnPropertyChanged(nameof(GamingOverlayHasMergeableGauges));
+                OnPropertyChanged(nameof(SkinStudioGaugeLayoutActionText));
+                SaveSettingsToConfig();
+            }
+            finally
+            {
+                _isRestoringUndo = false;
+            }
+
+            OnPropertyChanged(nameof(CanUndoGamingOverlayLayout));
+            return true;
+        }
+
         /// <summary>JSON of the active blueprint (used by the Skin Studio editor).</summary>
         public string GamingOverlayBlueprintJson => _gamingOverlayBlueprint.ToJson();
 
@@ -390,19 +457,290 @@ namespace IconGrid.ViewModels
             {
                 var items = new List<OverlayBlock>();
 
-                // Top of the list = closest to the viewer: the fixed action buttons sit above the
-                // module row, so they come first, then the modules (last module first), and the
-                // bar background ends up at the bottom like a Photoshop background layer.
-                items.AddRange(_gamingOverlayBlueprint.Chrome.Where(block => block.IsButtonLayer));
+                // Chrome (action buttons + bar background) is organised like a module: it lives in
+                // whichever group it was dropped into.
+                var groups = _gamingOverlayBlueprint.Groups;
+                var chromeButtons = _gamingOverlayBlueprint.Chrome.Where(block => block.IsButtonLayer).ToList();
+                var background = _gamingOverlayBlueprint.Chrome.Where(block => block.IsBackgroundLayer).ToList();
 
-                var blocks = new List<OverlayBlock>(_gamingOverlayBlueprint.Layout);
-                blocks.Reverse();
-                items.AddRange(blocks);
+                for (var index = 0; index < groups.Count; index++)
+                {
+                    var group = groups[index];
+                    var header = HeaderFor(group);
+                    header.IsGroupHidden = group.IsHidden;
+                    items.Add(header);
 
-                items.AddRange(_gamingOverlayBlueprint.Chrome.Where(block => block.IsBackgroundLayer));
+                    // A collapsed folder shows only its own row (chrome included).
+                    if (_collapsedGroups.Contains(group.Id))
+                    {
+                        continue;
+                    }
+
+                    // The overlay chrome behaves like a module for organisation: it lives in the
+                    // group it was dropped into (buttons on top, bar background at the bottom).
+                    var groupButtons = chromeButtons.Where(chrome => GroupOf(chrome, groups) == group.Id).ToList();
+                    var groupBackground = background.Where(chrome => GroupOf(chrome, groups) == group.Id).ToList();
+
+                    foreach (var chrome in groupButtons.Concat(groupBackground))
+                    {
+                        chrome.IsGroupHidden = group.IsHidden;
+                    }
+
+                    items.AddRange(groupButtons);
+
+                    var blocks = _gamingOverlayBlueprint.Layout
+                        .Where(block => string.Equals(GroupOf(block, groups), group.Id, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    foreach (var block in blocks)
+                    {
+                        block.IsGroupHidden = group.IsHidden;
+                    }
+
+                    blocks.Reverse();
+                    items.AddRange(blocks);
+                    items.AddRange(groupBackground);
+                }
 
                 return items;
             }
+        }
+
+        /// <summary>Layer groups (folders) of the current blueprint.</summary>
+        public IReadOnlyList<OverlayLayerGroup> GamingOverlayGroups => _gamingOverlayBlueprint.Groups;
+
+        /// <summary>True when the first group (the standard overlay) is hidden via its folder eye.</summary>
+        public bool GamingOverlayFirstGroupHidden =>
+            _gamingOverlayBlueprint.Groups.Count > 0 && _gamingOverlayBlueprint.Groups[0].IsHidden;
+
+        /// <summary>
+        /// Stable pseudo block that represents a group row in the layer panel, so selecting and
+        /// renaming a group keeps working while the list is rebuilt after every edit.
+        /// </summary>
+        private OverlayBlock HeaderFor(OverlayLayerGroup group)
+        {
+            if (!_groupHeaders.TryGetValue(group.Id, out var header))
+            {
+                header = new OverlayBlock { Block = "group" };
+                _groupHeaders[group.Id] = header;
+            }
+
+            header.Props = new Dictionary<string, string>
+            {
+                // "group" is the key OverlayBlock.GroupId reads, so group actions (rename/delete)
+                // work for the header row exactly like they do for a module.
+                ["group"] = group.Id,
+                ["name"] = group.Name,
+                ["hidden"] = group.IsHidden ? "true" : "false",
+                ["collapsed"] = _collapsedGroups.Contains(group.Id) ? "true" : "false"
+            };
+
+            return header;
+        }
+
+        /// <summary>Group folders the user collapsed in the layer panel (not persisted).</summary>
+        private readonly HashSet<string> _collapsedGroups = new(StringComparer.Ordinal);
+
+        /// <summary>Eye on a group folder: hides or shows every module inside it.</summary>
+        public void ToggleGamingOverlayGroupHidden(OverlayBlock? header)
+        {
+            if (header is not { IsGroupLayer: true })
+            {
+                return;
+            }
+
+            var group = _gamingOverlayBlueprint.Groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, header.GroupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return;
+            }
+
+            group.IsHidden = !group.IsHidden;
+            CommitBlueprintLayout(_ => { });
+        }
+
+        /// <summary>Expands/collapses a group folder in the layer panel.</summary>
+        public void ToggleGamingOverlayGroupCollapsed(OverlayBlock? header)
+        {
+            if (header is not { IsGroupLayer: true } || string.IsNullOrWhiteSpace(header.GroupId))
+            {
+                return;
+            }
+
+            if (!_collapsedGroups.Remove(header.GroupId))
+            {
+                _collapsedGroups.Add(header.GroupId);
+            }
+
+            OnPropertyChanged(nameof(GamingOverlayLayerItems));
+        }
+
+        /// <summary>Creates an empty layer group (a folder for a new/custom overlay).</summary>
+        public OverlayLayerGroup AddGamingOverlayGroup(string? name = null)
+        {
+            var groups = new List<OverlayLayerGroup>(_gamingOverlayBlueprint.Groups);
+            var group = new OverlayLayerGroup
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = string.IsNullOrWhiteSpace(name)
+                    ? $"Gaming overlay {groups.Count + 1}"
+                    : name.Trim()
+            };
+
+            groups.Add(group);
+            CommitBlueprintLayout(_ => _gamingOverlayBlueprint.Groups = groups);
+            OnPropertyChanged(nameof(GamingOverlayGroups));
+            return group;
+        }
+
+        /// <summary>Renames one layer group.</summary>
+        public void RenameGamingOverlayGroup(string? groupId, string? name)
+        {
+            if (string.IsNullOrWhiteSpace(groupId) || string.IsNullOrWhiteSpace(name))
+            {
+                return;
+            }
+
+            var group = _gamingOverlayBlueprint.Groups
+                .FirstOrDefault(candidate => string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null || string.Equals(group.Name, name.Trim(), StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            group.Name = name.Trim();
+            CommitBlueprintLayout(_ => { });
+        }
+
+        /// <summary>Group a block belongs to (empty group prop = the first group).</summary>
+        private static string GroupOf(OverlayBlock block, IReadOnlyList<OverlayLayerGroup> groups)
+        {
+            if (!string.IsNullOrWhiteSpace(block.GroupId))
+            {
+                return block.GroupId;
+            }
+
+            return groups.Count > 0 ? groups[0].Id : "main";
+        }
+
+        /// <summary>Moves a module into another layer group (empty id = the first group).</summary>
+        public void SetGamingOverlayModuleGroup(OverlayBlock? block, string? groupId)
+        {
+            if (block == null || block.IsGroupLayer)
+            {
+                return;
+            }
+
+            SetGamingOverlayModuleProperty(block, "group", string.IsNullOrWhiteSpace(groupId) ? null : groupId);
+        }
+
+        /// <summary>
+        /// Drag &amp; drop inside the layer panel: puts <paramref name="block"/> right above
+        /// <paramref name="target"/> (adopting its group when they differ).
+        /// The panel lists modules in reverse layout order, so "above in the panel" means
+        /// "after the target" in the layout list.
+        /// </summary>
+        public void MoveGamingOverlayModuleBefore(OverlayBlock? block, OverlayBlock? target, bool placeBelow = false)
+        {
+            if (block == null || target == null || block == target ||
+                block.IsGroupLayer || target.IsGroupLayer || block.IsChromeButton || target.IsChromeButton)
+            {
+                return;
+            }
+
+            CommitBlueprintLayout(blocks =>
+            {
+                if (!blocks.Contains(block) || !blocks.Contains(target))
+                {
+                    return;
+                }
+
+                var targetGroup = target.GroupId;
+                if (!string.Equals(block.GroupId, targetGroup, StringComparison.OrdinalIgnoreCase))
+                {
+                    block.Props ??= new Dictionary<string, string>();
+                    if (string.IsNullOrWhiteSpace(targetGroup))
+                    {
+                        block.Props.Remove("group");
+                    }
+                    else
+                    {
+                        block.Props["group"] = targetGroup;
+                    }
+                }
+
+                blocks.Remove(block);
+                var targetIndex = blocks.IndexOf(target);
+
+                // The panel lists modules in reverse layout order: "above the target in the panel"
+                // means after it in the layout, "below" means before it.
+                var insertAt = placeBelow ? targetIndex : targetIndex + 1;
+                blocks.Insert(Math.Max(0, Math.Min(insertAt, blocks.Count)), block);
+            });
+        }
+
+        /// <summary>
+        /// Deletes a layer group. Its modules are moved to the first remaining group so no layer is
+        /// lost, and the last group can never be removed (every module needs a folder).
+        /// </summary>
+        public bool RemoveGamingOverlayGroup(string? groupId)
+        {
+            if (string.IsNullOrWhiteSpace(groupId))
+            {
+                return false;
+            }
+
+            var groups = _gamingOverlayBlueprint.Groups;
+            if (groups.Count <= 1)
+            {
+                return false;
+            }
+
+            var group = groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return false;
+            }
+
+            var remaining = groups.Where(candidate => !ReferenceEquals(candidate, group)).ToList();
+            var fallbackId = remaining[0].Id;
+            var defaultGroupId = groups[0].Id;
+
+            CommitBlueprintLayout(blocks =>
+            {
+                foreach (var block in blocks)
+                {
+                    var blockGroup = string.IsNullOrWhiteSpace(block.GroupId) ? defaultGroupId : block.GroupId;
+                    if (!string.Equals(blockGroup, groupId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    block.Props ??= new Dictionary<string, string>();
+                    block.Props["group"] = fallbackId;
+                }
+
+                // The chrome rows are organised like modules, so they move to the fallback group too.
+                foreach (var chrome in _gamingOverlayBlueprint.Chrome)
+                {
+                    if (string.Equals(chrome.GroupId, groupId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        chrome.Props ??= new Dictionary<string, string>();
+                        chrome.Props["group"] = fallbackId;
+                    }
+                }
+
+                _gamingOverlayBlueprint.Groups = remaining;
+            });
+
+            _groupHeaders.Remove(groupId);
+            OnPropertyChanged(nameof(GamingOverlayGroups));
+            return true;
         }
 
         /// <summary>Blueprint chrome block for the overlay settings (cog) button.</summary>
@@ -694,6 +1032,8 @@ namespace IconGrid.ViewModels
 
         private void CommitBlueprintLayout(Action<List<OverlayBlock>> mutate)
         {
+            PushUndoSnapshot();
+
             // Work on a copy and assign a NEW list: the ItemsControl only refreshes its item
             // containers when the collection instance (or a collection change) is observed.
             var blocks = new List<OverlayBlock>(_gamingOverlayBlueprint.Layout);
@@ -704,6 +1044,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayBlueprintJson));
             OnPropertyChanged(nameof(GamingOverlayLayoutBlocks));
             OnPropertyChanged(nameof(GamingOverlayLayerItems));
+            OnPropertyChanged(nameof(GamingOverlayGroups));
+            OnPropertyChanged(nameof(GamingOverlayFirstGroupHidden));
             OnPropertyChanged(nameof(GamingOverlaySettingsButton));
             OnPropertyChanged(nameof(GamingOverlayCloseButton));
             OnPropertyChanged(nameof(GamingOverlayBackgroundLayer));
@@ -722,10 +1064,22 @@ namespace IconGrid.ViewModels
             get
             {
                 var blocks = new List<OverlayBlock>();
+                var groups = _gamingOverlayBlueprint.Groups;
+                var defaultGroupId = groups.Count > 0 ? groups[0].Id : "main";
 
                 foreach (var block in _gamingOverlayBlueprint.Layout)
                 {
                     if (block == null || !block.IsVisible)
+                    {
+                        continue;
+                    }
+
+                    // The eye on a group folder hides every module inside it.
+                    var blockGroupId = string.IsNullOrWhiteSpace(block.GroupId) ? defaultGroupId : block.GroupId;
+                    var group = groups.FirstOrDefault(candidate =>
+                        string.Equals(candidate.Id, blockGroupId, StringComparison.OrdinalIgnoreCase));
+
+                    if (group is { IsHidden: true })
                     {
                         continue;
                     }

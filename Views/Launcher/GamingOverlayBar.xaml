@@ -693,6 +693,9 @@
                             <DataTrigger Binding="{Binding GamingOverlayBackgroundLayer.IsHidden}" Value="True">
                                 <Setter Property="Background" Value="Transparent" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding GamingOverlayFirstGroupHidden}" Value="True">
+                                <Setter Property="Background" Value="Transparent" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                 <Setter Property="Background" Value="Transparent" />
                             </DataTrigger>

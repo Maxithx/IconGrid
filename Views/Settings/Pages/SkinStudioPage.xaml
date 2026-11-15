@@ -103,6 +103,28 @@
             <Setter Property="Foreground" Value="#9AA4B0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Dark hover: the default WPF highlight is a light box that looks wrong here. -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#2A2F35" />
+                                <Setter Property="Foreground" Value="#E6EDF3" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#3A424A" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!--
@@ -328,10 +350,17 @@
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="＋" ToolTip="Add layer" Click="AddModule_Click" Tag="divider" Foreground="#C9D1D9" />
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="🔒" ToolTip="Lock" Foreground="#C9D1D9" />
                 </StackPanel>
-                <ListBox x:Name="LayersList" Grid.Row="3"
+                <Grid Grid.Row="3">
+                <ListBox x:Name="LayersList"
                          Background="Transparent" BorderThickness="0" Foreground="#E6EDF3"
                          ItemsSource="{Binding GamingOverlayLayerItems}"
                          SelectionChanged="LayersList_SelectionChanged"
+                         AllowDrop="True"
+                         PreviewMouseLeftButtonDown="LayersList_PreviewMouseLeftButtonDown"
+                         PreviewMouseMove="LayersList_PreviewMouseMove"
+                         DragOver="LayersList_DragOver"
+                         DragLeave="LayersList_DragLeave"
+                         Drop="LayersList_Drop"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
@@ -363,7 +392,7 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid>
+                            <Grid x:Name="RowRoot">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="24" />
                                     <ColumnDefinition Width="*" />
@@ -373,24 +402,74 @@
                                         Click="ToggleModuleHidden_Click" ToolTip="Show / hide">
                                     <TextBlock x:Name="EyeGlyph" Text="👁" FontSize="12" />
                                 </Button>
-                                <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Margin="4,0,0,0"
-                                           Foreground="#E6EDF3" VerticalAlignment="Center" FontSize="12" />
-                                <TextBlock Grid.Column="2" Text="☰" Foreground="#5C6672" FontSize="11"
+                                <StackPanel x:Name="NamePanel" Grid.Column="1" Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock x:Name="FolderGlyph" Text="📁" FontSize="12" Margin="0,0,4,0"
+                                               VerticalAlignment="Center" Visibility="Collapsed" />
+                                    <TextBlock x:Name="LayerNameText" Text="{Binding DisplayName}"
+                                               Foreground="#E6EDF3" VerticalAlignment="Center" FontSize="12" />
+                                </StackPanel>
+                                <TextBlock x:Name="DragHandle" Grid.Column="2" Text="☰" Foreground="#5C6672" FontSize="11"
                                            VerticalAlignment="Center" Margin="6,0,0,0" />
+                                <Button x:Name="ChevronButton" Grid.Column="2" Visibility="Collapsed"
+                                        Style="{StaticResource LayerRowButtonStyle}" Tag="{Binding}"
+                                        Click="ToggleGroupCollapsed_Click" ToolTip="Expand / collapse group">
+                                    <TextBlock x:Name="ChevronGlyph" FontSize="11" />
+                                </Button>
                             </Grid>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding IsHidden}" Value="True">
                                     <Setter TargetName="EyeGlyph" Property="Opacity" Value="0.25" />
+                                </DataTrigger>
+                                <!-- Group rows are folders: folder icon, bold name, no indent, chevron. -->
+                                <DataTrigger Binding="{Binding IsGroupLayer}" Value="True">
+                                    <Setter TargetName="FolderGlyph" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="LayerNameText" Property="FontWeight" Value="Bold" />
+                                    <Setter TargetName="NamePanel" Property="Margin" Value="2,0,0,0" />
+                                    <Setter TargetName="DragHandle" Property="Visibility" Value="Collapsed" />
+                                    <Setter TargetName="ChevronButton" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <!-- Modules inside a folder are indented, like Photoshop's layer tree. -->
+                                <DataTrigger Binding="{Binding IsGroupLayer}" Value="False">
+                                    <Setter TargetName="NamePanel" Property="Margin" Value="24,0,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
+                                    <Setter TargetName="ChevronGlyph" Property="Text" Value="▸" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCollapsed}" Value="False">
+                                    <Setter TargetName="ChevronGlyph" Property="Text" Value="▾" />
+                                </DataTrigger>
+                                <!-- A hidden group dims all of its rows, not just its own folder row. -->
+                                <DataTrigger Binding="{Binding IsGroupHidden}" Value="True">
+                                    <Setter TargetName="RowRoot" Property="Opacity" Value="0.45" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,10">
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="📁" ToolTip="New group" />
+                    <!-- Light-blue insertion line shown while dragging a layer. -->
+                    <Border x:Name="LayerDropIndicator"
+                            Height="2"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Stretch"
+                            Margin="24,0,8,0"
+                            Background="#2FA8D8"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="LayerDropIndicatorTransform" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
+
+                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,10">
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="↶" ToolTip="Undo last layer change"
+                            Click="UndoLayer_Click" IsEnabled="{Binding CanUndoGamingOverlayLayout}" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="📁" ToolTip="Make group"
+                            Click="NewGroup_Click" />
                     <Button Style="{StaticResource LayerRowButtonStyle}" Tag="clock" Click="AddModule_Click" Content="＋" ToolTip="Add module" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer" Click="DeleteSelectedModule_Click" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer or group" Click="DeleteSelectedModule_Click" />
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" MaxHeight="430">
@@ -407,7 +486,23 @@
                                      BorderBrush="#33373D" LostFocus="PropColorBox_LostFocus" />
                         </StackPanel>
 
-                        <!-- Gauge (CPU / GPU usage) appearance: only visible for gauge modules. -->
+                        <!-- Layer groups: rename a folder, or move the selected module into one. -->
+                        <StackPanel x:Name="GroupNameSection" Visibility="Collapsed" Margin="0,14,0,0">
+                            <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
+                            <TextBlock Text="{Binding SkinStudioGroupTitleText}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="#E6EDF3" Margin="0,0,0,6" />
+                            <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioGroupNameLabelText}" />
+                            <TextBox x:Name="GroupNameBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
+                                     BorderBrush="#33373D" LostFocus="GroupNameBox_LostFocus" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="ModuleGroupSection" Visibility="Collapsed" Margin="0,12,0,0">
+                            <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioModuleGroupLabelText}" />
+                            <ComboBox x:Name="ModuleGroupBox" Style="{StaticResource StudioComboBoxStyle}"
+                                      DisplayMemberPath="Name"
+                                      SelectionChanged="ModuleGroupBox_SelectionChanged" />
+                        </StackPanel>
+
                         <StackPanel x:Name="GaugeSection" Visibility="Collapsed" Margin="0,14,0,0">
                             <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
                             <TextBlock Text="{Binding SkinStudioGaugeTitleText}" FontSize="12" FontWeight="SemiBold"
@@ -491,7 +586,7 @@
                                      BorderBrush="#33373D" LostFocus="BackgroundRadiusBox_LostFocus" />
                         </StackPanel>
                         <!-- Code snippet for the selected module: a JSON property patch. -->
-                        <StackPanel Margin="0,14,0,0">
+                        <StackPanel x:Name="SnippetSection" Margin="0,14,0,0">
                             <Border Height="1" Background="#2A2D31" Margin="0,0,0,10" />
                             <TextBlock Text="{Binding SkinStudioSnippetTitleText}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="#E6EDF3" Margin="0,0,0,6" />
@@ -524,7 +619,7 @@
                         </StackPanel>
 
                         <!-- Niveau B: a free XAML template that replaces this module's built-in look. -->
-                        <Expander Margin="0,12,0,0" Foreground="#E6EDF3" IsExpanded="False"
+                        <Expander x:Name="TemplateSection" Margin="0,12,0,0" Foreground="#E6EDF3" IsExpanded="False"
                                   Header="{Binding SkinStudioTemplateTitleText}">
                             <StackPanel Margin="0,8,0,0">
                                 <TextBlock Text="{Binding SkinStudioTemplateHintText}" Foreground="#8B949E"
