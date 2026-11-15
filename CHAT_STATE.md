@@ -1974,8 +1974,25 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 
 ### Sprogskift: dropdown beholder valget (23:14) - DEFINITIV
 - Rod-aarsag: ved sprogskift blev ItemsSource UDSKIFTET (ny List), og WPF-clearede derfor selection -> tom boks. Dispatcher-fix (23:09) var ikke nok.
-- Ny `StartsidePage.LauncherOption` (Key + Display, INotifyPropertyChanged). De tre lister er nu `ObservableCollection<LauncherOption>` der oprettes ÉN gang (noegler faste: 0/1/2, 1/2/3/5/10, 0/1).
+- Ny `StartsidePage.LauncherOption` (Key + Display, INotifyPropertyChanged). De tre lister er nu `ObservableCollection<LauncherOption>` der oprettes ï¿½N gang (noegler faste: 0/1/2, 1/2/3/5/10, 0/1).
 - Sprogskift kalder `UpdateOptions(...)` som kun skriver nye Display-tekster -> ingen ItemsSource-reset, selection bevares, teksten skifter sprog live.
 - XAML: DisplayMemberPath="Value" -> "Display" paa de tre dropdowns; SelectedValuePath="Key" uaendret.
 - Verificeret at `LauncherOption` findes i den deployede DLL.
 - Deployet 23:14, build 0/0.
+
+### Overlay-baggrundens firkantede hjoerner (01:38)
+- WPF Border klipper IKKE boern til CornerRadius, saa de tre baggrundslag (BackgroundImage/Tint/Pattern, ColumnSpan=2) tegnede firkantede hjoerner bag den runde bar.
+- `ApplyChamfer()` klipper nu OverlayRoot til en RectangleGeometry med CornerRadius naar chamfer = 0 (chamfer-stien uaendret); null-klip kun naar baade chamfer og radius er 0.
+- `Skin_PropertyChanged` reagerer nu ogsaa paa CornerRadius -> klippet foelger med live.
+- Deployet 01:38, DLL 1.330.688 B (identisk begge steder), build 0/0.
+
+### Mindre runde hjoerner som standard (01:42)
+- `GamingOverlaySkin._cornerRadius` default 8 -> 4.
+- Migration i `GamingOverlaySkin.FromJson`: hvis en gemt skin staar paa praecis 8 (den gamle default, som gav for runde sider paa den 44 px hoje bar) saettes den til 4; andre vaerdier roeres ikke (samme moenster som divider-height 18->12).
+- Radius kan stadig aendres i Skin Studio > Overlay background > Corner radius.
+- Deployet 01:42, DLL 1.330.688 B (identisk begge steder), build 0/0.
+
+### Hjoerner: aarsag fundet - gemt skin havde 18 (01:45)
+- Brugerens config (AppData\Roaming\IconGrid\config.json) havde `"CornerRadius": 18.0` i GamingOverlaySkinJson, saa migreringen 8->4 ramte ikke.
+- Migrationen daekker nu BEGGE legacy-defaults (8 og 18) -> 4; andre vaerdier roeres ikke.
+- Deployet 01:45, DLL 1.330.688 B (identisk begge steder), build 0/0.

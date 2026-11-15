@@ -55,7 +55,7 @@ namespace IconGrid.Models
         private double _dividerHeight = 12;
         private string _fontFamily = "Segoe UI";
         private string _monoFontFamily = "Consolas";
-        private double _cornerRadius = 8;
+        private double _cornerRadius = 4;
 
         // ---------- Layered design tokens (chips / buttons / background art / logo) ----------
         private bool _showChips;
@@ -852,6 +852,14 @@ namespace IconGrid.Models
                 if (Math.Abs(skin.DividerHeight - 18) < 0.01)
                 {
                     skin.DividerHeight = 12;
+                }
+
+                // 8 px was the original bar corner radius and 18 px came from the early showcase
+                // skins; both look too round on the 44 px bar (18 reads as a pill). Migrate only
+                // those two legacy values to the new 4 px default — any other value is left alone.
+                if (Math.Abs(skin.CornerRadius - 8) < 0.01 || Math.Abs(skin.CornerRadius - 18) < 0.01)
+                {
+                    skin.CornerRadius = 4;
                 }
 
                 return skin;

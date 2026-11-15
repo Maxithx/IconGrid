@@ -101,12 +101,31 @@ namespace IconGrid.Views
             }
 
             var size = _viewModel?.GamingOverlaySkin.ChamferSizeValue ?? 0;
+            var radius = _viewModel?.GamingOverlaySkin.CornerRadius ?? 0;
             var width = OverlayRoot.ActualWidth;
             var height = OverlayRoot.ActualHeight;
 
-            if (size <= 0 || width <= 0 || height <= 0)
+            if (width <= 0 || height <= 0)
             {
                 OverlayRoot.Clip = null;
+                return;
+            }
+
+            // WPF's Border does not clip its children to its CornerRadius, so the background/tint/
+            // pattern layers inside the bar kept square corners behind the rounded shape. Clip the
+            // whole bar to the rounded rectangle when no chamfer is set.
+            if (size <= 0)
+            {
+                if (radius <= 0)
+                {
+                    OverlayRoot.Clip = null;
+                    return;
+                }
+
+                var rounded = new RectangleGeometry(
+                    new System.Windows.Rect(0, 0, width, height), radius, radius);
+                rounded.Freeze();
+                OverlayRoot.Clip = rounded;
                 return;
             }
 
@@ -168,7 +187,8 @@ namespace IconGrid.Views
 
         private void Skin_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (string.Equals(e.PropertyName, nameof(GamingOverlaySkin.ChamferSizeValue), StringComparison.Ordinal))
+            if (string.Equals(e.PropertyName, nameof(GamingOverlaySkin.ChamferSizeValue), StringComparison.Ordinal) ||
+                string.Equals(e.PropertyName, nameof(GamingOverlaySkin.CornerRadius), StringComparison.Ordinal))
             {
                 ApplyChamfer();
             }
