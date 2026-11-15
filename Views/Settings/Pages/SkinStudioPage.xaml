@@ -345,10 +345,9 @@
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBlock Text="Layer:" Foreground="#C9D1D9" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="✎" ToolTip="Paint" Foreground="#C9D1D9" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="✒" ToolTip="Path" Foreground="#C9D1D9" />
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="＋" ToolTip="Add layer" Click="AddModule_Click" Tag="divider" Foreground="#C9D1D9" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🔒" ToolTip="Lock" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🔒" ToolTip="Lock / unlock the selected layer or group"
+                            Click="ToggleLock_Click" Foreground="#C9D1D9" />
                 </StackPanel>
                 <Grid Grid.Row="3">
                 <ListBox x:Name="LayersList"
@@ -392,7 +391,7 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid x:Name="RowRoot">
+                            <Grid x:Name="RowRoot" Margin="0,0,10,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="24" />
                                     <ColumnDefinition Width="*" />
@@ -408,6 +407,8 @@
                                                VerticalAlignment="Center" Visibility="Collapsed" />
                                     <TextBlock x:Name="LayerNameText" Text="{Binding DisplayName}"
                                                Foreground="#E6EDF3" VerticalAlignment="Center" FontSize="12" />
+                                    <TextBlock x:Name="LockGlyph" Text="🔒" FontSize="10" Margin="6,0,0,0"
+                                               VerticalAlignment="Center" Visibility="Collapsed" />
                                 </StackPanel>
                                 <TextBlock x:Name="DragHandle" Grid.Column="2" Text="☰" Foreground="#5C6672" FontSize="11"
                                            VerticalAlignment="Center" Margin="6,0,0,0" />
@@ -443,6 +444,10 @@
                                 <DataTrigger Binding="{Binding IsGroupHidden}" Value="True">
                                     <Setter TargetName="RowRoot" Property="Opacity" Value="0.45" />
                                 </DataTrigger>
+                                <!-- Locked rows show a padlock next to the name. -->
+                                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                    <Setter TargetName="LockGlyph" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -472,8 +477,9 @@
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer or group" Click="DeleteSelectedModule_Click" />
                 </StackPanel>
 
-                <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" MaxHeight="430">
-                    <StackPanel>
+                <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" MaxHeight="430"
+                              Padding="0,0,10,0">
+                    <StackPanel Margin="0,0,2,0">
                         <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
                                    Foreground="#E6EDF3" Margin="0,0,0,8" />
                         <TextBlock x:Name="SelectedModuleText" Foreground="#8B949E" FontSize="12" Text="—" />

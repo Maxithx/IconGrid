@@ -376,7 +376,7 @@ namespace IconGrid.ViewModels
 
         public void RemoveGamingOverlayModule(OverlayBlock? block)
         {
-            if (block == null)
+            if (block == null || block.IsLocked)
             {
                 return;
             }
@@ -387,7 +387,7 @@ namespace IconGrid.ViewModels
         /// <summary>Moves a module one step left (delta -1) or right (delta +1).</summary>
         public void MoveGamingOverlayModule(OverlayBlock? block, int delta)
         {
-            if (block == null || delta == 0)
+            if (block == null || block.IsLocked || delta == 0)
             {
                 return;
             }
@@ -532,7 +532,8 @@ namespace IconGrid.ViewModels
                 ["group"] = group.Id,
                 ["name"] = group.Name,
                 ["hidden"] = group.IsHidden ? "true" : "false",
-                ["collapsed"] = _collapsedGroups.Contains(group.Id) ? "true" : "false"
+                ["collapsed"] = _collapsedGroups.Contains(group.Id) ? "true" : "false",
+                ["locked"] = group.IsLocked ? "true" : "false"
             };
 
             return header;
@@ -575,6 +576,35 @@ namespace IconGrid.ViewModels
             }
 
             OnPropertyChanged(nameof(GamingOverlayLayerItems));
+        }
+
+        /// <summary>
+        /// Toggles the padlock of the selected layer row: a locked module cannot be moved,
+        /// regrouped or deleted, and a locked folder cannot be deleted.
+        /// </summary>
+        public void ToggleGamingOverlayLock(OverlayBlock? row)
+        {
+            if (row == null)
+            {
+                return;
+            }
+
+            if (row.IsGroupLayer)
+            {
+                var group = _gamingOverlayBlueprint.Groups.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, row.GroupId, StringComparison.Ordinal));
+
+                if (group == null)
+                {
+                    return;
+                }
+
+                group.IsLocked = !group.IsLocked;
+                CommitBlueprintLayout(_ => { });
+                return;
+            }
+
+            SetGamingOverlayModuleProperty(row, "locked", row.IsLocked ? null : "true");
         }
 
         /// <summary>Creates an empty layer group (a folder for a new/custom overlay).</summary>
@@ -629,7 +659,7 @@ namespace IconGrid.ViewModels
         /// <summary>Moves a module into another layer group (empty id = the first group).</summary>
         public void SetGamingOverlayModuleGroup(OverlayBlock? block, string? groupId)
         {
-            if (block == null || block.IsGroupLayer)
+            if (block == null || block.IsLocked || block.IsGroupLayer)
             {
                 return;
             }
@@ -646,6 +676,7 @@ namespace IconGrid.ViewModels
         public void MoveGamingOverlayModuleBefore(OverlayBlock? block, OverlayBlock? target, bool placeBelow = false)
         {
             if (block == null || target == null || block == target ||
+                block.IsLocked || target.IsLocked ||
                 block.IsGroupLayer || target.IsGroupLayer || block.IsChromeButton || target.IsChromeButton)
             {
                 return;
@@ -695,6 +726,12 @@ namespace IconGrid.ViewModels
 
             var groups = _gamingOverlayBlueprint.Groups;
             if (groups.Count <= 1)
+            {
+                return false;
+            }
+
+            if (groups.Any(candidate =>
+                    string.Equals(candidate.Id, groupId, StringComparison.Ordinal) && candidate.IsLocked))
             {
                 return false;
             }

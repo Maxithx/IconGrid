@@ -2101,3 +2101,23 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 ### Moerk hover paa lag-toolbar-knapperne (03:26)
 - `LayerRowButtonStyle` har nu en ControlTemplate med moerk hover (#2A2F35), pressed (#3A424A), hvidere foreground ved hover og opacity 0.4 naar disabled - i stedet for WPF-standardens lyse boks.
 - Deployet 03:26, build 0/0.
+
+### Lock virker nu + paint/path fjernet (03:34)
+- "Layer:"-raekken har nu kun + (add) og lock; paint og path er fjernet.
+- `OverlayBlock.IsLocked` (props["locked"]) + `OverlayLayerGroup.IsLocked`; gruppe-headeren faar "locked" i props.
+- VM `ToggleGamingOverlayLock(row)`: gruppe-header -> gruppe.IsLocked, ellers props["locked"] paa modul/chrome.
+- Laas blokerer: RemoveGamingOverlayModule, MoveGamingOverlayModule, MoveGamingOverlayModuleBefore (baade kilde og maal), SetGamingOverlayModuleGroup, RemoveGamingOverlayGroup (laast gruppe) og drag-start.
+- Raekken viser et lille laas-glyph ved navnet naar den er laast (LockGlyph + DataTrigger IsLocked).
+- Deployet 03:34, DLL 1.353.216 B (identisk begge steder), build 0/0.
+
+### Egenskabs-panel: hoejre kant klippet af scrollbar (03:41)
+- Problem: TextBoxene i egenskabs-panelet gik ind under Windows 11's overlay-scrollbar, saa hoejre kant var skjult. Kun de fast-bredde ComboBoxes (fx "Laggruppe") saa paene ud.
+- Fix i `SkinStudioPage.xaml`: ScrollViewer for egenskaber fik `Padding="0,0,10,0"` og indre StackPanel `Margin="0,0,2,0"`.
+- Build 0/0, deployet 03:41 (DLL 1.353.216 B, identisk begge steder).
+
+### Lag-liste: ☰-haandtag klar af scrollbar (03:46)
+- Samme fælde som egenskabs-panelet: naar lag-listen bliver lang nok til at rulle, ville Windows' overlay-scrollbar daekke ☰-haandtaget yderst til hoejre.
+- Fix: `RowRoot` i lag-raekkens DataTemplate fik `Margin="0,0,10,0"` - hover/selection-baggrunden er stadig fuld bredde, kun indholdet flyttes 10 px ind.
+- Build 0/0, deployet 03:46 (DLL 1.353.728 B, identisk begge steder).
+- Ikke committet endnu (afventer brugerens ja).
+

@@ -89,8 +89,8 @@ namespace IconGrid.Views
             var block = _layerDragCandidate;
             _layerDragCandidate = null;
 
-            // Folders are not draggable.
-            if (block.IsGroupLayer)
+            // Folders are not draggable, and locked rows stay put.
+            if (block.IsGroupLayer || block.IsLocked)
             {
                 return;
             }
@@ -229,6 +229,15 @@ namespace IconGrid.Views
         private void UndoLayer_Click(object sender, RoutedEventArgs e)
         {
             ViewModel?.UndoGamingOverlayLayout();
+        }
+
+        private void ToggleLock_Click(object sender, RoutedEventArgs e)
+        {
+            if (LayersList?.SelectedItem is OverlayBlock row)
+            {
+                ViewModel?.ToggleGamingOverlayLock(row);
+                KeepSelection(row);
+            }
         }
 
         /// <summary>Group folder selected -> rename field; module selected -> group picker.</summary>

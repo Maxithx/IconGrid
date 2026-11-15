@@ -219,6 +219,9 @@ namespace IconGrid.Models
 
         /// <summary>Eye on the folder: hides every module in the group without deleting it.</summary>
         public bool IsHidden { get; set; }
+
+        /// <summary>Locked folders cannot be deleted from the layer panel.</summary>
+        public bool IsLocked { get; set; }
     }
 
     /// <summary>
@@ -416,6 +419,10 @@ namespace IconGrid.Models
         /// <summary>True when a group folder is collapsed in the layer panel.</summary>
         [JsonIgnore]
         public bool IsCollapsed => GetBool("collapsed");
+
+        /// <summary>Locked rows cannot be moved, regrouped or deleted from the layer panel.</summary>
+        [JsonIgnore]
+        public bool IsLocked => GetBool("locked");
 
         /// <summary>
         /// Panel-only: the owning group is hidden, so the row is dimmed even though this module is
