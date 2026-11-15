@@ -376,12 +376,30 @@ namespace IconGrid.ViewModels
 
         public void RemoveGamingOverlayModule(OverlayBlock? block)
         {
-            if (block == null || block.IsLocked)
+            // The standard group is the base of every skin: its layers are never deleted.
+            if (block == null || block.IsLocked || IsInSystemGroup(block))
             {
                 return;
             }
 
             CommitBlueprintLayout(blocks => blocks.Remove(block));
+        }
+
+        /// <summary>True when a module or chrome block lives in the protected standard group.</summary>
+        private bool IsInSystemGroup(OverlayBlock block)
+        {
+            if (block.IsGroupLayer)
+            {
+                return block.IsSystemGroup;
+            }
+
+            var groups = _gamingOverlayBlueprint.Groups;
+            if (groups.Count == 0 || !groups[0].IsSystem)
+            {
+                return false;
+            }
+
+            return string.Equals(GroupOf(block, groups), groups[0].Id, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Moves a module one step left (delta -1) or right (delta +1).</summary>
@@ -468,6 +486,7 @@ namespace IconGrid.ViewModels
                     var group = groups[index];
                     var header = HeaderFor(group);
                     header.IsGroupHidden = group.IsHidden;
+                    header.IsSystemGroupMember = group.IsSystem;
                     items.Add(header);
 
                     // A collapsed folder shows only its own row (chrome included).
@@ -484,6 +503,7 @@ namespace IconGrid.ViewModels
                     foreach (var chrome in groupButtons.Concat(groupBackground))
                     {
                         chrome.IsGroupHidden = group.IsHidden;
+                        chrome.IsSystemGroupMember = group.IsSystem;
                     }
 
                     items.AddRange(groupButtons);
@@ -495,6 +515,7 @@ namespace IconGrid.ViewModels
                     foreach (var block in blocks)
                     {
                         block.IsGroupHidden = group.IsHidden;
+                        block.IsSystemGroupMember = group.IsSystem;
                     }
 
                     blocks.Reverse();
@@ -533,7 +554,8 @@ namespace IconGrid.ViewModels
                 ["name"] = group.Name,
                 ["hidden"] = group.IsHidden ? "true" : "false",
                 ["collapsed"] = _collapsedGroups.Contains(group.Id) ? "true" : "false",
-                ["locked"] = group.IsLocked ? "true" : "false"
+                ["locked"] = group.IsLocked ? "true" : "false",
+                ["system"] = group.IsSystem ? "true" : "false"
             };
 
             return header;
@@ -615,7 +637,7 @@ namespace IconGrid.ViewModels
             {
                 Id = Guid.NewGuid().ToString("N"),
                 Name = string.IsNullOrWhiteSpace(name)
-                    ? $"Gaming overlay {groups.Count + 1}"
+                    ? $"Group {groups.Count + 1}"
                     : name.Trim()
             };
 
@@ -659,7 +681,9 @@ namespace IconGrid.ViewModels
         /// <summary>Moves a module into another layer group (empty id = the first group).</summary>
         public void SetGamingOverlayModuleGroup(OverlayBlock? block, string? groupId)
         {
-            if (block == null || block.IsLocked || block.IsGroupLayer)
+            // A layer of the standard group cannot be moved out of it (that would make it
+            // deletable and break the shipped telemetry layout).
+            if (block == null || block.IsLocked || block.IsGroupLayer || IsInSystemGroup(block))
             {
                 return;
             }
@@ -739,7 +763,9 @@ namespace IconGrid.ViewModels
             var group = groups.FirstOrDefault(candidate =>
                 string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
 
-            if (group == null)
+            // The standard group is the base of every skin: it can never be removed, not even
+            // when the user created other groups and moved modules out of it.
+            if (group == null || group.IsSystem)
             {
                 return false;
             }

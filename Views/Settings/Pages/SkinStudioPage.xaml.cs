@@ -231,6 +231,32 @@ namespace IconGrid.Views
             ViewModel?.UndoGamingOverlayLayout();
         }
 
+        /// <summary>
+        /// The standard group is the base of every skin: neither it nor its layers can be
+        /// deleted (they can still be hidden, locked, reordered and restyled).
+        /// </summary>
+        private void UpdateLayerToolbarState(OverlayBlock? block)
+        {
+            if (DeleteLayerButton == null)
+            {
+                return;
+            }
+
+            var deleteBlocked = block?.IsDeleteBlocked == true;
+            DeleteLayerButton.IsEnabled = !deleteBlocked;
+
+            if (!deleteBlocked)
+            {
+                DeleteLayerButton.ToolTip = "Delete layer or group";
+                return;
+            }
+
+            var vm = ViewModel;
+            DeleteLayerButton.ToolTip = block!.IsGroupLayer
+                ? vm?.SkinStudioSystemGroupProtectedText ?? "The standard group cannot be deleted."
+                : vm?.SkinStudioSystemGroupMemberProtectedText ?? "Layers in the standard group cannot be deleted.";
+        }
+
         private void ToggleLock_Click(object sender, RoutedEventArgs e)
         {
             if (LayersList?.SelectedItem is OverlayBlock row)
@@ -360,6 +386,8 @@ namespace IconGrid.Views
 
         private void LayersList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            UpdateLayerToolbarState((sender as ListBox)?.SelectedItem as OverlayBlock);
+
             if (sender is not ListBox { SelectedItem: OverlayBlock block })
             {
                 SelectedModuleText.Text = "—";

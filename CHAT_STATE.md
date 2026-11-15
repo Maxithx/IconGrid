@@ -2121,3 +2121,44 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Build 0/0, deployet 03:46 (DLL 1.353.728 B, identisk begge steder).
 - Ikke committet endnu (afventer brugerens ja).
 
+### Committet og pushet (03:48)
+- Commit `fa4ed98` "Skin Studio: working layer lock, lock glyph, scrollbar-safe panels" (5 filer, +91/-12).
+- Pushet: `877f74e..fa4ed98 main -> main` til github.com/Maxithx/IconGrid. Working tree clean.
+- Deploy fra 03:46 ligger fortsat i `C:\IconGrid` (DLL 1.353.728 B).
+
+### Lag-værktøjslinje samlet i én række (03:51)
+- "Layer:"-rækken indeholder nu alle handlinger: ↶ fortryd, 📁 opret gruppe, ＋ tilføj modul (clock), 🗑 slet lag/gruppe, 🔒 lås.
+- Den separate knap-række under lag-listen (Grid.Row 4) er fjernet, og grid'et er reduceret fra 6 til 5 rækker; egenskabs-ScrollViewer flyttet til Row 4 med `Margin="0,10,0,0"` som erstatning for den gamle rækkes luft.
+- Den gamle "＋ divider"-genvej i Layer-rækken er væk (Divider findes i Modul-biblioteket); der er nu kun ét ＋ = tilføj modul.
+- Build 0/0, deployet 03:51 (DLL 1.353.216 B, identisk begge steder). Ikke committet.
+
+### Skabelon-sektionen: korrekte knap-tekster + ensartet layout (04:04)
+- Fund: knapperne i Expanderen "Brugerdefineret skabelon (avanceret)" genbrugte snippet-noeglerne, saa der stod "Anvend snippet"/"Nulstil" i XAML-sektionen.
+- Nye noegler `SkinStudioTemplateApply` (en "Apply template" / da "Anvend skabelon") og `SkinStudioTemplateReset` (en "Remove template" / da "Fjern skabelon") + properties i MainViewModel.Localization.
+- Layout: WrapPanel erstattet af fuld-bredde "Indlaes modulets kode" + 2-kolonne Grid (Anvend | Fjern) med lige brede knapper, saa rækken ikke bryder skævt ved smal panelbredde (UniformGrid med 3 kolonner blev fravalgt - teksten ville blive klippet ved 280 px).
+- Verificeret: `ResetGamingOverlayTemplate` saetter kun `block.Template = null` (CommitBlueprintLayout tager undo-snapshot og gemmer settings, men rører ikke props) - punkt 3 var allerede korrekt.
+- Build 0/0, deployet 04:04 (DLL 1.354.240 B, identisk begge steder). Ikke committet.
+
+### System-laggruppe: nyt navn + sletningsbeskyttelse (04:13)
+- `OverlayLayerGroup`: nye konstanter `DefaultName` ("Standard Gaming Overlay") og `LegacyDefaultName` ("Gaming overlay") + `IsSystem`.
+- `EnsureGroups` markerer ALTID gruppe nr. 0 som systemgruppe og migrerer gamle gemte navne ("Gaming overlay" -> "Standard Gaming Overlay"); brugerens egne navne roeres ikke. Kører automatisk fordi `Groups`-settet kalder EnsureGroups (ogsaa ved JSON-deserialisering).
+- `OverlayBlock.IsSystemGroup` (props["system"]) -> kan bruges i UI/triggers.
+- `RemoveGamingOverlayGroup` afviser systemgruppen (ud over de eksisterende vaern: mindst 1 gruppe tilbage + IsLocked).
+- Nye grupper hedder nu "Group N" i stedet for "Gaming overlay N".
+- UI: 🗑 hedder nu `DeleteLayerButton`; `UpdateLayerToolbarState()` kaldes fra SelectionChanged og deaktiverer knappen + viser lokaliseret tooltip (ny noegle `SkinStudioSystemGroupProtected`, en+da) naar systemgruppen er valgt.
+- Øje paa gruppe/moduler er uaendret - man kan stadig skjule alt i standardgruppen.
+- Der findes INGEN Delete-taste-handler i SkinStudioPage i dag, saa der var intet at blokere der; VM-vaernet daekker alle kald.
+- Build 0/0, deployet 04:13 (DLL 1.355.264 B, identisk begge steder). Ikke committet.
+
+### Standardgruppen er nu ogsaa beskyttet paa LAG-niveau (04:19)
+- Hul: foer kunne man slette moduler inde i "Standard Gaming Overlay" - kun selve gruppe-raekken var beskyttet.
+- `OverlayBlock`: nye panel-only felter `IsSystemGroupMember` (saettes naar lag-listen bygges, for moduler OG chrome) og `IsDeleteBlocked` (gruppe -> IsSystemGroup, ellers IsSystemGroupMember).
+- VM: `IsInSystemGroup(block)`-helper; `RemoveGamingOverlayModule` afviser nu systemgruppens medlemmer. `SetGamingOverlayModuleGroup` afviser ogsaa flyt UD af systemgruppen (ellers kunne man flytte et lag ud og slette det bagefter).
+- UI: `UpdateLayerToolbarState` deaktiverer 🗑 for baade systemgruppen og dens lag + lokaliseret tooltip (ny noegle `SkinStudioSystemGroupMemberProtected`, en+da).
+- Stadig tilladt i systemgruppen: skjule (oeje), laase, omdobe gruppen, omarrangere lag, aendre egenskaber/snippets/templates.
+- Build 0/0, deployet 04:19 (DLL 1.356.288 B, identisk begge steder). Ikke committet.
+
+### Committet og pushet (04:24)
+- En commit med hele bunken: lag-vaerktoejslinje i én raekke, skabelon-knap-tekster/-layout, systemgruppe-beskyttelse (gruppe + lag) og note-opdateringer.
+- Deploy fra 04:19 ligger i `C:\IconGrid` (DLL 1.356.288 B).
+

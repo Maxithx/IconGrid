@@ -116,6 +116,18 @@ namespace IconGrid.Models
                 result.Add(new OverlayLayerGroup());
             }
 
+            // The first group is the shipped base group: it is always protected and keeps the
+            // standard name. Blueprints saved by earlier builds carry neither the flag nor the
+            // new name, so mark and migrate them here (never rename a name the user chose).
+            var systemGroup = result[0];
+            systemGroup.IsSystem = true;
+
+            if (string.IsNullOrWhiteSpace(systemGroup.Name) ||
+                string.Equals(systemGroup.Name, OverlayLayerGroup.LegacyDefaultName, StringComparison.Ordinal))
+            {
+                systemGroup.Name = OverlayLayerGroup.DefaultName;
+            }
+
             return result;
         }
 
@@ -214,8 +226,20 @@ namespace IconGrid.Models
     /// </summary>
     public sealed class OverlayLayerGroup
     {
+        /// <summary>Name of the shipped base group (the one every module starts in).</summary>
+        public const string DefaultName = "Standard Gaming Overlay";
+
+        /// <summary>Name earlier builds wrote to settings; migrated on load.</summary>
+        public const string LegacyDefaultName = "Gaming overlay";
+
         public string Id { get; set; } = "main";
-        public string Name { get; set; } = "Gaming overlay";
+        public string Name { get; set; } = DefaultName;
+
+        /// <summary>
+        /// The shipped base group that holds the core overlay modules. It is always the first
+        /// group and can never be deleted, so the user cannot lose the standard telemetry layout.
+        /// </summary>
+        public bool IsSystem { get; set; }
 
         /// <summary>Eye on the folder: hides every module in the group without deleting it.</summary>
         public bool IsHidden { get; set; }
@@ -408,6 +432,10 @@ namespace IconGrid.Models
         [JsonIgnore]
         public bool IsGroupLayer => string.Equals(Block, "group", StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>True when a group header row is the protected standard group.</summary>
+        [JsonIgnore]
+        public bool IsSystemGroup => IsGroupLayer && GetBool("system");
+
         /// <summary>Group this module belongs to (props["group"]); empty means the first group.</summary>
         [JsonIgnore]
         public string GroupId => Get("group");
@@ -430,6 +458,18 @@ namespace IconGrid.Models
         /// </summary>
         [JsonIgnore]
         public bool IsGroupHidden { get; set; }
+
+        /// <summary>
+        /// Panel-only: the row belongs to the protected standard group, so it can never be
+        /// deleted or moved out of it (the standard telemetry layout must stay intact).
+        /// Never serialized — recomputed when the layer list is built.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsSystemGroupMember { get; set; }
+
+        /// <summary>True when the layer panel must refuse to delete this row.</summary>
+        [JsonIgnore]
+        public bool IsDeleteBlocked => IsGroupLayer ? IsSystemGroup : IsSystemGroupMember;
 
         /// <summary>True for the two action buttons (settings + close).</summary>
         [JsonIgnore]

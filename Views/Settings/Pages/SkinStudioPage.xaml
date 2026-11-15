@@ -306,7 +306,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" Margin="0,0,0,8">
@@ -345,7 +344,15 @@
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
                     <TextBlock Text="Layer:" Foreground="#C9D1D9" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="＋" ToolTip="Add layer" Click="AddModule_Click" Tag="divider" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="↶" ToolTip="Undo last layer change"
+                            Click="UndoLayer_Click" IsEnabled="{Binding CanUndoGamingOverlayLayout}" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="📁" ToolTip="Make group"
+                            Click="NewGroup_Click" Foreground="#C9D1D9" />
+                    <Button Style="{StaticResource LayerRowButtonStyle}" Tag="clock" Click="AddModule_Click" Content="＋"
+                            ToolTip="Add module" Foreground="#C9D1D9" />
+                    <Button x:Name="DeleteLayerButton" Style="{StaticResource LayerRowButtonStyle}" Content="🗑"
+                            ToolTip="Delete layer or group"
+                            Click="DeleteSelectedModule_Click" Foreground="#C9D1D9" />
                     <Button Style="{StaticResource LayerRowButtonStyle}" Content="🔒" ToolTip="Lock / unlock the selected layer or group"
                             Click="ToggleLock_Click" Foreground="#C9D1D9" />
                 </StackPanel>
@@ -468,17 +475,8 @@
                     </Border>
                 </Grid>
 
-                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,6,0,10">
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="↶" ToolTip="Undo last layer change"
-                            Click="UndoLayer_Click" IsEnabled="{Binding CanUndoGamingOverlayLayout}" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="📁" ToolTip="Make group"
-                            Click="NewGroup_Click" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Tag="clock" Click="AddModule_Click" Content="＋" ToolTip="Add module" />
-                    <Button Style="{StaticResource LayerRowButtonStyle}" Content="🗑" ToolTip="Delete layer or group" Click="DeleteSelectedModule_Click" />
-                </StackPanel>
-
-                <ScrollViewer Grid.Row="5" VerticalScrollBarVisibility="Auto" MaxHeight="430"
-                              Padding="0,0,10,0">
+                <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" MaxHeight="430"
+                              Padding="0,0,10,0" Margin="0,10,0,0">
                     <StackPanel Margin="0,0,2,0">
                         <TextBlock Text="{Binding SkinStudioPropertiesTitleText}" FontSize="13" FontWeight="SemiBold"
                                    Foreground="#E6EDF3" Margin="0,0,0,8" />
@@ -635,14 +633,24 @@
                                          FontFamily="Consolas" FontSize="11" AcceptsReturn="True" AcceptsTab="True"
                                          TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto"
                                          HorizontalScrollBarVisibility="Auto" />
-                                <WrapPanel Margin="0,8,0,0">
-                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateLoadCode_Click"
-                                            Content="{Binding SkinStudioTemplateLoadCodeText}" />
-                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateApply_Click"
-                                            Content="{Binding SkinStudioSnippetApplyText}" />
-                                    <Button Padding="10,3" Margin="0,0,6,4" Click="TemplateReset_Click"
-                                            Content="{Binding SkinStudioSnippetResetText}" />
-                                </WrapPanel>
+                                <!-- Buttons: full-width "load code" on top, then Apply / Remove side by side,
+                                     so the row stays even even when the panel is dragged narrow. -->
+                                <Button Margin="0,8,0,6" Padding="10,4" HorizontalAlignment="Stretch"
+                                        Click="TemplateLoadCode_Click"
+                                        Content="{Binding SkinStudioTemplateLoadCodeText}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="6" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Padding="10,4" HorizontalAlignment="Stretch"
+                                            Click="TemplateApply_Click"
+                                            Content="{Binding SkinStudioTemplateApplyText}" />
+                                    <Button Grid.Column="2" Padding="10,4" HorizontalAlignment="Stretch"
+                                            Click="TemplateReset_Click"
+                                            Content="{Binding SkinStudioTemplateResetText}" />
+                                </Grid>
                                 <TextBlock x:Name="TemplateStatusText" Margin="0,6,0,0" FontSize="11"
                                            Foreground="#8B949E" TextWrapping="Wrap" />
                             </StackPanel>

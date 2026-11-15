@@ -120,6 +120,10 @@ namespace IconGrid.ViewModels
         public string SkinStudioTemplateTitleText => _localizationState.Get(Language, "SkinStudioTemplateTitle");
         public string SkinStudioTemplateHintText => _localizationState.Get(Language, "SkinStudioTemplateHint");
         public string SkinStudioTemplateLoadCodeText => _localizationState.Get(Language, "SkinStudioTemplateLoadCode");
+        public string SkinStudioTemplateApplyText => _localizationState.Get(Language, "SkinStudioTemplateApply");
+        public string SkinStudioTemplateResetText => _localizationState.Get(Language, "SkinStudioTemplateReset");
+        public string SkinStudioSystemGroupProtectedText => _localizationState.Get(Language, "SkinStudioSystemGroupProtected");
+        public string SkinStudioSystemGroupMemberProtectedText => _localizationState.Get(Language, "SkinStudioSystemGroupMemberProtected");
         public string SkinStudioTemplateStarterHintText => _localizationState.Get(Language, "SkinStudioTemplateStarterHint");
         public string SkinStudioTemplateAppliedText => _localizationState.Get(Language, "SkinStudioTemplateApplied");
         public string SkinStudioTemplateResetDoneText => _localizationState.Get(Language, "SkinStudioTemplateResetDone");
@@ -358,6 +362,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioTemplateTitleText));
             OnPropertyChanged(nameof(SkinStudioTemplateHintText));
             OnPropertyChanged(nameof(SkinStudioTemplateLoadCodeText));
+            OnPropertyChanged(nameof(SkinStudioTemplateApplyText));
+            OnPropertyChanged(nameof(SkinStudioTemplateResetText));
+            OnPropertyChanged(nameof(SkinStudioSystemGroupProtectedText));
+            OnPropertyChanged(nameof(SkinStudioSystemGroupMemberProtectedText));
             OnPropertyChanged(nameof(SkinStudioTemplateStarterHintText));
             OnPropertyChanged(nameof(SkinStudioTemplateAppliedText));
             OnPropertyChanged(nameof(SkinStudioTemplateResetDoneText));
