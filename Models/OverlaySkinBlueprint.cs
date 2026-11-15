@@ -128,6 +128,17 @@ namespace IconGrid.Models
                 systemGroup.Name = OverlayLayerGroup.DefaultName;
             }
 
+            // Bars created before groups had their own canvas position all sit at 0,0 and would
+            // cover each other (and swallow each other's clicks). Stagger them once.
+            for (var index = 1; index < result.Count; index++)
+            {
+                var group = result[index];
+                if (Math.Abs(group.X) < 0.01 && Math.Abs(group.Y) < 0.01)
+                {
+                    group.Y = index * 70;
+                }
+            }
+
             return result;
         }
 
@@ -243,6 +254,23 @@ namespace IconGrid.Models
 
         /// <summary>Eye on the folder: hides every module in the group without deleting it.</summary>
         public bool IsHidden { get; set; }
+
+        /// <summary>
+        /// Width in DIPs of this group's own overlay bar. 0 = the bar grows with its modules,
+        /// so a group can be a fixed-size canvas to design inside.
+        /// </summary>
+        public double Width { get; set; }
+
+        /// <summary>
+        /// Height in DIPs of this group's own overlay bar. 0 = the skin's bar height is used.
+        /// </summary>
+        public double Height { get; set; }
+
+        /// <summary>Horizontal offset (DIPs) of this group's bar on the Skin Studio canvas.</summary>
+        public double X { get; set; }
+
+        /// <summary>Vertical offset (DIPs) of this group's bar on the Skin Studio canvas.</summary>
+        public double Y { get; set; }
 
         /// <summary>Locked folders cannot be deleted from the layer panel.</summary>
         public bool IsLocked { get; set; }

@@ -319,17 +319,32 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayBlueprint));
             OnPropertyChanged(nameof(GamingOverlayBlueprintJson));
             OnPropertyChanged(nameof(GamingOverlayLayoutBlocks));
+            RaiseCanvasGroupChanged();
+            SaveSettingsToConfig();
+        }
+
+        /// <summary>
+        /// Explicit save from the Skin Studio File menu. Every edit already autosaves, so this
+        /// simply flushes the blueprint to disk again — useful as a deliberate "I am done" action.
+        /// </summary>
+        public void SaveSkinStudioOverlay()
+        {
+            OnPropertyChanged(nameof(GamingOverlayBlueprintJson));
             SaveSettingsToConfig();
         }
 
         // ---------- Module builder operations (Skin Studio) ----------
 
-        /// <summary>Adds a module of the given type at the end of the row.</summary>
-        public void AddGamingOverlayModule(string blockType, string? id = null)
+        /// <summary>
+        /// Adds a module of the given type at the end of the row, inside <paramref name="groupId"/>.
+        /// New layers are never placed in the protected standard group: an explicit request for it
+        /// is redirected to the first custom group (a fresh one is created when the user has none).
+        /// </summary>
+        public OverlayBlock? AddGamingOverlayModule(string blockType, string? id = null, string? groupId = null)
         {
             if (string.IsNullOrWhiteSpace(blockType))
             {
-                return;
+                return null;
             }
 
             var props = new Dictionary<string, string>();
@@ -371,7 +386,33 @@ namespace IconGrid.ViewModels
                     break;
             }
 
-            CommitBlueprintLayout(blocks => blocks.Add(new OverlayBlock { Block = blockType, Props = props }));
+            props["group"] = ResolveNewModuleGroup(groupId).Id;
+
+            var added = new OverlayBlock { Block = blockType, Props = props };
+            CommitBlueprintLayout(blocks => blocks.Add(added));
+            return added;
+        }
+
+        /// <summary>
+        /// Target group for a newly added layer: the requested group unless it is the protected
+        /// standard group, otherwise the first custom group, and a brand new one when the user has
+        /// no group of their own yet (the standard group stays exactly as shipped).
+        /// </summary>
+        private OverlayLayerGroup ResolveNewModuleGroup(string? groupId)
+        {
+            var groups = _gamingOverlayBlueprint.Groups;
+            var requested = string.IsNullOrWhiteSpace(groupId)
+                ? null
+                : groups.FirstOrDefault(group =>
+                    string.Equals(group.Id, groupId, StringComparison.OrdinalIgnoreCase));
+
+            if (requested is { IsSystem: false })
+            {
+                return requested;
+            }
+
+            var custom = groups.FirstOrDefault(group => !group.IsSystem);
+            return custom ?? AddGamingOverlayGroup();
         }
 
         public void RemoveGamingOverlayModule(OverlayBlock? block)
@@ -530,6 +571,186 @@ namespace IconGrid.ViewModels
         /// <summary>Layer groups (folders) of the current blueprint.</summary>
         public IReadOnlyList<OverlayLayerGroup> GamingOverlayGroups => _gamingOverlayBlueprint.Groups;
 
+        /// <summary>
+        /// Layer group the Skin Studio canvas is designing. Each group is its own overlay bar
+        /// (own modules, own width/height), so the canvas only shows the selected group.
+        /// </summary>
+        private string? _canvasGroupId;
+
+        /// <summary>Group shown on the canvas: the selected row, else the standard group.</summary>
+        private OverlayLayerGroup? CanvasGroup
+        {
+            get
+            {
+                var groups = _gamingOverlayBlueprint.Groups;
+                return groups.FirstOrDefault(group =>
+                           string.Equals(group.Id, _canvasGroupId, StringComparison.Ordinal))
+                       ?? groups.FirstOrDefault();
+            }
+        }
+
+        /// <summary>Name shown above the canvas (the group being designed).</summary>
+        public string GamingOverlayCanvasTitle => CanvasGroup?.Name ?? string.Empty;
+
+        /// <summary>Id of the group being designed (the preview bar filters chrome by it).</summary>
+        public string? GamingOverlayCanvasGroupId => CanvasGroup?.Id;
+
+        /// <summary>
+        /// True when a layer (module or chrome) belongs to the given group. Used by the preview bar
+        /// so the settings/close buttons only appear in the bar of the group that owns them.
+        /// </summary>
+        public bool GamingOverlayGroupOwns(OverlayBlock? block, string? groupId)
+        {
+            if (block == null)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(groupId))
+            {
+                return true;
+            }
+
+            var groups = _gamingOverlayBlueprint.Groups;
+            return string.Equals(GroupOf(block, groups), groupId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Modules the canvas bar renders: only the visible ones of the canvas group.</summary>
+        public IReadOnlyList<OverlayBlock> GamingOverlayCanvasBlocks
+        {
+            get
+            {
+                var group = CanvasGroup;
+                if (group == null)
+                {
+                    return Array.Empty<OverlayBlock>();
+                }
+
+                var groups = _gamingOverlayBlueprint.Groups;
+                return _gamingOverlayBlueprint.Layout
+                    .Where(block => block.IsVisible &&
+                                    string.Equals(GroupOf(block, groups), group.Id, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+        }
+
+        /// <summary>Fixed bar width for the canvas group; NaN = grow with the modules.</summary>
+        public double GamingOverlayCanvasBarWidth =>
+            CanvasGroup is { Width: > 0 } group ? group.Width : double.NaN;
+
+        /// <summary>Fixed bar height for the canvas group; NaN = the skin's bar height.</summary>
+        public double GamingOverlayCanvasBarHeight =>
+            CanvasGroup is { Height: > 0 } group ? group.Height : double.NaN;
+
+        /// <summary>Points the canvas at one group (called when the layer selection changes).</summary>
+        public void SetSkinStudioCanvasGroup(string? groupId)
+        {
+            if (string.Equals(_canvasGroupId, groupId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _canvasGroupId = groupId;
+            RaiseCanvasGroupChanged();
+        }
+
+        private void RaiseCanvasGroupChanged()
+        {
+            OnPropertyChanged(nameof(GamingOverlayCanvasTitle));
+            OnPropertyChanged(nameof(GamingOverlayCanvasGroupId));
+            OnPropertyChanged(nameof(GamingOverlayCanvasBars));
+            OnPropertyChanged(nameof(GamingOverlayCanvasBlocks));
+            OnPropertyChanged(nameof(GamingOverlayCanvasBarWidth));
+            OnPropertyChanged(nameof(GamingOverlayCanvasBarHeight));
+        }
+
+        /// <summary>
+        /// All layer groups as independent bars on the canvas: the standard overlay stays visible
+        /// while a new group is being built, each bar at its own stored position.
+        /// </summary>
+        public IReadOnlyList<OverlayCanvasBar> GamingOverlayCanvasBars
+        {
+            get
+            {
+                var groups = _gamingOverlayBlueprint.Groups;
+                var bars = new List<OverlayCanvasBar>(groups.Count);
+
+                foreach (var group in groups)
+                {
+                    var blocks = _gamingOverlayBlueprint.Layout
+                        .Where(block => block.IsVisible &&
+                                        string.Equals(GroupOf(block, groups), group.Id, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    var isSelected = string.Equals(group.Id, CanvasGroup?.Id, StringComparison.Ordinal);
+                    bars.Add(new OverlayCanvasBar(group, blocks, isSelected));
+                }
+
+                return bars;
+            }
+        }
+
+        /// <summary>
+        /// Moves one group's bar on the canvas (called while dragging it). Pass commit = false
+        /// during the drag and true once to store the position with an undo snapshot.
+        /// </summary>
+        public void SetGamingOverlayGroupPosition(string? groupId, double x, double y, bool commit)
+        {
+            var group = _gamingOverlayBlueprint.Groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return;
+            }
+
+            var clampedX = Math.Clamp(x, OverlayCanvasBar.MinOffset, 3000);
+            var clampedY = Math.Clamp(y, OverlayCanvasBar.MinOffset, 3000);
+
+            if (commit)
+            {
+                if (Math.Abs(group.X - clampedX) < 0.01 && Math.Abs(group.Y - clampedY) < 0.01)
+                {
+                    return;
+                }
+
+                group.X = clampedX;
+                group.Y = clampedY;
+                CommitBlueprintLayout(_ => { });
+                return;
+            }
+
+            group.X = clampedX;
+            group.Y = clampedY;
+        }
+
+        /// <summary>
+        /// Sets the fixed bar size of one group (0 = automatic). The canvas uses it as the base
+        /// template you design inside, exactly like the standard overlay's bar.
+        /// </summary>
+        public void SetGamingOverlayGroupBarSize(string? groupId, double width, double height)
+        {
+            var group = _gamingOverlayBlueprint.Groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return;
+            }
+
+            width = width <= 0 ? 0 : Math.Clamp(width, 60, 4000);
+            height = height <= 0 ? 0 : Math.Clamp(height, 18, 1200);
+
+            if (Math.Abs(group.Width - width) < 0.01 && Math.Abs(group.Height - height) < 0.01)
+            {
+                return;
+            }
+
+            group.Width = width;
+            group.Height = height;
+            CommitBlueprintLayout(_ => { });
+        }
+
         /// <summary>True when the first group (the standard overlay) is hidden via its folder eye.</summary>
         public bool GamingOverlayFirstGroupHidden =>
             _gamingOverlayBlueprint.Groups.Count > 0 && _gamingOverlayBlueprint.Groups[0].IsHidden;
@@ -563,6 +784,54 @@ namespace IconGrid.ViewModels
 
         /// <summary>Group folders the user collapsed in the layer panel (not persisted).</summary>
         private readonly HashSet<string> _collapsedGroups = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Chrome layers (settings button, close button, bar background) are real layers that live in
+        /// a group, just like modules — but they are single instances in the blueprint because the
+        /// overlay has exactly one set of action buttons. The module library offers them so a new
+        /// group can own them too; adding one moves it into that group.
+        /// </summary>
+        public bool AddGamingOverlayChromeModule(string kind, string? groupId)
+        {
+            var blockName = (kind ?? string.Empty).Trim().ToLowerInvariant();
+            if (blockName != "settings" && blockName != "close" && blockName != "background")
+            {
+                return false;
+            }
+
+            var target = ResolveNewModuleGroup(groupId);
+            var chrome = _gamingOverlayBlueprint.Chrome;
+
+            var existing = chrome.FirstOrDefault(block =>
+                string.Equals(block.Block, blockName, StringComparison.OrdinalIgnoreCase));
+
+            if (existing != null)
+            {
+                var groups = _gamingOverlayBlueprint.Groups;
+                if (string.Equals(GroupOf(existing, groups), target.Id, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                CommitBlueprintLayout(_ =>
+                {
+                    existing.Props ??= new Dictionary<string, string>();
+                    existing.Props["group"] = target.Id;
+                });
+
+                return true;
+            }
+
+            var added = new OverlayBlock
+            {
+                Block = blockName,
+                Props = new Dictionary<string, string> { ["group"] = target.Id }
+            };
+
+            CommitBlueprintLayout(_ => _gamingOverlayBlueprint.Chrome.Add(added));
+
+            return true;
+        }
 
         /// <summary>Eye on a group folder: hides or shows every module inside it.</summary>
         public void ToggleGamingOverlayGroupHidden(OverlayBlock? header)
@@ -638,7 +907,9 @@ namespace IconGrid.ViewModels
                 Id = Guid.NewGuid().ToString("N"),
                 Name = string.IsNullOrWhiteSpace(name)
                     ? $"Group {groups.Count + 1}"
-                    : name.Trim()
+                    : name.Trim(),
+                // Stagger new bars so they do not land on top of the standard overlay.
+                Y = groups.Count == 0 ? 0 : groups.Max(candidate => candidate.Y) + 70
             };
 
             groups.Add(group);
@@ -1115,6 +1386,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayHasCombinedGauges));
             OnPropertyChanged(nameof(GamingOverlayHasMergeableGauges));
             OnPropertyChanged(nameof(SkinStudioGaugeLayoutActionText));
+            RaiseCanvasGroupChanged();
             SaveSettingsToConfig();
         }
 

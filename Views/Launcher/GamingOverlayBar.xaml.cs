@@ -200,6 +200,52 @@ namespace IconGrid.Views
         }
 
         /// <summary>
+        /// Optional bar height in DIPs. The Skin Studio canvas uses it so a layer group can have
+        /// its own bar height; NaN (the default) keeps the skin's height.
+        /// </summary>
+        public static readonly DependencyProperty BarHeightProperty = DependencyProperty.Register(
+            nameof(BarHeight),
+            typeof(double),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(double.NaN));
+
+        /// <summary>Optional module list: when set, the bar renders only these blocks.</summary>
+        public static readonly DependencyProperty BlocksSourceProperty = DependencyProperty.Register(
+            nameof(BlocksSource),
+            typeof(System.Collections.IEnumerable),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(null));
+
+        public double BarHeight
+        {
+            get => (double)GetValue(BarHeightProperty);
+            set => SetValue(BarHeightProperty, value);
+        }
+
+        public System.Collections.IEnumerable? BlocksSource
+        {
+            get => (System.Collections.IEnumerable?)GetValue(BlocksSourceProperty);
+            set => SetValue(BlocksSourceProperty, value);
+        }
+
+        /// <summary>
+        /// Optional layer-group id. When set, the settings/close chrome is only drawn if that group
+        /// actually owns those chrome layers — a group that owns nothing shows an empty bar, so the
+        /// chrome behaves like a module instead of being forced onto every group.
+        /// </summary>
+        public static readonly DependencyProperty ChromeGroupIdProperty = DependencyProperty.Register(
+            nameof(ChromeGroupId),
+            typeof(string),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(null, (d, _) => ((GamingOverlayBar)d).ApplyPreviewState()));
+
+        public string? ChromeGroupId
+        {
+            get => (string?)GetValue(ChromeGroupIdProperty);
+            set => SetValue(ChromeGroupIdProperty, value);
+        }
+
+        /// <summary>
         /// Read-only preview mode: the overlay is shown exactly as it looks in game, but the
         /// action buttons and the scale popup are hidden so the settings page cannot trigger a
         /// second, conflicting set of overlay controls. The host is expected to also set
@@ -220,6 +266,20 @@ namespace IconGrid.Views
             }
         }
 
+        /// <summary>
+        /// When the bar is pinned to one layer group (the Skin Studio canvas), the chrome only shows
+        /// if that group actually owns it — chrome behaves like a module instead of being forced in.
+        /// </summary>
+        private bool OwnsChrome(OverlayBlock? block)
+        {
+            if (string.IsNullOrEmpty(ChromeGroupId))
+            {
+                return true;
+            }
+
+            return _viewModel?.GamingOverlayGroupOwns(block, ChromeGroupId) ?? true;
+        }
+
         private void ApplyPreviewState()
         {
             // The chrome buttons are styleable layers now, so the preview shows them exactly as in
@@ -232,7 +292,8 @@ namespace IconGrid.Views
             if (SettingsMenuButton != null)
             {
                 SettingsMenuButton.Visibility = _viewModel?.GamingOverlaySettingsButton?.IsVisible == false ||
-                                                _viewModel?.GamingOverlayFirstGroupHidden == true
+                                                _viewModel?.GamingOverlayFirstGroupHidden == true ||
+                                                !OwnsChrome(_viewModel?.GamingOverlaySettingsButton)
                     ? Visibility.Collapsed
                     : Visibility.Visible;
                 SettingsMenuButton.IsHitTestVisible = !_isPreview;
@@ -247,7 +308,8 @@ namespace IconGrid.Views
             if (CloseButton != null)
             {
                 CloseButton.Visibility = _viewModel?.GamingOverlayCloseButton?.IsVisible == false ||
-                                         _viewModel?.GamingOverlayFirstGroupHidden == true
+                                         _viewModel?.GamingOverlayFirstGroupHidden == true ||
+                                         !OwnsChrome(_viewModel?.GamingOverlayCloseButton)
                     ? Visibility.Collapsed
                     : Visibility.Visible;
                 CloseButton.IsHitTestVisible = !_isPreview;

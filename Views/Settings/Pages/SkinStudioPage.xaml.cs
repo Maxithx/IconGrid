@@ -23,7 +23,73 @@ namespace IconGrid.Views
         public SkinStudioPage()
         {
             InitializeComponent();
+
+            // The "saved" confirmation clears itself after a couple of seconds.
+            _canvasStatusTimer.Tick += (_, _) =>
+            {
+                _canvasStatusTimer.Stop();
+
+                if (CanvasStatusText != null)
+                {
+                    CanvasStatusText.Text = string.Empty;
+                }
+            };
         }
+
+        private readonly System.Windows.Threading.DispatcherTimer _canvasStatusTimer = new()
+        {
+            Interval = TimeSpan.FromSeconds(2.5)
+        };
+
+        private void ShowCanvasStatus(string? message)
+        {
+            if (CanvasStatusText == null)
+            {
+                return;
+            }
+
+            CanvasStatusText.Text = message ?? string.Empty;
+            _canvasStatusTimer.Stop();
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                _canvasStatusTimer.Start();
+            }
+        }
+
+        // ---------- Canvas menu (File / Edit) ----------
+
+        private void MenuSave_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.SaveSkinStudioOverlay();
+            ShowCanvasStatus(ViewModel?.SkinStudioMenuSavedText);
+        }
+
+        private void MenuNewGroup_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.AddGamingOverlayGroup();
+        }
+
+        private void MenuReset_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.ResetGamingOverlayBlueprint();
+        }
+
+        private void MenuUndo_Click(object sender, RoutedEventArgs e)
+        {
+            ViewModel?.UndoGamingOverlayLayout();
+        }
+
+        private void MenuLock_Click(object sender, RoutedEventArgs e)
+        {
+            if (LayersList?.SelectedItem is OverlayBlock row)
+            {
+                ViewModel?.ToggleGamingOverlayLock(row);
+                KeepSelection(row);
+            }
+        }
+
+        private void MenuDelete_Click(object sender, RoutedEventArgs e) => DeleteSelectedLayer();
 
         private MainViewModel? ViewModel => System.Windows.Window.GetWindow(this)?.DataContext as MainViewModel;
 
@@ -34,6 +100,12 @@ namespace IconGrid.Views
         private System.Windows.Point _layerDragStart;
         private OverlayBlock? _layerDragCandidate;
 
+        /// <summary>Clipboard format used when a module is dragged from the library.</summary>
+        private const string ModuleSpecFormat = "IconGrid.ModuleSpec";
+
+        private System.Windows.Point _libraryDragStart;
+        private string? _libraryDragSpec;
+
         private void AddModule_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button { Tag: string spec } || ViewModel == null)
@@ -41,8 +113,274 @@ namespace IconGrid.Views
                 return;
             }
 
+            AddModuleFromSpec(spec);
+        }
+
+        /// <summary>
+        /// Adds a module from a library spec ("gauge:cpu") into the selected group. The view model
+        /// redirects to the first custom group when the selection is the standard group, and the new
+        /// row is selected so the user can see where it landed.
+        /// </summary>
+        private void AddModuleFromSpec(string spec)
+        {
+            var vm = ViewModel;
+            if (vm == null || string.IsNullOrWhiteSpace(spec))
+            {
+                return;
+            }
+
             var parts = spec.Split(':');
-            ViewModel.AddGamingOverlayModule(parts[0], parts.Length > 1 ? parts[1] : null);
+            var id = parts.Length > 1 ? parts[1] : null;
+
+            // "chrome:settings" adds one of the overlay's action layers (settings/close/background).
+            if (string.Equals(parts[0], "chrome", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    vm.AddGamingOverlayChromeModule(id, SelectedGroupId());
+                }
+
+                return;
+            }
+
+            var added = vm.AddGamingOverlayModule(parts[0], id, SelectedGroupId());
+
+            if (added != null)
+            {
+                SelectLayer(added);
+            }
+        }
+
+        /// <summary>Group the user is working in (selected group row or the group of the selected layer).</summary>
+        private string? SelectedGroupId() => (LayersList?.SelectedItem as OverlayBlock)?.GroupId;
+
+        /// <summary>Marks one layer row as selected after the list has been rebuilt.</summary>
+        private void SelectLayer(OverlayBlock block)
+        {
+            Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    if (LayersList != null)
+                    {
+                        LayersList.SelectedItem = block;
+                    }
+                }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // ---------- Drag a module from the library onto the canvas ----------
+
+        private void LibraryPanel_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _libraryDragSpec = FindModuleSpec(e.OriginalSource as System.Windows.DependencyObject);
+            _libraryDragStart = e.GetPosition(LibraryPanel);
+        }
+
+        private void LibraryPanel_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_libraryDragSpec == null || e.LeftButton != System.Windows.Input.MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            var position = e.GetPosition(LibraryPanel);
+            if (Math.Abs(position.X - _libraryDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(position.Y - _libraryDragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+            {
+                return;
+            }
+
+            var data = new System.Windows.DataObject(ModuleSpecFormat, _libraryDragSpec);
+            _libraryDragSpec = null;
+            System.Windows.DragDrop.DoDragDrop(LibraryPanel, data, System.Windows.DragDropEffects.Copy);
+        }
+
+        /// <summary>Library button under the pointer, if any (its Tag is the module spec).</summary>
+        private static string? FindModuleSpec(System.Windows.DependencyObject? source)
+        {
+            var current = source;
+            while (current != null)
+            {
+                if (current is Button { Tag: string spec })
+                {
+                    return spec;
+                }
+
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
+        }
+
+        private void DesignCanvas_DragOver(object sender, System.Windows.DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(ModuleSpecFormat)
+                ? System.Windows.DragDropEffects.Copy
+                : System.Windows.DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void DesignCanvas_Drop(object sender, System.Windows.DragEventArgs e)
+        {
+            if (e.Data.GetData(ModuleSpecFormat) is string spec)
+            {
+                AddModuleFromSpec(spec);
+            }
+
+            e.Handled = true;
+        }
+
+        // ---------- Move a group's bar on the canvas ----------
+
+        private string? _canvasDragGroupId;
+        private System.Windows.FrameworkElement? _canvasDragSurface;
+        private System.Windows.UIElement? _canvasDragContainer;
+        private System.Windows.Point _canvasDragStart;
+        private double _canvasDragOriginX;
+        private double _canvasDragOriginY;
+        private double _canvasDragDeltaX;
+        private double _canvasDragDeltaY;
+        private bool _canvasDragging;
+
+        /// <summary>
+        /// A bar can be moved when its group is selected in the layer list (the requirement: move a
+        /// selected layer/group). Clicking another bar selects that group instead of dragging it.
+        /// </summary>
+        private void CanvasBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is not System.Windows.FrameworkElement { Tag: string groupId } surface)
+            {
+                return;
+            }
+
+            var vm = ViewModel;
+            if (vm == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(vm.GamingOverlayCanvasGroupId, groupId, StringComparison.Ordinal))
+            {
+                SelectGroupInLayers(groupId);
+                e.Handled = true;
+                return;
+            }
+
+            var group = vm.GamingOverlayGroups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return;
+            }
+
+            _canvasDragGroupId = groupId;
+            _canvasDragSurface = surface;
+            _canvasDragContainer = FindAncestor(surface, typeof(System.Windows.Controls.ContentPresenter)) as System.Windows.UIElement;
+            _canvasDragStart = e.GetPosition(DesignCanvas);
+            _canvasDragOriginX = group.X;
+            _canvasDragOriginY = group.Y;
+            _canvasDragDeltaX = 0;
+            _canvasDragDeltaY = 0;
+            _canvasDragging = false;
+            surface.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void CanvasBar_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_canvasDragGroupId == null || e.LeftButton != System.Windows.Input.MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            var position = e.GetPosition(DesignCanvas);
+            _canvasDragDeltaX = position.X - _canvasDragStart.X;
+            _canvasDragDeltaY = position.Y - _canvasDragStart.Y;
+
+            if (!_canvasDragging &&
+                Math.Abs(_canvasDragDeltaX) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(_canvasDragDeltaY) < SystemParameters.MinimumVerticalDragDistance)
+            {
+                return;
+            }
+
+            _canvasDragging = true;
+
+            if (_canvasDragContainer != null)
+            {
+                _canvasDragContainer.RenderTransform =
+                    new System.Windows.Media.TranslateTransform(_canvasDragDeltaX, _canvasDragDeltaY);
+            }
+
+            e.Handled = true;
+        }
+
+        private void CanvasBar_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var groupId = _canvasDragGroupId;
+            var wasDragging = _canvasDragging;
+            var deltaX = _canvasDragDeltaX;
+            var deltaY = _canvasDragDeltaY;
+
+            _canvasDragSurface?.ReleaseMouseCapture();
+            _canvasDragGroupId = null;
+            _canvasDragSurface = null;
+            _canvasDragging = false;
+
+            if (_canvasDragContainer != null)
+            {
+                _canvasDragContainer.RenderTransform = null;
+                _canvasDragContainer = null;
+            }
+
+            if (groupId == null || !wasDragging)
+            {
+                return;
+            }
+
+            ViewModel?.SetGamingOverlayGroupPosition(
+                groupId,
+                _canvasDragOriginX + deltaX,
+                _canvasDragOriginY + deltaY,
+                commit: true);
+
+            e.Handled = true;
+        }
+
+        /// <summary>Selects one group row in the layer list (this also switches the canvas target).</summary>
+        private void SelectGroupInLayers(string groupId)
+        {
+            if (LayersList == null)
+            {
+                return;
+            }
+
+            var header = LayersList.Items
+                .OfType<OverlayBlock>()
+                .FirstOrDefault(block => block.IsGroupLayer &&
+                                         string.Equals(block.GroupId, groupId, StringComparison.Ordinal));
+
+            if (header != null)
+            {
+                LayersList.SelectedItem = header;
+            }
+        }
+
+        private static System.Windows.DependencyObject? FindAncestor(System.Windows.DependencyObject source, Type type)
+        {
+            var current = source;
+            while (current != null)
+            {
+                if (type.IsInstanceOfType(current))
+                {
+                    return current;
+                }
+
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+
+            return null;
         }
 
         private void ToggleGauges_Click(object sender, RoutedEventArgs e)
@@ -266,6 +604,26 @@ namespace IconGrid.Views
             }
         }
 
+        /// <summary>
+        /// Applies the width x height of the selected group's bar (0 = automatic). The canvas
+        /// draws that bar as the base template the user builds modules inside.
+        /// </summary>
+        private void ApplyGroupBarSize()
+        {
+            if (ViewModel == null || LayersList?.SelectedItem is not OverlayBlock { IsGroupLayer: true } header)
+            {
+                return;
+            }
+
+            double.TryParse(GroupBarWidthBox.Text, out var width);
+            double.TryParse(GroupBarHeightBox.Text, out var height);
+            ViewModel.SetGamingOverlayGroupBarSize(header.GroupId, width, height);
+        }
+
+        private void GroupBarSize_Click(object sender, RoutedEventArgs e) => ApplyGroupBarSize();
+
+        private void GroupBarSize_LostFocus(object sender, RoutedEventArgs e) => ApplyGroupBarSize();
+
         /// <summary>Group folder selected -> rename field; module selected -> group picker.</summary>
         private void LoadGroupPanel(OverlayBlock block)
         {
@@ -281,9 +639,15 @@ namespace IconGrid.Views
 
             if (block.IsGroupLayer)
             {
-                // A folder has no label/colour of its own.
+                // A folder has no label/colour of its own, but it owns its own overlay bar.
                 GenericColorSection.Visibility = Visibility.Collapsed;
                 GroupNameBox.Text = block.GroupName;
+
+                var group = ViewModel?.GamingOverlayGroups.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Id, block.GroupId, StringComparison.Ordinal));
+
+                GroupBarWidthBox.Text = group is { Width: > 0 } ? group.Width.ToString("0.#") : "0";
+                GroupBarHeightBox.Text = group is { Height: > 0 } ? group.Height.ToString("0.#") : "0";
                 return;
             }
 
@@ -386,7 +750,12 @@ namespace IconGrid.Views
 
         private void LayersList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            UpdateLayerToolbarState((sender as ListBox)?.SelectedItem as OverlayBlock);
+            var selectedBlock = (sender as ListBox)?.SelectedItem as OverlayBlock;
+
+            UpdateLayerToolbarState(selectedBlock);
+
+            // Each group is its own bar: the canvas follows the selected group (or layer's group).
+            ViewModel?.SetSkinStudioCanvasGroup(selectedBlock?.GroupId);
 
             if (sender is not ListBox { SelectedItem: OverlayBlock block })
             {
@@ -456,7 +825,10 @@ namespace IconGrid.Views
             }
         }
 
-        private void DeleteSelectedModule_Click(object sender, RoutedEventArgs e)
+        private void DeleteSelectedModule_Click(object sender, RoutedEventArgs e) => DeleteSelectedLayer();
+
+        /// <summary>Deletes the selected row: a folder as a whole, or the selected module.</summary>
+        private void DeleteSelectedLayer()
         {
             if (LayersList?.SelectedItem is not OverlayBlock block)
             {

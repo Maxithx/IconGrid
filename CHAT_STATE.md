@@ -2162,3 +2162,79 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - En commit med hele bunken: lag-vaerktoejslinje i én raekke, skabelon-knap-tekster/-layout, systemgruppe-beskyttelse (gruppe + lag) og note-opdateringer.
 - Deploy fra 04:19 ligger i `C:\IconGrid` (DLL 1.356.288 B).
 
+### Nye lag maa ikke havne i standardgruppen + drag fra bibliotek til canvas (04:27)
+- `AddGamingOverlayModule(blockType, id, groupId)` returnerer nu det tilfoejede `OverlayBlock` og saetter props["group"]. Ny `ResolveNewModuleGroup(groupId)`: den valgte gruppe bruges hvis den ikke er systemgruppen; ellers foerste ikke-system-gruppe; findes ingen, oprettes en ny gruppe ("Group N") og modulet lander der. Standardgruppen forbliver praecis som den blev leveret.
+- SkinStudioPage: `AddModuleFromSpec()` (bruges af alle 12 biblioteksknapper + "＋"), `SelectedGroupId()`, `SelectLayer()` (ny række markeres saa man ser hvor den landede).
+- Drag & drop fra Modul-bibliotek til canvas: `LibraryPanel` starter DragDrop med formatet "IconGrid.ModuleSpec"; `DesignCanvas` har AllowDrop + DragOver/Drop der kalder AddModuleFromSpec. Klik-til-foej virker stadig.
+- Modulraekkefoelgen er stadig lineaer (appen er en 1:1 horisontal bar), saa et drop paa canvas tilfoejer bagerst i rækken - ikke paa XY-position.
+- Build 0/0, deployet 04:27 (DLL 1.358.336 B, identisk begge steder). Ikke committet.
+
+### Hver gruppe = egen bar paa canvas (04:36)
+- Model: `OverlayLayerGroup.Width` / `Height` (0 = auto) - gruppens egen bar-stoerrelse, gemmes i blueprintet.
+- Ny converter `Helpers/Converters/FirstValueConverter.cs` (foerste ikke-null/ikke-NaN vaerdi) i namespace IconGrid.Helpers.
+- `GamingOverlayBar`: nye DP'er `BlocksSource` (IEnumerable) og `BarHeight` (double, NaN = skin-hoejde). ItemsControl bruger MultiBinding: BlocksSource -> ellers GamingOverlayLayoutBlocks; indre Grid Height: BarHeight -> ellers GamingOverlayBackgroundHeight. Live-overlay og Gaming-overlay-siden saetter dem ikke og er derfor uaendrede.
+- VM: `_canvasGroupId`, `CanvasGroup`, `GamingOverlayCanvasTitle`, `GamingOverlayCanvasBlocks` (kun synlige moduler i den valgte gruppe), `GamingOverlayCanvasBarWidth/Height` (NaN = auto), `SetSkinStudioCanvasGroup()`, `SetGamingOverlayGroupBarSize()`; `RaiseCanvasGroupChanged()` kaldes fra CommitBlueprintLayout.
+- SkinStudioPage: canvas-bar bundet til BlocksSource/BarHeight/Width; titel over canvas viser gruppenavnet; selection skifter canvas-gruppe; nyt felt i gruppe-egenskaberne "Bar size (width x height, 0 = auto)" + Apply (GroupBarWidthBox/GroupBarHeightBox, GroupBarSize_Click/_LostFocus).
+- VIGTIGT: live-overlayet renderer stadig ALLE moduler i én bar - naeste skridt er at vaelge hvilken gruppe der er den aktive/live bar.
+- Build 0/0, deployet 04:36 (DLL 1.363.456 B, identisk begge steder). Ikke committet.
+
+### Canvas-menu (File/Edit) + gruppenavn til hoejre (04:42)
+- Canvas-headeren er nu en menu-bar: File (Gem overlay / Ny gruppe / Nulstil til classic) og Edit (Fortryd / Laas / Slet) + status-tekst og gruppenavnet yderst til hoejre.
+- Nye styles `CanvasMenuBarItemStyle` og `CanvasMenuItemStyle` (moerk popup, hover #2A2F35, disabled-graa) i SkinStudioPage-resources; Menu.Resources har implicit MenuItem-stil + moerk Separator.
+- 9 nye lokaliseringsnoegler (Fil/Rediger/Gem overlay/Ny gruppe/Nulstil til classic/Fortryd/Laas laas op/Slet lag eller gruppe/Overlay gemt.).
+- VM: `SaveSkinStudioOverlay()` (flusher blueprint til disk; alt autogemmes i forvejen) og `ResetGamingOverlayBlueprint()` kalder nu ogsaa RaiseCanvasGroupChanged.
+- Code-behind: MenuSave/MenuNewGroup/MenuReset/MenuUndo/MenuLock/MenuDelete, `ShowCanvasStatus()` med 2,5 s DispatcherTimer, og `DeleteSelectedLayer()` (delt af 🗑 og menuen).
+- Build 0/0, deployet 04:42 (DLL 1.370.112 B, identisk begge steder). Ikke committet.
+
+### Chrome (Settings/Close/Background) er nu gruppe-ejet i canvas (04:48)
+- Problem: Group 2's canvas viste gear + X selvom Group 2 ikke ejer dem; de er `Chrome`-lag der hoerer til den gruppe de ligger i.
+- `GamingOverlayBar`: ny DP `ChromeGroupId`; `OwnsChrome()` slaar op via `MainViewModel.GamingOverlayGroupOwns(block, groupId)`. Er gruppen sat og ejer den ikke chrome-laget, skjules knappen. Uden `ChromeGroupId` (live-overlay + Gaming-overlay-siden) er alt uaendret.
+- VM: `GamingOverlayCanvasGroupId` + `GamingOverlayGroupOwns()`; begge rejses i RaiseCanvasGroupChanged.
+- Canvas binder `ChromeGroupId="{Binding GamingOverlayCanvasGroupId}"`.
+- Resultat: en tom gruppe viser en tom bar (kun skin-baggrund). Vil man have Settings/Close/Background i sin gruppe, traekker man de tre raekker fra standardgruppen ned i den - de er stadig singleton-lag i blueprintet (én udgave pr. blueprint).
+- Build 0/0, deployet 04:48 (DLL 1.371.136 B, identisk begge steder). Ikke committet.
+
+### Settings/Close/Background i Modul-biblioteket (04:51)
+- Aarsag til at de ikke var i biblioteket: de ligger i blueprintets `Chrome`-liste, ikke i `Layout`, og blev altid oprettet automatisk af `EnsureChrome`.
+- VM: `AddGamingOverlayChromeModule(kind, groupId)` (settings/close/background). Findes laget allerede, flyttes det til den valgte gruppe (de er singleton-lag: der er ét gear, ét X og én baggrund pr. blueprint); findes det ikke, oprettes det i gruppen.
+- Biblioteket har nu tre ekstra knapper: Settings, Close, Background (Tag `chrome:settings|close|background`), med tooltip om at laget flyttes ind i den valgte gruppe.
+- `AddModuleFromSpec` ruter `chrome:`-specs til den nye metode; klik OG drag-and-drop til canvas virker for dem.
+- Build 0/0, deployet 04:51 (DLL 1.372.672 B, identisk begge steder). Ikke committet.
+
+### Flere grupper paa canvas + flyt bar med musen (04:59)
+- Model: `OverlayLayerGroup.X` / `Y` (canvas-offset). Nye grupper faar `Y = max(Y)+70`, saa de ikke lander oven paa standardgruppen.
+- Ny `ViewModels/OverlayCanvasBar.cs`: wrapper pr. gruppe med `Blocks`, `CanvasLeft/Top` (origin 40/82 + X/Y), `BarWidth/BarHeight` (NaN = auto), `GuideVisibility` (valgt = lys guide) og `PlainFrameVisibility`.
+- VM: `GamingOverlayCanvasBars` (alle grupper som hver sin bar) + `SetGamingOverlayGroupPosition(groupId, x, y, commit)`; rejses i RaiseCanvasGroupChanged.
+- Canvas: den ene bar er erstattet af et ItemsControl (Canvas-panel) der tegner ALLE grupper paa deres position, med navn over hver bar. Bar'ens DataContext er VM (skin), mens Blocks/Chrome/BarHeight/Width hentes fra item via ContentPresenter.
+- Flyt: transparent drag-flade oven paa hver bar. Klik paa en anden bar = vaelg den gruppe i lag-listen; er gruppen allerede valgt, kan baren traekkes (TranslateTransform under drag, ét commit + undo-snapshot ved slip).
+- Begraensning: enkelt-LAG kan ikke flyttes frit i 2D - baren er en horizontal raekke, saa modulers raekkefoelge aendres i lag-listen. Kun gruppe-baren flyttes i XY.
+- Build 0/0, deployet 04:59 (DLL 1.377.792 B, identisk begge steder). Ikke committet.
+
+### Fix: klik paa standardbaren valgte Group 2 (05:04)
+- Aarsag: Group 2 blev oprettet FOER grupper fik X/Y, saa den laa i (0,0) og blev tegnet oven paa standardbaren. Den overtog museklikket, og derfor blev Group 2 valgt.
+- `EnsureGroups` stagger nu gamle grupper: for index > 0 med X=0 og Y=0 saettes `Y = index * 70`, saa alle bars kan rammes.
+- Build 0/0, deployet 05:04 (DLL 1.378.304 B, identisk begge steder). Ikke committet.
+
+### Fix: ny/tom gruppe viste alle moduler (05:08)
+- Aarsag: `BlocksSource`/`ChromeGroupId`/`BarHeight`/`Width` blev bundet via `RelativeSource AncestorType=ContentPresenter`, som ikke gav item'et -> DPs var null -> baren faldt tilbage til "alle moduler" (og viste chrome).
+- Loesning: `<Grid x:Name="ItemRoot">` i DataTemplate og `ElementName=ItemRoot` + `Path=DataContext.X` for alle fire bindinger (Elements i samme template-namescope).
+- `MinWidth="80"` paa canvas-barerne, saa en tom gruppes bar stadig er synlig og kan rammes/flyttes.
+- Nu viser en ny gruppe en tom bar - der oprettes ikke moduler i den (AddGamingOverlayGroup roerer kun Groups).
+- Build 0/0, deployet 05:08 (DLL 1.378.304 B, identisk begge steder). Ikke committet.
+
+### Bars kan flyttes helt til canvas-kanten (05:10)
+- Aarsag til at standardbaren ikke kunne komme i toppen: canvas-origo var fast 40/82, og Y blev klemt til >= 0, saa der altid var ~82 px luft foroven (plus gruppenavnet over baren).
+- `OverlayCanvasBar`: `OriginLeft/Top` = 24/24 og ny `MinOffset = -24`; `SetGamingOverlayGroupPosition` klemmer X/Y til [-24, 3000] -> canvas-position kan gaa helt til 0.
+- Gruppenavnet ligger nu oven paa baren med `Margin="0,-16,0,0"` og `IsHitTestVisible="False"` (ingen layout-plads), saa baren kan ligge flush i toppen. StackPanel-wrapperen er fjernet.
+- Build 0/0, deployet 05:10 (DLL 1.378.304 B, identisk begge steder). Ikke committet.
+
+### Fix: canvas blev centreret lodret i ScrollViewer (05:16)
+- Undersoegte gemt config: standardgruppen stod allerede paa `X=-24, Y=-24` (klemt minimum), saa modellen var korrekt - baren laa i canvas-toppen.
+- Aarsag til at det SAA forkert ud: ScrollViewer'en centrerede det 1040x620 canvas lodret, saa canvas' top laa ca. 170 px nede paa skaermen.
+- Fix: `HorizontalContentAlignment="Left"` + `VerticalContentAlignment="Top"` paa ScrollViewer og `HorizontalAlignment/VerticalAlignment="Left/Top"` paa `DesignCanvas`.
+- Build 0/0, deployet 05:16 (DLL 1.378.304 B, identisk begge steder). Ikke committet.
+
+### Committet og pushet (05:20)
+- En commit med hele bunken: canvas File/Edit-menu, systemgruppe-beskyttelse, chrome som gruppe-lag + biblioteksknapper, én bar pr. gruppe paa canvas, flyt bar med musen, canvas-origo/centrering-fix og note-opdateringer.
+- Deploy fra 05:16 ligger i `C:\IconGrid` (DLL 1.378.304 B).
+

@@ -146,6 +146,64 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!--
+            Menu bar above the canvas. The default WPF menu is light grey, so both the bar item and
+            the drop-down rows get small dark templates that match the rest of Skin Studio.
+        -->
+        <Style x:Key="CanvasMenuBarItemStyle" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#C9D1D9" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid>
+                            <Border x:Name="Header" Background="Transparent" CornerRadius="4" Padding="10,3">
+                                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+                            </Border>
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Bottom" VerticalOffset="2"
+                                   AllowsTransparency="True" StaysOpen="False" Focusable="False">
+                                <Border Background="#1B1D20" BorderBrush="#2A2D31" BorderThickness="1"
+                                        CornerRadius="4" Padding="4" MinWidth="190">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Header" Property="Background" Value="#2A2F35" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CanvasMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#C9D1D9" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Row" Background="Transparent" CornerRadius="3" Padding="10,4">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Row" Property="Background" Value="#2A2F35" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#5C6672" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -160,7 +218,10 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Margin="14">
                     <TextBlock Text="{Binding SkinStudioModuleLibraryTitleText}" Style="{StaticResource PanelTitleStyle}" />
-                    <WrapPanel>
+                    <WrapPanel x:Name="LibraryPanel"
+                               PreviewMouseLeftButtonDown="LibraryPanel_PreviewMouseLeftButtonDown"
+                               PreviewMouseMove="LibraryPanel_PreviewMouseMove"
+                               Background="Transparent">
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="clock" Click="AddModule_Click" Content="Clock" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="divider" Click="AddModule_Click" Content="Divider" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="ping" Click="AddModule_Click" Content="Ping" />
@@ -173,6 +234,12 @@
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:gpuClock" Click="AddModule_Click" Content="GPU clock" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:frameTime" Click="AddModule_Click" Content="FT" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:fps" Click="AddModule_Click" Content="FPS" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="chrome:settings" Click="AddModule_Click"
+                                Content="Settings" ToolTip="The gear button layer — moves into the selected group" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="chrome:close" Click="AddModule_Click"
+                                Content="Close" ToolTip="The X button layer — moves into the selected group" />
+                        <Button Style="{StaticResource LibraryButtonStyle}" Tag="chrome:background" Click="AddModule_Click"
+                                Content="Background" ToolTip="The bar fill layer — moves into the selected group" />
                     </WrapPanel>
 
                     <Button Margin="0,10,0,0" Padding="10,6" HorizontalAlignment="Left"
@@ -204,35 +271,111 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#141518" BorderBrush="#2A2D31" BorderThickness="0,0,0,1" Padding="16,8">
-                <TextBlock Text="{Binding GamingOverlayBlueprint.Name}" Foreground="#C9D1D9" FontSize="12" />
+            <Border Grid.Row="0" Background="#141518" BorderBrush="#2A2D31" BorderThickness="0,0,0,1" Padding="6,3">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- File / Edit menu, like an editor. The group being designed sits on the right. -->
+                    <Menu Grid.Column="0" Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                        <Menu.Resources>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource CanvasMenuBarItemStyle}" />
+                            <Style TargetType="Separator">
+                                <Setter Property="Background" Value="#2A2D31" />
+                                <Setter Property="Height" Value="1" />
+                                <Setter Property="Margin" Value="0,4" />
+                            </Style>
+                        </Menu.Resources>
+
+                        <MenuItem Header="{Binding SkinStudioMenuFileText}"
+                                  ItemContainerStyle="{StaticResource CanvasMenuItemStyle}">
+                            <MenuItem Header="{Binding SkinStudioMenuSaveText}" Click="MenuSave_Click" />
+                            <MenuItem Header="{Binding SkinStudioMenuNewGroupText}" Click="MenuNewGroup_Click" />
+                            <Separator />
+                            <MenuItem Header="{Binding SkinStudioMenuResetText}" Click="MenuReset_Click" />
+                        </MenuItem>
+
+                        <MenuItem Header="{Binding SkinStudioMenuEditText}"
+                                  ItemContainerStyle="{StaticResource CanvasMenuItemStyle}">
+                            <MenuItem Header="{Binding SkinStudioMenuUndoText}" Click="MenuUndo_Click"
+                                      IsEnabled="{Binding CanUndoGamingOverlayLayout}" />
+                            <MenuItem Header="{Binding SkinStudioMenuLockText}" Click="MenuLock_Click" />
+                            <MenuItem Header="{Binding SkinStudioMenuDeleteText}" Click="MenuDelete_Click" />
+                        </MenuItem>
+                    </Menu>
+
+                    <TextBlock x:Name="CanvasStatusText" Grid.Column="1" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" Margin="0,0,12,0"
+                               Foreground="#7CFF6B" FontSize="11" />
+
+                    <TextBlock Grid.Column="2" Text="{Binding GamingOverlayCanvasTitle}" Foreground="#C9D1D9"
+                               FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0" />
+                </Grid>
             </Border>
 
             <ScrollViewer Grid.Row="1"
                           HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Auto"
+                          HorizontalContentAlignment="Left"
+                          VerticalContentAlignment="Top"
                           Background="Transparent">
-                <Canvas x:Name="DesignCanvas" Width="1040" Height="620" Margin="20">
-                    <!-- Horizontal guide: follows the real size of the overlay bar (content driven,
-                         so it changes when modules are added/removed). -->
-                    <TextBlock Canvas.Left="40" Canvas.Top="64" Foreground="#B0438C" FontSize="11">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="Standard Horizontal — {0:0} x {1:0}">
-                                <Binding Path="ActualWidth" ElementName="CanvasOverlay" />
-                                <Binding Path="ActualHeight" ElementName="CanvasOverlay" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
-                    <Border Canvas.Left="40" Canvas.Top="82"
-                            Width="{Binding ActualWidth, ElementName=CanvasOverlay}"
-                            Height="{Binding ActualHeight, ElementName=CanvasOverlay}"
-                            BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
-                    <!-- The bar scales itself exactly like the live overlay window (overlay scale),
-                         so the preview is 1:1 and sizes to the scaled content. -->
-                    <views:GamingOverlayBar x:Name="CanvasOverlay"
-                                            Canvas.Left="40" Canvas.Top="82"
-                                            IsPreview="True"
-                                            DataContext="{Binding}" />
+                <Canvas x:Name="DesignCanvas" Width="1040" Height="620" Margin="20"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        AllowDrop="True"
+                        DragOver="DesignCanvas_DragOver"
+                        Drop="DesignCanvas_Drop">
+                    <!-- Every layer group is its own bar with its own position: the standard overlay
+                         stays visible while a new group is being built. The selected group gets the
+                         bright guide frame; dragging its bar moves it. -->
+                    <ItemsControl ItemsSource="{Binding GamingOverlayCanvasBars}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
+                                <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid x:Name="ItemRoot">
+                                    <!-- The name is drawn above the bar without taking layout space,
+                                         so a bar can sit flush with the top of the canvas. -->
+                                    <TextBlock Text="{Binding Title}" Foreground="#B0438C" FontSize="11"
+                                               VerticalAlignment="Top" Margin="0,-16,0,0" IsHitTestVisible="False" />
+                                    <Border BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C"
+                                            Visibility="{Binding GuideVisibility}" />
+                                    <Border BorderBrush="#33373D" BorderThickness="1"
+                                            Visibility="{Binding PlainFrameVisibility}" />
+                                    <!-- The bar scales itself exactly like the live overlay, so the
+                                         preview is 1:1 and sizes to the scaled content. The bar's
+                                         DataContext is the view model (skin/dividers), while its
+                                         bar-specific values come from this template's item. -->
+                                    <views:GamingOverlayBar IsPreview="True"
+                                                            MinWidth="80"
+                                                            DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            BlocksSource="{Binding DataContext.Blocks, ElementName=ItemRoot}"
+                                                            ChromeGroupId="{Binding DataContext.GroupId, ElementName=ItemRoot}"
+                                                            BarHeight="{Binding DataContext.BarHeight, ElementName=ItemRoot}"
+                                                            Width="{Binding DataContext.BarWidth, ElementName=ItemRoot}" />
+                                    <!-- Transparent drag surface: click selects the group (in the
+                                         layer list), dragging moves the whole bar. -->
+                                    <Border Background="Transparent" Cursor="SizeAll"
+                                            Tag="{Binding GroupId}"
+                                            PreviewMouseLeftButtonDown="CanvasBar_MouseLeftButtonDown"
+                                            PreviewMouseMove="CanvasBar_MouseMove"
+                                            PreviewMouseLeftButtonUp="CanvasBar_MouseLeftButtonUp" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                     <!-- Vertical guide -->
                     <TextBlock Canvas.Left="960" Canvas.Top="150" Foreground="#B0438C" FontSize="11"
@@ -498,6 +641,27 @@
                             <TextBlock Margin="0,0,0,4" Foreground="#8B949E" FontSize="11" Text="{Binding SkinStudioGroupNameLabelText}" />
                             <TextBox x:Name="GroupNameBox" Padding="6,4" Background="#1E2126" Foreground="#D7DCE2"
                                      BorderBrush="#33373D" LostFocus="GroupNameBox_LostFocus" />
+
+                            <!-- The group's own bar: this is the base template you build inside. -->
+                            <TextBlock Margin="0,10,0,4" Foreground="#8B949E" FontSize="11"
+                                       Text="Bar size (width x height, 0 = auto)" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="GroupBarWidthBox" Grid.Column="0" Padding="6,4"
+                                         Background="#1E2126" Foreground="#D7DCE2" BorderBrush="#33373D"
+                                         LostFocus="GroupBarSize_LostFocus" />
+                                <TextBox x:Name="GroupBarHeightBox" Grid.Column="2" Padding="6,4"
+                                         Background="#1E2126" Foreground="#D7DCE2" BorderBrush="#33373D"
+                                         LostFocus="GroupBarSize_LostFocus" />
+                                <Button Grid.Column="4" Padding="8,2" Content="Apply"
+                                        Click="GroupBarSize_Click" ToolTip="Use this size for the group's bar" />
+                            </Grid>
                         </StackPanel>
 
                         <StackPanel x:Name="ModuleGroupSection" Visibility="Collapsed" Margin="0,12,0,0">

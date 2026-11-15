@@ -17,6 +17,7 @@
         <helpers:PercentToHeightConverter x:Key="PercentToHeightConverter" />
         <helpers:PercentToLengthConverter x:Key="PercentToLength" />
         <helpers:PercentToArcGeometryConverter x:Key="PercentToArcGeometry" />
+        <helpers:FirstValueConverter x:Key="FirstValue" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <SolidColorBrush x:Key="MonitorHighPingColor" Color="#FFF87171" />
         <SolidColorBrush x:Key="OverlayCloseHoverDark" Color="#14FFFFFF" />
@@ -702,7 +703,14 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid Height="{Binding GamingOverlayBackgroundHeight}">
+                <Grid>
+                    <Grid.Height>
+                        <!-- A layer group may own a taller/shorter bar; NaN falls back to the skin. -->
+                        <MultiBinding Converter="{StaticResource FirstValue}">
+                            <Binding Path="BarHeight" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                            <Binding Path="GamingOverlayBackgroundHeight" />
+                        </MultiBinding>
+                    </Grid.Height>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -776,9 +784,16 @@
                                Width="{Binding GamingOverlaySkin.LogoWidthValue}"
                                Source="{Binding GamingOverlaySkin.LogoImageSource}"
                                Visibility="{Binding GamingOverlaySkin.HasLogo, Converter={StaticResource BoolToVisibility}}" />
-                        <ItemsControl ItemsSource="{Binding GamingOverlayLayoutBlocks}"
-                                      ItemTemplateSelector="{StaticResource OverlayBlockTemplateSelector}"
+                        <ItemsControl ItemTemplateSelector="{StaticResource OverlayBlockTemplateSelector}"
                                       VerticalAlignment="Center">
+                            <ItemsControl.ItemsSource>
+                                <!-- The editor can pin the bar to one layer group; the live overlay
+                                     and the settings preview leave this unset and use every module. -->
+                                <MultiBinding Converter="{StaticResource FirstValue}">
+                                    <Binding Path="BlocksSource" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                    <Binding Path="GamingOverlayLayoutBlocks" />
+                                </MultiBinding>
+                            </ItemsControl.ItemsSource>
                             <ItemsControl.ItemContainerStyle>
                                 <Style TargetType="ContentPresenter">
                                     <Setter Property="Opacity" Value="{Binding OpacityValue}" />
