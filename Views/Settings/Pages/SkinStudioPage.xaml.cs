@@ -43,6 +43,25 @@ namespace IconGrid.Views
             ViewModel.AddGamingOverlayModule(parts[0], parts.Length > 1 ? parts[1] : null);
         }
 
+        private void ToggleGauges_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm == null)
+            {
+                return;
+            }
+
+            // The button is a toggle: combined gauges get split, split ones get merged again.
+            if (vm.GamingOverlayHasCombinedGauges)
+            {
+                vm.SplitGamingOverlayGaugeModules();
+            }
+            else if (vm.GamingOverlayHasMergeableGauges)
+            {
+                vm.MergeGamingOverlayGaugeModules();
+            }
+        }
+
         // The layer list is reversed (topmost first), so "up" in the panel = later in the row.
         private void MoveModuleUp_Click(object sender, RoutedEventArgs e)
         {

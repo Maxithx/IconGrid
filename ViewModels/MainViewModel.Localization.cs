@@ -86,6 +86,8 @@ namespace IconGrid.ViewModels
         public string SkinStudioLayersTitleText => _localizationState.Get(Language, "SkinStudioLayersTitle");
         public string SkinStudioPropertiesTitleText => _localizationState.Get(Language, "SkinStudioPropertiesTitle");
         public string SkinStudioCanvasResetText => _localizationState.Get(Language, "SkinStudioCanvasReset");
+        public string SkinStudioSplitGaugesText => _localizationState.Get(Language, "SkinStudioSplitGauges");
+        public string SkinStudioMergeGaugesText => _localizationState.Get(Language, "SkinStudioMergeGauges");
         public string SkinStudioGaugeTitleText => _localizationState.Get(Language, "SkinStudioGaugeTitle");
         public string SkinStudioMeterStyleLabelText => _localizationState.Get(Language, "SkinStudioMeterStyleLabel");
         public string SkinStudioMeterColorLabelText => _localizationState.Get(Language, "SkinStudioMeterColorLabel");
@@ -319,6 +321,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(SkinStudioLayersTitleText));
             OnPropertyChanged(nameof(SkinStudioPropertiesTitleText));
             OnPropertyChanged(nameof(SkinStudioCanvasResetText));
+            OnPropertyChanged(nameof(SkinStudioSplitGaugesText));
+            OnPropertyChanged(nameof(SkinStudioMergeGaugesText));
             OnPropertyChanged(nameof(SkinStudioGaugeTitleText));
             OnPropertyChanged(nameof(SkinStudioMeterStyleLabelText));
             OnPropertyChanged(nameof(SkinStudioMeterColorLabelText));

@@ -2002,3 +2002,16 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Stilen har nu samme ControlTemplate som OverlayActionButtonStyle ("Vis gaming overlay"): Background via TemplateBinding, CornerRadius 4, hover #FF3E3E3E, pressed #FF2B2D31, disabled opacity 0.55, Cursor=Hand.
 - Virker for alle sider der bruger TemplateActionButtonStyle.
 - Deployet 01:50, DLL 1.331.712 B (identisk begge steder), build 0/0.
+
+### Opdel Usage + Temp i to lag (01:57)
+- Ny VM-metode `SplitGamingOverlayGaugeModules()`: hver `gauge`-blok bliver til `usage` + `temp` (temp faar kopi af props/id/label, usage beholder maaler-props og mister showTemp). Returnerer antal opdelte.
+- Knap i venstre panel under modul-biblioteket: "Opdel brug + temp i to lag" (SkinStudioSplitGauges).
+- Lag-listen afspejler data 1:1 - derfor opdeles modulet frem for kun visningen.
+- Deployet 01:57, DLL 1.332.736 B (identisk begge steder), build 0/0.
+
+### Opdel/Saml-knap blev en toggle (02:01)
+- Knappen skifter nu tekst efter layoutet: "Opdel brug + temp i to lag" naar der findes `gauge`-moduler, ellers "Saml brug + temp til et lag" (SkinStudioGaugeLayoutActionText).
+- Ny `MergeGamingOverlayGaugeModules()`: finder `usage` + `temp` med samme id, merger props (temp-identitet + maaler-indstillinger, showTemp=true) tilbage til `gauge` og fjerner temp-blokken.
+- Nye VM-properties: GamingOverlayHasCombinedGauges, GamingOverlayHasMergeableGauges (+ notifikation i CommitBlueprintLayout).
+- Handleren hedder nu ToggleGauges_Click og vaelger split/merge ud fra tilstanden.
+- Deployet 02:01, DLL 1.335.296 B (identisk begge steder), build 0/0.

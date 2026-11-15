@@ -576,6 +576,122 @@ namespace IconGrid.ViewModels
             CommitBlueprintLayout(_ => block.Template = null);
         }
 
+        /// <summary>
+        /// Splits every combined "gauge" module into a separate "usage" meter and a "temp" chip,
+        /// so the layer list matches the module library (CPU usage / CPU temp as two layers).
+        /// Returns the number of modules that were split.
+        /// </summary>
+        public int SplitGamingOverlayGaugeModules()
+        {
+            var split = 0;
+
+            CommitBlueprintLayout(blocks =>
+            {
+                for (var i = 0; i < blocks.Count; i++)
+                {
+                    var block = blocks[i];
+                    if (!string.Equals(block.Block, "gauge", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    // The temperature module keeps the same identity (id/label/colour/hidden/
+                    // opacity); the meter module keeps everything else and drops the temp toggle.
+                    var tempProps = new Dictionary<string, string>(block.Props ?? new Dictionary<string, string>());
+
+                    block.Block = "usage";
+                    block.Props ??= new Dictionary<string, string>();
+                    block.Props.Remove("showTemp");
+
+                    blocks.Insert(i + 1, new OverlayBlock { Block = "temp", Props = tempProps });
+                    i++;
+                    split++;
+                }
+            });
+
+            return split;
+        }
+
+        /// <summary>True when the layout still has combined "gauge" (usage + temp) modules.</summary>
+        public bool GamingOverlayHasCombinedGauges =>
+            _gamingOverlayBlueprint.Layout.Any(block =>
+                string.Equals(block.Block, "gauge", StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>True when a usage meter and a temp chip share the same CPU/GPU id.</summary>
+        public bool GamingOverlayHasMergeableGauges
+        {
+            get
+            {
+                var temps = new HashSet<string>(
+                    _gamingOverlayBlueprint.Layout
+                        .Where(block => string.Equals(block.Block, "temp", StringComparison.OrdinalIgnoreCase))
+                        .Select(block => block.Id.ToLowerInvariant()));
+
+                return _gamingOverlayBlueprint.Layout.Any(block =>
+                    string.Equals(block.Block, "usage", StringComparison.OrdinalIgnoreCase) &&
+                    temps.Contains(block.Id.ToLowerInvariant()));
+            }
+        }
+
+        /// <summary>Label for the studio button: it splits combined gauges, or merges split ones.</summary>
+        public string SkinStudioGaugeLayoutActionText =>
+            GamingOverlayHasCombinedGauges ? SkinStudioSplitGaugesText : SkinStudioMergeGaugesText;
+
+        /// <summary>
+        /// Merges a "usage" meter and the matching "temp" chip (same CPU/GPU id) back into one
+        /// combined "gauge" module. Returns the number of merged pairs.
+        /// </summary>
+        public int MergeGamingOverlayGaugeModules()
+        {
+            var merged = 0;
+
+            CommitBlueprintLayout(blocks =>
+            {
+                for (var i = 0; i < blocks.Count; i++)
+                {
+                    var usage = blocks[i];
+                    if (!string.Equals(usage.Block, "usage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    var id = usage.Id;
+                    var tempIndex = blocks.FindIndex(candidate =>
+                        !ReferenceEquals(candidate, usage) &&
+                        string.Equals(candidate.Block, "temp", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(candidate.Id, id, StringComparison.OrdinalIgnoreCase));
+
+                    if (tempIndex < 0)
+                    {
+                        continue;
+                    }
+
+                    // Temperature identity + meter settings, and the combined module always shows temp.
+                    var props = new Dictionary<string, string>(blocks[tempIndex].Props ?? new Dictionary<string, string>());
+                    foreach (var pair in usage.Props ?? new Dictionary<string, string>())
+                    {
+                        props[pair.Key] = pair.Value;
+                    }
+
+                    props["showTemp"] = "true";
+                    props["id"] = id;
+
+                    usage.Props = props;
+                    usage.Block = "gauge";
+                    blocks.RemoveAt(tempIndex);
+
+                    if (tempIndex < i)
+                    {
+                        i--;
+                    }
+
+                    merged++;
+                }
+            });
+
+            return merged;
+        }
+
         private void CommitBlueprintLayout(Action<List<OverlayBlock>> mutate)
         {
             // Work on a copy and assign a NEW list: the ItemsControl only refreshes its item
@@ -591,6 +707,9 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlaySettingsButton));
             OnPropertyChanged(nameof(GamingOverlayCloseButton));
             OnPropertyChanged(nameof(GamingOverlayBackgroundLayer));
+            OnPropertyChanged(nameof(GamingOverlayHasCombinedGauges));
+            OnPropertyChanged(nameof(GamingOverlayHasMergeableGauges));
+            OnPropertyChanged(nameof(SkinStudioGaugeLayoutActionText));
             SaveSettingsToConfig();
         }
 

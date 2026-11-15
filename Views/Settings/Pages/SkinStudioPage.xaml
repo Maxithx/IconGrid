@@ -152,6 +152,11 @@
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:frameTime" Click="AddModule_Click" Content="FT" />
                         <Button Style="{StaticResource LibraryButtonStyle}" Tag="stat:fps" Click="AddModule_Click" Content="FPS" />
                     </WrapPanel>
+
+                    <Button Margin="0,10,0,0" Padding="10,6" HorizontalAlignment="Left"
+                            Click="ToggleGauges_Click"
+                            ToolTip="Splits combined CPU/GPU (Usage + Temp) modules into a usage meter and a temperature chip, or merges them back into one module"
+                            Content="{Binding SkinStudioGaugeLayoutActionText}" />
                 </StackPanel>
             </ScrollViewer>
         </Border>
