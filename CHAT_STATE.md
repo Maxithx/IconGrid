@@ -2304,7 +2304,8 @@ BEKRÆFTELSE AF AT COD-STIEN ER KORREKT: `GameVramEvidence` (500 MB peak-VRAM EL
 
 BUILD + DEPLOY: `dotnet build IconGrid.csproj` -> Build succeeded, 0 fejl. `cmd /c deploy-test.cmd` -> Done. Verificeret: `bin\\Debug\\net10.0-windows10.0.22621.0\\IconGrid.dll` og `C:\\icongrid\\IconGrid.dll` = 18-11-2026 23:16:23, 1.393.664 bytes (identisk). App startet: `OnStartup begin` / `Starting launcher UI. Elevated=False` + forhøjet monitor-agent (`Starting hardware monitor agent mode. Elevated=True`); ingen fejl i error.log.
 
-NÆSTE TEST (bruger): start POE1 via IconGrid -> launcher må IKKE skjule sig og overlay må IKKE vises ved processtart; overlay + hide skal først ske når pipelinen har VRAM >=500 MB eller >=2 DXGI/D3D9-presenter for spil-PID'en. Verificér i trace: ingen `GameLaunched` uden foregående bekræftet target, og `GameExited` skal nu fyre ved spil-luk. COD skal fortsat virke som før. Ikke committet/pushet (kræver separat godkendelse).
+Den kørende app startede på den nye build og loggen blev ryddet + testet af brugeren: `23:26:23` låste agenten `PathOfExile.exe` (PID 7816) med `DXGI=0 D3D9=0 DXGKRNL=0` og overlayet blev IKKE vist; `23:26:56 [GameFlow] GameLaunched` kom først da der var frames; `23:27:06 [GameFlow] GameExited` lukkede overlayet og gendannede launcheren. Trace-log master-switch verificeret af brugeren ("works great").
+COMMITTET OG PUSHET: `c7d4443` (2026-11-18).
 
 
 ## Trace-log master switch (2026-11-18)
@@ -2324,5 +2325,5 @@ VERIFIKATION (end-to-end, efter fix): app kørende (launcher + forhøjet monitor
 
 BUILD + DEPLOY: Build succeeded 0 fejl. `bin\\Debug\\...\\IconGrid.dll` = `C:\\icongrid\\IconGrid.dll` = 18-11-2026 23:24:25, 1.397.248 bytes. (Første deploy efter build kopierede ikke DLL'en — processen var stadig ved at lukke; anden deploy OK.) App startet igen, ingen nye fejl i error.log.
 
-NÆSTE TEST (bruger): Indstillinger -> Om -> Trace log: slå kontakten fra, bekræft at status skifter til "Trace-log skrivning er SLÅET FRA." og at trace.log ikke længere vokser; slå til igen og bekræft at den vokser. Ikke committet/pushet.
+NÆSTE TEST (bruger): Indstillinger -> Om -> Trace log: slå kontakten fra, bekræft at status skifter til "Trace-log skrivning er SLÅET FRA." og at trace.log ikke længere vokser; slå til igen og bekræft at den vokser. Bruger-verificeret 2026-11-18 ("works great"). COMMITTET OG PUSHET: `c7d4443`.
 
