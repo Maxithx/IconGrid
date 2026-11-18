@@ -1043,12 +1043,21 @@ namespace IconGrid.Helpers
             // was running, so IsInGame stayed true the whole time and the overlay
             // never auto-showed for the real game (false -> true transition never
             // happened). IsInGame therefore uses the SAME evidence rule as the
-            // monitor agent: application-level DXGI/D3D9 presents, game-like
-            // dedicated VRAM, or a trusted launch started through IconGrid.
+            // monitor agent: application-level DXGI/D3D9 presents or game-like
+            // dedicated VRAM.
+            //
+            // A trusted launch (game started through IconGrid) is deliberately NOT
+            // evidence by itself. The native agent publishes the locked PID
+            // immediately for trusted launches (main.cpp: gameConfirmed =
+            // g_trustedLaunch || hasFreshEvidence), so accepting it here showed the
+            // overlay at process start with zero frames (trace 2026-11-18 23:08:40:
+            // TargetPid=6544, DXGI=0 D3D9=0 DXGKRNL=0, Events=False, yet the overlay
+            // opened). Trusted launch still lets the FPS agent display a frame rate
+            // for emulators/older titles, but the overlay only appears once the
+            // pipeline actually observes a rendering game.
             var nativeGameEvidence = GameEvidenceVerdict.Unknown;
             NativeFpsAgentState? evidenceState = null;
             var hasPrimaryGraphicsEvidence = false;
-            var isTrustedLaunch = false;
             if (trackedGamePid > 0)
             {
                 evidenceState = nativeAgentState != null && nativeAgentState.TargetPid == trackedGamePid
@@ -1070,12 +1079,10 @@ namespace IconGrid.Helpers
                 nativeGameEvidence = _gameEvidenceVerdict;
                 hasPrimaryGraphicsEvidence = evidenceState != null &&
                                              GameProcessClassifier.HasPrimaryGraphicsEvidence(evidenceState);
-                isTrustedLaunch = evidenceState?.TrustedLaunch == true;
             }
 
             var isGameTarget = nativeGameEvidence == GameEvidenceVerdict.Game ||
-                               hasPrimaryGraphicsEvidence ||
-                               (isTrustedLaunch && nativeFpsState?.GameConfirmed == true);
+                               hasPrimaryGraphicsEvidence;
             SetInGame(trackedGamePid > 0 && isGameTarget);
             if (!hasNativeFps && fpsState == null)
             {

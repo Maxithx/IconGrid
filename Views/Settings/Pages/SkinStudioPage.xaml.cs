@@ -91,6 +91,36 @@ namespace IconGrid.Views
 
         private void MenuDelete_Click(object sender, RoutedEventArgs e) => DeleteSelectedLayer();
 
+        /// <summary>Switches the group being designed to a vertical (column) bar.</summary>
+        private void MenuGroupVertical_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm?.GamingOverlayCanvasGroupId is { Length: > 0 } groupId)
+            {
+                vm.SetGamingOverlayGroupOrientation(groupId, vertical: true);
+            }
+        }
+
+        /// <summary>Switches the group being designed back to a horizontal (row) bar.</summary>
+        private void MenuGroupHorizontal_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm?.GamingOverlayCanvasGroupId is { Length: > 0 } groupId)
+            {
+                vm.SetGamingOverlayGroupOrientation(groupId, vertical: false);
+            }
+        }
+
+        /// <summary>Makes the group being designed the bar the live overlay draws.</summary>
+        private void MenuGroupSetActive_Click(object sender, RoutedEventArgs e)
+        {
+            var vm = ViewModel;
+            if (vm?.GamingOverlayCanvasGroupId is { Length: > 0 } groupId)
+            {
+                vm.SetGamingOverlayActiveGroup(groupId);
+            }
+        }
+
         private MainViewModel? ViewModel => System.Windows.Window.GetWindow(this)?.DataContext as MainViewModel;
 
         private bool _suppressOpacityUpdate;

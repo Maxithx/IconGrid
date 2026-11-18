@@ -596,6 +596,10 @@ namespace IconGrid.ViewModels
         /// </summary>
         private string? _canvasGroupId;
 
+        /// <summary>Vis menu filters: hide one orientation while designing the other.</summary>
+        private bool _showHorizontalBars = true;
+        private bool _showVerticalBars = true;
+
         /// <summary>Group shown on the canvas: the selected row, else the standard group.</summary>
         private OverlayLayerGroup? CanvasGroup
         {
@@ -678,6 +682,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GamingOverlayCanvasTitle));
             OnPropertyChanged(nameof(GamingOverlayCanvasGroupId));
             OnPropertyChanged(nameof(GamingOverlayCanvasBars));
+            OnPropertyChanged(nameof(GamingOverlayActiveGroupId));
+            OnPropertyChanged(nameof(GamingOverlayActiveGroupName));
+            OnPropertyChanged(nameof(GamingOverlayActiveGroupIsVertical));
+            OnPropertyChanged(nameof(GamingOverlayLiveBlocks));
             OnPropertyChanged(nameof(GamingOverlayCanvasBlocks));
             OnPropertyChanged(nameof(GamingOverlayCanvasBarWidth));
             OnPropertyChanged(nameof(GamingOverlayCanvasBarHeight));
@@ -685,7 +693,8 @@ namespace IconGrid.ViewModels
 
         /// <summary>
         /// All layer groups as independent bars on the canvas: the standard overlay stays visible
-        /// while a new group is being built, each bar at its own stored position.
+        /// while a new group is being built, each bar at its own stored position. The Vis menu can
+        /// hide one orientation (horizontal or vertical) so only the variant being designed shows.
         /// </summary>
         public IReadOnlyList<OverlayCanvasBar> GamingOverlayCanvasBars
         {
@@ -693,20 +702,148 @@ namespace IconGrid.ViewModels
             {
                 var groups = _gamingOverlayBlueprint.Groups;
                 var bars = new List<OverlayCanvasBar>(groups.Count);
+                var activeId = ActiveGroup?.Id ?? string.Empty;
 
                 foreach (var group in groups)
                 {
+                    if (group.IsVertical ? !_showVerticalBars : !_showHorizontalBars)
+                    {
+                        continue;
+                    }
+
                     var blocks = _gamingOverlayBlueprint.Layout
                         .Where(block => block.IsVisible &&
                                         string.Equals(GroupOf(block, groups), group.Id, StringComparison.OrdinalIgnoreCase))
                         .ToList();
 
                     var isSelected = string.Equals(group.Id, CanvasGroup?.Id, StringComparison.Ordinal);
-                    bars.Add(new OverlayCanvasBar(group, blocks, isSelected));
+                    var isActive = string.Equals(group.Id, activeId, StringComparison.Ordinal);
+                    bars.Add(new OverlayCanvasBar(group, blocks, isSelected, isActive));
                 }
 
                 return bars;
             }
+        }
+
+        /// <summary>True when horizontal bars are drawn on the canvas (Vis menu).</summary>
+        public bool GamingOverlayShowHorizontalBars
+        {
+            get => _showHorizontalBars;
+            set
+            {
+                if (_showHorizontalBars == value)
+                {
+                    return;
+                }
+
+                _showHorizontalBars = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GamingOverlayCanvasBars));
+            }
+        }
+
+        /// <summary>True when vertical bars are drawn on the canvas (Vis menu).</summary>
+        public bool GamingOverlayShowVerticalBars
+        {
+            get => _showVerticalBars;
+            set
+            {
+                if (_showVerticalBars == value)
+                {
+                    return;
+                }
+
+                _showVerticalBars = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GamingOverlayCanvasBars));
+            }
+        }
+
+        /// <summary>Group the live in-game overlay renders (empty = the standard group).</summary>
+        private OverlayLayerGroup? ActiveGroup
+        {
+            get
+            {
+                var groups = _gamingOverlayBlueprint.Groups;
+                var activeId = _gamingOverlayBlueprint.ActiveGroupId;
+
+                if (!string.IsNullOrWhiteSpace(activeId))
+                {
+                    var match = groups.FirstOrDefault(group =>
+                        string.Equals(group.Id, activeId, StringComparison.Ordinal));
+
+                    if (match != null)
+                    {
+                        return match;
+                    }
+                }
+
+                return groups.FirstOrDefault();
+            }
+        }
+
+        /// <summary>Id of the group the live overlay draws.</summary>
+        public string GamingOverlayActiveGroupId => ActiveGroup?.Id ?? string.Empty;
+
+        /// <summary>Name of the group the live overlay draws (used by the menu / canvas).</summary>
+        public string GamingOverlayActiveGroupName => ActiveGroup?.Name ?? string.Empty;
+
+        /// <summary>True when the live group's bar is a vertical column.</summary>
+        public bool GamingOverlayActiveGroupIsVertical => ActiveGroup?.IsVertical == true;
+
+        /// <summary>Modules the live in-game overlay renders: the active group only.</summary>
+        public IReadOnlyList<OverlayBlock> GamingOverlayLiveBlocks
+        {
+            get
+            {
+                var group = ActiveGroup;
+                if (group == null)
+                {
+                    return Array.Empty<OverlayBlock>();
+                }
+
+                var groups = _gamingOverlayBlueprint.Groups;
+                return GamingOverlayLayoutBlocks
+                    .Where(block => string.Equals(GroupOf(block, groups), group.Id, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+        }
+
+        /// <summary>Makes one group the bar that plays in game.</summary>
+        public void SetGamingOverlayActiveGroup(string? groupId)
+        {
+            if (string.IsNullOrWhiteSpace(groupId) ||
+                string.Equals(_gamingOverlayBlueprint.ActiveGroupId, groupId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _gamingOverlayBlueprint.ActiveGroupId = groupId;
+            CommitBlueprintLayout(_ => { });
+        }
+
+        /// <summary>Switches one group between a horizontal row and a vertical column.</summary>
+        public void SetGamingOverlayGroupOrientation(string? groupId, bool vertical)
+        {
+            var group = _gamingOverlayBlueprint.Groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, groupId, StringComparison.Ordinal));
+
+            if (group == null)
+            {
+                return;
+            }
+
+            var orientation = vertical
+                ? OverlayLayerGroup.VerticalOrientation
+                : OverlayLayerGroup.HorizontalOrientation;
+
+            if (string.Equals(group.Orientation, orientation, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            group.Orientation = orientation;
+            CommitBlueprintLayout(_ => { });
         }
 
         /// <summary>

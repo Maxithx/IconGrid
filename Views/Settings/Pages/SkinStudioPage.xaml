@@ -188,10 +188,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Row" Background="Transparent" CornerRadius="3" Padding="10,4">
-                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+                        <Border x:Name="Row" Background="Transparent" CornerRadius="3" Padding="8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="Check" Text="✓" Width="16" Visibility="Collapsed"
+                                           Foreground="#7CFF6B" VerticalAlignment="Center" />
+                                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="Row" Property="Background" Value="#2A2F35" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
@@ -305,6 +312,34 @@
                             <MenuItem Header="{Binding SkinStudioMenuLockText}" Click="MenuLock_Click" />
                             <MenuItem Header="{Binding SkinStudioMenuDeleteText}" Click="MenuDelete_Click" />
                         </MenuItem>
+
+                        <!-- Which variant is visible on the canvas: horizontal row, vertical column or both. -->
+                        <MenuItem Header="{Binding SkinStudioMenuViewText}"
+                                  ItemContainerStyle="{StaticResource CanvasMenuItemStyle}">
+                            <MenuItem Header="{Binding SkinStudioMenuShowHorizontalText}" IsCheckable="True"
+                                      IsChecked="{Binding GamingOverlayShowHorizontalBars, Mode=TwoWay}" />
+                            <MenuItem Header="{Binding SkinStudioMenuShowVerticalText}" IsCheckable="True"
+                                      IsChecked="{Binding GamingOverlayShowVerticalBars, Mode=TwoWay}" />
+                        </MenuItem>
+
+                        <!-- Orientation and live (in-game) bar of the selected group. -->
+                        <MenuItem Header="{Binding SkinStudioMenuGroupText}"
+                                  ItemContainerStyle="{StaticResource CanvasMenuItemStyle}">
+                            <MenuItem Header="{Binding SkinStudioMenuGroupVerticalText}" Click="MenuGroupVertical_Click" />
+                            <MenuItem Header="{Binding SkinStudioMenuGroupHorizontalText}" Click="MenuGroupHorizontal_Click" />
+                            <Separator />
+                            <MenuItem Header="{Binding SkinStudioMenuGroupActiveText}" Click="MenuGroupSetActive_Click" />
+                            <MenuItem IsEnabled="False">
+                                <MenuItem.Header>
+                                    <TextBlock>
+                                        <!-- Run.Text defaults to TwoWay, so the read-only text needs OneWay. -->
+                                        <Run Text="{Binding SkinStudioMenuGroupLiveText, Mode=OneWay}" />
+                                        <Run Text=" " />
+                                        <Run Text="{Binding GamingOverlayActiveGroupName, Mode=OneWay}" FontWeight="SemiBold" />
+                                    </TextBlock>
+                                </MenuItem.Header>
+                            </MenuItem>
+                        </MenuItem>
                     </Menu>
 
                     <TextBlock x:Name="CanvasStatusText" Grid.Column="1" HorizontalAlignment="Right"
@@ -363,6 +398,7 @@
                                                             DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                             BlocksSource="{Binding DataContext.Blocks, ElementName=ItemRoot}"
                                                             ChromeGroupId="{Binding DataContext.GroupId, ElementName=ItemRoot}"
+                                                            IsVerticalOverride="{Binding DataContext.IsVertical, ElementName=ItemRoot}"
                                                             BarHeight="{Binding DataContext.BarHeight, ElementName=ItemRoot}"
                                                             Width="{Binding DataContext.BarWidth, ElementName=ItemRoot}" />
                                     <!-- Transparent drag surface: click selects the group (in the
@@ -376,12 +412,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <!-- Vertical guide -->
-                    <TextBlock Canvas.Left="960" Canvas.Top="150" Foreground="#B0438C" FontSize="11"
-                               Text="Vertical — 48 x 400" />
-                    <Border Canvas.Left="960" Canvas.Top="168" Width="48" Height="400"
-                            BorderBrush="#B0438C" BorderThickness="1" Background="#12B0438C" />
                 </Canvas>
             </ScrollViewer>
 

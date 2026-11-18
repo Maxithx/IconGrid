@@ -108,6 +108,12 @@ namespace IconGrid.Models
             set => SetField(ref _groups, EnsureGroups(value));
         }
 
+        /// <summary>
+        /// Group whose bar the live in-game overlay draws (empty = the first, standard group).
+        /// Lets the user build their own bar and make it the one that plays.
+        /// </summary>
+        public string ActiveGroupId { get; set; } = string.Empty;
+
         private static List<OverlayLayerGroup> EnsureGroups(List<OverlayLayerGroup>? groups)
         {
             var result = groups ?? new List<OverlayLayerGroup>();
@@ -141,6 +147,48 @@ namespace IconGrid.Models
 
             return result;
         }
+
+        /// <summary>
+        /// Guarantees a divider between the frame-time module and the FPS module: without it the two
+        /// rows read as a single block (very visible in the vertical bar). Only inserted when they
+        /// are directly adjacent, so a divider the user placed there is never duplicated.
+        /// </summary>
+        private static List<OverlayBlock> EnsureFrameTimeFpsDivider(List<OverlayBlock>? layout)
+        {
+            if (layout == null || layout.Count < 2)
+            {
+                return layout ?? new List<OverlayBlock>();
+            }
+
+            var result = new List<OverlayBlock>(layout.Count + 1);
+
+            for (var index = 0; index < layout.Count; index++)
+            {
+                var block = layout[index];
+                result.Add(block);
+
+                if (!IsFrameTimeBlock(block) || index + 1 >= layout.Count || !IsFpsBlock(layout[index + 1]))
+                {
+                    continue;
+                }
+
+                result.Add(new OverlayBlock { Block = "divider", Props = new Dictionary<string, string>() });
+            }
+
+            return result;
+        }
+
+        private static bool IsFrameTimeBlock(OverlayBlock block) =>
+            string.Equals(block.Block, "stat", StringComparison.OrdinalIgnoreCase) &&
+            block.Props != null &&
+            block.Props.TryGetValue("data", out var frameTime) &&
+            string.Equals(frameTime, "frameTime", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsFpsBlock(OverlayBlock block) =>
+            string.Equals(block.Block, "stat", StringComparison.OrdinalIgnoreCase) &&
+            block.Props != null &&
+            block.Props.TryGetValue("data", out var fps) &&
+            string.Equals(fps, "fps", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Blocks that should actually be rendered (visible + known type).</summary>
         [JsonIgnore]
@@ -179,6 +227,10 @@ namespace IconGrid.Models
                 // Older blueprints have no layer groups: give them the default "Gaming overlay"
                 // group so every module belongs to a folder in the panel.
                 blueprint.Groups = EnsureGroups(blueprint.Groups);
+
+                // The FPS and frame-time modules sit next to each other; without a divider the
+                // stack reads as one block (especially in the vertical bar).
+                blueprint.Layout = EnsureFrameTimeFpsDivider(blueprint.Layout);
 
                 return blueprint;
             }
@@ -265,6 +317,21 @@ namespace IconGrid.Models
         /// Height in DIPs of this group's own overlay bar. 0 = the skin's bar height is used.
         /// </summary>
         public double Height { get; set; }
+
+        /// <summary>Horizontal (row) or vertical (column) layout for this group's bar.</summary>
+        public const string HorizontalOrientation = "horizontal";
+        public const string VerticalOrientation = "vertical";
+
+        /// <summary>
+        /// Bar direction: "horizontal" is the classic row, "vertical" stacks the modules in a
+        /// column (a side bar). Stored per group, so both variants can live side by side.
+        /// </summary>
+        public string Orientation { get; set; } = HorizontalOrientation;
+
+        /// <summary>True when this group's bar stacks its modules vertically.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsVertical =>
+            string.Equals(Orientation, VerticalOrientation, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Horizontal offset (DIPs) of this group's bar on the Skin Studio canvas.</summary>
         public double X { get; set; }

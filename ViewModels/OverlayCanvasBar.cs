@@ -19,11 +19,12 @@ namespace IconGrid.ViewModels
         /// <summary>How far a bar may be dragged past the origin (keeps it on the canvas).</summary>
         public const double MinOffset = -24;
 
-        public OverlayCanvasBar(OverlayLayerGroup group, IReadOnlyList<OverlayBlock> blocks, bool isSelected)
+        public OverlayCanvasBar(OverlayLayerGroup group, IReadOnlyList<OverlayBlock> blocks, bool isSelected, bool isActive = false)
         {
             Group = group;
             Blocks = blocks;
             IsSelected = isSelected;
+            IsActive = isActive;
         }
 
         public OverlayLayerGroup Group { get; }
@@ -32,9 +33,23 @@ namespace IconGrid.ViewModels
 
         public bool IsSelected { get; }
 
+        /// <summary>True for the group the live in-game overlay renders.</summary>
+        public bool IsActive { get; }
+
+        /// <summary>True when this group's bar stacks its modules in a column.</summary>
+        public bool IsVertical => Group.IsVertical;
+
         public string GroupId => Group.Id;
 
-        public string Title => Group.Name;
+        /// <summary>Label shown above the bar: name plus orientation and live marker.</summary>
+        public string Title
+        {
+            get
+            {
+                var suffix = IsVertical ? "  ▮ vertical" : "  ▬ horizontal";
+                return IsActive ? $"{Group.Name}{suffix}  • LIVE" : $"{Group.Name}{suffix}";
+            }
+        }
 
         public double CanvasLeft => OriginLeft + Group.X;
 

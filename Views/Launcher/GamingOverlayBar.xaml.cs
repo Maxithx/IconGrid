@@ -32,18 +32,30 @@ namespace IconGrid.Views
                 ApplyPreviewState();
                 ApplyChamfer();
                 ApplyDividerThickness();
+
+                // Items are generated after the first layout pass, so the dividers only exist here.
+                // Running the pixel-exact thickness afterwards keeps every line the same weight.
+                Dispatcher.BeginInvoke(
+                    new Action(ApplyDividerThickness),
+                    System.Windows.Threading.DispatcherPriority.Loaded);
             };
 
-            OverlayRoot.SizeChanged += (_, _) => ApplyChamfer();
+            OverlayRoot.SizeChanged += (_, _) =>
+            {
+                ApplyChamfer();
+                ApplyDividerThickness();
+            };
             DataContextChanged += OnDataContextChanged;
         }
 
         /// <summary>
-        /// Makes the divider lines exactly N device pixels wide (N = DividerWidth token).
+        /// Makes the divider lines exactly N device pixels *thick* (N = DividerWidth token).
         ///
         /// A fixed DIP width is NOT pixel exact at 125%/150% scaling: 1 DIP becomes 1.25/1.5
         /// device pixels, so identical dividers can render 1 px or 2 px depending on where they
         /// land. Converting device pixels to DIPs through the current DPI removes that variance.
+        /// A horizontal bar draws vertical lines (thickness = Width), a vertical bar draws wide
+        /// horizontal lines (thickness = Height), so the axis matters.
         /// </summary>
         private void ApplyDividerThickness()
         {
@@ -54,11 +66,45 @@ namespace IconGrid.Views
 
             foreach (var divider in EnumerateDividers(this))
             {
+                if (IsInsideVerticalBar(divider))
+                {
+                    // Wide horizontal line: the line stretches, only its height is a thickness.
+                    if (!double.IsNaN(divider.Width))
+                    {
+                        divider.Width = double.NaN;
+                    }
+
+                    if (Math.Abs(divider.Height - dipWidth) > 0.001)
+                    {
+                        divider.Height = dipWidth;
+                    }
+
+                    continue;
+                }
+
                 if (Math.Abs(divider.Width - dipWidth) > 0.001)
                 {
                     divider.Width = dipWidth;
                 }
             }
+        }
+
+        /// <summary>True when a divider lives in a bar that stacks its modules vertically.</summary>
+        private static bool IsInsideVerticalBar(DependencyObject element)
+        {
+            var current = element;
+
+            while (current != null)
+            {
+                if (current is System.Windows.Controls.ItemsControl items)
+                {
+                    return items.Tag is bool vertical && vertical;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
         }
 
         private IEnumerable<Border> EnumerateDividers(DependencyObject root)
@@ -163,6 +209,7 @@ namespace IconGrid.Views
             }
 
             ApplyChamfer();
+            RecomputeOrientation();
             ApplyPreviewState();
         }
 
@@ -170,8 +217,10 @@ namespace IconGrid.Views
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayUiScale), StringComparison.Ordinal) ||
-                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayBackgroundHeight), StringComparison.Ordinal))
+                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayBackgroundHeight), StringComparison.Ordinal) ||
+                string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayActiveGroupIsVertical), StringComparison.Ordinal))
             {
+                RecomputeOrientation();
                 ApplyPreviewState();
                 return;
             }
@@ -207,7 +256,7 @@ namespace IconGrid.Views
             nameof(BarHeight),
             typeof(double),
             typeof(GamingOverlayBar),
-            new PropertyMetadata(double.NaN));
+            new PropertyMetadata(double.NaN, (d, _) => ((GamingOverlayBar)d).RecomputeOrientation()));
 
         /// <summary>Optional module list: when set, the bar renders only these blocks.</summary>
         public static readonly DependencyProperty BlocksSourceProperty = DependencyProperty.Register(
@@ -243,6 +292,75 @@ namespace IconGrid.Views
         {
             get => (string?)GetValue(ChromeGroupIdProperty);
             set => SetValue(ChromeGroupIdProperty, value);
+        }
+
+        /// <summary>
+        /// Per-bar orientation override. The Skin Studio canvas sets it for every group bar; the
+        /// live overlay leaves it null and follows the active group's orientation from the view model.
+        /// </summary>
+        public static readonly DependencyProperty IsVerticalOverrideProperty = DependencyProperty.Register(
+            nameof(IsVerticalOverride),
+            typeof(bool?),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(null, (d, _) => ((GamingOverlayBar)d).RecomputeOrientation()));
+
+        /// <summary>Effective orientation used by the templates and triggers.</summary>
+        public static readonly DependencyProperty EffectiveIsVerticalProperty = DependencyProperty.Register(
+            nameof(EffectiveIsVertical),
+            typeof(bool),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(false));
+
+        /// <summary>Height of the bar content; NaN lets a vertical bar size to its modules.</summary>
+        public static readonly DependencyProperty ContentHeightProperty = DependencyProperty.Register(
+            nameof(ContentHeight),
+            typeof(double),
+            typeof(GamingOverlayBar),
+            new PropertyMetadata(double.NaN));
+
+        public bool? IsVerticalOverride
+        {
+            get => (bool?)GetValue(IsVerticalOverrideProperty);
+            set => SetValue(IsVerticalOverrideProperty, value);
+        }
+
+        public bool EffectiveIsVertical
+        {
+            get => (bool)GetValue(EffectiveIsVerticalProperty);
+            private set => SetValue(EffectiveIsVerticalProperty, value);
+        }
+
+        public double ContentHeight
+        {
+            get => (double)GetValue(ContentHeightProperty);
+            private set => SetValue(ContentHeightProperty, value);
+        }
+
+        /// <summary>
+        /// Works out the orientation (override first, then the live group) and the content height:
+        /// a horizontal bar keeps the skin height, a vertical one grows with its modules unless the
+        /// group defines a height.
+        /// </summary>
+        /// <summary>
+        /// Minimum content height of the bar: the skin height for a horizontal bar, 0 for a vertical
+        /// one (it grows with its modules) unless the group defines a height. Deliberately a minimum
+        /// and not a fixed height, so a column can never clip the modules that do not fit.
+        /// </summary>
+        private void RecomputeOrientation()
+        {
+            var vertical = IsVerticalOverride ?? _viewModel?.GamingOverlayActiveGroupIsVertical ?? false;
+            EffectiveIsVertical = vertical;
+
+            var skinHeight = _viewModel?.GamingOverlayBackgroundHeight ?? 44.0;
+            var groupHeight = BarHeight;
+            var hasGroupHeight = !double.IsNaN(groupHeight) && groupHeight > 0;
+
+            ContentHeight = hasGroupHeight
+                ? groupHeight
+                : (vertical ? 0.0 : skinHeight);
+
+            // The divider thickness lives on a different axis per orientation.
+            ApplyDividerThickness();
         }
 
         /// <summary>

@@ -592,6 +592,29 @@ namespace IconGrid.ViewModels
             }
         }
 
+        /// <summary>
+        /// Master switch for trace.log ("About" page). When off, neither the launcher
+        /// nor the elevated monitor agent writes diagnostics at all — the existing
+        /// file is left untouched until the user cleans it. The state is persisted by
+        /// <see cref="AppTrace"/> as a marker file so the change reaches every
+        /// IconGrid process within a second, without a restart.
+        /// </summary>
+        public bool TraceLoggingEnabled
+        {
+            get => AppTrace.IsEnabled;
+            set
+            {
+                if (AppTrace.IsEnabled == value)
+                {
+                    return;
+                }
+
+                AppTrace.SetEnabled(value);
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TraceLoggingStateText));
+            }
+        }
+
         public int LauncherHideMode
         {
             get => _launcherHideMode;

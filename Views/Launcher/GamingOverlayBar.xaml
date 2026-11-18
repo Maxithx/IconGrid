@@ -53,6 +53,14 @@
                  scaling, so some dividers rendered 1 px and others 2 px wide. -->
             <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
             <Style.Triggers>
+                <!-- Vertical bars need a wide horizontal divider line instead of a tall thin one. -->
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                    <Setter Property="Width" Value="NaN" />
+                    <Setter Property="Height" Value="{Binding GamingOverlaySkin.DividerWidthValue}" />
+                    <Setter Property="Margin" Value="4,7,4,7" />
+                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding DataContext.GamingOverlayTransparentBackgroundEffective, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                     <Setter Property="Background" Value="{Binding DataContext.GamingOverlayTextBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
                 </DataTrigger>
@@ -621,8 +629,22 @@
         </DataTemplate>
 
         <DataTemplate x:Key="OverlayStatGpuClockBlockTemplate">
-            <TextBlock Style="{StaticResource MonitorTextStyle}" Width="58" Margin="0,0,9,0" TextAlignment="Right"
-                       DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+            <TextBlock DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
+                        <Setter Property="Width" Value="58" />
+                        <Setter Property="Margin" Value="0,0,9,0" />
+                        <Setter Property="TextAlignment" Value="Right" />
+                        <Style.Triggers>
+                            <!-- Vertical bar: left aligned like the rest of the column. -->
+                            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                <Setter Property="Width" Value="NaN" />
+                                <Setter Property="Margin" Value="0,0,0,9" />
+                                <Setter Property="TextAlignment" Value="Left" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
                 <Run Text="{Binding SystemMonitor.GpuClock, Mode=OneWay}" />
             </TextBlock>
         </DataTemplate>
@@ -638,18 +660,56 @@
         </DataTemplate>
 
         <DataTemplate x:Key="OverlayStatFpsBlockTemplate">
-            <Grid Width="54" Margin="0,0,10,0" VerticalAlignment="Center"
+            <!-- Everything that changes per orientation lives in styles: a local value would win
+                 over the DataTemplate triggers and the vertical alignment would never apply. -->
+            <Grid VerticalAlignment="Center"
                   DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Width" Value="54" />
+                        <Setter Property="Margin" Value="0,0,10,0" />
+                        <Style.Triggers>
+                            <!-- Vertical bar: drop the fixed width so the row can line up with FT. -->
+                            <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                <Setter Property="Width" Value="NaN" />
+                                <Setter Property="Margin" Value="0,0,0,9" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="24" />
                     <ColumnDefinition Width="30" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Style="{StaticResource MonitorTextStyle}" Text="FPS:"
-                           VerticalAlignment="Center" TextAlignment="Right" />
-                <TextBlock Grid.Column="1" Style="{StaticResource OverlayFpsTextStyle}"
-                           Text="{Binding SystemMonitor.OverlayFpsStatus, Mode=OneWay}"
-                           VerticalAlignment="Center" Margin="-2,0,0,0" TextAlignment="Right"
-                           Effect="{Binding GamingOverlaySkin.AccentGlowEffect}" />
+                <TextBlock Grid.Column="0" Text="FPS:" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MonitorTextStyle}">
+                            <Setter Property="TextAlignment" Value="Right" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                    <Setter Property="TextAlignment" Value="Left" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Grid.Column="1" Text="{Binding SystemMonitor.OverlayFpsStatus, Mode=OneWay}"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource OverlayFpsTextStyle}">
+                            <Setter Property="TextAlignment" Value="Right" />
+                            <Setter Property="Margin" Value="-2,0,0,0" />
+                            <Setter Property="Effect" Value="{Binding GamingOverlaySkin.AccentGlowEffect}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                                    <Setter Property="TextAlignment" Value="Left" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="MinWidth" Value="34" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Grid>
         </DataTemplate>
 
@@ -703,14 +763,7 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid>
-                    <Grid.Height>
-                        <!-- A layer group may own a taller/shorter bar; NaN falls back to the skin. -->
-                        <MultiBinding Converter="{StaticResource FirstValue}">
-                            <Binding Path="BarHeight" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                            <Binding Path="GamingOverlayBackgroundHeight" />
-                        </MultiBinding>
-                    </Grid.Height>
+                <Grid MinHeight="{Binding ContentHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -727,11 +780,25 @@
                             Opacity="{Binding GamingOverlaySkin.PatternOpacity}"
                             Visibility="{Binding GamingOverlaySkin.HasPattern, Converter={StaticResource BoolToVisibility}}" />
 
-                    <StackPanel Grid.Column="0"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Margin="14,0,0,0">
+                    <StackPanel x:Name="ContentRow">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Orientation" Value="Horizontal" />
+                                <Setter Property="HorizontalAlignment" Value="Left" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="Margin" Value="14,0,0,0" />
+                                <Style.Triggers>
+                                    <!-- A vertical bar stacks its content in a centered column. -->
+                                    <DataTrigger Binding="{Binding EffectiveIsVertical, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Orientation" Value="Vertical" />
+                                        <Setter Property="HorizontalAlignment" Value="Center" />
+                                        <Setter Property="VerticalAlignment" Value="Top" />
+                                        <!-- Bottom room for the action buttons that sit at the bar's foot. -->
+                                        <Setter Property="Margin" Value="8,8,8,44" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <Border VerticalAlignment="Stretch"
                                 Margin="0,0,10,0"
                                 Padding="10,2"
@@ -785,13 +852,37 @@
                                Source="{Binding GamingOverlaySkin.LogoImageSource}"
                                Visibility="{Binding GamingOverlaySkin.HasLogo, Converter={StaticResource BoolToVisibility}}" />
                         <ItemsControl ItemTemplateSelector="{StaticResource OverlayBlockTemplateSelector}"
+                                      Tag="{Binding EffectiveIsVertical, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                       VerticalAlignment="Center">
+                            <ItemsControl.Style>
+                                <Style TargetType="ItemsControl">
+                                    <Setter Property="ItemsPanel">
+                                        <Setter.Value>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
+                                            </ItemsPanelTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <!-- A vertical bar stacks its modules in a column. -->
+                                        <DataTrigger Binding="{Binding EffectiveIsVertical, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                            <Setter Property="ItemsPanel">
+                                                <Setter.Value>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" />
+                                                    </ItemsPanelTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ItemsControl.Style>
                             <ItemsControl.ItemsSource>
                                 <!-- The editor can pin the bar to one layer group; the live overlay
-                                     and the settings preview leave this unset and use every module. -->
+                                     renders the group marked as active (the standard group by default). -->
                                 <MultiBinding Converter="{StaticResource FirstValue}">
                                     <Binding Path="BlocksSource" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                                    <Binding Path="GamingOverlayLayoutBlocks" />
+                                    <Binding Path="GamingOverlayLiveBlocks" />
                                 </MultiBinding>
                             </ItemsControl.ItemsSource>
                             <ItemsControl.ItemContainerStyle>
@@ -799,17 +890,28 @@
                                     <Setter Property="Opacity" Value="{Binding OpacityValue}" />
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
                         </ItemsControl>
                     </StackPanel>
-                    <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center"
-                                Margin="0,0,12,0">
+                    <StackPanel x:Name="ChromeRow">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Orientation" Value="Horizontal" />
+                                <Setter Property="Grid.Column" Value="1" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                <Setter Property="Margin" Value="0,0,12,0" />
+                                <Style.Triggers>
+                                    <!-- Vertical bars put the action buttons in a row at the bottom. -->
+                                    <DataTrigger Binding="{Binding EffectiveIsVertical, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                        <Setter Property="Grid.Column" Value="0" />
+                                        <Setter Property="Grid.ColumnSpan" Value="2" />
+                                        <Setter Property="VerticalAlignment" Value="Bottom" />
+                                        <Setter Property="HorizontalAlignment" Value="Center" />
+                                        <Setter Property="Margin" Value="0,0,0,8" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <ToggleButton x:Name="SettingsMenuButton"
                                       Width="{Binding GamingOverlaySettingsButton.ButtonWidthValue}"
                                       Height="{Binding GamingOverlaySettingsButton.ButtonHeightValue}"

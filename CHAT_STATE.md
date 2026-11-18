@@ -2242,6 +2242,42 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 - Ikke persisteret i config (runtime-only); virker baade i studio-canvas og i live-overlayet mens den er slaaet til.
 - Build 0/0, deployet 05:27 (DLL 1.380.352 B, identisk begge steder). Ikke committet.
 
+### Lodret bar-variant + Vis/Gruppe-menuer + live-bar (05:41)
+- Model: `OverlayLayerGroup.Orientation` ("horizontal"/"vertical", `IsVertical`) + `OverlaySkinBlueprint.ActiveGroupId` (hvilken gruppe live-overlayet tegner).
+- VM: `ActiveGroup`, `GamingOverlayActiveGroupId/Name/IsVertical`, `GamingOverlayLiveBlocks` (kun den aktive gruppes synlige moduler), `SetGamingOverlayActiveGroup()`, `SetGamingOverlayGroupOrientation()`, vis-filter-felterne `GamingOverlayShowHorizontalBars` / `...VerticalBars`.
+- `GamingOverlayBar`: nye DP'er `IsVerticalOverride` (bool?), `EffectiveIsVertical`, `ContentHeight`. Vertical = lodret StackPanel, indholdet centreret i kolonne, chrome-knapper i bunden, divider-linjen bliver vandret (Tag-trigger paa ItemsControl), hoejden bliver auto (eller gruppens Height). ItemsSource-fallback er nu `GamingOverlayLiveBlocks`, saa live-overlayet tegner den aktive gruppe (standardgruppen som default).
+- Canvas: hver bar faar `IsVerticalOverride` fra sin gruppe; den falske statiske "Vertical 48 x 400"-guide er fjernet.
+- Menuer: ny **Vis** (Vis vandrette/lodrette barer, checkmarks) og **Gruppe** (Goer lodret / Goer vandret / Saet som live-bar + viser hvilken gruppe der er live). 8 nye lokaliseringsnoegler. CanvasMenuItemStyle har faaet checkmark-kolonne.
+- Build 0/0, deployet 05:41 (DLL 1.391.104 B, identisk begge steder). Ikke committet.
+
+### Fix: crash i Skin Studio - Run.Text binder TwoWay (05:43)
+- Fejl: `System.InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'SkinStudioMenuGroupLiveText'` -> Skin Studio-siden crashede ved load.
+- Aarsag: `Run.Text` har `BindsTwoWayByDefault = true`, saa `<Run Text="{Binding <read-only>}" />` kaster. Loesning: `Mode=OneWay` paa begge Run-bindings i "Live-bar:"-menupunktet.
+- Tjekket: ingen andre Run-bindings i Views-mappen mangler Mode=OneWay (kun litterale Runs tilbage).
+- Build 0/0, deployet 05:43 (DLL 1.391.104 B, identisk begge steder). Ikke committet.
+
+### Fix: lodret bar klippede moduler (05:53)
+- Problem: den lodrette bar brugte en FAST hoejde, saa FT/FPS blev klippet, og chrome-knapperne laa oven i teksten.
+- Rettelse: `GamingOverlayBar`-XAML bruger nu `MinHeight` (ikke `Height`) bundet til `ContentHeight`. `RecomputeOrientation()` saetter: gruppe-Height hvis sat, ellers skin-hoejde for vandret og 0 for lodret -> kolonnen vokser frit og baggrunden daekker altid alle moduler.
+- Lodret: `ContentRow` har faaet bundmargin 44 px, saa ⚙/X-rækken i bunden ikke overlapper sidste modul; chrome-margen er 0,0,0,8.
+- Build 0/0, deployet 05:53 (DLL 1.391.104 B, identisk begge steder). Ikke committet.
+
+### Lodret: brede dividere + FPS flugter med FT (05:59)
+- Divider i lodret bar er nu en BRED vandret streg: `Width=NaN` + `HorizontalAlignment=Stretch`, `Height=DividerWidthValue`, margin 4,7,4,7. Vandret bar er uaendret (1 px lodret streg).
+- FPS-skabelonen er omskrevet saa alle retnings-afhaengige vaerdier ligger i Styles med DataTriggers (lokale vaerdier vandt over DataTemplate-triggere): lodret -> Width auto, TextAlignment Left, Margin 0, MinWidth 34, saa "FPS: 133" flugter med "FT: 7.7ms". Glow-effekten er flyttet til en Setter.
+- Build 0/0, deployet 05:59 (DLL 1.392.128 B, identisk begge steder). Ikke committet.
+
+### Lodret: GPU clock align + divider-tykkelse (06:03)
+- `ApplyDividerThickness()` er nu akse-bevidst: i en lodret bar (ItemsControl.Tag = true, fundet via `IsInsideVerticalBar`) saettes hoejden til den pixel-praecise tykkelse og bredden holdes stretch (NaN); i vandret bar er det Width som foer. Kaldes ogsaa fra `RecomputeOrientation()`, saa den koerer naar retningen skifter. Det var aarsagen til at dividerne saa forskellige/underlige ud.
+- `OverlayStatGpuClockBlockTemplate` ("555 MHz") har faaet Style + DataTrigger: lodret -> Width auto, Margin 0,0,0,9, TextAlignment Left, saa den flugter med resten af kolonnen.
+- FT/FPS-divider: der ligger ingen Divider i blueprintet mellem FT og FPS, saa der tegnes ingen (dividers er rigtige lag). Kan tilfoejes ved at traekke Divider fra biblioteket eller ved at indsaette en i standardgruppen.
+- Build 0/0, deployet 06:03 (DLL 1.392.640 B, identisk begge steder). Ikke committet.
+
+### Divider mellem FT/FPS + ens divider-tykkelse (06:08)
+- `OverlaySkinBlueprint.EnsureFrameTimeFpsDivider()` (kaldes fra `FromJson`): indsaetter en Divider mellem frameTime- og FPS-modulet naar de ligger direkte op ad hinanden. Idempotent - en divider brugeren selv har sat, duplikeres ikke.
+- Divider-tykkelsen blev sat foer modulerne var realiseret (tom divider-liste ved load) -> tykkelsen blev 1 DIP = 1.25 device px ved 125% -> skiftende 1/2 px. Nu kaldes `ApplyDividerThickness()` ogsaa fra `OverlayRoot.SizeChanged` og via `Dispatcher.BeginInvoke(..., DispatcherPriority.Loaded)`.
+- Build 0/0, deployet 06:08 (DLL 1.393.152 B, identisk begge steder). Ikke committet.
+
 ### Committet og pushet (05:30)
 - Commit med FPS/FT-simuleringen (SystemMonitor + bar-templates + checkbox i Egenskaber) og note-opdateringer.
 - Deploy fra 05:27 ligger i `C:\IconGrid` (DLL 1.380.352 B).
@@ -2249,4 +2285,44 @@ Bruger ville have designet 1:1 og et preset kaldet **MW4**.
 ### Committet og pushet (05:20)
 - En commit med hele bunken: canvas File/Edit-menu, systemgruppe-beskyttelse, chrome som gruppe-lag + biblioteksknapper, én bar pr. gruppe paa canvas, flyt bar med musen, canvas-origo/centrering-fix og note-opdateringer.
 - Deploy fra 05:16 ligger i `C:\IconGrid` (DLL 1.378.304 B).
+
+
+## Session findings (2026-11-18) — Gaming overlay skal kun starte via detection pipeline
+
+Brugerrapport: ved start af Path of Exile 1 springer gaming overlayet "hardcore" frem; spillet skal starte overlayet gennem detection-pipelinen. COD/eksternt startede spil går korrekt gennem VRAM/present-evidens.
+
+ROOT CAUSE (2 genveje udenom pipelinen):
+1. `ViewModels/MainViewModel.Items.cs` `RememberFpsTarget` kaldte `GameLaunched?.Invoke()` direkte efter `Process.Start` (via `_onLaunching` i `LauncherItemLaunchManager.LaunchItem`). `MainWindow.OnGameLaunched` skjuler derefter launcheren og viser overlayet. Trace 2026-11-18: `23:05:33.681 WatchProcess started for PID 20868 (PathOfExile.exe)` -> `23:05:33.683 GameLaunched` (2 ms senere), mens FPS-agenten først blev startet `23:05:34.674`, og `23:06:35.931 FindAnyGameProcess gave up after 60s ... No qualifying game process found`. Overlayet var altså oppe før agenten fandtes og uden noget spilvindue.
+2. `NativeFpsAgentRunner` sender `--trusted-launch` for config-target (spil startet via IconGrid). I `Native/FpsAgent/src/main.cpp:375-377` er `gameConfirmed = g_trustedLaunch || hasFreshEvidence`, så `targetPid` publiceres med det samme. `SystemMonitor.FpsTimer_Tick` accepterede `isTrustedLaunch && GameConfirmed` som evidens. Bevis: `native-fps-state.json` 23:08:41: `gameConfirmed=true, trustedLaunch=true, targetPid=0`, `matchedDxgi=0 matchedD3D9=0 matchedDxgKrnl=0`; trace 23:08:40: `TargetPid=6544 DXGI=0 D3D9=0 DXGKRNL=0 Events=False`. Nul frames, men overlay åbnet.
+   Konsekvens: fordi genvej 1 ikke opdaterer `_wasInGame`, kom der to `GameLaunched` (23:05:33 + 23:08:38) og **nul** `GameExited`.
+
+BEKRÆFTELSE AF AT COD-STIEN ER KORREKT: `GameVramEvidence` (500 MB peak-VRAM ELLER >=2 DXGI/D3D9-presenter; <250 MB + ingen app-presenter = NotGame; DxgKrnl alene tæller aldrig) + `GameEvidenceProbe`-linjer i trace viser vram/peak/p95/3D%/presentFps/vindue/cover, og browser/VS Code/Discord/PowerToys/dwm afvises korrekt. COD kørte ikke i dagens trace (log dækker 20:34-23:11, ingen cod22-linjer); COD's 5,4 GB peak er dokumenteret i `GameVramEvidence.cs`.
+
+ÆNDRING (bruger-valg: "fuldt via detection pipeline"):
+- `ViewModels/MainViewModel.Items.cs`: den direkte `GameLaunched?.Invoke()` er fjernet (erstattet af Debug-linje). FPS-target persisteres stadig. Launcher-hide + overlay-show styres nu udelukkende af `SystemMonitor.IsInGame` false->true.
+- `Helpers/Launcher/SystemMonitor.cs`: `isTrustedLaunch && GameConfirmed` er fjernet fra `isGameTarget`; trusted launch er ikke længere evidens. Gaten er nu `GameEvidenceVerdict.Game || HasPrimaryGraphicsEvidence` (samme regel som monitor-agentens `HasAcquisitionEvidence`). `--trusted-launch` i agenten er bevaret, så FPS stadig kan vises for emulatorer/ældre titler med kernel-path.
+
+BUILD + DEPLOY: `dotnet build IconGrid.csproj` -> Build succeeded, 0 fejl. `cmd /c deploy-test.cmd` -> Done. Verificeret: `bin\\Debug\\net10.0-windows10.0.22621.0\\IconGrid.dll` og `C:\\icongrid\\IconGrid.dll` = 18-11-2026 23:16:23, 1.393.664 bytes (identisk). App startet: `OnStartup begin` / `Starting launcher UI. Elevated=False` + forhøjet monitor-agent (`Starting hardware monitor agent mode. Elevated=True`); ingen fejl i error.log.
+
+NÆSTE TEST (bruger): start POE1 via IconGrid -> launcher må IKKE skjule sig og overlay må IKKE vises ved processtart; overlay + hide skal først ske når pipelinen har VRAM >=500 MB eller >=2 DXGI/D3D9-presenter for spil-PID'en. Verificér i trace: ingen `GameLaunched` uden foregående bekræftet target, og `GameExited` skal nu fyre ved spil-luk. COD skal fortsat virke som før. Ikke committet/pushet (kræver separat godkendelse).
+
+
+## Trace-log master switch (2026-11-18)
+
+Brugerønske: på Om-siden (trace-kortet, hvor loggen kan Refresh/Clean) skal man helt kunne slå trace-logging fra.
+
+IMPLEMENTERING:
+- `Helpers/Logging/AppTrace.cs`: nye `IsEnabled` / `SetEnabled(bool)` + `DisabledMarkerPath` = `%APPDATA%\IconGrid\trace-logging.disabled`. Markørfil (findes = slået fra) i stedet for config.json, fordi launcher og forhøjet monitor-agent er separate processer: begge ser ændringen inden for 1 s uden genstart og uden config.json-race. `Write()` returnerer tidligt når den er slået fra, så ALLE skrivestier (launcher, monitor-agent, resolution service, storage readers) stopper. Eksisterende trace.log røres ikke; Clear/Refresh virker uændret.
+- `ViewModels/MainViewModel.cs`: `TraceLoggingEnabled` (proxy til AppTrace, notificerer `TraceLoggingStateText`).
+- `ViewModels/MainViewModel.Localization.cs`: 5 nye tekst-properties + notifikationer.
+- `Helpers/Settings/LocalizationHelper.cs`: 4 nye nøgler i både en og da (TraceLoggingToggleTitle/ToggleDescription/EnabledStatus/DisabledStatus). Verificeret med `.local-state/check-loc.ps1`: en=336, da=336, 0 mangler.
+- `Views/Settings/Pages/TestSection.xaml` (Trace log-kortet, som ligger nederst på About): ToggleSwitchStyle-kontakt + lokaliseret titel/beskrivelse/status bundet via `DataContext.*` (AncestorType=Window).
+
+BUG FUNDET UNDER TEST: første udgave initialiserede cache-sentinel til `long.MinValue`; `Environment.TickCount64 - long.MinValue` overflower til negativ, så markørfilen blev ALDRIG læst (logging fortsatte). Rettet med eksplicit sentinel-tjek (`!= long.MinValue`).
+
+VERIFIKATION (end-to-end, efter fix): app kørende (launcher + forhøjet monitor-agent). Med markørfil: trace.log stod stille på 8.247.323 B i 6 s (ingen skrivninger). Efter sletning af markør: voksede til 8.248.891 B inden for 6 s. Markøren blev fjernet igen, så logging er slået TIL i den kørende app.
+
+BUILD + DEPLOY: Build succeeded 0 fejl. `bin\\Debug\\...\\IconGrid.dll` = `C:\\icongrid\\IconGrid.dll` = 18-11-2026 23:24:25, 1.397.248 bytes. (Første deploy efter build kopierede ikke DLL'en — processen var stadig ved at lukke; anden deploy OK.) App startet igen, ingen nye fejl i error.log.
+
+NÆSTE TEST (bruger): Indstillinger -> Om -> Trace log: slå kontakten fra, bekræft at status skifter til "Trace-log skrivning er SLÅET FRA." og at trace.log ikke længere vokser; slå til igen og bekræft at den vokser. Ikke committet/pushet.
 

@@ -24,18 +24,110 @@ public static class AppTrace
 
     public static string LogPath { get; } = BuildLogPath();
 
+    /// <summary>
+    /// Master-switch marker. The existence of this file disables ALL trace.log
+    /// writes in every IconGrid process (launcher UI, elevated monitor agent,
+    /// resolution service, storage readers). A marker file is used instead of a
+    /// config.json entry because the processes are separate: both observe the
+    /// change within a second, with no restart and no config.json write race.
+    /// </summary>
+    public static string DisabledMarkerPath { get; } = BuildDisabledMarkerPath();
+
+    /// <summary>How often <see cref="IsEnabled"/> re-reads the marker file.</summary>
+    private const int EnabledCacheTtlMs = 1000;
+
+    private static bool _enabledCache = true;
+    private static long _enabledCacheCheckedTick = long.MinValue;
+
     private static string BuildLogPath()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         return Path.Combine(appData, "IconGrid", "trace.log");
     }
 
+    private static string BuildDisabledMarkerPath()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        return Path.Combine(appData, "IconGrid", "trace-logging.disabled");
+    }
+
+    /// <summary>
+    /// True while trace logging is enabled. The state comes from the marker file
+    /// so the launcher and the elevated monitor agent always agree; the marker is
+    /// polled at most once per second, so <see cref="Write"/> stays cheap.
+    /// </summary>
+    public static bool IsEnabled
+    {
+        get
+        {
+            var nowTick = Environment.TickCount64;
+
+            // A sentinel check (instead of a plain subtraction) avoids an overflow
+            // on the very first read: nowTick - long.MinValue wraps negative, which
+            // would keep returning the default "enabled" cache forever.
+            if (_enabledCacheCheckedTick != long.MinValue &&
+                nowTick - _enabledCacheCheckedTick < EnabledCacheTtlMs)
+            {
+                return _enabledCache;
+            }
+
+            _enabledCache = !File.Exists(DisabledMarkerPath);
+            _enabledCacheCheckedTick = nowTick;
+            return _enabledCache;
+        }
+    }
+
+    /// <summary>
+    /// Enables or disables trace logging for every IconGrid process by creating or
+    /// removing the marker file. Returns false when the marker could not be
+    /// written (e.g. the AppData folder is unavailable).
+    /// </summary>
+    public static bool SetEnabled(bool enabled)
+    {
+        try
+        {
+            if (enabled)
+            {
+                if (File.Exists(DisabledMarkerPath))
+                {
+                    File.Delete(DisabledMarkerPath);
+                }
+            }
+            else
+            {
+                var directory = Path.GetDirectoryName(DisabledMarkerPath);
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                File.WriteAllText(
+                    DisabledMarkerPath,
+                    "Trace logging is disabled. Delete this file to enable it again." + Environment.NewLine);
+            }
+
+            _enabledCache = enabled;
+            _enabledCacheCheckedTick = Environment.TickCount64;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// Appends a timestamped line to trace.log and trims the file when it grows
     /// past <see cref="MaxBytes"/>. Never throws — logging must not break the host.
+    /// Does nothing while the user has turned trace logging off.
     /// </summary>
     public static void Write(string message)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         try
         {
             var directory = Path.GetDirectoryName(LogPath);

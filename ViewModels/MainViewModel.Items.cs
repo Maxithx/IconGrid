@@ -236,9 +236,16 @@ namespace IconGrid.ViewModels
 
             SaveSettingsToConfig();
 
-            // Notify listeners (MainWindow) that a game was launched so they can
-            // apply the configured auto-behavior (show overlay / hide launcher).
-            GameLaunched?.Invoke();
+            // Deliberately NO GameLaunched event here. The gaming overlay and the
+            // launcher hide behavior are driven ONLY by the detection pipeline
+            // (SystemMonitor.IsInGame false -> true). Launching an executable is not
+            // proof that a game is running: launcher chains (Path of Exile) exit and
+            // restart themselves, and the first process may never create a game
+            // window. A launch-time event showed the overlay for a process with no
+            // frames (trace 2026-11-18 23:05:33: overlay 2 ms after WatchProcess,
+            // 60 s later "FindAnyGameProcess gave up ... No qualifying game process").
+            Debug.WriteLine(
+                $"FPS target persisted for {item.DisplayName}; overlay/hide triggers are owned by the detection pipeline.");
         }
 
         /// <summary>
