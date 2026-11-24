@@ -14,6 +14,12 @@ public sealed class HotspotHistoryEntry
     public double EdgeC { get; set; }
     public double DeltaC { get; set; }
     public string? GameName { get; set; }
+    public string? GpuClock { get; set; }
+    public string? GpuMemoryClock { get; set; }
+    public string? GpuMemoryUsage { get; set; }
+    public string? GpuPower { get; set; }
+    public string? GpuFan { get; set; }
+    public string? GpuVoltage { get; set; }
 }
 
 /// <summary>
@@ -70,7 +76,18 @@ public sealed class HotspotHistoryStore
     /// Keeps at most one entry per minute and only replaces it when the new
     /// reading is hotter, so five different minutes are shown.
     /// </summary>
-    public bool Record(DateTime capturedAtUtc, double hotspotC, double edgeC, double deltaC, string? gameName)
+    public bool Record(
+        DateTime capturedAtUtc,
+        double hotspotC,
+        double edgeC,
+        double deltaC,
+        string? gameName,
+        string? gpuClock = null,
+        string? gpuMemoryClock = null,
+        string? gpuMemoryUsage = null,
+        string? gpuPower = null,
+        string? gpuFan = null,
+        string? gpuVoltage = null)
     {
         if (hotspotC <= 0)
         {
@@ -108,6 +125,12 @@ public sealed class HotspotHistoryStore
             existing.EdgeC = edgeC;
             existing.DeltaC = deltaC;
             existing.GameName = gameName;
+            existing.GpuClock = gpuClock;
+            existing.GpuMemoryClock = gpuMemoryClock;
+            existing.GpuMemoryUsage = gpuMemoryUsage;
+            existing.GpuPower = gpuPower;
+            existing.GpuFan = gpuFan;
+            existing.GpuVoltage = gpuVoltage;
         }
         else
         {
@@ -117,7 +140,13 @@ public sealed class HotspotHistoryStore
                 HotspotC = hotspotC,
                 EdgeC = edgeC,
                 DeltaC = deltaC,
-                GameName = gameName
+                GameName = gameName,
+                GpuClock = gpuClock,
+                GpuMemoryClock = gpuMemoryClock,
+                GpuMemoryUsage = gpuMemoryUsage,
+                GpuPower = gpuPower,
+                GpuFan = gpuFan,
+                GpuVoltage = gpuVoltage
             });
         }
 

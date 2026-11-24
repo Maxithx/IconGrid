@@ -3193,6 +3193,24 @@ IMPLEMENTERET:
 - Agenten holder en **rolling hotspot-trend** (1 punkt hver 5. sek., max 240 = 20 min) i `monitor-state.json`.
 - Hotspot-kortet viser nu et **trend-graf** med hotspot (orange) og GPU-temp (grå), 0–110 °C.
 - “Ryd målinger” rydder også trenden.
+
+## FIX 25: Hotspot-historik som rigtig tabel med GPU-telemetri (24-11-2026)
+
+BRUGERØNSKE: Hotspot-listen skal ligne profil-tabellen og vise hotspot + GPU MHz + memory MHz + VRAM + mere pr. tidspunkt.
+
+ÆNDRINGER:
+- `HotspotHistoryEntry` gemmer nu også:
+  - `GpuClock`, `GpuMemoryClock`, `GpuMemoryUsage`, `GpuPower`, `GpuFan`, `GpuVoltage`.
+- Agenten sender disse felter med ved hver hotspot-måling.
+- Hotspot-historikken er nu en tabel med kolonner:
+  `Tid | Hotspot | GPU | GPU MHz | RAM MHz | VRAM | Effekt | Spil`
+- Hver række er en `HotspotHistoryRow` med faste kolonnebredder som profil-tabellen.
+- Ældre historik-poster uden telemetri viser `—`.
+- Top-hotspot-boksen er bevaret som highlight; tabellen viser alle fem målinger med detaljer.
+- Verificeret ny post: `840 MHz · 7001 MHz · 4,2 / 8,0 GB · 55 W · 1210 RPM · 0,6438 V`.
+
+VERIFICERET: build 0/0, deployet 08:59:08, appen genstartet.
+
 - Verificeret live: `memClock=7001 MHz`, `mem=4,2 / 8,0 GB`, `power=55 W`, `fan=1204 RPM`, `hotspot=64 °C`, trendCount=2.
 
 VERIFICERET: build 0/0, deployet 08:50:56, appen genstartet.

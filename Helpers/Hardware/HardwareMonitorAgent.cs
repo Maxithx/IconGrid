@@ -661,7 +661,13 @@ public static class HardwareMonitorAgent
                         hotspotValue.Value,
                         edgeValue,
                         snapshot.GpuHotspotDeltaC ?? Math.Max(0, hotspotValue.Value - edgeValue),
-                        activeGameName);
+                        activeGameName,
+                        snapshot.GpuClock,
+                        snapshot.GpuMemoryClock,
+                        snapshot.GpuMemoryUsage,
+                        snapshot.GpuPower,
+                        snapshot.GpuFan,
+                        snapshot.GpuVoltage);
 
                     if ((snapshot.CapturedAtUtc - lastHotspotTrendUtc).TotalSeconds >= 5)
                     {

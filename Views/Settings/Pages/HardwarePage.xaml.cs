@@ -194,7 +194,17 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         }
     }
 
-    public System.Collections.ObjectModel.ObservableCollection<string> HotspotHistoryEntries { get; } = new();
+    public System.Collections.ObjectModel.ObservableCollection<HotspotHistoryRow> HotspotHistoryRows { get; } = new();
+
+    public sealed record HotspotHistoryRow(
+        string TimeText,
+        string HotspotText,
+        string GpuText,
+        string GpuClockText,
+        string MemoryClockText,
+        string VramText,
+        string PowerText,
+        string GameText);
 
     public string GpuHotspotHistoryNoDataText
     {
@@ -803,7 +813,7 @@ public bool IsNvidiaGtx =>
                 "hotspot-history-clear.request");
             System.IO.File.WriteAllText(requestPath, "clear");
 
-            HotspotHistoryEntries.Clear();
+            HotspotHistoryRows.Clear();
             GpuHotspotHistoryNoDataText = viewModel.GpuHotspotHistoryNoData;
 
             await System.Threading.Tasks.Task.Delay(1500);
@@ -832,7 +842,7 @@ public bool IsNvidiaGtx =>
                 GpuHotspotStatusText = viewModel.GpuHotspotNoData;
                 GpuHotspotWarningText = string.Empty;
                 GpuUndervoltLiveVoltageText = viewModel.GpuUndervoltLiveVoltageNoData;
-                HotspotHistoryEntries.Clear();
+                HotspotHistoryRows.Clear();
                 GpuHotspotHistoryNoDataText = viewModel.GpuHotspotHistoryNoData;
                 GpuHotspotRecordText = viewModel.GpuHotspotRecordNoData;
                 return;
@@ -853,16 +863,25 @@ public bool IsNvidiaGtx =>
             }
 
             var history = entries
-                .Skip(1)
-                .Select(entry => FormatHotspotHistoryEntry(viewModel, entry))
+                .Select(entry => new HotspotHistoryRow(
+                    entry.CapturedAtUtc.ToLocalTime().ToString("dd-MM HH:mm"),
+                    $"{entry.HotspotC:F0} °C",
+                    $"{entry.EdgeC:F0} °C",
+                    entry.GpuClock ?? "—",
+                    entry.GpuMemoryClock ?? "—",
+                    entry.GpuMemoryUsage ?? "—",
+                    entry.GpuPower ?? "—",
+                    string.IsNullOrWhiteSpace(entry.GameName)
+                        ? viewModel.GpuHotspotHistoryNoGame
+                        : entry.GameName))
                 .ToList();
 
-            if (!HotspotHistoryEntries.SequenceEqual(history))
+            if (!HotspotHistoryRows.SequenceEqual(history))
             {
-                HotspotHistoryEntries.Clear();
-                foreach (var line in history)
+                HotspotHistoryRows.Clear();
+                foreach (var row in history)
                 {
-                    HotspotHistoryEntries.Add(line);
+                    HotspotHistoryRows.Add(row);
                 }
             }
 
