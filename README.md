@@ -85,8 +85,7 @@ A single shared **icon size** slider (82%–150%) applies to both views. The 82%
 
 ## Gaming Overlay
 
-<!-- TODO: Screenshot — Gaming overlay in-game showing FPS, CPU, GPU, network -->
-<!-- Replace: Assets/git-img/GamingOverlay-in-game.png -->
+![IconGrid Gaming Overlay](Assets/git-img/Gaming-overlay.png)
 
 - `Views/Launcher/GamingOverlayWindow.xaml` is a compact always-on-top monitor designed for in-game use.
 - The overlay shows live FPS, CPU, GPU, ping, and network stats in a single-row shell with subtle dividers for readability.
