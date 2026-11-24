@@ -21,6 +21,7 @@
                           HorizontalScrollBarVisibility="Hidden"
                           VerticalScrollBarVisibility="Disabled"
                           Margin="0"
+                          PreviewMouseWheel="TabsScrollViewer_PreviewMouseWheel"
                           helpers:DevInspector.Metadata="Tabs scroll area → Views/MainWindow.xaml (Tabs controls)">
                 <ScrollViewer.Style>
                     <Style TargetType="ScrollViewer">

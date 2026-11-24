@@ -21,18 +21,49 @@ namespace IconGrid.Controls
         public event RoutedEventHandler? TabToggleClick;
         public event RoutedEventHandler? MoreClick;
 
+        private const int TabScrollClicksPerStep = 3;
+
         private void ScrollTabsLeft_Click(object sender, RoutedEventArgs e)
         {
-            TabsScrollViewer?.LineLeft();
-            TabsScrollViewer?.LineLeft();
-            TabsScrollViewer?.LineLeft();
+            ScrollTabsLeft();
         }
 
         private void ScrollTabsRight_Click(object sender, RoutedEventArgs e)
         {
-            TabsScrollViewer?.LineRight();
-            TabsScrollViewer?.LineRight();
-            TabsScrollViewer?.LineRight();
+            ScrollTabsRight();
+        }
+
+        private void TabsScrollViewer_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            if (TabsScrollViewer == null || e.Delta == 0 || TabsScrollViewer.ScrollableWidth <= 0)
+                return;
+
+            if (e.Delta > 0)
+            {
+                ScrollTabsLeft();
+            }
+            else
+            {
+                ScrollTabsRight();
+            }
+
+            e.Handled = true;
+        }
+
+        private void ScrollTabsLeft()
+        {
+            for (var i = 0; i < TabScrollClicksPerStep; i++)
+            {
+                TabsScrollViewer?.LineLeft();
+            }
+        }
+
+        private void ScrollTabsRight()
+        {
+            for (var i = 0; i < TabScrollClicksPerStep; i++)
+            {
+                TabsScrollViewer?.LineRight();
+            }
         }
 
         private void TabToggle_Click(object sender, RoutedEventArgs e)
