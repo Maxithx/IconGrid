@@ -1,6 +1,8 @@
 # IconGrid
 
-IconGrid is a Windows launcher and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, settings pages, live hardware telemetry, and a dedicated gaming overlay with real-time FPS — all in a launcher that can collapse into a 10px auto-hiding peek strip.
+IconGrid is a Windows launcher, hardware control center, and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, live system telemetry, GPU undervolt and power-saving tools, hotspot monitoring, and a dedicated gaming overlay with real-time FPS — all in a launcher that can collapse into a 10px auto-hiding peek strip.
+
+> **Latest beta:** [github.com/Maxithx/IconGrid/releases](https://github.com/Maxithx/IconGrid/releases)
 
 ---
 
@@ -74,8 +76,10 @@ A single shared **icon size** slider (82%–150%) applies to both views. The 82%
 
 ### Live telemetry
 
-- Live CPU, GPU, ping, and network telemetry in the launcher top bar powered by `LibreHardwareMonitorLib`.
-- FPS capture via a passive ETW-based pipeline with a separate native FPS worker — no injection, no DLL detours, no graphics API hooking.
+- Live CPU, GPU, ping, and network telemetry in the launcher top bar powered by `LibreHardwareMonitorLib` and the elevated hardware agent.
+- Detailed GPU telemetry includes hotspot, core and memory clock, VRAM usage, power draw, fan speed, and voltage.
+- FPS capture uses a passive ETW-based pipeline with a separate native FPS worker — no injection, no DLL detours, and no graphics API hooking.
+- Detailed sensor and diagnostic data lives on the **Hardware** page; see [Hardware tools](#hardware-tools).
 
 ---
 
@@ -135,6 +139,65 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 - Use **Fullscreen Windowed** (borderless) for the best overlay experience.
 - **Exclusive fullscreen** can hide or mis-scale the overlay. The overlay does appear, but clicking it alt-tabs you out of the game — making it impractical. Switch to Fullscreen Windowed.
 
+### Skin Studio
+
+`Views/Settings/Pages/SkinStudioPage.xaml` is a dedicated skin editor for the gaming overlay.
+
+- Start from a preset or customize colours, fonts, divider style, and corner radius with a live preview.
+- Import a screenshot or game key art to extract a starting palette locally — images are never uploaded.
+- Use the module builder and blueprint JSON to add, remove, reorder, and configure overlay modules and layers.
+- Changes apply to the overlay immediately and are saved automatically.
+- Skin Studio only changes presentation and module composition; game detection, FPS capture, and telemetry remain unchanged.
+
+---
+
+## Hardware tools
+
+The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU control features require an NVIDIA card; undervolt profile switching additionally requires MSI Afterburner with saved profiles.
+
+### System diagnostics
+
+- **CPU:** model, cores/threads, live temperature, usage, clock, boost clock, and voltage.
+- **GPU:** model, vendor, live edge temperature, hotspot, core clock, memory clock, VRAM usage, power, fan speed, and voltage.
+- **Motherboard:** model and BIOS information.
+- **Memory:** layout, type, speed, timings, module count, and voltage.
+- **Disks:** model, health, size, temperature, power state, activity, read/write rates, and SMART details where the drive supports it.
+
+### GPU undervolt
+
+The GPU undervolt card drives **MSI Afterburner profiles** instead of writing to the GPU directly — Afterburner owns the signed driver path for the voltage/frequency curve.
+
+- Choose the Afterburner profile to apply while a game is running, and optionally a different profile for idle.
+- Inspect the stock V/F curve and the selected profile's curve in the built-in chart.
+- Generate an undervolt curve at a target clock and voltage, with a configurable power limit.
+- Save the curve to a profile slot; occupied slots require confirmation before overwrite.
+- Mark profiles as **Active** or **Inactive**, and delete profiles after confirmation.
+- A backup of the Afterburner profile file is written before IconGrid changes it.
+- While a game has focus, IconGrid can also apply a clock ceiling so the card cannot boost above the selected undervolt target.
+
+### GPU power saving
+
+Power saving lowers heat and noise while a game is running in the background.
+
+- Enable **Reduce GPU power when the game is not focused** on the **Gaming Overlay** settings page.
+- Configure the background **power limit** (50–100 %), **clock cap** (30–100 %), and optional **temperature limit** (60–85 °C).
+- The low-power profile is active only while a confirmed game session is running and the game window does not have focus.
+- Original limits and clocks are restored when the game regains focus, exits, or IconGrid shuts down.
+- The card shows a live measured status: temperature, clock, ceiling, power, fan, and power-limit range.
+- Requires an NVIDIA GPU and the hardware monitor agent (NVML). It is independent of whether the gaming overlay is open.
+
+### Hotspot monitoring
+
+Hotspot is the hottest point on the GPU die — usually 10–20 °C above the edge temperature shown in the overlay, and the temperature the card actually throttles on.
+
+- Optional alarm with a configurable threshold from **90–105 °C**.
+- A second warning triggers when hotspot sits more than **15 °C** above the GPU edge temperature, which usually points to cooler contact rather than a software setting.
+- The saved **top hotspot** record survives restarts and is checked against the alarm threshold.
+- A rolling **20-minute graph** plots hotspot and GPU temperature.
+- The **hotspot readings** table shows the latest five measurements with time, hotspot, GPU, GPU MHz, memory MHz, VRAM, power, and the running game.
+- **Clear readings** removes both the history and the rolling graph after confirmation.
+- Available only on GPUs that expose a hotspot sensor; sensor support varies by model and driver.
+
 ---
 
 ## Settings pages
@@ -144,9 +207,10 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 | **Startside** | Startup mode, topmost behavior, UI scale, **hide mode** (Always visible / Manual / Auto), **auto-hide delay** (1–10 sec), **peek activation** (Hover / Click), language (Dansk / English) |
 | **GenvejsIkoner** | Shortcut icon settings split by view: **Grid view** (icons per row, row spacing, bottom padding), **Carousel view** (visible icons 1–12), shared **icon size** (82–150%), scrollbar on/off |
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
-| **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
-| **Hardware** | CPU, GPU, RAM, motherboard diagnostics with real-time sensor data |
-| **Monitor row layout** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
+| **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **GPU power saving** while the game is in the background, **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
+| **Hardware** | CPU, GPU, RAM, motherboard, and disk diagnostics with live sensor data; GPU undervolt profiles and hotspot monitoring |
+| **Monitor row layout (Home)** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
+| **Skin Studio** | Overlay skin editor: presets, colours, fonts, corner radius, image palette import, live preview, and module/blueprint editing |
 | **Hjælp** | Help and troubleshooting content |
 | **About** | Version info, app description, credits, and the **Debug / Test** diagnostics section (FPS/ETW setup status, trace-log size + **Clean trace log**) |
 
@@ -181,7 +245,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 ### Models
 
-- `Models/` contains shared data contracts and enums: `ConfigModel`, `LauncherItem`, `LauncherHideMode`, `GamingOverlayPositionPreset`, layout data, and startup mode definitions.
+- `Models/` contains shared data contracts and enums: `ConfigModel`, `LauncherItem`, `LauncherHideMode`, `GamingOverlayPositionPreset`, layout data, startup mode definitions, and GPU undervolt/power-saving/hotspot settings.
 
 ### ViewModels
 
@@ -194,6 +258,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 - `Views/Launcher/` — main launcher shell and gaming overlay window.
 - `Views/Settings/` — settings shell, pages, and coordination helpers.
+- `Views/Settings/Pages/` — Startside, GenvejsIkoner, Layout, Hardware, Gaming Overlay, Game Resolution, Skin Studio, Help, and About.
 - `Views/StartsideStyles.xaml`, `Views/TemplateGuidelines.xaml` — shared view resources.
 
 ### Controls
@@ -206,7 +271,8 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 - `Helpers/Launcher/` — `LauncherWindowModeController`, `FloatingIconController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
 - `Helpers/Settings/` — config, localization, startup, theme helpers
-- `Helpers/Hardware/` — hardware monitor, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM)
+- `Helpers/Hardware/` — hardware monitor agent, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM), `NvmlGpuLimitController` (power/clock limits), `AfterburnerProfileController` (undervolt profiles), `GpuPowerSavingState`, and `HotspotHistoryStore`
+- `Helpers/Skin/` — overlay skin rendering, palette extraction, blueprint defaults, and module templates
 - `Helpers/Logging/` — `AppTrace`, the size-capped shared trace writer
 - `Helpers/Converters/` — shared WPF value converters
 - `Helpers/Common/` — `RelayCommand`, `DevInspector`
@@ -217,7 +283,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 IconGrid uses a multi-process architecture:
 
-1. **Elevated Worker (Admin):** interfaces with `LibreHardwareMonitorLib` for low-level hardware telemetry (CPU/GPU temperatures, clocks).
+1. **Elevated Worker (Admin):** interfaces with `LibreHardwareMonitorLib`, NVIDIA NVML, PawnIO, and MSI Afterburner for low-level telemetry and GPU control (temperatures, clocks, power limits, hotspot, undervolt profiles).
 2. **Standard Non-Elevated UI:** the main launcher, floating icon, and shortcut management run as a standard user.
 
 **Benefits:**
@@ -321,12 +387,15 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 
 | File | Content |
 |------|---------|
-| `config.json` | All settings: launcher config, window positions, layout data, language, theme, hide modes, gaming overlay settings |
+| `config.json` | All settings: launcher config, window positions, layout data, language, theme, hide modes, gaming overlay settings, GPU undervolt/power-saving settings, and hotspot alarm settings |
 | `items.json` | Launcher shortcuts grouped by category/tab (machine-specific) |
-| `monitor-state.json` | Live hardware monitor state (CPU/GPU readings) |
+| `monitor-state.json` | Live hardware monitor state (CPU/GPU readings, hotspot history, and rolling hotspot trend) |
+| `hotspot-history.json` | Persistent top-five hotspot readings used by the Hardware page |
 | `fps-state.json` | Compatibility/fallback FPS state |
 | `native-fps-state.json` | Raw native FPS worker state (diagnostics, incl. `gameConfirmed` / `trustedLaunch`) |
 | `external-games.json` | Games detected as started outside IconGrid (auto-registered so they can get their own resolution) |
+| `gpu-undervolt-request.json` | Internal one-shot request from the UI to the elevated hardware agent when applying a generated curve |
+| `afterburner-profile-backup-*.cfg` | Automatic backups of the MSI Afterburner profile file before IconGrid modifies it |
 | `trace.log` | App trace output (startup + runtime diagnostics). Size-capped at 10 MB — the oldest half is trimmed automatically, and it can be cleared from the **Debug / Test** section on the **About** settings page |
 | `error.log` | Fatal error log |
 | `IconPack\` | Optional cached icon pack assets |
@@ -353,6 +422,8 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
 
 Current version: `0.7.0-beta.1`
+
+Latest beta: [v0.7.0-beta.1](https://github.com/Maxithx/IconGrid/releases/tag/v0.7.0-beta.1)
 
 ---
 
