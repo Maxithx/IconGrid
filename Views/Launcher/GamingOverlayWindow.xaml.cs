@@ -305,7 +305,7 @@ namespace IconGrid.Views
             if (OverlayBar.CloseButton != null)
             {
                 OverlayBar.CloseButton.Height = ActionButtonHeight;
-                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 0, 0);
             }
 
             var extraHeight = OverlayBar.SettingsMenuButton?.IsChecked == true
@@ -317,11 +317,9 @@ namespace IconGrid.Views
             // The window frame must match the VISUALLY SCALED content. LayoutTransform
             // scales the content but does not change Window.Width by itself — if Width
             // stays at the base value, the drag outline / window frame no longer matches
-            // the visible overlay (it looks "too big" toward the left) and preset
-            // anchoring drifts. The shared GetOverlayScaledWidth() (max of root and popup,
-            // times scale) is used by BOTH ApplyWindowSize and ApplyPositionPreset so the
-            // preset never fights the window size — that mismatch is what made the scale
-            // slider jump between 150% and 100%.
+            // the visible overlay. GetOverlayScaledWidth() returns the measured
+            // (already transform-scaled) width and is used by BOTH ApplyWindowSize and
+            // ApplyPositionPreset so the preset never fights the window size.
             var scaledWidth = GetOverlayScaledWidth();
             if (scaledWidth > 0)
             {
@@ -372,7 +370,7 @@ namespace IconGrid.Views
             if (OverlayBar.CloseButton != null)
             {
                 OverlayBar.CloseButton.Height = ActionButtonHeight;
-                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 2 * scale, 0);
+                OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 0, 0);
             }
         }
 
@@ -434,7 +432,13 @@ namespace IconGrid.Views
                 ? MeasureElementWidth(OverlayBar.PopupPanelsRow)
                 : 0;
             var targetWidth = Math.Max(overlayWidth, popupWidth);
-            return targetWidth > 0 ? Math.Ceiling(targetWidth * GetEffectiveScale()) : 0;
+
+            // MeasureElementWidth reads DesiredSize AFTER LayoutTransform has been
+            // applied, so the value is already in scaled pixels. Do NOT multiply by
+            // GetEffectiveScale() again: doing that made the window 20% wider than
+            // the visible bar at 120% scale, leaving a transparent drag area on the
+            // left side.
+            return targetWidth > 0 ? Math.Ceiling(targetWidth) : 0;
         }
 
         private void ApplyPositionPreset()

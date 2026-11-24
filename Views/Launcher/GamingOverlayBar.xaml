@@ -899,7 +899,9 @@
                                 <Setter Property="Grid.Column" Value="1" />
                                 <Setter Property="VerticalAlignment" Value="Center" />
                                 <Setter Property="HorizontalAlignment" Value="Right" />
-                                <Setter Property="Margin" Value="0,0,12,0" />
+                                <!-- Keep 8 DIP between the X button and the window/screen edge
+                                     so the button border is not clipped by the viewport. -->
+                                <Setter Property="Margin" Value="0,0,8,0" />
                                 <Style.Triggers>
                                     <!-- Vertical bars put the action buttons in a row at the bottom. -->
                                     <DataTrigger Binding="{Binding EffectiveIsVertical, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
