@@ -1764,6 +1764,73 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Opt-in "GPU undervolt" effect while the game window has focus: the elevated
+        /// agent locks the GPU clock at the highest value that keeps the card at or
+        /// below the temperature target. On Turing the core voltage follows the clock
+        /// (V/F curve), so the lower clock also means a lower voltage — the same
+        /// thermal win as an undervolt, without touching the voltage directly.
+        /// </summary>
+        public bool GpuUndervoltEnabled
+        {
+            get => _gpuUndervoltEnabled;
+            set
+            {
+                if (SetField(ref _gpuUndervoltEnabled, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>Afterburner profile used while a game session is running (0 = none).</summary>
+        public int GpuUndervoltGameProfile
+        {
+            get => _gpuUndervoltGameProfile;
+            set
+            {
+                var clamped = Math.Clamp(value, 0, 9);
+                if (SetField(ref _gpuUndervoltGameProfile, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Afterburner profile applied when no game is running. 0 keeps whatever
+        /// profile is active, so the user can leave their own desktop profile alone.
+        /// </summary>
+        public int GpuUndervoltIdleProfile
+        {
+            get => _gpuUndervoltIdleProfile;
+            set
+            {
+                var clamped = Math.Clamp(value, 0, 9);
+                if (SetField(ref _gpuUndervoltIdleProfile, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opt-in: warn when the GPU hotspot is hot or far above the GPU temperature,
+        /// which usually means the cooler lost contact with the chip (paste/pads or
+        /// mounting pressure) and the card throttles long before its power limit.
+        /// </summary>
+        public bool GpuHotspotAlarmEnabled
+        {
+            get => _gpuHotspotAlarmEnabled;
+            set
+            {
+                if (SetField(ref _gpuHotspotAlarmEnabled, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns the default overlay scale for a resolution like "3840x2160".
         /// Falls back to the built-in default (100% for every resolution — the scale is
         /// the real physical size; the 1440p=135% legacy default only applied when the

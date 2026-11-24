@@ -28,6 +28,10 @@ public static class HardwareMonitorAgent
     // GPU power saving must not thrash the driver while the user alt-tabs, so a
     // profile switch only happens after the game has stayed unfocused this long.
     private static readonly TimeSpan GpuLimitProfileHysteresis = TimeSpan.FromSeconds(4);
+
+    /// <summary>Afterburner profile reserved for the stock (default) settings.</summary>
+    private const int StockAfterburnerProfile = 8;
+
     // A failed NVML write (permission, unsupported GPU, driver hiccup) is retried
     // at most once a minute instead of every loop iteration.
     private static readonly TimeSpan GpuLimitRetryDelay = TimeSpan.FromSeconds(60);
@@ -292,6 +296,14 @@ public static class HardwareMonitorAgent
             {
                 log?.Invoke($"GPU power saving unavailable: {gpuLimits.InitializationError}");
             }
+
+            var afterburner = new AfterburnerProfileController(log);
+            log?.Invoke(afterburner.IsAvailable
+                ? $"MSI Afterburner integration ready: {afterburner.InstallPath} ({afterburner.ReadProfiles().Count} profile(s))."
+                : "MSI Afterburner integration unavailable: MSIAfterburner.exe was not found.");
+
+            var undervoltRequestPath = Path.Combine(baseDir, "gpu-undervolt-request.json");
+            var benchmark = new GpuBenchmarkRunner(baseDir, log);
             var currentForegroundGamePid = default(int?);
             var confirmedForegroundGamePid = default(int?);
             var hadConfirmedGameSession = false;
@@ -348,6 +360,24 @@ public static class HardwareMonitorAgent
             var gpuLowPowerApplied = false;
             var gpuKnownGamePids = new HashSet<int>();
             var gpuSamples = new GpuPowerSamples();
+            var gpuLastAfterburnerProfile = 0;
+
+            // After a restart the agent has no memory of the profile it applied before.
+            // If the feature is now switched off, pick the previous profile up so the
+            // "restore stock" path can run once instead of leaving it applied forever.
+            if (!config.GpuUndervoltEnabled && File.Exists(gpuStatePath))
+            {
+                try
+                {
+                    var previousState = JsonSerializer.Deserialize<GpuPowerSavingState>(
+                        File.ReadAllText(gpuStatePath), JsonOptions);
+                    gpuLastAfterburnerProfile = previousState?.AfterburnerProfile ?? 0;
+                }
+                catch
+                {
+                    gpuLastAfterburnerProfile = 0;
+                }
+            }
             var gpuPendingLowPower = default(bool?);
             var gpuPendingSinceUtc = DateTime.MinValue;
             var gpuNextAttemptUtc = DateTime.MinValue;
@@ -496,29 +526,67 @@ public static class HardwareMonitorAgent
                 // keep running the background render at full power.
                 UpdateGpuPowerSaving(
                     gpuLimits,
+                    afterburner,
                     latestConfig,
                     confirmedForegroundGamePid,
                     gpuKnownGamePids,
                     gpuSamples,
+                    benchmark.IsRunning,
                     ref gpuLowPowerApplied,
+                    ref gpuLastAfterburnerProfile,
                     ref gpuPendingLowPower,
                     ref gpuPendingSinceUtc,
                     ref gpuNextAttemptUtc,
                     ref gpuLastMessage,
                     log);
 
-                if (latestConfig.GpuPowerSavingEnabled || gpuLowPowerApplied)
+                // Always publish the GPU state: the settings page mirrors these numbers,
+                // and a stale file showed an old power limit after both features were
+                // switched off.
+                WriteGpuPowerSavingState(
+                    gpuStatePath,
+                    gpuStateTempPath,
+                    BuildGpuPowerSavingState(
+                        gpuLimits,
+                        latestConfig,
+                        gpuLowPowerApplied,
+                        gpuKnownGamePids.Count,
+                        gpuSamples,
+                        afterburner.IsAvailable,
+                        gpuLastAfterburnerProfile,
+                        benchmark,
+                        gpuLastMessage));
+
+                TryProcessUndervoltRequest(
+                    undervoltRequestPath,
+                    afterburner,
+                    ref gpuLastAfterburnerProfile,
+                    ref gpuLastMessage,
+                    log);
+
+                // GPU benchmark: file-based request from the hardware page, driven by
+                // this loop (no blocking thread, so the FPS pipeline keeps running).
+                if (benchmark.TryLoadRequest() is { } benchmarkRequest)
                 {
-                    WriteGpuPowerSavingState(
-                        gpuStatePath,
-                        gpuStateTempPath,
-                        BuildGpuPowerSavingState(
-                            gpuLimits,
-                            latestConfig,
-                            gpuLowPowerApplied,
-                            gpuKnownGamePids.Count,
-                            gpuSamples,
-                            gpuLastMessage));
+                    var benchmarkPid = confirmedForegroundGamePid
+                                       ?? gpuKnownGamePids.FirstOrDefault();
+                    benchmark.Start(
+                        benchmarkRequest,
+                        benchmarkPid,
+                        afterburner,
+                        ref gpuLastAfterburnerProfile);
+                }
+
+                if (benchmark.IsRunning)
+                {
+                    var benchmarkStatus = gpuLimits.IsAvailable ? gpuLimits.ReadStatus() : null;
+                    var benchmarkPid = confirmedForegroundGamePid
+                                       ?? gpuKnownGamePids.FirstOrDefault();
+                    benchmark.Tick(
+                        benchmarkPid,
+                        benchmarkStatus,
+                        afterburner,
+                        ref gpuLastAfterburnerProfile);
                 }
 
                 // When a session ends, publish one final "--" state immediately so
@@ -765,6 +833,9 @@ exit:
                         false,
                         gpuKnownGamePids.Count,
                         gpuSamples,
+                        afterburner.IsAvailable,
+                        gpuLastAfterburnerProfile,
+                        benchmark,
                         gpuLastMessage));
             }
 
@@ -786,11 +857,14 @@ exit:
     /// </summary>
     private static void UpdateGpuPowerSaving(
         NvmlGpuLimitController gpuLimits,
+        AfterburnerProfileController? afterburner,
         Models.ConfigModel config,
         int? confirmedGamePid,
         HashSet<int> knownGamePids,
         GpuPowerSamples samples,
+        bool benchmarkRunning,
         ref bool lowPowerApplied,
+        ref int lastAfterburnerProfile,
         ref bool? pendingLowPower,
         ref DateTime pendingSinceUtc,
         ref DateTime nextAttemptUtc,
@@ -825,6 +899,80 @@ exit:
             samples.Record(gameIsForeground, gpuLimits.ReadStatus());
         }
 
+        // MSI Afterburner integration (opt-in): Afterburner owns the signed driver
+        // that can write the voltage/frequency curve, which no public API (NVML or
+        // NVAPI) exposes. IconGrid therefore switches Afterburner profiles instead of
+        // touching the GPU itself: the game profile while a game session is running,
+        // the idle profile (if configured) when it ends. A profile switch restarts
+        // Afterburner, so this happens on session transitions only — never on alt-tab.
+        if (config.GpuUndervoltEnabled && afterburner != null && afterburner.IsAvailable)
+        {
+            var desiredProfile = anyGameAlive
+                ? config.GpuUndervoltGameProfile
+                : config.GpuUndervoltIdleProfile;
+
+            if (desiredProfile > 0 && desiredProfile != lastAfterburnerProfile)
+            {
+                var afterburnerResult = afterburner.Apply(desiredProfile, ref lastAfterburnerProfile);
+                if (afterburnerResult.Changed)
+                {
+                    lastMessage = afterburnerResult.Message;
+                    log?.Invoke(afterburnerResult.Message);
+                }
+                else if (!afterburnerResult.Success)
+                {
+                    log?.Invoke($"GPU undervolt: {afterburnerResult.Message}");
+                }
+            }
+        }
+        else if (!config.GpuUndervoltEnabled &&
+                 afterburner != null &&
+                 afterburner.IsAvailable &&
+                 lastAfterburnerProfile > 0 &&
+                 lastAfterburnerProfile != StockAfterburnerProfile)
+        {
+            // The feature was switched off: hand the card back at stock instead of
+            // leaving the undervolt/power-limited profile applied by the driver.
+            var stockResult = afterburner.WriteStockProfile(StockAfterburnerProfile);
+            if (!stockResult.Success)
+            {
+                log?.Invoke($"GPU undervolt: {stockResult.Message}");
+            }
+
+            lastAfterburnerProfile = 0;
+            var restoreResult = afterburner.Apply(StockAfterburnerProfile, ref lastAfterburnerProfile);
+            lastMessage = restoreResult.Message;
+            log?.Invoke(restoreResult.Message);
+        }
+
+        // Afterburner owns the power limit whenever the undervolt feature is active
+        // (it applies the profile through its own driver). The NVML low-power profile
+        // must not fight it, otherwise the two features overwrite each other and the
+        // "restore" value ends up being whatever the other tool had set.
+        var afterburnerOwnsPowerLimit = config.GpuUndervoltEnabled &&
+                                        afterburner != null &&
+                                        afterburner.IsAvailable;
+
+        // A running benchmark must not be influenced by the background profile; the
+        // game may be unfocused while the user is on the settings page.
+        if (afterburnerOwnsPowerLimit || benchmarkRunning)
+        {
+            pendingLowPower = null;
+
+            if (lowPowerApplied)
+            {
+                var releaseResult = gpuLimits.Restore();
+                if (releaseResult.Success)
+                {
+                    lowPowerApplied = false;
+                    lastMessage = releaseResult.Message;
+                    log?.Invoke($"GPU power saving released (Afterburner manages the profile): {releaseResult.Message}");
+                }
+            }
+
+            return;
+        }
+
         var nowUtc = DateTime.UtcNow;
         if (nowUtc < nextAttemptUtc)
         {
@@ -836,6 +984,13 @@ exit:
             pendingLowPower = null;
             if (!lowPowerApplied)
             {
+                // An in-game undervolt ceiling must not survive after the game loses
+                // focus when the background profile is switched off.
+                if (gpuLimits.IsClockLimitApplied)
+                {
+                    gpuLimits.ReleaseClockLimit(out _);
+                }
+
                 return;
             }
 
@@ -984,12 +1139,74 @@ exit:
         }
     }
 
+    /// <summary>
+    /// Handles a one-shot request from the settings UI: build an undervolt curve from
+    /// the stock V/F table, write it into an Afterburner profile and apply it. The
+    /// file hand-off keeps the settings UI free of elevation and of direct Afterburner
+    /// access.
+    /// </summary>
+    private static void TryProcessUndervoltRequest(
+        string requestPath,
+        AfterburnerProfileController afterburner,
+        ref int lastAfterburnerProfile,
+        ref string lastMessage,
+        Action<string>? log)
+    {
+        try
+        {
+            if (!afterburner.IsAvailable || !File.Exists(requestPath))
+            {
+                return;
+            }
+
+            var json = File.ReadAllText(requestPath);
+            File.Delete(requestPath);
+
+            var request = JsonSerializer.Deserialize<UndervoltRequest>(json, JsonOptions);
+            if (request == null || request.TargetClockMhz <= 0 || request.Profile <= 0)
+            {
+                return;
+            }
+
+            log?.Invoke($"Undervolt request: max {request.TargetClockMhz} MHz -> Afterburner profile {request.Profile}.");
+
+            var writeResult = afterburner.WriteUndervoltCurve(request.TargetClockMhz, request.Profile);
+            lastMessage = writeResult.Message;
+
+            if (!writeResult.Success)
+            {
+                log?.Invoke(writeResult.Message);
+                return;
+            }
+
+            // Force a (re)apply even when this profile is already the active one.
+            lastAfterburnerProfile = 0;
+            var applyResult = afterburner.Apply(request.Profile, ref lastAfterburnerProfile);
+            lastMessage = applyResult.Message;
+            log?.Invoke(applyResult.Message);
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"Undervolt request failed: {ex.Message}");
+        }
+    }
+
+    private sealed class UndervoltRequest
+    {
+        public int TargetClockMhz { get; set; }
+
+        public int Profile { get; set; }
+    }
+
     private static GpuPowerSavingState BuildGpuPowerSavingState(
         NvmlGpuLimitController gpuLimits,
         Models.ConfigModel config,
         bool lowPowerApplied,
         int knownGameProcessCount,
         GpuPowerSamples samples,
+        bool afterburnerAvailable,
+        int afterburnerProfile,
+        GpuBenchmarkRunner benchmark,
         string? message)
     {
         var status = gpuLimits.ReadStatus();
@@ -999,6 +1216,9 @@ exit:
             Enabled = config.GpuPowerSavingEnabled,
             Available = gpuLimits.IsAvailable,
             LowPowerProfileApplied = lowPowerApplied,
+            UndervoltActive = afterburnerProfile > 0,
+            AfterburnerAvailable = afterburnerAvailable,
+            AfterburnerProfile = afterburnerProfile,
             GpuName = status?.GpuName ?? gpuLimits.GpuName,
             PowerLimitMw = status?.PowerLimitMw ?? 0,
             DefaultPowerLimitMw = status?.DefaultPowerMw ?? 0,
@@ -1014,6 +1234,9 @@ exit:
             ClockCeilingMhz = status?.ClockCeilingMhz ?? 0,
             GameInFocusSample = samples.GameInFocus,
             GameNotInFocusSample = samples.GameNotInFocus,
+            BenchmarkRunning = benchmark.IsRunning,
+            BenchmarkStatus = string.IsNullOrWhiteSpace(benchmark.StatusText) ? null : benchmark.StatusText,
+            BenchmarkProgress = string.IsNullOrWhiteSpace(benchmark.ProgressText) ? null : benchmark.ProgressText,
             KnownGameProcessCount = knownGameProcessCount,
             Message = message
         };

@@ -11,6 +11,12 @@ public sealed class HardwareMonitorSnapshot
     public string? FpsSource { get; set; }
     public string? CpuTemp { get; set; }
     public string? GpuTemp { get; set; }
+
+    /// <summary>GPU hotspot (hottest point on the die); the real thermal limiter.</summary>
+    public string? GpuHotspot { get; set; }
+
+    /// <summary>Hotspot minus edge temperature in degrees Celsius (contact quality).</summary>
+    public double? GpuHotspotDeltaC { get; set; }
     public string? CpuUsage { get; set; }
     public double? CpuUsagePercent { get; set; }
     public string? CpuClock { get; set; }

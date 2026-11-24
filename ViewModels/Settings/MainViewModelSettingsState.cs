@@ -34,6 +34,10 @@ namespace IconGrid.ViewModels.Settings
         public int GpuPowerSavingPowerLimitPercent { get; set; } = 70;
         public bool GpuPowerSavingTempLimitEnabled { get; set; } = true;
         public int GpuPowerSavingTempLimitCelsius { get; set; } = 70;
+        public bool GpuUndervoltEnabled { get; set; }
+        public int GpuUndervoltGameProfile { get; set; } = 1;
+        public int GpuUndervoltIdleProfile { get; set; }
+        public bool GpuHotspotAlarmEnabled { get; set; }
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }

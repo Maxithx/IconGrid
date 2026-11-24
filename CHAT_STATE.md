@@ -2469,3 +2469,123 @@ BUILD/DEPLOY: 0 fejl/0 advarsler (02:03:50), deployet, `C:\IconGrid\IconGrid.dll
 
 IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse.
 
+
+## GPU UNDERVOLT VIA MSI AFTERBURNER (24-11-2026)
+
+Brugerønske: undervolt af GPU (ikke CPU) med "par graders" gevinst uden FPS-tab, sat op i IconGrid og sendt til MSI Afterburner.
+
+MÅLTE FAKTA (vigtige, de styrer designet):
+- NVML/NVAPI kan IKKE skrive spænding eller V/F-kurve. `nvapi.h` (ligger i `.local-state/PresentMon-reference/.../nvapi.h`) har kun `NvAPI_GPU_GetPstates20` — ingen Set-variant. Afterburner skriver kurven via sin egen signerede kernel-driver (RTCore64) + udokumenterede register-writes. Egen driver blev vurderet og afvist: kræver EV-cert + MS attestation-signering, HVCI/Secure Boot skal slås fra (HVCI er aktiv her), anti-cheat-risiko og brick-risiko.
+- **Clock-loft i spil er IKKE en undervolt:** med loft 1200 MHz i PoE var temp stadig 83 °C og effekt 79 W (GPU blev bare 90-95 % udnyttet i stedet). Clock-cap koster FPS uden at sænke watt. Den in-game governor-branch er derfor FJERNET igen; baggrunds-lav-strøm-governoren (600-900 MHz når spillet ikke har fokus) består og virker.
+- **Afterburner kan styres via CLI:** AB's egen `MSIAfterburner.cfg` lister `-profile1` … `-profile5` og `-lowpowerprofile` (under `[PredefinedApplications]`). Test: `MSIAfterburner.exe -profile1` fra kold start ændrede power limit 125 → 164,5 W (profilens 94 %). Mens AB kører ignoreres argumentet (single-instance) → derfor: stop AB, start med `-profileN` (kræver admin; AB kører elevated, så kun vores agent kan gøre det).
+- **Profil-filen** (`Profiles\VEN_10DE&DEV_1F06&…cfg`) indeholder pr. profil: `PowerLimit`, `ThermalLimit`, `CoreClkBoost`, **`VFCurve=<hex-blob>`**, `FanMode`, `FanSpeed`, samt `[Startup]`, `[Defaults]`, `[Settings]`, `[PreSuspendedMode]`.
+
+IMPLEMENTERET:
+- Ny `Helpers/Hardware/AfterburnerProfileController.cs`: finder AB-installationen, parser profilerne (nummer, power %, clock-offset, fan %, om der er en V/F-kurve) og `Apply(n)` = stop AB + start `MSIAfterburner.exe -profileN` (no-op hvis samme profil allerede er anvendt).
+- `HardwareMonitorAgent`: opretter controlleren, logger "MSI Afterburner integration ready …", og skifter profil ved **spil-session start/slut** (ikke ved alt-tab): spilprofil mens en session kører, ellers valgfri idle-profil (0 = skift ikke). Ingen profil-skift når funktionen er slået fra.
+- Config/VM/persistens: `GpuUndervoltEnabled`, `GpuUndervoltGameProfile` (1), `GpuUndervoltIdleProfile` (0). De tidligere `GpuUndervoltTargetTempC/MaxClockMhz/MinClockMhz` er fjernet igen (clock-ceiling-idéen blev målt forkert).
+- `GpuPowerSavingState`: nye felter `AfterburnerAvailable`, `AfterburnerProfile`; `UndervoltActive` = profil > 0. `UndervoltTargetC` fjernet.
+- UI (Hardware-siden, nyt kort "GPU undervolt"): master-toggle, to profilkomboboxer ("Profil mens spillet kører" / "Profil når intet spil kører", første valg = "Skift ikke"), målt status (profil/clock/temp/watt/fan, 1 s opdatering) + "Opdater status". Profiler læses af UI'en direkte (kræver ikke admin); kun selve skiftet gør.
+- Lokalisering (en+da): 13 nøgler opdateret/tilføjet (`GpuUndervolt*`, inkl. `GpuUndervoltNoProfile`); `GpuUndervoltMinClock*` fjernet.
+
+MÅLT EFTER INTEGRATIONEN (PoE kører, profil 1 = 94 % power):
+- Agenten genstartede AB (ny PID) og skrev `MSI Afterburner profile 1 applied.`
+- power limit 164,5 W, draw ~73 W, **79 °C**, 1200 MHz, 90 % udnyttelse — mod 83-84 °C ved 175 W før. Bruger: "79 grader uden tab af FPS".
+- Effekten kommer fra AB-profilens power limit; en ægte V/F-kurve (lavere spænding ved samme clock) kan give yderligere ~3-5 °C uden FPS-tab — den skal laves i AB's kurve-editor (Ctrl+F) og gemmes som fx profil 2, som derefter vælges i IconGrid.
+
+VERIFIKATION: build 0 fejl/0 advarsler (02:46:46) → deployet; `C:\IconGrid\IconGrid.dll` matcher `bin\Debug\...` (02:46:46). App + agent + AB kører.
+
+NÆSTE MULIGHEDER:
+- Fase 2 (valgfri): skrive `VFCurve`-blobbet selv, så kurven kan redigeres i IconGrid. Kræver reverse-engineering af hex-formatet + backup/validering + AB-genstart; ikke gjort (risikabelt).
+- CPU-fund fra samme session (endnu ikke handlet): `Minimal processortilstand` står på **99 %** i "AMD Ryzen Balanced", så Ryzen 5 3600 kører 4,20 GHz / 1,40 V næsten konstant → højere idle-temp end nødvendigt. `powercfg`-presets (min state 5 %, boost-off, EPP) er den sikre, driver-fri vej hvis vi vil bygge CPU-sektionen senere.
+- `HardwareMonitorAgent.cs` er nu ~2900 linjer (over grænsen); næste extraction-kandidat: flyt GPU/Afterburner-profilbeslutningen til en coordinator-helper.
+
+IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
+
+## FASE 2: ICONGRID GENERERER SELV UNDERVOLT-KURVEN (24-11-2026, verificeret)
+
+`VFCurve`-formatet blev dekodet fra en rigtig profil: **8-byte header (uint32 flags, uint32 pointCount) + N poster à 12 bytes = (uint32 flags, float spænding_mV, float clock_MHz)**. Denne maskine: 128 gyldige punkter, 450 → 1243,75 mV i 6,25 mV-trin, clock 405 → 1950 MHz, blob = 3224 bytes (268 poster, resten nul).
+
+IMPLEMENTERET:
+- `AfterburnerProfileController.WriteUndervoltCurve(targetClockMhz, profileNumber)`: læser stock-kurven fra `[Defaults]`, finder første punkt med clock >= mål, **flader alle punkter derfra ud til mål-clocken** (klassisk Afterburner-undervolt), koder blobbet igen med samme header/record-count, laver backup af profil-filen til `%APPDATA%\IconGrid\afterburner-profile-backup-<tid>.cfg`, og erstatter/opretter `[ProfileN]` (PowerLimit/Fan/FanMode kopieres fra `[Defaults]` → power limit forbliver 100 %, det er kurven der undervolter).
+- Agenten håndterer en request-fil `%APPDATA%\IconGrid\gpu-undervolt-request.json` (`{"targetClockMhz":1750,"profile":9}`): skriver kurven, anvender profilen (stop AB + start `-profile9`) og rapporterer i state-filen. UI'en skriver requesten, sætter game-profil = 9 og slår undervolt til.
+- UI: nyt felt i GPU-undervolt-kortet: slider 1500-1950 MHz + knap "Skriv kurve og anvend" (profil 9 er reserveret til IconGrid-genererede kurver, så brugerens 1-5 aldrig overskrives).
+- Bug fundet undervejs: `ReadSectionValues` returnerede den sidste sektion i stedet for den ønskede ("No stock V/F curve was found") → rettet med separat `result`/`current`.
+
+VERIFICERET (dekodet profil-filen efter kørsel):
+- Stock: 900 mV→1725, 912,5 mV→1755, 925 mV→1770, max 1950 MHz.
+- Profil 9: 912,5 mV→**1750**, alt derover→**1750**, max **1750 MHz**, power limit 100 %.
+- Agenten skiftede til profil 9 (ny AB-PID), state: `profile=9`, `MSI Afterburner profile 9 applied.`; backup oprettet (13.490 bytes).
+- Build 0 fejl/0 advarsler (03:05:13) → deployet, DLL matcher.
+
+VIGTIGT FOR TEST: ved 4K/60 Hz + vsync kører PoE ofte 1100-1300 MHz, hvor kurven ikke er aktiv (stock-spændingen er der allerede lav) → temperaturgevinsten ses først når kortet *vil* booste højt: vsync fra + tungt map. Målt i den nuværende scene: 84 °C / 81 W / 1245 MHz — dvs. uændret, fordi kortet ikke er oppe i det område kurven ændrer, og fordi køleren stadig er loftet ved ~80 W.
+
+IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse (gælder også alt fra Afterburner-integrationen).
+
+
+## GPU: STOCK-RESTORE + SAMSPIL MED BAGGRUNDS-PROFILEN (24-11-2026)
+
+BRUGERFUND: "alt er slået fra, men jeg er på 79 °C i stedet for 83-85". Screenshot viste `grænse 164 W` (ikke 175 W).
+
+ROOT CAUSE: Agenten havde tidligere lagt Afterburner-profil 1 (94 % = 164,5 W) ind. Vores "slå fra" gendannede kun NVML-grænsen (den vi selv skrev) — Afterburners profil blev siddende i driveren. Oveni: NVML-controllerens baseline blev fanget ved agent-start, hvor AB allerede havde sat 164 W, så "restore" gik til 164 W. Endelig blev `gpu-power-saving-state.json` kun skrevet når mindst én funktion var aktiv → panelet viste gamle tal.
+
+FIXES:
+1. `AfterburnerProfileController.WriteStockProfile(8)`: skriver en stock-profil fra `[Defaults]` (PowerLimit 100 %, uændret V/F-kurve) til **profil 8**.
+2. Agenten: når undervolt slås FRA og en profil fra os stadig er aktiv → skriv + anvend profil 8 (stock) automatisk. Efter genstart læses forrige state (`afterburnerProfile`) så oprydningen også sker der.
+3. State-filen skrives nu **altid** (1 Hz), så panelet viser sandheden uanset om funktionerne er slået til.
+4. SAMSPIL: når undervolt er slået TIL, ejer Afterburner power limit → baggrunds-lav-strømprofilen træder til side (frigiver sin NVML-grænse) i stedet for at kæmpe med AB. Baggrundsbesparelse opnås i stedet via "Profil når intet spil kører" (fx profil 1 = 94 %, eller en dedikeret lav-profil).
+5. Benchmark: mens en måling kører, springes baggrundsprofilen over (`benchmarkRunning`), så resultater ikke afhænger af, om spillt har fokus (den fejl gjorde den første A/B ugyldig: 48 fps / p99 122 ms fordi PoE var i baggrunden).
+
+VERIFICERET: build 0/0 → deployet. Med alt slået fra: **power limit 175 W, 84 °C**, state `profile=8, limit=175 W`. Profil-filen har nu `[Profile8]` (PowerLimit=100 + stock-kurve) og `[Profile9]` (genereret undervolt).
+
+TEST-MÅLER (bygget samme session): `GpuBenchmarkRunner` + "GPU test"-kort på Hardware-siden. Kører 10 s warmup + valgt måletid (30/60/120 s) pr. profil, PresentMon-CLI til frame times, NVML til temp/watt/clock. Resultat pr. gennemløb: gns. FPS, **p99 frame time**, **% frames > 20 ms** (misset 60 Hz-frist), max-temp, gns. watt/clock. A/B venter 15 s mellem passene. Resultater gemmes i `%APPDATA%\IconGrid\gpu-benchmark-results.json` (seneste 20) og vises i kortet. Første validering: 58,4 fps / p99 21,5 ms / 2,0 % > 20 ms / max 80 °C / 73 W / 1138 MHz på 30 s.
+
+PENDING (næste session):
+- UI-hint på undervolt-kortet skal nævne stock-profil 8 + at baggrundsprofilen ikke kører mens undervolt er aktiv (teksten siger stadig kun at AB styrer).
+- Kør en gyldig A/B (profil 1 vs 9) **med PoE i fokus** i et tungt map; brug % frames > 20 ms + p99 + max-temp som beslutningsgrundlag.
+- `HardwareMonitorAgent.cs` er nu ~3100 linjer (over grænsen) — næste extraction: GPU/Afterburner/benchmark-beslutningerne ud i coordinators.
+
+IKKE COMMITTET/PUSHET — hele Afterburner-integrationen + benchmark står uncommitted og kræver explicit godkendelse.
+
+
+## DIAGNOSE: GPU HOTSPOT 105 °C = KØLERKONTAKT (24-11-2026) + hotspot-overvågning
+
+BRUGER-MÅLING (HWiNFO): edge 84,1-84,6 °C, **hotspot 104,4-105,0 °C** (delta ~20 °C), fan 2240-2254 RPM, VDDC 0,706 V, kun ~79 W.
+
+FORKLARING: Turing throttler på **hotspot** (~105 °C), ikke på edge. Derfor: pstate P0, mem 7000 MHz, 79 W af 175 W, men clock låst ~1290-1305 MHz med `sw_thermal_slowdown = Active`. Kortet kan ikke afsætte mere end ~80 W → ingen termisk overskud → GPU Boost kan aldrig bruge de 96 W ledige effekt, og 1750-1900 MHz nås ikke i spil (kun i menuer/lette scener). Delta ~20 °C ved 80 W peger på pasta-pump-out/montagetryk/pad-tykkelse trods repaste for 6 mdr. siden. Software (power limit, undervoltkurve) kan ikke hjælpe — hverken grænse eller kurve er aktiv i den tilstand.
+
+IMPLEMENTERET (hotspot i IconGrid):
+- `HardwareSnapshotCollector`: læser LHM-sensoren "Hot Spot" (fallback "junction") for GPU'en, beregner `GpuHotspotDeltaC` (hotspot − edge) og lægger begge i `HardwareMonitorSnapshot` → `monitor-state.json` (`gpuHotspot`, `gpuHotspotDeltaC`). Verificeret live: idle `gpu=36 °C hotspot=49 °C delta=13`.
+- Nyt opt-in felt i GPU-undervolt-kortet ("Hotspot-overvågning"): toggle `GpuHotspotAlarmEnabled` (default **fra**) + live linje "Hotspot 105,0 °C · GPU 84,6 °C · forskel 20,4 °C".
+- Venlig advarsel (amber) når alarmen er slået til OG hotspot ≥ 100 °C eller delta ≥ 15 °C: forklarer at kortet throttler ~105 °C, at hverken power limit eller undervolt hjælper, og anbefaler PTM7950/tykkere pasta + friske pads.
+- Config/VM/persistens udvidet med `GpuHotspotAlarmEnabled`; 7 nye lokaliseringsnøgler i en+da.
+
+VERIFIKATION: build 0 fejl/0 advarsler (03:55:40) → deployet; hotspot/delta findes nu i `monitor-state.json`.
+
+IKKE COMMITTET/PUSHET — hele sessionens arbejde (Afterburner-integration, kurve-generator, benchmark, stock-restore, hotspot-overvågning) kræver stadig explicit godkendelse.
+
+
+## EFTER REPASTE (24-11-2026) — kølerkontakten var årsagen, bekræftet
+
+Brugeren repastede GPU'en (meget lidt pasta, men nok). Målt live efter repaste, PoE kørende i baggrunden:
+
+| Måling | Før repaste | Efter repaste |
+|---|---|---|
+| GPU edge | 83-84 °C | **69-70 °C** |
+| GPU hotspot | 104-105 °C | **83 °C** |
+| Hotspot-delta | ~20 °C | **14 °C** |
+| Power draw | ~79 W | ~106 W |
+| Core clock | ~1290-1305 MHz | **1560-1680 MHz** |
+| Fan | 74 % / 2240 RPM | **52 %** |
+| Throttle | `SW Thermal Slowdown = Active` | **ingen throttle / ingen power cap** |
+| Power limit | 125 W (baggrundsprofil) | 175 W (stock, profilen er slået fra) |
+
+KONKLUSION: Kølerkontakten/pastaen var hele årsagen. Kortet bruger nu MERE effekt (~106 W mod ~79 W) og kører MEGET højere clock (1680 MHz mod ~1300 MHz), men er alligevel 14-15 °C køligere, og blæseren kører langsommere (52 % mod 74 %). Hotspot-delta 14 °C er acceptabelt (ideelt 10-12 °C); PTM7950/eftertryk kan give de sidste par grader, men er ikke nødvendigt nu.
+
+AKTUEL STATUS: `GpuPowerSavingEnabled=false`, power limit 175 W, temp target 83 °C (stock). Baggrundsprofilen er altså ikke aktiv. Med den nu sunde køling kan den slås til igen, hvis man vil have lavere temp i baggrunden, men den er ikke længere nødvendig for at undgå throttling.
+
+Desuden: `IconGrid_3f4s4uqs_wpftmp.csproj` (transient WPF-buildfil) er slettet, og `*_wpftmp.csproj` er tilføjet til `.gitignore`.
+
+IKKE COMMITTET/PUSHET.
+

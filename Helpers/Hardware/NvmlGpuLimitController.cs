@@ -106,6 +106,9 @@ public sealed class NvmlGpuLimitController : IDisposable
     private bool _clockLockApplied;
     private bool _clockLimitUnsupported;
     private uint _lastGovernedTempC;
+    private int _appliedTargetTempC;
+    private int _appliedCeilingFloorMhz;
+    private int _appliedCeilingCapMhz;
     private DateTime _lastClockGovernUtc = DateTime.MinValue;
 
     public NvmlGpuLimitController(string? restoreMarkerPath, Action<string>? log = null)
@@ -440,7 +443,10 @@ public sealed class NvmlGpuLimitController : IDisposable
     /// card is above <paramref name="targetTempC"/> and stepped back up once the
     /// card is at least <see cref="ClockReleaseHysteresisC"/> degrees below it.
     /// </summary>
-    public GpuLimitApplyResult GovernClocks(int targetTempC)
+    public GpuLimitApplyResult GovernClocks(
+        int targetTempC,
+        int minCeilingMhz = MinClockCeilingMhz,
+        int maxCeilingMhz = 0)
     {
         if (!IsAvailable)
         {
@@ -460,6 +466,29 @@ public sealed class NvmlGpuLimitController : IDisposable
             return new GpuLimitApplyResult(true, false, "No temperature target for the clock governor.");
         }
 
+        var floor = (uint)Math.Clamp(
+            minCeilingMhz,
+            MinClockCeilingMhz,
+            (int)Math.Max(_maxSmClockMhz, MinClockCeilingMhz));
+
+        var cap = maxCeilingMhz > 0
+            ? (uint)Math.Clamp((int)maxCeilingMhz, (int)floor, (int)Math.Max(_maxSmClockMhz, (int)floor))
+            : Math.Max(_maxSmClockMhz, floor);
+
+        // A different target/floor/cap means a different profile (background
+        // low-power vs. in-game undervolt): re-seed the ceiling at the cap so the
+        // governor converges from above instead of inheriting a stale low ceiling.
+        if (targetTempC != _appliedTargetTempC ||
+            (int)floor != _appliedCeilingFloorMhz ||
+            (int)cap != _appliedCeilingCapMhz)
+        {
+            _appliedTargetTempC = targetTempC;
+            _appliedCeilingFloorMhz = (int)floor;
+            _appliedCeilingCapMhz = (int)cap;
+            _clockCeilingMhz = Math.Max(floor, Math.Min(_clockCeilingMhz, cap));
+            _lastClockGovernUtc = DateTime.MinValue;
+        }
+
         var nowUtc = DateTime.UtcNow;
         if (_clockLockApplied && (nowUtc - _lastClockGovernUtc).TotalMilliseconds < ClockGovernorIntervalMs)
         {
@@ -476,19 +505,19 @@ public sealed class NvmlGpuLimitController : IDisposable
 
         _lastGovernedTempC = currentTempC;
 
-        var ceiling = _clockLockApplied && _clockCeilingMhz > 0 ? _clockCeilingMhz : _maxSmClockMhz;
+        var ceiling = _clockLockApplied && _clockCeilingMhz > 0 ? _clockCeilingMhz : cap;
         var target = (uint)Math.Clamp(targetTempC, MinTempLimitCelsius, MaxTempLimitCelsius);
 
         if (currentTempC > target)
         {
-            ceiling = (uint)Math.Max(MinClockCeilingMhz, (int)ceiling - ClockStepDownMhz);
+            ceiling = (uint)Math.Max((int)floor, (int)ceiling - ClockStepDownMhz);
         }
         else if (currentTempC + ClockReleaseHysteresisC <= target)
         {
-            ceiling = Math.Min(_maxSmClockMhz, ceiling + ClockStepUpMhz);
+            ceiling = Math.Min(cap, ceiling + ClockStepUpMhz);
         }
 
-        ceiling = (uint)Math.Clamp((int)ceiling, MinClockCeilingMhz, (int)Math.Max(_maxSmClockMhz, MinClockCeilingMhz));
+        ceiling = (uint)Math.Clamp((int)ceiling, (int)floor, (int)Math.Max(cap, floor));
 
         if (_clockLockApplied && ceiling == _clockCeilingMhz)
         {
@@ -551,6 +580,9 @@ public sealed class NvmlGpuLimitController : IDisposable
 
         _clockLockApplied = false;
         _clockCeilingMhz = 0;
+        _appliedTargetTempC = 0;
+        _appliedCeilingFloorMhz = 0;
+        _appliedCeilingCapMhz = 0;
         _lastClockGovernUtc = DateTime.MinValue;
 
         // Keep the crash-recovery marker in sync: it must only claim a clock

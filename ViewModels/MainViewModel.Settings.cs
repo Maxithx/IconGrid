@@ -52,6 +52,10 @@ namespace IconGrid.ViewModels
                 state.GpuPowerSavingTempLimitCelsius,
                 NvmlGpuLimitController.MinTempLimitCelsius,
                 NvmlGpuLimitController.MaxTempLimitCelsius);
+            _gpuUndervoltEnabled = state.GpuUndervoltEnabled;
+            _gpuUndervoltGameProfile = Math.Clamp(state.GpuUndervoltGameProfile, 0, 9);
+            _gpuUndervoltIdleProfile = Math.Clamp(state.GpuUndervoltIdleProfile, 0, 9);
+            _gpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
             _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
             _launcherHideMode = state.LauncherHideMode;
             _idleAutoHideDelaySeconds = state.IdleAutoHideDelaySeconds;
@@ -134,6 +138,10 @@ namespace IconGrid.ViewModels
             _gpuPowerSavingPowerLimitPercent = 70;
             _gpuPowerSavingTempLimitEnabled = true;
             _gpuPowerSavingTempLimitCelsius = 70;
+            _gpuUndervoltEnabled = false;
+            _gpuUndervoltGameProfile = 1;
+            _gpuUndervoltIdleProfile = 0;
+            _gpuHotspotAlarmEnabled = false;
             _restoreGameResolutionAfterExit = true;
             _launcherHideMode = 0;
             _idleAutoHideDelaySeconds = 2;
@@ -198,6 +206,10 @@ namespace IconGrid.ViewModels
                 GpuPowerSavingPowerLimitPercent = _gpuPowerSavingPowerLimitPercent,
                 GpuPowerSavingTempLimitEnabled = _gpuPowerSavingTempLimitEnabled,
                 GpuPowerSavingTempLimitCelsius = _gpuPowerSavingTempLimitCelsius,
+                GpuUndervoltEnabled = _gpuUndervoltEnabled,
+                GpuUndervoltGameProfile = _gpuUndervoltGameProfile,
+                GpuUndervoltIdleProfile = _gpuUndervoltIdleProfile,
+                GpuHotspotAlarmEnabled = _gpuHotspotAlarmEnabled,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,

@@ -53,7 +53,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
         {
         }
 
-        var (cpuTemp, gpuTemp) = CaptureTemperatures();
+        var (cpuTemp, gpuTemp, gpuHotspot) = CaptureTemperatures();
         var cpuUsage = CaptureCpuUsage();
         var gpuUsage = CaptureGpuUsage();
         var cpuClock = CaptureCpuClock();
@@ -68,6 +68,8 @@ public sealed class HardwareSnapshotCollector : IDisposable
             CapturedAtUtc = DateTime.UtcNow,
             CpuTemp = cpuTemp,
             GpuTemp = gpuTemp,
+            GpuHotspot = gpuHotspot,
+            GpuHotspotDeltaC = ComputeTemperatureDelta(gpuTemp, gpuHotspot),
             CpuUsage = displayCpuUsage.HasValue ? $"{displayCpuUsage.Value:F0}%" : null,
             CpuUsagePercent = displayCpuUsage.HasValue ? displayCpuUsage.Value : null,
             GpuUsage = displayGpuUsage.HasValue ? $"{displayGpuUsage.Value:F0}%" : null,
@@ -80,10 +82,11 @@ public sealed class HardwareSnapshotCollector : IDisposable
         };
     }
 
-    private (string? cpu, string? gpu) CaptureTemperatures()
+    private (string? cpu, string? gpu, string? gpuHotspot) CaptureTemperatures()
     {
         string? cpu = null;
         string? gpu = null;
+        string? gpuHotspot = null;
 
         try
         {
@@ -107,6 +110,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
                 {
                     // Din eksisterende GPU-logik, som fungerer med Afterburner
                     gpu ??= SelectPreferredTemperatureSensor(hardware.Sensors, GetGpuSensorPriority);
+                    gpuHotspot ??= SelectHotspotTemperatureSensor(hardware.Sensors);
                 }
             }
         }
@@ -114,7 +118,69 @@ public sealed class HardwareSnapshotCollector : IDisposable
         {
         }
 
-        return (cpu, gpu);
+        return (cpu, gpu, gpuHotspot);
+    }
+
+    /// <summary>
+    /// Hotspot minus edge temperature. A large delta (roughly &gt; 15-20 °C) means the
+    /// cooler is not making proper contact with the die (thermal paste/pads or
+    /// mounting pressure), which caps the boost clock long before the power limit.
+    /// </summary>
+    private static double? ComputeTemperatureDelta(string? edgeText, string? hotspotText)
+    {
+        var edge = ParseTemperature(edgeText);
+        var hotspot = ParseTemperature(hotspotText);
+
+        if (!edge.HasValue || !hotspot.HasValue || hotspot.Value < edge.Value)
+        {
+            return null;
+        }
+
+        return Math.Round(hotspot.Value - edge.Value, 1);
+    }
+
+    private static double? ParseTemperature(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var builder = new System.Text.StringBuilder(text.Length);
+        foreach (var character in text)
+        {
+            if (char.IsDigit(character) || character == '.' || character == ',')
+            {
+                builder.Append(character == ',' ? '.' : character);
+            }
+        }
+
+        return double.TryParse(
+            builder.ToString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var value)
+            ? value
+            : null;
+    }
+
+    /// <summary>
+    /// Reads the GPU "hot spot" sensor. The hotspot is the temperature the driver
+    /// actually throttles on, so it is the number that explains missing boost clocks.
+    /// </summary>
+    private static string? SelectHotspotTemperatureSensor(IEnumerable<ISensor> sensors)
+    {
+        var candidate = sensors
+            .Where(sensor => sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+            .FirstOrDefault(sensor =>
+            {
+                var name = (sensor.Name ?? string.Empty).Replace(" ", string.Empty);
+                return name.Contains("hotspot", StringComparison.OrdinalIgnoreCase) ||
+                       name.Contains("hotspot", StringComparison.OrdinalIgnoreCase) ||
+                       name.Contains("junction", StringComparison.OrdinalIgnoreCase);
+            });
+
+        return candidate == null ? null : FormatTemperature(candidate.Value);
     }
 
     private float? CaptureCpuUsage()

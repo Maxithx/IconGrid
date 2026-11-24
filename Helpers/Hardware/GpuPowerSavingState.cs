@@ -17,6 +17,20 @@ public sealed class GpuPowerSavingState
 
     public bool LowPowerProfileApplied { get; set; }
 
+    public bool UndervoltActive { get; set; }
+
+    /// <summary>True when MSI Afterburner was found on this machine.</summary>
+    public bool AfterburnerAvailable { get; set; }
+
+    /// <summary>Afterburner profile number currently applied by IconGrid (0 = none).</summary>
+    public int AfterburnerProfile { get; set; }
+
+    public bool BenchmarkRunning { get; set; }
+
+    public string? BenchmarkStatus { get; set; }
+
+    public string? BenchmarkProgress { get; set; }
+
     public string? GpuName { get; set; }
 
     public uint PowerLimitMw { get; set; }

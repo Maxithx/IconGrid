@@ -48,6 +48,16 @@ public class ConfigModel
     public int GpuPowerSavingPowerLimitPercent { get; set; } = 70;
     public bool GpuPowerSavingTempLimitEnabled { get; set; } = true;
     public int GpuPowerSavingTempLimitCelsius { get; set; } = 70;
+    // Optional in-game "undervolt effect": lock the GPU clock at the highest value
+    // that keeps the card at/below the target temperature. On Turing the voltage
+    // follows the clock (V/F curve), so a lower clock also means a lower voltage.
+    public bool GpuUndervoltEnabled { get; set; } = false;
+    /// <summary>Afterburner profile applied while a game session is running (0 = none).</summary>
+    public int GpuUndervoltGameProfile { get; set; } = 1;
+    /// <summary>Afterburner profile applied when no game is running (0 = do not switch back).</summary>
+    public int GpuUndervoltIdleProfile { get; set; } = 0;
+    /// <summary>Opt-in warning when the GPU hotspot gets too hot (cooler contact check).</summary>
+    public bool GpuHotspotAlarmEnabled { get; set; } = false;
     public bool ShowDesktopIcon { get; set; } = true;
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;

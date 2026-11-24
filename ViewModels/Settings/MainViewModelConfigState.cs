@@ -37,6 +37,10 @@ namespace IconGrid.ViewModels.Settings
         public int GpuPowerSavingPowerLimitPercent { get; init; } = 70;
         public bool GpuPowerSavingTempLimitEnabled { get; init; } = true;
         public int GpuPowerSavingTempLimitCelsius { get; init; } = 70;
+        public bool GpuUndervoltEnabled { get; init; }
+        public int GpuUndervoltGameProfile { get; init; } = 1;
+        public int GpuUndervoltIdleProfile { get; init; }
+        public bool GpuHotspotAlarmEnabled { get; init; }
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -124,6 +128,10 @@ namespace IconGrid.ViewModels.Settings
                 GpuPowerSavingPowerLimitPercent = config.GpuPowerSavingPowerLimitPercent,
                 GpuPowerSavingTempLimitEnabled = config.GpuPowerSavingTempLimitEnabled,
                 GpuPowerSavingTempLimitCelsius = config.GpuPowerSavingTempLimitCelsius,
+                GpuUndervoltEnabled = config.GpuUndervoltEnabled,
+                GpuUndervoltGameProfile = config.GpuUndervoltGameProfile,
+                GpuUndervoltIdleProfile = config.GpuUndervoltIdleProfile,
+                GpuHotspotAlarmEnabled = config.GpuHotspotAlarmEnabled,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
