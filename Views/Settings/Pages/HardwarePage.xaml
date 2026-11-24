@@ -829,16 +829,34 @@
                                       IsExpanded="False"
                                       helpers:DevInspector.Metadata="GPU undervolt card expander -> Views/HardwarePage.xaml">
                                 <Expander.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DataContext.GpuUndervoltTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Style="{StaticResource TemplateCardTitleStyle}" />
-                                        <TextBlock Margin="0,8,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   Text="{Binding DataContext.GpuUndervoltIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DataContext.GpuUndervoltTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       MaxWidth="680"
+                                                       HorizontalAlignment="Left"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding DataContext.GpuUndervoltIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="&#xE70D;"
+                                                   FontFamily="Segoe Fluent Icons"
+                                                   FontSize="18"
+                                                   Margin="24,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Grid>
                                 </Expander.Header>
                                 <Expander.Content>
                                     <StackPanel>
@@ -1204,16 +1222,34 @@
                                       IsExpanded="False"
                                       helpers:DevInspector.Metadata="GPU hotspot card expander -> Views/HardwarePage.xaml">
                                 <Expander.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DataContext.GpuHotspotTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Style="{StaticResource TemplateCardTitleStyle}" />
-                                        <TextBlock Margin="0,8,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   Text="{Binding DataContext.GpuHotspotIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DataContext.GpuHotspotTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       MaxWidth="680"
+                                                       HorizontalAlignment="Left"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding DataContext.GpuHotspotIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="&#xE70D;"
+                                                   FontFamily="Segoe Fluent Icons"
+                                                   FontSize="18"
+                                                   Margin="24,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Grid>
                                 </Expander.Header>
                                 <Expander.Content>
                                     <StackPanel>
@@ -1332,16 +1368,34 @@
                                       IsExpanded="False"
                                       helpers:DevInspector.Metadata="GPU benchmark card expander -> Views/HardwarePage.xaml">
                                 <Expander.Header>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding DataContext.GpuBenchmarkTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Style="{StaticResource TemplateCardTitleStyle}" />
-                                        <TextBlock Margin="0,8,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   Text="{Binding DataContext.GpuBenchmarkIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DataContext.GpuBenchmarkTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
+                                            <TextBlock Margin="0,8,0,0"
+                                                       MaxWidth="680"
+                                                       HorizontalAlignment="Left"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding DataContext.GpuBenchmarkIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="&#xE70D;"
+                                                   FontFamily="Segoe Fluent Icons"
+                                                   FontSize="18"
+                                                   Margin="24,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   RenderTransformOrigin="0.5,0.5">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Grid>
                                 </Expander.Header>
                                 <Expander.Content>
                                     <StackPanel>

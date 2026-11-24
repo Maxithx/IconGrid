@@ -3132,6 +3132,18 @@ VERIFICERET: build 0/0, deployet 08:20:40, appen genstartet.
 - Alt læses fra den valgte GPU’s `Defaults`/`Profile1` V/F-kurve; ingen hardkodede 2060-værdier i kurveberegningen.
 - NVML clock-loft/power limit og Afterburner-profilskift er også kort-uafhængige (NVML rapporterer kortets min/max).
 
+## FIX 21: Udfold-chevron på GPU-undervolt, hotspot og GPU-test (24-11-2026)
+
+BRUGERFEEDBACK: De nye hardware-sektioner manglede samme udfoldelses-ikon som Bundkort/CPU/GPU/Hukommelse/Diske.
+
+ÆNDRING:
+- GPU undervolt, Hotspot-overvågning og GPU-test har nu samme chevron (`E70D`) som de øvrige kort.
+- Chevron roterer via `HardwareExpanderAngleConverter` og Expanderens `IsChecked`.
+- Header-stacken er lagt i et Grid med `*` til titel/intro og `Auto` til chevron, så ikonet altid står yderst til højre.
+
+VERIFICERET: build 0/0, deployet 08:24:40, appen genstartet.
+
+
 VERIFICERET: build 0/0, deployet 08:14:04, appen genstartet.
 
 - Ingen yderligere kodeændring nødvendig; dette er en god stabil "daily"-profil.
