@@ -51,6 +51,9 @@ namespace IconGrid.ViewModels.Settings
                 config.GpuUndervoltEnabled = state.GpuUndervoltEnabled;
                 config.GpuUndervoltGameProfile = state.GpuUndervoltGameProfile;
                 config.GpuUndervoltIdleProfile = state.GpuUndervoltIdleProfile;
+                config.GpuUndervoltTargetClockMhz = state.GpuUndervoltTargetClockMhz;
+                config.GpuUndervoltTargetVoltageMv = state.GpuUndervoltTargetVoltageMv;
+                config.GpuUndervoltTargetPowerLimitPercent = state.GpuUndervoltTargetPowerLimitPercent;
                 config.GpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
                 config.GpuHotspotAlarmThresholdC = state.GpuHotspotAlarmThresholdC;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;

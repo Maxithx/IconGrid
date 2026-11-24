@@ -38,6 +38,9 @@ namespace IconGrid.ViewModels.Settings
         public bool GpuUndervoltEnabled { get; set; }
         public int GpuUndervoltGameProfile { get; set; } = 1;
         public int GpuUndervoltIdleProfile { get; set; }
+        public int GpuUndervoltTargetClockMhz { get; set; }
+        public int GpuUndervoltTargetVoltageMv { get; set; }
+        public int GpuUndervoltTargetPowerLimitPercent { get; set; } = 100;
         public bool GpuHotspotAlarmEnabled { get; set; }
         public int GpuHotspotAlarmThresholdC { get; set; } = 100;
         public bool ShowDesktopIcon { get; set; }

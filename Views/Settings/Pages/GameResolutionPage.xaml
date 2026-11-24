@@ -1,4 +1,4 @@
-<UserControl x:Class="IconGrid.Views.GameResolutionPage"
+﻿<UserControl x:Class="IconGrid.Views.GameResolutionPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -82,7 +82,7 @@
                 <ComboBox Grid.Column="1"
                           Margin="12,0,0,0"
                           VerticalAlignment="Center"
-                          Style="{StaticResource TemplateComboBoxStyle}"
+                          Style="{StaticResource Win11ComboBoxStyle}"
                           SelectedItem="{Binding SelectedCategory, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}, Mode=TwoWay}"
                           ItemsSource="{Binding AvailableCategories, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}">
                     <ComboBox.ItemTemplate>
@@ -121,7 +121,7 @@
                             <ComboBox Grid.Column="1"
                                       Margin="12,0,0,0"
                                       VerticalAlignment="Center"
-                                      Style="{StaticResource TemplateComboBoxStyle}"
+                                      Style="{StaticResource Win11ComboBoxStyle}"
                                       SelectedItem="{Binding GameResolution, Mode=TwoWay}"
                                       ItemsSource="{Binding SupportedResolutions, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
                         </Grid>
@@ -130,7 +130,7 @@
             </ItemsControl>
         </Border>
 
-        <!-- External games section — always visible below the regular shortcuts.
+        <!-- External games section â€” always visible below the regular shortcuts.
              Games started outside IconGrid (Battle.net, Steam, etc.) appear here
              so new users see them immediately without needing the category dropdown. -->
         <StackPanel x:Name="ExternalGamesSection" Margin="0,20,0,0"
@@ -165,7 +165,7 @@
                                 <ComboBox Grid.Column="1"
                                           Margin="12,0,0,0"
                                           VerticalAlignment="Center"
-                                          Style="{StaticResource TemplateComboBoxStyle}"
+                                          Style="{StaticResource Win11ComboBoxStyle}"
                                           SelectedItem="{Binding GameResolution, Mode=TwoWay}"
                                           ItemsSource="{Binding SupportedResolutions, RelativeSource={RelativeSource AncestorType={x:Type views:GameResolutionPage}}}" />
                                 <Button Grid.Column="2"

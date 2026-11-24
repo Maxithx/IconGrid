@@ -59,6 +59,14 @@ namespace IconGrid.ViewModels
             _gpuUndervoltEnabled = state.GpuUndervoltEnabled;
             _gpuUndervoltGameProfile = Math.Clamp(state.GpuUndervoltGameProfile, 0, 9);
             _gpuUndervoltIdleProfile = Math.Clamp(state.GpuUndervoltIdleProfile, 0, 9);
+            _gpuUndervoltTargetClockMhz = Math.Clamp(state.GpuUndervoltTargetClockMhz, 0, 2100);
+            _gpuUndervoltTargetVoltageMv = state.GpuUndervoltTargetVoltageMv <= 0
+                ? 0
+                : Math.Clamp(state.GpuUndervoltTargetVoltageMv, 825, 1050);
+            _gpuUndervoltTargetPowerLimitPercent = Math.Clamp(
+                state.GpuUndervoltTargetPowerLimitPercent,
+                70,
+                100);
             _gpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
             _gpuHotspotAlarmThresholdC = Math.Clamp(
                 state.GpuHotspotAlarmThresholdC,
@@ -150,6 +158,9 @@ namespace IconGrid.ViewModels
             _gpuUndervoltEnabled = false;
             _gpuUndervoltGameProfile = 1;
             _gpuUndervoltIdleProfile = 0;
+            _gpuUndervoltTargetClockMhz = 0;
+            _gpuUndervoltTargetVoltageMv = 925;
+            _gpuUndervoltTargetPowerLimitPercent = 100;
             _gpuHotspotAlarmEnabled = false;
             _gpuHotspotAlarmThresholdC = 100;
             _restoreGameResolutionAfterExit = true;
@@ -220,6 +231,9 @@ namespace IconGrid.ViewModels
                 GpuUndervoltEnabled = _gpuUndervoltEnabled,
                 GpuUndervoltGameProfile = _gpuUndervoltGameProfile,
                 GpuUndervoltIdleProfile = _gpuUndervoltIdleProfile,
+                GpuUndervoltTargetClockMhz = _gpuUndervoltTargetClockMhz,
+                GpuUndervoltTargetVoltageMv = _gpuUndervoltTargetVoltageMv,
+                GpuUndervoltTargetPowerLimitPercent = _gpuUndervoltTargetPowerLimitPercent,
                 GpuHotspotAlarmEnabled = _gpuHotspotAlarmEnabled,
                 GpuHotspotAlarmThresholdC = _gpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = _showDesktopIcon,

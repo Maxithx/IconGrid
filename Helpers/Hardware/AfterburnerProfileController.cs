@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace IconGrid.Helpers.Hardware;
 
@@ -127,7 +128,13 @@ public sealed class AfterburnerProfileController
                     curve.Length > 32));
             }
 
-            foreach (var rawLine in File.ReadLines(path))
+            var text = TryReadProfileText(path);
+            if (text == null)
+            {
+                return profiles;
+            }
+
+            foreach (var rawLine in text.Replace("\r\n", "\n").Split('\n'))
             {
                 var line = rawLine.Trim();
                 if (line.StartsWith("[", StringComparison.Ordinal) &&
@@ -182,7 +189,11 @@ public sealed class AfterburnerProfileController
 
         try
         {
-            var text = File.ReadAllText(path);
+            var text = TryReadProfileText(path);
+            if (text == null)
+            {
+                return Array.Empty<AfterburnerCurvePoint>();
+            }
 
             CurveData? curve = null;
             foreach (var sectionName in sectionNames)
@@ -217,7 +228,7 @@ public sealed class AfterburnerProfileController
     /// nothing when <paramref name="profileNumber"/> is already applied
     /// (<paramref name="lastApplied"/>) or when the number is 0.
     /// </summary>
-    public AfterburnerApplyResult Apply(int profileNumber, ref int lastApplied)
+    public AfterburnerApplyResult Apply(int profileNumber, ref int lastApplied, bool enableVoltageControl = false)
     {
         if (profileNumber <= 0)
         {
@@ -253,6 +264,11 @@ public sealed class AfterburnerProfileController
                         false,
                         $"Could not stop MSI Afterburner (administrator rights are required): {ex.Message}");
                 }
+            }
+
+            if (enableVoltageControl)
+            {
+                EnsureVoltageControlUnlocked();
             }
 
             var exePath = Path.Combine(InstallPath!, ExeName);
@@ -295,7 +311,7 @@ public sealed class AfterburnerProfileController
     /// stopped, so only the elevated agent calls this. The profile file is backed up
     /// before it is touched.
     /// </summary>
-    public AfterburnerApplyResult WriteUndervoltCurve(int targetClockMhz, int profileNumber)
+    public AfterburnerApplyResult WriteUndervoltCurve(int targetClockMhz, int profileNumber, int voltageMv = 0, int powerLimitPercent = 0)
     {
         if (!IsAvailable)
         {
@@ -324,7 +340,20 @@ public sealed class AfterburnerProfileController
             }
 
             var points = new List<CurvePoint>(stock.Points);
-            var firstIndex = points.FindIndex(point => point.ClockMhz >= targetClockMhz);
+            int firstIndex;
+            if (voltageMv > 0)
+            {
+                // A voltage target lets the caller undervolt below the stock voltage
+                // for the clock (for example 1800 MHz at 925 mV instead of ~945 mV).
+                // Every point at or above that voltage is flattened to the target
+                // clock, so the card uses the lowest voltage that can sustain it.
+                firstIndex = points.FindIndex(point => point.VoltageMv >= voltageMv);
+            }
+            else
+            {
+                firstIndex = points.FindIndex(point => point.ClockMhz >= targetClockMhz);
+            }
+
             if (firstIndex < 0)
             {
                 firstIndex = points.Count - 1;
@@ -338,7 +367,7 @@ public sealed class AfterburnerProfileController
 
             var hex = EncodeCurve(stock.HeaderFlags, stock.DeclaredCount, stock.TotalRecords, points);
             var backupPath = WriteBackup(path);
-            var section = BuildProfileSection(text, profileNumber, hex);
+            var section = BuildProfileSection(text, profileNumber, hex, powerLimitPercent);
             var updated = ReplaceProfileSection(text, profileNumber, section);
             File.WriteAllText(path, updated);
 
@@ -353,6 +382,94 @@ public sealed class AfterburnerProfileController
         catch (Exception ex)
         {
             var message = $"Could not write the Afterburner undervolt curve: {ex.Message}";
+            _log?.Invoke(message);
+            return new AfterburnerApplyResult(false, false, message);
+        }
+    }
+
+    /// <summary>
+    /// Deletes one profile section from the Afterburner profile file. The file is
+    /// backed up first and Afterburner is stopped while it is rewritten, because it
+    /// may otherwise write its current settings back on exit. The caller (agent)
+    /// owns the admin rights.
+    /// </summary>
+    public AfterburnerApplyResult DeleteProfile(int profileNumber)
+    {
+        if (!IsAvailable)
+        {
+            return new AfterburnerApplyResult(false, false, "MSI Afterburner was not found.");
+        }
+
+        if (profileNumber is < 1 or > 9)
+        {
+            return new AfterburnerApplyResult(false, false, "The Afterburner profile number must be 1-9.");
+        }
+
+        var path = TryResolveProfileFilePath();
+        if (path == null)
+        {
+            return new AfterburnerApplyResult(false, false, "No Afterburner profile file was found.");
+        }
+
+        try
+        {
+            var text = File.ReadAllText(path);
+            var header = $"[Profile{profileNumber}]";
+            var lines = text.Replace("\r\n", "\n").Split('\n').ToList();
+            var start = lines.FindIndex(line => line.Trim().Equals(header, StringComparison.OrdinalIgnoreCase));
+            if (start < 0)
+            {
+                return new AfterburnerApplyResult(
+                    false,
+                    false,
+                    $"Afterburner profile {profileNumber} was not found.");
+            }
+
+            var end = start + 1;
+            while (end < lines.Count && !lines[end].TrimStart().StartsWith("[", StringComparison.Ordinal))
+            {
+                end++;
+            }
+
+            var wasRunning = false;
+            foreach (var process in Process.GetProcessesByName("MSIAfterburner"))
+            {
+                try
+                {
+                    wasRunning = true;
+                    process.Kill();
+                    process.WaitForExit(5000);
+                }
+                catch (Exception ex)
+                {
+                    return new AfterburnerApplyResult(
+                        false,
+                        false,
+                        $"Could not stop MSI Afterburner (administrator rights are required): {ex.Message}");
+                }
+            }
+
+            var backupPath = WriteBackup(path);
+            lines.RemoveRange(start, end - start);
+            File.WriteAllText(path, string.Join(Environment.NewLine, lines).TrimEnd() + Environment.NewLine);
+
+            if (wasRunning)
+            {
+                var startInfo = new ProcessStartInfo(Path.Combine(InstallPath!, ExeName))
+                {
+                    WorkingDirectory = InstallPath!,
+                    UseShellExecute = true
+                };
+                Process.Start(startInfo);
+            }
+
+            var message = $"Afterburner profile {profileNumber} deleted. Backup: {backupPath}";
+            _log?.Invoke(message);
+            return new AfterburnerApplyResult(true, true, message);
+        }
+        catch (Exception ex)
+        {
+            var message = $"Could not delete Afterburner profile {profileNumber}: {ex.Message}";
             _log?.Invoke(message);
             return new AfterburnerApplyResult(false, false, message);
         }
@@ -514,7 +631,7 @@ public sealed class AfterburnerProfileController
         return result;
     }
 
-    private static string BuildProfileSection(string text, int profileNumber, string curveHex)
+    private static string BuildProfileSection(string text, int profileNumber, string curveHex, int powerLimitPercent = 0)
     {
         var defaults = ReadSectionValues(text, "Defaults") ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var keys = new[] { "Format", "PowerLimit", "ThermalLimit", "ThermalPrioritize", "CoreClkBoost", "VFCurve", "MemClkBoost", "FanMode", "FanSpeed" };
@@ -526,7 +643,9 @@ public sealed class AfterburnerProfileController
         {
             var value = key == "VFCurve"
                 ? curveHex
-                : defaults.TryGetValue(key, out var existing) ? existing : string.Empty;
+                : key == "PowerLimit" && powerLimitPercent is >= 50 and <= 100
+                    ? powerLimitPercent.ToString()
+                    : defaults.TryGetValue(key, out var existing) ? existing : string.Empty;
 
             builder.Append(key).Append('=').AppendLine(value);
         }
@@ -606,6 +725,107 @@ public sealed class AfterburnerProfileController
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reads the profile file with a few short retries. The elevated agent can
+    /// rewrite it while Afterburner is restarting, and a single sharing violation
+    /// used to make the settings drop-downs look empty.
+    /// </summary>
+    private static string? TryReadProfileText(string path)
+    {
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            try
+            {
+                // Afterburner may keep the profile file open while it restarts.
+                // FileShare.ReadWrite|Delete lets us read it anyway.
+                using var stream = new FileStream(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+            catch (IOException) when (attempt < 2)
+            {
+                Thread.Sleep(80);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Afterburner ignores V/F curve changes unless voltage control is unlocked in
+    /// its settings. The agent runs elevated and owns the profile file, so it turns
+    /// the two settings on the first time a generated curve is applied. The config
+    /// file is backed up before it is touched.
+    /// </summary>
+    private void EnsureVoltageControlUnlocked()
+    {
+        try
+        {
+            var cfgPath = Path.Combine(InstallPath!, "MSIAfterburner.cfg");
+            if (!File.Exists(cfgPath))
+            {
+                _log?.Invoke("Could not find MSIAfterburner.cfg; the V/F curve may not be applied.");
+                return;
+            }
+
+            var text = File.ReadAllText(cfgPath);
+            var updated = SetIniValue(text, "UnlockVoltageControl", "1");
+            updated = SetIniValue(updated, "UnlockVoltageMonitoring", "1");
+
+            if (updated == text)
+            {
+                return;
+            }
+
+            var backupPath = cfgPath + ".bak-icongrid-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            File.Copy(cfgPath, backupPath, true);
+            File.WriteAllText(cfgPath, updated);
+            _log?.Invoke($"Unlocked Afterburner voltage control (backup: {backupPath}).");
+        }
+        catch (Exception ex)
+        {
+            _log?.Invoke($"Could not unlock Afterburner voltage control: {ex.Message}");
+        }
+    }
+
+    private static string SetIniValue(string text, string key, string value)
+    {
+        var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var lines = text.Replace("\r\n", "\n").Split('\n').ToList();
+        var found = false;
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            var equals = trimmed.IndexOf('=');
+            if (equals <= 0 ||
+                !trimmed[..equals].Trim().Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var indent = lines[i].Length - trimmed.Length;
+            lines[i] = lines[i][..indent] + key + " = " + value;
+            found = true;
+            break;
+        }
+
+        if (!found)
+        {
+            lines.Add(key + " = " + value);
+        }
+
+        return string.Join(newline, lines);
     }
 
     private string? TryResolveProfileFilePath()

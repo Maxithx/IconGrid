@@ -59,6 +59,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
         var cpuClock = CaptureCpuClock();
         var gpuClock = CaptureGpuClock();
         var cpuVoltage = CaptureCpuVoltage();
+        var gpuVoltage = CaptureGpuVoltage();
         var smoothedCpuUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
         var displayCpuUsage = smoothedCpuUsage.HasValue ? Math.Clamp(smoothedCpuUsage.Value, 1d, 100d) : (double?)null;
         var displayGpuUsage = gpuUsage.HasValue ? Math.Clamp(gpuUsage.Value, 0d, 100d) : (double?)null;
@@ -77,6 +78,7 @@ public sealed class HardwareSnapshotCollector : IDisposable
             CpuClock = cpuClock,
             GpuClock = gpuClock,
             CpuVoltage = cpuVoltage,
+            GpuVoltage = gpuVoltage,
             GpuName = _gpuName,
             IsPawnIoAvailable = pawnIoAvailable
         };
@@ -207,6 +209,66 @@ public sealed class HardwareSnapshotCollector : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reads the live GPU core voltage (for example "0,9875 V") from the same
+    /// LibreHardwareMonitor GPU node used for the GPU clock. The settings page
+    /// shows it next to the stock/profile curve voltages so the user can see the
+    /// effect of an applied undervolt without opening Afterburner.
+    /// </summary>
+    private string? CaptureGpuVoltage()
+    {
+        try
+        {
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var voltageSensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Voltage && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetGpuVoltagePriority(sensor.Name))
+                    .ThenByDescending(sensor => sensor.Value)
+                    .FirstOrDefault();
+
+                return FormatVoltage(voltageSensor?.Value);
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private static int GetGpuVoltagePriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("GPU Core Voltage", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("Core Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("GPU", StringComparison.OrdinalIgnoreCase) &&
+            name.Contains("Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (name.Contains("Voltage", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private string? CaptureCpuVoltage()

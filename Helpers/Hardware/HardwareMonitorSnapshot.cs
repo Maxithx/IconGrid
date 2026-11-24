@@ -17,10 +17,14 @@ public sealed class HardwareMonitorSnapshot
 
     /// <summary>Hotspot minus edge temperature in degrees Celsius (contact quality).</summary>
     public double? GpuHotspotDeltaC { get; set; }
+
+    /// <summary>Five highest hotspot readings with the game that was running.</summary>
+    public List<HotspotHistoryEntry>? HotspotHistory { get; set; }
     public string? CpuUsage { get; set; }
     public double? CpuUsagePercent { get; set; }
     public string? CpuClock { get; set; }
     public string? CpuVoltage { get; set; }
+    public string? GpuVoltage { get; set; }
     public string? GpuClock { get; set; }
     public string? GpuUsage { get; set; }
     public double? GpuUsagePercent { get; set; }

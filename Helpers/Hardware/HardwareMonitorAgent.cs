@@ -303,6 +303,7 @@ public static class HardwareMonitorAgent
                 : "MSI Afterburner integration unavailable: MSIAfterburner.exe was not found.");
 
             var undervoltRequestPath = Path.Combine(baseDir, "gpu-undervolt-request.json");
+            var hotspotHistoryClearRequestPath = Path.Combine(baseDir, "hotspot-history-clear.request");
             var benchmark = new GpuBenchmarkRunner(baseDir, log);
             var currentForegroundGamePid = default(int?);
             var confirmedForegroundGamePid = default(int?);
@@ -359,6 +360,7 @@ public static class HardwareMonitorAgent
             var lastTargetBecameForegroundAtUtc = DateTime.MinValue;
             var gpuLowPowerApplied = false;
             var gpuKnownGamePids = new HashSet<int>();
+            var hotspotHistory = HotspotHistoryStore.Load(baseDir);
             // Seed the game set immediately instead of waiting for native FPS
             // evidence. Without this, starting IconGrid while Explorer is already
             // focused left the GPU at full speed for ~20 s until the first
@@ -627,12 +629,38 @@ public static class HardwareMonitorAgent
                 GameEvidenceProbe.MaybeLogTopVramProcesses(log, DateTime.UtcNow);
 
                 // Full hardware snapshot (every 500ms)
+                var clearHotspotHistoryRequested = File.Exists(hotspotHistoryClearRequestPath);
+                if (clearHotspotHistoryRequested)
+                {
+                    TryDeleteFile(hotspotHistoryClearRequestPath, log);
+                    hotspotHistory.Clear();
+                    log?.Invoke("Hotspot history cleared by the settings page.");
+                }
+
                 var snapshot = collector.Capture();
                 snapshot.Disks = diskCollector.GetSnapshot().ToList();
                 var nativeFpsStatus = nativeState?.FpsStatus;
                 var nativeFpsValue = nativeState?.FpsValue;
                 var hasNativeFps = nativeFpsValue.HasValue && nativeFpsValue.Value > 0;
                 UpdateConfirmedForegroundGamePid(nativeState, ref currentForegroundGamePid, ref confirmedForegroundGamePid, ref hadConfirmedGameSession);
+
+                var hotspotValue = ParseTemperatureValue(snapshot.GpuHotspot);
+                if (!clearHotspotHistoryRequested && hotspotValue.HasValue)
+                {
+                    var edgeValue = ParseTemperatureValue(snapshot.GpuTemp) ?? 0;
+                    var activeGameName = ResolveActiveGameName(
+                        fpsTarget,
+                        nativeState?.TargetProcessName,
+                        nativeState?.TargetPid ?? confirmedForegroundGamePid);
+                    hotspotHistory.Record(
+                        snapshot.CapturedAtUtc,
+                        hotspotValue.Value,
+                        edgeValue,
+                        snapshot.GpuHotspotDeltaC ?? Math.Max(0, hotspotValue.Value - edgeValue),
+                        activeGameName);
+                }
+
+                snapshot.HotspotHistory = hotspotHistory.Top.ToList();
 
                 if (nativeState != null)
                 {
@@ -1222,14 +1250,37 @@ exit:
             File.Delete(requestPath);
 
             var request = JsonSerializer.Deserialize<UndervoltRequest>(json, JsonOptions);
-            if (request == null || request.TargetClockMhz <= 0 || request.Profile <= 0)
+            if (request == null || request.Profile <= 0)
+            {
+                return;
+            }
+
+            if (string.Equals(request.Action, "delete", StringComparison.OrdinalIgnoreCase))
+            {
+                log?.Invoke($"Delete Afterburner profile {request.Profile}.");
+                var deleteResult = afterburner.DeleteProfile(request.Profile);
+                lastMessage = deleteResult.Message;
+                if (deleteResult.Success)
+                {
+                    lastAfterburnerProfile = 0;
+                }
+
+                log?.Invoke(deleteResult.Message);
+                return;
+            }
+
+            if (request.TargetClockMhz <= 0)
             {
                 return;
             }
 
             log?.Invoke($"Undervolt request: max {request.TargetClockMhz} MHz -> Afterburner profile {request.Profile}.");
 
-            var writeResult = afterburner.WriteUndervoltCurve(request.TargetClockMhz, request.Profile);
+            var writeResult = afterburner.WriteUndervoltCurve(
+                request.TargetClockMhz,
+                request.Profile,
+                request.VoltageMv,
+                request.PowerLimitPercent);
             lastMessage = writeResult.Message;
 
             if (!writeResult.Success)
@@ -1240,7 +1291,7 @@ exit:
 
             // Force a (re)apply even when this profile is already the active one.
             lastAfterburnerProfile = 0;
-            var applyResult = afterburner.Apply(request.Profile, ref lastAfterburnerProfile);
+            var applyResult = afterburner.Apply(request.Profile, ref lastAfterburnerProfile, enableVoltageControl: true);
             lastMessage = applyResult.Message;
             log?.Invoke(applyResult.Message);
         }
@@ -1255,6 +1306,15 @@ exit:
         public int TargetClockMhz { get; set; }
 
         public int Profile { get; set; }
+
+        /// <summary>Optional voltage (mV) to start the flat segment at. 0 = stock voltage for the target clock.</summary>
+        public int VoltageMv { get; set; }
+
+        /// <summary>Optional Afterburner power limit (percent). 0 = profile default.</summary>
+        public int PowerLimitPercent { get; set; }
+
+        /// <summary>Optional action. Empty/"write" writes a curve; "delete" removes the profile.</summary>
+        public string? Action { get; set; }
     }
 
     /// <summary>
@@ -1275,6 +1335,26 @@ exit:
         ref string lastMessage,
         Action<string>? log)
     {
+        // The generated undervolt curve is not a hard clock lock by itself: the
+        // NVIDIA boost algorithm can still boost past the flattened curve. Lock the
+        // SM clock to the curve target while the game has focus, so the clock shown
+        // in the overlay actually stops at the value the user selected.
+        var undervoltCeilingMhz = config.GpuUndervoltEnabled
+            ? Math.Clamp(config.GpuUndervoltTargetClockMhz, 0, 2100)
+            : 0;
+
+        if (undervoltCeilingMhz > 0 && gameAlive && gameIsForeground)
+        {
+            var undervoltResult = gpuLimits.ApplyClockCeiling(undervoltCeilingMhz);
+            lastMessage = undervoltResult.Message;
+            if (!undervoltResult.Success)
+            {
+                log?.Invoke($"GPU undervolt: {undervoltResult.Message}");
+            }
+
+            return undervoltResult.Success;
+        }
+
         if (!config.GpuPowerSavingEnabled || !gameAlive || gameIsForeground)
         {
             if (gpuLimits.IsClockLimitApplied)
@@ -3245,6 +3325,61 @@ exit:
         }
 
         log(message);
+    }
+
+    private static double? ParseTemperatureValue(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var builder = new System.Text.StringBuilder(text.Length);
+        foreach (var character in text)
+        {
+            if (char.IsDigit(character) || character == '.' || character == ',')
+            {
+                builder.Append(character == ',' ? '.' : character);
+            }
+        }
+
+        return double.TryParse(
+            builder.ToString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var value) && value > 0
+            ? value
+            : null;
+    }
+
+    private static string? ResolveActiveGameName(
+        Models.FpsTargetConfig? target,
+        string? targetProcessName,
+        int? processId)
+    {
+        if (processId is > 0 && !string.IsNullOrWhiteSpace(target?.DisplayName))
+        {
+            return target.DisplayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(targetProcessName))
+        {
+            return targetProcessName;
+        }
+
+        if (processId is > 0)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(processId.Value);
+                return process.ProcessName;
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
     }
 
     private static void WriteSnapshot(string statePath, string tempPath, HardwareMonitorSnapshot snapshot)

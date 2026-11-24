@@ -116,6 +116,9 @@ namespace IconGrid.ViewModels
         private bool _gpuUndervoltEnabled = false;
         private int _gpuUndervoltGameProfile = 1;
         private int _gpuUndervoltIdleProfile = 0;
+        private int _gpuUndervoltTargetClockMhz = 0;
+        private int _gpuUndervoltTargetVoltageMv = 0;
+        private int _gpuUndervoltTargetPowerLimitPercent = 100;
         private bool _gpuHotspotAlarmEnabled = false;
         private int _gpuHotspotAlarmThresholdC = 100;
         public const int MinGpuHotspotAlarmCelsius = 90;

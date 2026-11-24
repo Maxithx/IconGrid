@@ -596,6 +596,68 @@ public sealed class NvmlGpuLimitController : IDisposable
     }
 
     /// <summary>
+    /// Locks the SM clock to a fixed maximum without running the temperature
+    /// governor. Used for the in-game undervolt target: the card may still
+    /// downclock when idle, but it cannot boost above the selected clock while
+    /// the game has focus. The normal background governor takes over again as
+    /// soon as the game loses focus.
+    /// </summary>
+    public GpuLimitApplyResult ApplyClockCeiling(int maxMhz)
+    {
+        if (!IsAvailable)
+        {
+            return new GpuLimitApplyResult(false, false, InitializationError ?? "NVML is not available.");
+        }
+
+        if (!ClockLimitSupported)
+        {
+            var unsupported = _clockLimitUnsupported
+                ? "The driver does not support locked GPU clocks on this card."
+                : "The GPU clock range could not be read.";
+            return new GpuLimitApplyResult(false, false, unsupported);
+        }
+
+        if (maxMhz <= 0)
+        {
+            return new GpuLimitApplyResult(true, false, "No in-game clock ceiling.");
+        }
+
+        var cap = (uint)Math.Clamp(
+            maxMhz,
+            MinClockCeilingMhz,
+            (int)Math.Max(_maxSmClockMhz, MinClockCeilingMhz));
+
+        if (_clockLockApplied && !_clockCeilingDirty && _clockCeilingMhz == cap)
+        {
+            return new GpuLimitApplyResult(true, false, $"In-game clock ceiling {cap} MHz.");
+        }
+
+        var rc = nvmlDeviceSetGpuLockedClocks(_device, MinLockedClockMhz, cap);
+        if (rc != NvmlSuccess)
+        {
+            if (rc == NvmlErrorNotSupported)
+            {
+                _clockLimitUnsupported = true;
+            }
+
+            var failure = $"Could not lock the GPU clock to {cap} MHz: {Describe(rc)}.";
+            _log?.Invoke($"GPU clock governor: {failure}");
+            return new GpuLimitApplyResult(false, false, failure);
+        }
+
+        _clockCeilingMhz = cap;
+        _clockLockApplied = true;
+        _clockCeilingDirty = false;
+        _appliedTargetTempC = 0;
+        _appliedCeilingFloorMhz = MinClockCeilingMhz;
+        _appliedCeilingCapMhz = (int)cap;
+        _lastClockGovernUtc = DateTime.MinValue;
+        WriteRestoreMarker(_appliedPowerMw, _appliedTempC, _fanBoostApplied);
+        _log?.Invoke($"GPU clock governor: in-game ceiling {cap} MHz.");
+        return new GpuLimitApplyResult(true, true, $"In-game clock ceiling {cap} MHz.");
+    }
+
+    /// <summary>
     /// Removes a clock ceiling immediately. Used when the game regains focus, so
     /// the player does not get a low-clock frame spike while the slower
     /// power-limit hysteresis is still counting down.

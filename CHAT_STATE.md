@@ -2726,3 +2726,408 @@ VERIFICERET: build 0 fejl/0 advarsler, deployet 05:38:30; app + agent kører.
 
 IKKE COMMITTET — den samlede ændring omfatter også info-popup, auto-save-note og V/F-kurvegraf.
 
+
+## FIX: Profil-dropdowns blev tomme efter "Skriv kurve og anvend" (24-11-2026)
+
+BRUGER-RAPPORT: Efter at have sat clock til 1750 MHz og trykket "Skriv kurve og anvend" forsvandt de valgte profiler fra begge dropdowns.
+
+ROOT CAUSE:
+1. `GpuUndervoltGenerateCurve_Click` kaldte `RefreshAfterburnerProfiles()` med det samme. Agenten skriver profil 9 asynkront, så profilen fandtes endnu ikke (eller filen var låst). `SelectedValue=9` matchede derfor intet item → tom ComboBox.
+2. `RefreshAfterburnerProfiles` clearede `AfterburnerProfileChoices` først. Det fik de to `SelectedValue`-bindings til at skrive 0/null tilbage til `GpuUndervoltGameProfile`/`IdleProfile`, så valget gik tabt.
+
+FIX:
+- Efter kurve-request ventes 3 s før profillisterne genopbygges; hvis profil 9 stadig mangler, forsøges igen efter yderligere 3 s.
+- `RefreshAfterburnerProfiles` læser nu først profilerne ind i en lokal liste, husker de valgte numre, og genopbygger derefter listen. Valgte profiler, der mangler i filen, får en placeholder ("Profile 9"), og de to valg gendannes efter repopulation.
+- `AfterburnerProfileController.TryReadProfileText` læser profilfilen med 3 korte retries ved sharing violation (agent/Afterburner kan skrive samtidig). Bruges både af `ReadProfiles` og `ReadCurveSections`.
+
+COMMITTET OG PUSHET (før fixet): `ee35faa` (info-popup, auto-save-note, V/F-kurvegraf og opdeling i to kort).
+
+Build 0 fejl/0 advarsler, deployet 05:44:50. IKKE COMMITTET (dropdown-fixet) — afventer godkendelse.
+
+
+## FIX 2: Profil-dropdowns tomme efter navigation væk fra Hardware-siden (24-11-2026)
+
+BRUGER-RAPPORT: Efter "Skriv kurve og anvend" blev profilerne vist korrekt. Men efter at have været inde i PoE og tilbage til Hardware → GPU undervolt var begge dropdowns tomme igen.
+
+ROOT CAUSE:
+1. `HardwarePage_Loaded` afmeldte sig selv (`Loaded -= HardwarePage_Loaded`), men SettingsWindow genbruger den samme HardwarePage-instans ved navigation. Derfor blev profillisterne aldrig genindlæst på andet besøg — den gamle/tomme liste blev stående.
+2. Efter Afterburner var genstartet, kunne profilfilen være åben/låst; `File.ReadAllText` fejlede med sharing violation, så `ReadProfiles` returnerede kun "Skift ikke" (og den valgte profil 9 manglede).
+
+FIX:
+- Loaded-handleren bliver nu subscribed permanent; Overview loades kun én gang (`_overviewLoaded`), mens profiler/status/kurve opdateres ved hver navigation.
+- `DataContextChanged` genindlæser profillister og kurve, når SettingsWindow sætter view-modellen.
+- `ResolveViewModel()` falder tilbage til `Window.GetWindow(this).DataContext`, hvis sidens DataContext er null under første load.
+- `AfterburnerProfileController.TryReadProfileText` åbner profilfilen med `FileShare.ReadWrite | FileShare.Delete` + 3 retries, så den kan læses mens Afterburner kører.
+- Placeholders + gendannelse af de valgte profilnumre (fra forrige fix) bevarer valget, selv hvis en profil midlertidigt ikke kan læses.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 05:49:20. Curve-harness mod den kørende Afterburner: stock 128 punkter, profil 9 130 punkter.
+
+IKKE COMMITTET — afventer godkendelse.
+
+
+
+## FIX 3: Profil-dropdowns viste tomt valg ved første åbning af Hardware (24-11-2026)
+
+BRUGER-RAPPORT: Går man ind på Hardware → GPU undervolt, er begge profil-dropdowns tomme (ingen valgt profil), selvom config har profil 9 (spil) og 1 (idle).
+
+ROOT CAUSE: WPF-bandingen `SelectedValue` bliver evalueret, før den asynkrone profil-liste er fyldt. Når listen senere fyldes, genvælger ComboBox'en ikke automatisk — `SelectedValue` forbliver null, og den lukkede boks vises tom. Config-værdierne var korrekte (9/1), og profilerne kunne læses (1, 8, 9).
+
+FIX:
+- Ny `MainViewModel.NotifyGpuUndervoltProfileSelections()` der rejser `PropertyChanged` for `GpuUndervoltGameProfile` og `GpuUndervoltIdleProfile`.
+- `RefreshAfterburnerProfiles()` kalder den efter listen er genopbygget og de gemte valg er gendannet, så ComboBox'en slår op i den nye liste og viser profil 9/1.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 05:52:33.
+
+
+## FIX 4: Undervolt-target fik ikke GPU-clocken til at stoppe ved target (24-11-2026)
+
+BRUGER-RAPPORT: Efter "Skriv kurve og anvend" med 1700 MHz viste gaming-overlayet stadig 1875 MHz, selvom profil 9's kurve korrekt har max 1700 MHz.
+
+UNDERSØGELSE:
+- Profil 9's V/F-kurve er korrekt skrevet: 128 punkter, max 1700 MHz (60 punkter fladet ud ved 1700, 888-1244 mV).
+- `smClockMhz` i agent-state var 1875 MHz ved 144 W / 67 °C, så kortet boostede stadig.
+- Afterburners V/F-kurve er en **undervolt-anmodning**, ikke en hård clock-lås: NVIDIA Boost kan fortsat gå over kurvens knæk, og Afterburner genanvender ikke altid kurven ved et profil-skift. Derfor manglede der en egentlig clock-cap.
+
+FIX:
+- Nyt konfigurationsfelt `GpuUndervoltTargetClockMhz` (gemmes i config, overlever navigation/restart).
+- "Skriv kurve og anvend" gemmer target i config; Hardware-siden udleder target fra profil 9's kurve for eksisterende installationer.
+- Ny `NvmlGpuLimitController.ApplyClockCeiling(maxMhz)`: låser SM-clocken til [min, target] uden temperatur-governor.
+- `HardwareMonitorAgent.ApplyBackgroundClockCap`: når spillet har fokus og undervolt er aktiv med et target > 0, låses clocken til target (fx 1700 MHz). Når spillet mister fokus, overtager den eksisterende baggrundsprofil (fx 60 % = 1260 MHz); når spillet lukkes, frigives loftet.
+- UI-teksterne (en+da) forklarer nu at target også er et hårdt clock-loft.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 06:02:54. Appen genstartet. Eksisterende config har `GpuUndervoltTargetClockMhz=0`; Hardware-siden udleder 1700 fra profil 9 og gemmer det, næste gang siden åbnes.
+
+
+## FIX 5: Spændingsvisning + profil 1 (1800 MHz mild undervolt) (24-11-2026)
+
+BRUGERØNSKER:
+1. Vis stock-spænding og spænding for den valgte profil på undervolt-siden.
+2. Vis den aktive (live) GPU-spænding.
+3. Lav en profil der kan køre 1800 MHz med lidt undervolting, som profil 1.
+
+IMPLEMENTERET:
+- `HardwareMonitorSnapshot.GpuVoltage` + `HardwareSnapshotCollector.CaptureGpuVoltage()`: læser "GPU Core Voltage" fra LibreHardwareMonitor (verificeret: 0,6375 V idle på RTX 2060 SUPER).
+- Undervolt-kortet viser nu under kurve-legenden:
+  - `Stock 1800 MHz: 0,944 V`
+  - `Profil 1 ved 1800 MHz: 0,925 V`
+  - `Aktiv GPU-spænding: 0,xxxx V` (opdateres hvert sekund fra monitor-state.json)
+- `AfterburnerProfileController.WriteUndervoltCurve(..., int voltageMv = 0)`: valgfrit spændingsmål; punktet ved den valgte mV og alle derover flades ud til target-clocken. Bruges til rigtig undervolt (lavere mV ved samme clock).
+- Agentens `UndervoltRequest` accepterer nu `voltageMv`.
+- Oprettet **profil 1**: 1800 MHz, laveste punkt 925 mV (stock ved 1800 er ca. 944-950 mV). Profil-filen er backup'et automatisk.
+- Config sat til game-profil 1 + target 1800 MHz, så profilen bruges og det hårde clock-loft er 1800 MHz mens spillet har fokus.
+- Slideren gemmer target med det samme (ikke kun ved "Skriv kurve og anvend").
+
+VERIFICERET: build 0/0, deployet 06:23:02. Profil 1: max 1800 MHz @ 925 mV; profil 9: max 1700 MHz. Agent-state: afterburnerProfile=1, undervoltActive=true.
+
+
+## FIX 6: Volt i profil-dropdowns + volt-linje under dropdown (24-11-2026)
+
+BRUGERØNSKE:
+- Dropdown-listen skal vise hvilken spænding hver profil giver.
+- Samme "Stock … / Profil … / Aktiv …" linje skal også stå under selve profil-dropdownen, ikke kun under kurvegrafen.
+
+IMPLEMENTERET:
+- `ProfileChoice` er nu en klasse med `INotifyPropertyChanged`, så labels kan opdateres in-place uden at rydde ComboBox-listen (det ville nulstille valget).
+- Hver profil får en spændingssuffix beregnet fra profilens egen V/F-kurve:
+  - Profil 1: `… — 1800 MHz @ 0,925 V`
+  - Profil 9: `… — 1700 MHz (max) @ 0,888 V`
+  - Profiler der ikke kan nå det valgte target vises med `(max)` så listen ikke lover en clock kurven ikke kan levere.
+- `_profileCurves` cacher kurverne; labels opdateres med det samme når slideren flyttes.
+- Både dropdowns er gjort bredere (MinWidth 480 / MaxWidth 640), så volt-suffixen kan læses.
+- Den samme tre-linjes spændingsoversigt (Stock / Profil / Aktiv) er indsat **under profil-dropdownen** og opdateres hvert sekund.
+- Profil-spændingen i oversigten viser profilens faktiske max-clock (fx profil 9 ved 1700 MHz), ikke et target den ikke kan nå.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 06:33:22, appen genstartet.
+
+
+## FIX 7: Brugervalgt mV-slider + Afterburner voltage unlock (24-11-2026)
+
+BRUGERØNSKE: Selv kunne sænke spændingen inden for en sikker grænse og teste fx 1800 MHz ved 850/875 mV.
+
+IMPLEMENTERET:
+- Nyt config-felt `GpuUndervoltTargetVoltageMv` (gemmes; 0 = stock-spænding).
+- Ny **mV-slider** i undervolt-kortet: **825–1050 mV**, step 5 mV. Viser:
+  - `Stock 1800 MHz: 944 mV · valgt: 875 mV (-69 mV)`
+  - sikkerhedshint om at 850–900 mV ved 1800 er aggressivt.
+- „Skriv kurve og anvend“ sender nu `voltageMv` med til agenten; `WriteUndervoltCurve` starter den flade del ved den valgte mV (lavere mV = mere undervolt).
+- Slideren gemmer med det samme; profil 9 bruges som testprofil, så profil 1 (1800 @ 925 mV) kan bruges som fallback.
+- **Afterburner voltage control** sættes automatisk til `UnlockVoltageControl=1` / `UnlockVoltageMonitoring=1`, første gang en genereret kurve anvendes. Uden dette ignorerede Afterburner V/F-kurven, så mV-ændringer havde ingen effekt. `MSIAfterburner.cfg` backes op til `MSIAfterburner.cfg.bak-icongrid-<tid>`.
+- Verificeret: cfg står nu med `UnlockVoltageControl = 1`; profil 1 blev genanvendt og agenten rapporterer `MSI Afterburner profile 1 applied.`
+
+SIKKERHED: 825 mV er en hård nedre grænse. Ved 1800 MHz er 850–900 mV aggressivt; hvis driveren resetter, hæves mV i 5–10 mV-trin. Profil 1 (925 mV) er den kendte fallback.
+
+
+## FIX 8: Opret/gem profil med overskrivnings-advarsel + slet profil (24-11-2026)
+
+BRUGERØNSKE:
+- Kunne gemme den manuelle 1800 MHz/mV-kurve som en profil.
+- Kunne overskrive en profil, men kun efter advarsel.
+- Kunne fjerne/slette en profil (husk også dette).
+
+IMPLEMENTERET:
+- **“Gem kurve som profil”-dropdown (1–9)** under mV-slideren:
+  - Ledige pladser vises som `Profil 2 — ledig`.
+  - Optagne vises som `Profil 1 — optaget (1800 MHz @ 0,925 V)`.
+  - “Skriv kurve og anvend” skriver nu til den valgte plads (ikke fast profil 9).
+  - Er pladsen optaget, vises en **Ja/Nej-advarsel** med profilens nuværende max-clock/mV, før den overskrives.
+- **“Slet profil”-dropdown + knap**:
+  - Viser kun optagne profiler.
+  - Kræver Ja/Nej-bekræftelse med profilens indhold.
+  - Sletter sektionen fra Afterburner-profilfilen via den forhøjede agent; filen backes op først.
+  - Hvis den slettede profil var valgt som game/idle-profil, sættes valget til “Skift ikke”.
+- Agentens request-format understøtter nu `{ "action": "delete", "profile": N }`; `DeleteProfile` stopper Afterburner, backer op, fjerner `[ProfileN]` og genstarter Afterburner.
+- Testet sikkert: oprettede midlertidig profil 7 (1800 @ 925 mV), slettede den igen via request. Profil 7 er væk; backup `afterburner-profile-backup-20261124-065522.cfg`.
+- Slet-dropdownen vælger som standard profil 9 (IconGrid-testpladsen), så man ikke ved et uheld sletter profil 1.
+
+VERIFICERET: build 0/0, deployet 06:56:52. `DeleteProfile` virker (profil 7 oprettet og slettet).
+
+
+## FIX 9: Profil-UI redesignet til én tabel (24-11-2026)
+
+BRUGERFEEDBACK: Der var for mange profil-dropdowns (game, idle, gem, slet) og gentagne spændingslinjer. UI’en skulle mere være “database-agtig”.
+
+ÆNDRINGER:
+- Fjernet de fire separate dropdowns og de to gentagne spændingslinjer.
+- Tilføjet **én Afterburner-profiltabel** med 9 rækker:
+  - `Plads | Indhold | Rolle | Handlinger`
+  - Indhold viser fx `1800 MHz @ 0,925 V · 100% power · fan 39%` eller `Ledig`.
+  - Rolle viser `Spil`, `Idle`, `Spil + idle` eller `—`.
+  - Handlingsknapper pr. række: **Spil** (sæt/ryd game-profil), **Idle** (sæt/ryd idle-profil), **Gem her/Overskriv** (gem nuværende clock+mV til pladsen; overskrivning kræver advarsel), **Slet** (bekræftelse).
+- “Spil”/“Idle” er toggle-knapper: klik igen for at rydde valget (“Skift ikke”).
+- Gem/slet bruger stadig den forhøjede agent; profilfilen backes op.
+- Kurvegeneratoren (clock/mV sliders) står ovenover tabellen; vælg mV og tryk **Gem her** på den ønskede plads.
+- `GpuUndervoltCurveIntro/Info` opdateret, så de ikke længere siger “profil 9”.
+
+VERIFICERET: build 0/0, deployet 07:04:15, appen genstartet.
+
+
+## FIX 10: Moderne profilknapper + Win11 dropdowns (24-11-2026)
+
+BRUGERFEEDBACK:
+- Fjern “Rolle”-kolonnen/rollen på Afterburner-profilknapperne; kun Spil, Idle, Gem her, Slet.
+- Knapperne skal være mere moderne/pæne.
+- Gaming Overlay-sidens knapper og dropdowns skal også have Windows 11-stil.
+
+ÆNDRINGER:
+- Profiltabellen har nu kun `Plads | Indhold | Handlinger`; Rolle-kolonnen er væk.
+- Fire rene knapper pr. række:
+  - **Spil** / **Idle** = sekundære knapper; når rollen er aktiv, fremhæves knappen med accentblå.
+  - **Gem her/Overskriv** = primær accentknap.
+  - **Slet** = sekundær knap.
+- Nye styles `HardwareProfileButtonStyle` og `HardwareProfilePrimaryButtonStyle`: afrundede 6 px, blød hover/pressed, disabled-opacity.
+
+## FIX 11: Win11-dropdowns på Spilopløsning, Startside og Layout (24-11-2026)
+
+BRUGERØNSKE: Også Spilopløsning, Startside og Layout skulle have de moderne dropdowns.
+
+ÆNDRINGER:
+- Alle ComboBoxes på **Spilopløsning** (kategori + begge resolutions-lister) bruger nu `Win11ComboBoxStyle`.
+- Alle ComboBoxes på **Startside** (launcher-visibility, auto-hide, peek, sprog) bruger `Win11ComboBoxStyle`.
+- **Layout**-sidens preset-dropdown bruger `Win11ComboBoxStyle`; den gamle lokale `LayoutDropdownComboBoxStyle` er ikke længere brugt.
+- Win11-stilen har `MinWidth=220` (ikke 240), så den passer i sprog-kolonnen på 220 px.
+- Fjernet lokale `Padding`/`FontSize`-overrides på Layout/Startside, så højde, padding og tekststørrelse kommer fra den fælles stil.
+
+VERIFICERET: build 0/0, deployet 07:16:33, appen genstartet.
+
+- Ny global `Win11ComboBoxStyle` + `Win11ComboBoxItemStyle` i `StartsideStyles.xaml`: mørk (#2B2B2B), afrundet 6 px, egen popup, accentborder når åben, blød hover.
+- Gaming Overlay:
+  - Begge dropdowns (overlay-position og launcher-adfærd) bruger nu `Win11ComboBoxStyle`.
+  - `OverlayActionButtonStyle` moderniseret (accentblå, 6 px radius, blød hover/pressed).
+  - Ny `OverlaySecondaryButtonStyle` til “custom color” og “refresh GPU status”.
+
+## FIX 12: ComboBox viste typenavn i stedet for Display (24-11-2026)
+
+BRUGER-RAPPORT: Startside-dropdown viste `IconGrid.Views.StartsidePage+LauncherC` i den lukkede boks; listen viste korrekt “Altid synlig / Manuel skjul / Auto-skjul”.
+
+ROOT CAUSE: `Win11ComboBoxStyle` bruger `SelectionBoxItemTemplate`, men ved `DisplayMemberPath` blev der ikke dannet en selection-template, så `SelectionBoxItem.ToString()` (typenavnet) blev vist.
+
+FIX:
+- Tilføjet eksplicit `ItemTemplate` (`{Binding Display}` / `{Binding Value}`) på alle berørte dropdowns:
+  - Startside: launcher visibility, auto-hide, peek.
+  - Gaming Overlay: overlay position, launcher behavior.
+- `ContentPresenter` i Win11-skabelonen bruger nu også `ContentTemplateSelector` som standard-ComboBox.
+- GameResolution/øvrige med ItemTemplate var upåvirkede.
+
+
+## HOTFIX: Kritiske XAML-fejl (DisplayMemberPath + ItemTemplate) (24-11-2026)
+
+FEJL: `System.Windows.Markup.XamlParseException: Cannot set both DisplayMemberPath and ItemTemplate` ved åbning af Startside.
+
+ÅRSAG: Jeg tilføjede `ItemTemplate` for at rette typenavn-visning, men lod `DisplayMemberPath` stå.
+
+FIX:
+- Fjernet `DisplayMemberPath` fra de fem berørte dropdowns:
+  - Startside: launcher visibility, auto-hide, peek.
+  - Gaming Overlay: overlay position, launcher behavior.
+- `ItemTemplate` bliver nu den eneste display-kilde; ingen konflikt.
+- `Win11ComboBoxStyle` beholder `ContentTemplateSelector`-fixet.
+
+## FIX 13: Grid-alignment i Afterburner-profiltabellen (24-11-2026)
+
+BRUGERFEEDBACK: Profil-rækkerne stod ikke pænt på linje; handlingsknapperne hoppede pga. forskellige bredder.
+
+ÆNDRINGER:
+- Fast grid: `Plads (70) | Indhold (*) | Handlinger (320)` på både header og alle rækker.
+- Alle handlingsknapper har nu fast bredde:
+  - Spil = 70
+  - Idle = 70
+  - Gem her/Overskriv = 82
+  - Slet = 70
+  - 6 px mellemrum → samlet 310 px, højrejusteret i 320-kolonnen.
+- “Handlinger”-overskriften er højrejusteret, så den flugter med knapperne.
+- Knapperækken ligger i samme rækkefølge på alle profiler, også ledige.
+
+## FIX 14: “Spil” → Aktiv / Ikke aktiv med grøn status (24-11-2026)
+
+BRUGERØNSKE: Spil-knappen skal erstattes af en aktiv-status; grøn når profilen er aktiv.
+
+ÆNDRINGER:
+- Første handlingsknap er nu **Aktiv / Ikke aktiv** i stedet for **Spil**.
+- `ProfileRow.ActivityLabel` beregnes ud fra `IsGame`:
+  - Aktiv → grøn knap (`#107C10`) med hvid tekst.
+  - Ikke aktiv → neutral mørk knap.
+- Klik på knappen toggler stadig game-profilen (aktiv/inaktiv).
+- Ny `HardwareProfileActivityButtonStyle` med grøn DataTrigger; hover/pressed ændrer kun opacity, så grøn ikke forsvinder.
+- Knapbredder justeret: Aktiv 82, Idle 64, Gem/Overskriv 82, Slet 64 → 310 px i 320 px-kolonnen.
+- Intro-tekst ændret fra “Spil/Idle” til “Aktiv/Idle”.
+
+VERIFICERET: build 0/0, deployet 07:31:52, appen genstartet.
+
+
+VERIFICERET: build 0/0, deployet 07:23:10, appen genstartet.
+
+
+VERIFICERET: build 0/0, deployet 07:20:20, appen genstartet.
+
+## FIX 15: Power-limit slider + kurve-refresh (24-11-2026)
+
+BRUGERØNSKER:
+- Power limit skal kunne ændres med slider.
+- Når profil 2 er valgt, skal V/F-kurven følge profilens 1800 MHz.
+
+IMPLEMENTERET:
+- Ny config/VM: `GpuUndervoltTargetPowerLimitPercent` (70–100 %, default 100).
+- Ny slider **Effektgrænse** under mV-slideren; værdi gemmes med det samme.
+- “Gem her/Overskriv” skriver nu både clock, mV **og** power limit til profilen.
+- `AfterburnerProfileController.WriteUndervoltCurve(..., powerLimitPercent)` og `BuildProfileSection(..., powerLimitPercent)` overskriver `PowerLimit` i profilen.
+- Agentens `UndervoltRequest` accepterer `powerLimitPercent`.
+- Tabel-indhold viser profilens faktiske power (fx `85% power`).
+- `ProfileRowGame_Click`/`Idle` kalder nu også `RefreshCurveChart()` eksplicit, så kurven og legenden opdateres straks ved profilskift.
+- Verificeret med midlertidig profil 7: 1800 MHz @ 900 mV / **PowerLimit=85**, derefter slettet igen. Profile 1, 2, 8, 9 tilbage.
+
+
+## UNDERSØGELSE: 1475 MHz i PoE (24-11-2026)
+
+FUND:
+- Agent-state viser `clockCeilingMhz=1800` og `afterburnerProfile=2`.
+- `nvidia-smi` viste 1695–1785 MHz ved ~116–125 W, 65–67 °C og 75–80 % GPU-brug.
+- Throttle-reason var 0x1 (GpuIdle) og ikke SW power/thermal cap.
+- 1475 MHz i PoE er derfor **ikke** et 1800-loft, men GPU Boost der vælger lavere clock ved lettere load/60 FPS. Loftet er et **max**, ikke en fast clock.
+- 900 mV var meget aggressivt; profil 2 er testet/ændret til **1800 @ 925 mV / 100 % power** (samme som profil 1). Backup oprettet.
+
+MULIG NÆSTE FUNKTION: “Lås clock” (min = max = target), hvis brugeren vil tvinge 1800 i stedet for kun at tillade op til 1800.
+
+VERIFICERET: build 0/0, deployet 07:38:48, appen genstartet.
+
+
+VERIFICERET: build 0/0, deployet 07:19:20, appen genstartet.
+
+
+VERIFICERET: build 0/0, deployet 07:13:29, appen genstartet.
+
+
+## FIX 16: Hotspot top-5 historik med spilnavn (24-11-2026)
+
+BRUGERØNSKE: Hotspot-sektionen skal vise de 5 højeste målte hotspot-værdier med forskellige tidspunkter og hvilket spil der kørte.
+
+IMPLEMENTERET:
+- Ny `HotspotHistoryEntry` + `HotspotHistoryStore` (`Helpers/Hardware/HotspotHistoryStore.cs`):
+  - Gemmer top 5 i `%APPDATA%\IconGrid\hotspot-history.json`.
+  - Maks. én måling pr. minut, så listen viser 5 forskellige tidspunkter.
+  - Opdaterer kun en minut-post hvis den nye hotspot er højere.
+  - Overlever agent-genstart.
+- `HardwareMonitorSnapshot.HotspotHistory` sendes med `monitor-state.json`.
+- Agenten registrerer hotspot, edge-temp, delta og aktivt spil:
+  - Spilnavn fra FPS-target `DisplayName`, ellers procesnavn/PID.
+
+## FIX 17: Hotspot-historik forklaring + Δ-tegn (24-11-2026)
+
+BRUGERSPØRGSMÅL:
+- Hvad er “edge”?
+- Der er mærkelige tegn i listen.
+
+ÆNDRINGER:
+- “edge” er GPU’ens almindelige temperatur-sensor (kanten/gennemsnittet af die’en); hotspot er det varmeste punkt.
+- Δ-symbolet er erstattet med almindelig tekst:
+  - DA: `GPU 70 °C (forskel 14,0)`
+  - EN: `GPU 70 °C (difference 14.0)`
+- Ny forklarende linje under “Højeste hotspot-målinger”:
+  - “Hotspot er det varmeste punkt på GPU-die'en. GPU er den normale edge-temperatur; forskellen er hotspot minus GPU.”
+
+## FIX 18: Hotspot-linje mærket eksplicit (24-11-2026)
+
+BRUGERFEEDBACK: Når der står “GPU” i målingen, skal det fremgå at det første tal er hotspot.
+
+ÆNDRING:
+- Formatet er nu `Hotspot 84 °C · GPU 70 °C (forskel 14,0) · …` på dansk og
+  `Hotspot 84 °C · GPU 70 °C (difference 14.0) · …` på engelsk.
+- Forklaringslinjen under titlen er uændret.
+
+VERIFICERET: build 0/0, deployet 08:01:52, appen genstartet.
+
+
+VERIFICERET: build 0/0, deployet 07:59:50, appen genstartet.
+
+- Hotspot-siden viser nu **“Højeste hotspot-målinger”** med linjer som:
+
+## FIX 19: “Ryd målinger” i hotspot-historikken (24-11-2026)
+
+BRUGERSPØRGSMÅL: Bør vi have en clear-knap til hotspot-målinger?
+
+IMPLEMENTERET:
+- Knap **“Ryd målinger” / “Clear readings”** under hotspot-historikken.
+- Bekræftelse via Ja/Nej før sletning.
+- UI skriver `hotspot-history-clear.request`; agenten:
+  - sletter request-filen,
+  - rydder in-memory historik,
+  - skriver tom `hotspot-history.json`,
+  - springer én optagelse over, så listen vises tom med det samme.
+- Næste måling (næste loop) registreres igen som ny første post.
+- `HotspotHistoryStore.Clear()` tilføjet.
+
+
+## NOTAT: 1700 MHz @ 870 mV kører godt (24-11-2026)
+
+BRUGER: 1700 MHz / 870 mV kører rigtig godt i PoE.
+
+- Config: `GpuUndervoltTargetClockMhz=1700`, `GpuUndervoltTargetVoltageMv=870`, power 100 %, game-profil 2.
+- Profil 2 er gemt/aktiveret med 1700 MHz; Afterburner-kurvens punkter ligger på 875 mV som nærmeste trin (slideren står 870).
+- Profil 1 (1800 @ 925 mV) er fortsat fallback.
+
+## FIX 20: Stock-baseline + dynamisk clock-range (24-11-2026)
+
+BRUGERØNSKER:
+- Vise stock speed/volt som GPU’en bør kunne køre.
+- Sikre at det også kan bruges på andre RTX-kort (fx RTX 3070 Ti).
+
+ÆNDRINGER:
+- Ny **Stock-baseline**-linje under mV-slideren:
+  - fx `Stock-baseline: max 1950 MHz @ 1,175 V` (læses fra kortets egen Afterburner-kurve).
+  - Kombineres med den eksisterende `Stock 1700 MHz: 0,883 V`.
+- Clock-sliderens min/max er nu **dynamisk**:
+  - max = kortets stock max-clock (dog mindst 1800, højst 2200).
+  - RTX 2060 Super: 1950 max; RTX 3070 Ti kan få sin egen højere max automatisk.
+- Alt læses fra den valgte GPU’s `Defaults`/`Profile1` V/F-kurve; ingen hardkodede 2060-værdier i kurveberegningen.
+- NVML clock-loft/power limit og Afterburner-profilskift er også kort-uafhængige (NVML rapporterer kortets min/max).
+
+VERIFICERET: build 0/0, deployet 08:14:04, appen genstartet.
+
+- Ingen yderligere kodeændring nødvendig; dette er en god stabil "daily"-profil.
+
+VERIFICERET: build 0/0, deployet 08:05:16. Request-filen blev processeret og historikken ryddet; en ny PathOfExile-måling blev derefter registreret.
+
+  `84 °C · edge 70 °C (Δ14.0) · 24-11 07:57 · PathOfExile.exe`
+  eller `Intet spil`, hvis ingen spillproces var aktiv.
+- Listen opdateres kun når historikken ændrer sig (ingen UI-flicker hvert sekund).
+
+VERIFICERET: build 0/0, deployet 07:57:01. `hotspot-history.json` og `hotspotHistory` i monitor-state virker (første post 84 °C / edge 70 °C).

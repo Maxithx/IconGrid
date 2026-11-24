@@ -52,14 +52,32 @@ public class ConfigModel
     // the card's maximum SM clock. The temperature governor can step further
     // down, but never above this cap.
     public int GpuPowerSavingClockLimitPercent { get; set; } = 60;
-    // Optional in-game "undervolt effect": lock the GPU clock at the highest value
-    // that keeps the card at/below the target temperature. On Turing the voltage
-    // follows the clock (V/F curve), so a lower clock also means a lower voltage.
+    // Optional in-game "undervolt effect": switch to an Afterburner profile with a
+    // flattened V/F curve and cap the SM clock at the curve's target while the game
+    // has focus. On Turing the voltage follows the clock (V/F curve), so the lower
+    // clock also means a lower voltage.
     public bool GpuUndervoltEnabled { get; set; } = false;
     /// <summary>Afterburner profile applied while a game session is running (0 = none).</summary>
     public int GpuUndervoltGameProfile { get; set; } = 1;
     /// <summary>Afterburner profile applied when no game is running (0 = do not switch back).</summary>
     public int GpuUndervoltIdleProfile { get; set; } = 0;
+    /// <summary>
+    /// Clock ceiling (MHz) of the generated undervolt curve. While the game has focus
+    /// the agent locks the SM clock to this value so the card cannot boost past it.
+    /// 0 = no in-game clock ceiling.
+    /// </summary>
+    public int GpuUndervoltTargetClockMhz { get; set; } = 0;
+    /// <summary>
+    /// Voltage (mV) where the flattened part of the generated undervolt curve starts.
+    /// 0 = keep the stock voltage for the target clock. The UI limits this to a safe
+    /// range so the user can tune gradually (for example 1800 MHz at 875 mV).
+    /// </summary>
+    public int GpuUndervoltTargetVoltageMv { get; set; } = 0;
+    /// <summary>
+    /// Afterburner power limit (percent) written into the generated profile.
+    /// 100 keeps the profile's normal power limit.
+    /// </summary>
+    public int GpuUndervoltTargetPowerLimitPercent { get; set; } = 100;
     /// <summary>Opt-in warning when the GPU hotspot gets too hot (cooler contact check).</summary>
     public bool GpuHotspotAlarmEnabled { get; set; } = false;
     // Hot spot alarm threshold in °C (90-105). The delta warning (>15 °C above

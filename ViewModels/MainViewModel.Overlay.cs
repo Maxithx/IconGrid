@@ -1805,6 +1805,17 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>Afterburner profile used while a game session is running (0 = none).</summary>
+        /// <summary>
+        /// Forces the two profile ComboBoxes to re-evaluate their SelectedValue.
+        /// WPF binds SelectedValue before the asynchronous profile list exists and
+        /// does not select again when the items arrive.
+        /// </summary>
+        public void NotifyGpuUndervoltProfileSelections()
+        {
+            OnPropertyChanged(nameof(GpuUndervoltGameProfile));
+            OnPropertyChanged(nameof(GpuUndervoltIdleProfile));
+        }
+
         public int GpuUndervoltGameProfile
         {
             get => _gpuUndervoltGameProfile;
@@ -1829,6 +1840,58 @@ namespace IconGrid.ViewModels
             {
                 var clamped = Math.Clamp(value, 0, 9);
                 if (SetField(ref _gpuUndervoltIdleProfile, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clock ceiling of the generated undervolt curve. The elevated agent locks the
+        /// SM clock to this value while the game has focus, so the card cannot boost
+        /// above the clock the user selected (0 = no in-game ceiling).
+        /// </summary>
+        public int GpuUndervoltTargetClockMhz
+        {
+            get => _gpuUndervoltTargetClockMhz;
+            set
+            {
+                var clamped = value <= 0 ? 0 : Math.Clamp(value, 300, 2100);
+                if (SetField(ref _gpuUndervoltTargetClockMhz, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Voltage (mV) where the flattened part of the generated curve starts.
+        /// 0 keeps the stock voltage; the UI limits user choices to 825-1050 mV.
+        /// </summary>
+        public int GpuUndervoltTargetVoltageMv
+        {
+            get => _gpuUndervoltTargetVoltageMv;
+            set
+            {
+                var clamped = value <= 0 ? 0 : Math.Clamp(value, 825, 1050);
+                if (SetField(ref _gpuUndervoltTargetVoltageMv, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Afterburner power limit (percent) written when the curve is saved to a
+        /// profile. 70-100 % keeps it within the card's supported range.
+        /// </summary>
+        public int GpuUndervoltTargetPowerLimitPercent
+        {
+            get => _gpuUndervoltTargetPowerLimitPercent;
+            set
+            {
+                var clamped = Math.Clamp(value, 70, 100);
+                if (SetField(ref _gpuUndervoltTargetPowerLimitPercent, clamped))
                 {
                     SaveSettingsToConfig();
                 }

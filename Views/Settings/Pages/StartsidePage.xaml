@@ -1,4 +1,4 @@
-<UserControl x:Class="IconGrid.Views.StartsidePage"
+﻿<UserControl x:Class="IconGrid.Views.StartsidePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
@@ -138,13 +138,18 @@
                                            Text="{Binding LauncherVisibilityDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
                                            Style="{StaticResource TemplateHeroBodyStyle}" />
                                 <ComboBox Margin="0,10,0,0"
-                                          Style="{StaticResource TemplateComboBoxStyle}"
+                                          Style="{StaticResource Win11ComboBoxStyle}"
                                           Width="280"
                                           HorizontalAlignment="Left"
                                           ItemsSource="{Binding LauncherHideModeItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
                                           SelectedValuePath="Key"
-                                          DisplayMemberPath="Display"
-                                          SelectedValue="{Binding SelectedLauncherHideMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+                                          SelectedValue="{Binding SelectedLauncherHideMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Display}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
 
                                 <TextBlock Margin="0,8,0,0"
                                            Text="{Binding LauncherVisibilityModeDescriptionText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
@@ -160,12 +165,17 @@
                                                TextWrapping="Wrap"
                                                Style="{StaticResource TemplateSmallTextStyle}" />
                                     <ComboBox Margin="0,10,0,0"
-                                              Style="{StaticResource TemplateComboBoxStyle}"
+                                              Style="{StaticResource Win11ComboBoxStyle}"
                                               HorizontalAlignment="Left"
                                               ItemsSource="{Binding AutoHideDelayItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
                                               SelectedValuePath="Key"
-                                              DisplayMemberPath="Display"
-                                              SelectedValue="{Binding SelectedAutoHideDelay, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+                                              SelectedValue="{Binding SelectedAutoHideDelay, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Display}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
 
                                     <TextBlock Margin="0,14,0,0"
                                                Text="{Binding PeekActivationLabelText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
@@ -175,13 +185,18 @@
                                                TextWrapping="Wrap"
                                                Style="{StaticResource TemplateSmallTextStyle}" />
                                     <ComboBox Margin="0,10,0,0"
-                                              Style="{StaticResource TemplateComboBoxStyle}"
+                                              Style="{StaticResource Win11ComboBoxStyle}"
                                               Width="300"
                                               HorizontalAlignment="Left"
                                               ItemsSource="{Binding PeekActivationItems, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
                                               SelectedValuePath="Key"
-                                              DisplayMemberPath="Display"
-                                              SelectedValue="{Binding SelectedPeekActivationMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}" />
+                                              SelectedValue="{Binding SelectedPeekActivationMode, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}, Mode=TwoWay}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Display}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </StackPanel>
                             </StackPanel>
 
@@ -232,11 +247,10 @@
                                            VerticalAlignment="Center"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <ComboBox Grid.Column="1"
-                                          Style="{StaticResource TemplateComboBoxStyle}"
+                                          Style="{StaticResource Win11ComboBoxStyle}"
                                           SelectedValue="{Binding Language, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           SelectedValuePath="Tag"
-                                          HorizontalAlignment="Stretch"
-                                          Padding="8,6">
+                                          HorizontalAlignment="Stretch">
                                     <ComboBoxItem Content="{Binding LanguageOptionDanish}"
                                                   Tag="da" />
                                     <ComboBoxItem Content="{Binding LanguageOptionEnglish}"
