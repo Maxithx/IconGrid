@@ -128,6 +128,22 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     private string _gpuUndervoltLiveVoltageText = string.Empty;
     private string _gpuUndervoltVoltageSelectionText = string.Empty;
     private string _gpuHotspotHistoryNoDataText = string.Empty;
+    private string _gpuHotspotRecordText = string.Empty;
+
+    public string GpuHotspotRecordText
+    {
+        get => _gpuHotspotRecordText;
+        private set
+        {
+            if (_gpuHotspotRecordText == value)
+            {
+                return;
+            }
+
+            _gpuHotspotRecordText = value;
+            OnPropertyChanged(nameof(GpuHotspotRecordText));
+        }
+    }
     private double _undervoltMinClockMhz = 1500;
     private double _undervoltMaxClockMhz = 1950;
 
@@ -684,6 +700,19 @@ public bool IsNvidiaGtx =>
         }
     }
 
+    private static string FormatHotspotHistoryEntry(
+        IconGrid.ViewModels.MainViewModel viewModel,
+        HotspotHistoryEntry entry)
+        => string.Format(
+            viewModel.GpuHotspotHistoryFormat,
+            entry.HotspotC,
+            entry.EdgeC,
+            entry.DeltaC,
+            entry.CapturedAtUtc.ToLocalTime(),
+            string.IsNullOrWhiteSpace(entry.GameName)
+                ? viewModel.GpuHotspotHistoryNoGame
+                : entry.GameName);
+
     private async void ClearHotspotHistory_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         try
@@ -751,23 +780,28 @@ public bool IsNvidiaGtx =>
                 GpuUndervoltLiveVoltageText = viewModel.GpuUndervoltLiveVoltageNoData;
                 HotspotHistoryEntries.Clear();
                 GpuHotspotHistoryNoDataText = viewModel.GpuHotspotHistoryNoData;
+                GpuHotspotRecordText = viewModel.GpuHotspotRecordNoData;
                 return;
             }
 
             var snapshot = JsonConvert.DeserializeObject<HardwareMonitorSnapshot>(
                 System.IO.File.ReadAllText(path));
 
-            var history = snapshot?.HotspotHistory?
-                .Select(entry => string.Format(
-                    viewModel.GpuHotspotHistoryFormat,
-                    entry.HotspotC,
-                    entry.EdgeC,
-                    entry.DeltaC,
-                    entry.CapturedAtUtc.ToLocalTime(),
-                    string.IsNullOrWhiteSpace(entry.GameName)
-                        ? viewModel.GpuHotspotHistoryNoGame
-                        : entry.GameName))
-                .ToList() ?? new System.Collections.Generic.List<string>();
+            var entries = snapshot?.HotspotHistory ?? new System.Collections.Generic.List<HotspotHistoryEntry>();
+
+            if (entries.Count > 0)
+            {
+                GpuHotspotRecordText = FormatHotspotHistoryEntry(viewModel, entries[0]);
+            }
+            else
+            {
+                GpuHotspotRecordText = viewModel.GpuHotspotRecordNoData;
+            }
+
+            var history = entries
+                .Skip(1)
+                .Select(entry => FormatHotspotHistoryEntry(viewModel, entry))
+                .ToList();
 
             if (!HotspotHistoryEntries.SequenceEqual(history))
             {
@@ -778,7 +812,7 @@ public bool IsNvidiaGtx =>
                 }
             }
 
-            GpuHotspotHistoryNoDataText = history.Count == 0
+            GpuHotspotHistoryNoDataText = entries.Count == 0
                 ? viewModel.GpuHotspotHistoryNoData
                 : string.Empty;
 

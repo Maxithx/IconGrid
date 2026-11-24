@@ -289,6 +289,9 @@ namespace IconGrid.ViewModels
         public string GpuHotspotWarning => _localizationState.Get(Language, "GpuHotspotWarning");
         public string GpuHotspotNoData => _localizationState.Get(Language, "GpuHotspotNoData");
         public string GpuHotspotHistoryTitle => _localizationState.Get(Language, "GpuHotspotHistoryTitle");
+        public string GpuHotspotRecordTitle => _localizationState.Get(Language, "GpuHotspotRecordTitle");
+        public string GpuHotspotRecordNoData => _localizationState.Get(Language, "GpuHotspotRecordNoData");
+        public string GpuHotspotOtherHistoryTitle => _localizationState.Get(Language, "GpuHotspotOtherHistoryTitle");
         public string GpuHotspotHistoryHint => _localizationState.Get(Language, "GpuHotspotHistoryHint");
         public string GpuHotspotHistoryNoData => _localizationState.Get(Language, "GpuHotspotHistoryNoData");
         public string GpuHotspotHistoryNoGame => _localizationState.Get(Language, "GpuHotspotHistoryNoGame");
@@ -720,6 +723,9 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuHotspotWarning));
             OnPropertyChanged(nameof(GpuHotspotNoData));
             OnPropertyChanged(nameof(GpuHotspotHistoryTitle));
+            OnPropertyChanged(nameof(GpuHotspotRecordTitle));
+            OnPropertyChanged(nameof(GpuHotspotRecordNoData));
+            OnPropertyChanged(nameof(GpuHotspotOtherHistoryTitle));
             OnPropertyChanged(nameof(GpuHotspotHistoryHint));
             OnPropertyChanged(nameof(GpuHotspotHistoryNoData));
             OnPropertyChanged(nameof(GpuHotspotHistoryNoGame));

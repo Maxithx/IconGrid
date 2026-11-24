@@ -1323,10 +1323,30 @@
                                                    Foreground="#FFF0A030"
                                                    Text="{Binding GpuHotspotWarningText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
 
+                                        <Border Margin="0,14,0,0"
+                                                Padding="12"
+                                                HorizontalAlignment="Stretch"
+                                                Background="#1B1B1B"
+                                                BorderBrush="#3A3A3A"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
+                                            <StackPanel>
+                                                <TextBlock FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Text="{Binding DataContext.GpuHotspotRecordTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                <TextBlock Margin="0,4,0,0"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Text="{Binding GpuHotspotRecordText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            </StackPanel>
+                                        </Border>
+
                                         <TextBlock Margin="0,16,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuHotspotHistoryTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Text="{Binding DataContext.GpuHotspotOtherHistoryTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         <TextBlock Margin="0,4,0,0"
                                                    MaxWidth="680"

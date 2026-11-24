@@ -3144,6 +3144,21 @@ BRUGERFEEDBACK: De nye hardware-sektioner manglede samme udfoldelses-ikon som Bu
 VERIFICERET: build 0/0, deployet 08:24:40, appen genstartet.
 
 
+## FIX 22: Fast Top-hotspot rekord (24-11-2026)
+
+BRUGERØNSKE: En selvstændig topmåling af hotspot, som bliver stående indtil en højere måling.
+
+ÆNDRINGER:
+- Hotspot-historikken er delt op:
+  - **Top-hotspot** i en fremhævet boks øverst: højeste registrerede hotspot med GPU-temp, forskel, tid og spil.
+  - **Øvrige målinger** nedenunder: de næste 4 poster.
+- Top-posten er altid historikkens højeste (listen er sorteret); den ændres kun, når der kommer en højere måling.
+- “Ryd målinger” rydder både top og øvrige.
+- Nye tekster: `Top-hotspot`, `Ingen topmåling endnu.`, `Øvrige målinger`.
+
+VERIFICERET: build 0/0, deployet 08:28:36, appen genstartet.
+
+
 VERIFICERET: build 0/0, deployet 08:14:04, appen genstartet.
 
 - Ingen yderligere kodeændring nødvendig; dette er en god stabil "daily"-profil.
