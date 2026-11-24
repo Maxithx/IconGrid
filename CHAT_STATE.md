@@ -2615,5 +2615,5 @@ DEL 2 — bruger satte 40 % og så ingen forskel:
   - 30-100 % følger slideren; 100 % = ingen ekstra cap. Effektivt minimum er `MinClockCeilingMhz = 400` (sliderens 30 % giver ca. 630 MHz).
 - PoE skal **ikke** lukkes for test — det er netop baggrundstilstanden, der måles.
 
-IKKE COMMITTET ENDNU — afventer eksplicit godkendelse til endnu et commit/push.
+COMMITTET OG PUSHET: `1bebb48` (GPU power saving + Afterburner/benchmark/hotspot) og `9333cf8` (clock cap + live cap-fix). Bruger-verificeret 24-11-2026: 40 % → 840 MHz / 55 W / 56 °C, 60 % → 1260 MHz / 72 W / 59 °C.
 
