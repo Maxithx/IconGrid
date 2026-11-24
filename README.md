@@ -67,7 +67,7 @@ A single shared **icon size** slider (82%–150%) applies to both views. The 82%
 
 ### Layout presets
 
-![IconGrid Layout settings](Assets/git-img/Layout.png)
+![IconGrid Layout settings](Assets/git-img/Layout-settings.png)
 
 IconGrid can arrange open windows into a saved layout and run it directly from the Layout page. Choose a default layout, run it now, save the current arrangement, skip minimized windows, limit the arrangement to the active screen, or reserve a fixed slot for the launcher.
 
