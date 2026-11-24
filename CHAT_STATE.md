@@ -2631,7 +2631,7 @@ FUND: I den nuværende Afterburner-profilfil er `ThermalLimit=` **tom** for Defa
 
 VERIFICERET: build 0 fejl/0 advarsler, deployet 04:59:54 (C:\IconGrid). State efter genstart: `afterburnerProfile=1`, `tempTargetC=80`, `powerLimit=164.5 W`, `lowPowerProfileApplied=false` (profil 1 aktiv).
 
-IKKE COMMITTET ENDNU — afventer godkendelse.
+COMMITTET OG PUSHET: `89dda7c`.
 
 
 ## FIX: baggrundsprofilen blev sprunget over når Afterburner-undervolt var aktiv (24-11-2026)
@@ -2650,9 +2650,9 @@ VERIFICERET LIVE (deployet 05:03:40, PoE kørende):
 - Spil i fokus: **1860 MHz / 145 W / 74 °C**
 - Spil ikke i fokus (Notepad i forgrunden): **840 MHz / 56 W / 60 °C**, state `lowPowerProfileApplied=true`, `clockCeilingMhz=840`, besked "Afterburner manages the power limit. Clock ceiling 840 MHz · GPU 60 °C (target 70 °C)".
 
-SAMME UCOMMITTEDE ÆNDRING indeholder også Hardware-siden: "GPU undervolt & hotspot-overvågning", `ThermalLimit` i profil-dropdown og temp limit i målt status.
+SAMME ÆNDRING indeholdt også Hardware-siden: "GPU undervolt & hotspot-overvågning", `ThermalLimit` i profil-dropdown og temp limit i målt status.
 
-IKKE COMMITTET ENDNU — afventer godkendelse.
+COMMITTET OG PUSHET: `89dda7c`.
 
 
 ## Hotspot-alarm: justerbar grænse 90-105 °C (24-11-2026)
@@ -2672,7 +2672,7 @@ ANBEFALING: 100 °C er en god default. 90-95 °C giver hyppige advarsler under n
 
 VERIFICERET: build 0 fejl/0 advarsler, deployet 05:09:21; app + agent kører.
 
-IKKE COMMITTET ENDNU — samlet ucommittet ændring indeholder også Hardware-omdøbning, temp limit-visning, Afterburner/clock-cap-fix og denne alarmgrænse.
+COMMITTET OG PUSHET: `89dda7c` (sammen med Hardware-omdøbning, temp limit-visning, Afterburner/clock-cap-fix og startup-fix).
 
 
 ## FIX: GPU-strømbesparelse slog først til efter et vindueskift ved opstart (24-11-2026)
@@ -2690,5 +2690,5 @@ FIX:
 
 VERIFICERET: Scheduled Task-agent startet mens Notepad var i forgrunden (PoE kørte): **840 MHz / 56 W / 59 °C inden for 8 s** (før: ~20 s på fuld clock). Efter launcher-start fortsat 840 MHz / 56 °C. Trace-logging blev midlertidigt slået til til diagnosen og er slået fra igen (`trace-logging.disabled` findes).
 
-Build 0 fejl/0 advarsler, deployet 05:18:46. IKKE COMMITTET — samlet ucommittet ændring omfatter også Hardware-omdøbning, temp limit-visning, hotspot-alarmgrænse og Afterburner/clock-cap-fix.
+Build 0 fejl/0 advarsler, deployet 05:18:46. COMMITTET OG PUSHET: `89dda7c` (samlet ændring: startup-fix, Afterburner/clock-cap, Hardware-omdøbning, temp limit-visning og hotspot-alarmgrænse).
 
