@@ -62,6 +62,9 @@ public class ConfigModel
     public int GpuUndervoltIdleProfile { get; set; } = 0;
     /// <summary>Opt-in warning when the GPU hotspot gets too hot (cooler contact check).</summary>
     public bool GpuHotspotAlarmEnabled { get; set; } = false;
+    // Hot spot alarm threshold in °C (90-105). The delta warning (>15 °C above
+    // the GPU edge temperature) is independent of this value.
+    public int GpuHotspotAlarmThresholdC { get; set; } = 100;
     public bool ShowDesktopIcon { get; set; } = true;
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;

@@ -161,6 +161,20 @@ public sealed class NvmlGpuLimitController : IDisposable
     /// <summary>True while the clock governor has a ceiling locked in the driver.</summary>
     public bool IsClockLimitApplied => _clockLockApplied;
 
+    /// <summary>
+    /// Marks the current clock ceiling as stale so the next governor tick writes
+    /// it to the driver again. Used after MSI Afterburner restarts/reapplies a
+    /// profile, which resets NVML locked clocks.
+    /// </summary>
+    public void InvalidateClockLimit()
+    {
+        if (_clockLockApplied || _clockCeilingMhz > 0)
+        {
+            _clockCeilingDirty = true;
+            _lastClockGovernUtc = DateTime.MinValue;
+        }
+    }
+
     /// <summary>Clock ceiling currently requested from the driver (MHz, 0 = none).</summary>
     public uint AppliedClockCeilingMhz => _clockLockApplied ? _clockCeilingMhz : 0;
 
@@ -534,6 +548,18 @@ public sealed class NvmlGpuLimitController : IDisposable
         }
 
         ceiling = (uint)Math.Clamp((int)ceiling, (int)floor, (int)Math.Max(cap, floor));
+
+        // An external profile switch (MSI Afterburner restart) can reset the NVML
+        // locked clocks while our state still says "applied". If the real clock is
+        // far above the ceiling, force the next write instead of trusting state.
+        if (_clockLockApplied &&
+            !_clockCeilingDirty &&
+            _clockCeilingMhz > 0 &&
+            nvmlDeviceGetClockInfo(_device, NvmlClockTypeSm, out var observedMhz) == NvmlSuccess &&
+            observedMhz > _clockCeilingMhz + 100)
+        {
+            _clockCeilingDirty = true;
+        }
 
         if (_clockLockApplied && !_clockCeilingDirty && ceiling == _clockCeilingMhz)
         {

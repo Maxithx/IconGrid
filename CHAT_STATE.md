@@ -2617,3 +2617,78 @@ DEL 2 — bruger satte 40 % og så ingen forskel:
 
 COMMITTET OG PUSHET: `1bebb48` (GPU power saving + Afterburner/benchmark/hotspot) og `9333cf8` (clock cap + live cap-fix). Bruger-verificeret 24-11-2026: 40 % → 840 MHz / 55 W / 56 °C, 60 % → 1260 MHz / 72 W / 59 °C.
 
+
+## Hardware-siden: GPU undervolt-kortet omdøbt + temp limit vist (24-11-2026)
+
+BRUGERØNSKE: Sektionen "GPU undervolt" skal hedde "GPU undervolt & Hotspot overvågning", og vi bør vise den temp limit som profilerne sætter.
+
+ÆNDRINGER:
+- `GpuUndervoltTitle` (en): "GPU undervolt & hot spot monitoring"; (da): "GPU undervolt & hotspot-overvågning".
+- `AfterburnerProfileInfo` har nu `ThermalLimitC`; `ReadProfiles` parser `ThermalLimit` fra Afterburner-profilen, og `DisplayName` viser fx "83 °C limit" når profilen har en værdi.
+- `GpuUndervoltStatusFormat` har fået `{5} °C` og HardwarePage sender `state.TempTargetC` med, så den målte status viser den **effektive** temp limit fra NVML (fx 80 °C med profil 1, 83 °C stock, 70 °C når GPU-strømbesparelsens temp-grænse er aktiv).
+
+FUND: I den nuværende Afterburner-profilfil er `ThermalLimit=` **tom** for Defaults/Profile1/Profile2/Profile8/Profile9. Der er altså ingen profil-specifik temp limit gemt; kortet bruger driverens/Afterburners standard (målt 80-83 °C). Derfor viser dropdown kun en temp limit når en profil faktisk har en værdi, mens statuslinjen altid viser den effektive grænse.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 04:59:54 (C:\IconGrid). State efter genstart: `afterburnerProfile=1`, `tempTargetC=80`, `powerLimit=164.5 W`, `lowPowerProfileApplied=false` (profil 1 aktiv).
+
+IKKE COMMITTET ENDNU — afventer godkendelse.
+
+
+## FIX: baggrundsprofilen blev sprunget over når Afterburner-undervolt var aktiv (24-11-2026)
+
+BRUGER-RAPPORT: GPU-strømbesparelse virkede ikke — GPU kørte fuld hastighed når spilvinduet ikke var aktivt. State viste `lowPowerProfileApplied=false`, `afterburnerProfile=1`, `powerLimit=164,5 W`, `message="MSI Afterburner profile 1 applied."`.
+
+ROOT CAUSE: `UpdateGpuPowerSaving` returnerede tidligt når `afterburnerOwnsPowerLimit` var sand (undervolt-funktionen aktiv + Afterburner fundet). Det sprang **hele** baggrundsprofilen over — også NVML clock-låsen, som er en helt uafhængig driver-indstilling.
+
+FIX:
+- Når Afterburner ejer power limit, kaldes nu `ApplyBackgroundClockCap(...)`, som kun styrer NVML clock-loftet (og temperatur-governoren), uden at røre power limit.
+- Status-beskeden siger nu eksplicit "Afterburner manages the power limit. Clock ceiling …", så man kan se hvorfor power limit viser Afterburner-værdien (164,5 W) og ikke slideren (70 %).
+- `LowPowerProfileApplied` er nu sand også når kun clock-loftet er aktivt (`lowPowerApplied || IsClockLimitApplied`).
+- Ved fokus/genstart/benchmark frigives clock-loftet som før.
+
+VERIFICERET LIVE (deployet 05:03:40, PoE kørende):
+- Spil i fokus: **1860 MHz / 145 W / 74 °C**
+- Spil ikke i fokus (Notepad i forgrunden): **840 MHz / 56 W / 60 °C**, state `lowPowerProfileApplied=true`, `clockCeilingMhz=840`, besked "Afterburner manages the power limit. Clock ceiling 840 MHz · GPU 60 °C (target 70 °C)".
+
+SAMME UCOMMITTEDE ÆNDRING indeholder også Hardware-siden: "GPU undervolt & hotspot-overvågning", `ThermalLimit` i profil-dropdown og temp limit i målt status.
+
+IKKE COMMITTET ENDNU — afventer godkendelse.
+
+
+## Hotspot-alarm: justerbar grænse 90-105 °C (24-11-2026)
+
+BRUGERØNSKE: hvor er hotspot-alarmen, og kan grænsen sættes mellem 90 og 105 °C?
+
+FUND: Alarmen ligger på Hardware-siden i "GPU undervolt & hotspot-overvågning" → "Hot spot monitoring". Den var en opt-in toggle med **hardcodet** grænse: hotspot ≥ 100 °C ELLER delta ≥ 15 °C over GPU-edge. Grænsen kunne ikke justeres.
+
+ÆNDRINGER:
+- Nyt felt `GpuHotspotAlarmThresholdC` (90-105 °C, default **100**) i ConfigModel/state/persistens/MainViewModel (clamp 90-105).
+- Nyt "Alarmgrænse"-slider i hotspot-sektionen (vises/aktiveres sammen med alarmen).
+- `RefreshHotspot` bruger nu den valgte grænse i stedet for 100.
+- Delta-advarslen (>15 °C over edge) er uændret og kører uafhængigt af den valgte temperaturgrænse.
+- Lokalisering opdateret (en+da): alarm-intro nævner ikke længere 100 fast, plus 2 nye nøgler til grænse-titel/intro.
+
+ANBEFALING: 100 °C er en god default. 90-95 °C giver hyppige advarsler under normal tung load (hotspot ligger ofte 10-20 °C over edge), og 105 °C er for sent fordi Turing allerede throttler omkring 105 °C. Delta-advarslen er ofte det bedste tidlige signal om kølerkontakt.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 05:09:21; app + agent kører.
+
+IKKE COMMITTET ENDNU — samlet ucommittet ændring indeholder også Hardware-omdøbning, temp limit-visning, Afterburner/clock-cap-fix og denne alarmgrænse.
+
+
+## FIX: GPU-strømbesparelse slog først til efter et vindueskift ved opstart (24-11-2026)
+
+BRUGER-RAPPORT: Når IconGrid/overlayet starter mens PoE kører og Stifinder allerede er aktiv, ser den ikke at spillet er i baggrunden; først når man skifter til et andet ikke-spil-vindue tager strømbesparelsen effekt.
+
+TO ÅRSAGER (fundet via midlertidigt aktiveret trace):
+1. Startup med konfigureret FPS-target springer foreground-bootstrap over. `gpuKnownGamePids` var derfor tom indtil native FPS-evidens bekræftede target (~20 s). I mellemtiden var der ingen "spil kører"-PID, så baggrundsprofilen kunne ikke aktiveres.
+2. Når Afterburner-profilen blev anvendt/restartet, nulstillede det NVML locked clocks. Koden troede stadig at clock-loftet var aktivt (internt `_clockCeilingMhz` sat), så governor'ens "uændret"-tjek sprang driver-skrivningen over → GPU kørte fuld clock trods aktiv profil.
+
+FIX:
+- `SeedKnownGamePidsFromConfiguredTarget(...)`: ved agent-start seedes `gpuKnownGamePids` straks med live PID(er) fra den konfigurerede target (samme identitetschecks som FPS-targeting), plus `currentForegroundGamePid`/`initialForegroundPid`. Så virker profilen inden for 4 s-hysteresen i stedet for at vente på native evidens.
+- `NvmlGpuLimitController.InvalidateClockLimit()` kaldes efter Afterburner-profilskift (og stock-restore), så clock-loftet skrives igen.
+- Selvhelende governor: hvis `_clockLockApplied` men den faktiske SM-clock ligger >100 MHz over loftet, sættes dirty-flag og loftet skrives igen. Dækker fremtidige eksterne nulstillinger.
+
+VERIFICERET: Scheduled Task-agent startet mens Notepad var i forgrunden (PoE kørte): **840 MHz / 56 W / 59 °C inden for 8 s** (før: ~20 s på fuld clock). Efter launcher-start fortsat 840 MHz / 56 °C. Trace-logging blev midlertidigt slået til til diagnosen og er slået fra igen (`trace-logging.disabled` findes).
+
+Build 0 fejl/0 advarsler, deployet 05:18:46. IKKE COMMITTET — samlet ucommittet ændring omfatter også Hardware-omdøbning, temp limit-visning, hotspot-alarmgrænse og Afterburner/clock-cap-fix.
+

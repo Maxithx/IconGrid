@@ -60,6 +60,10 @@ namespace IconGrid.ViewModels
             _gpuUndervoltGameProfile = Math.Clamp(state.GpuUndervoltGameProfile, 0, 9);
             _gpuUndervoltIdleProfile = Math.Clamp(state.GpuUndervoltIdleProfile, 0, 9);
             _gpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
+            _gpuHotspotAlarmThresholdC = Math.Clamp(
+                state.GpuHotspotAlarmThresholdC,
+                MinGpuHotspotAlarmCelsius,
+                MaxGpuHotspotAlarmCelsius);
             _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
             _launcherHideMode = state.LauncherHideMode;
             _idleAutoHideDelaySeconds = state.IdleAutoHideDelaySeconds;
@@ -147,6 +151,7 @@ namespace IconGrid.ViewModels
             _gpuUndervoltGameProfile = 1;
             _gpuUndervoltIdleProfile = 0;
             _gpuHotspotAlarmEnabled = false;
+            _gpuHotspotAlarmThresholdC = 100;
             _restoreGameResolutionAfterExit = true;
             _launcherHideMode = 0;
             _idleAutoHideDelaySeconds = 2;
@@ -216,6 +221,7 @@ namespace IconGrid.ViewModels
                 GpuUndervoltGameProfile = _gpuUndervoltGameProfile,
                 GpuUndervoltIdleProfile = _gpuUndervoltIdleProfile,
                 GpuHotspotAlarmEnabled = _gpuHotspotAlarmEnabled,
+                GpuHotspotAlarmThresholdC = _gpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,

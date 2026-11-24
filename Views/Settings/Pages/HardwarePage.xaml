@@ -849,6 +849,40 @@
                                                    FontSize="12"
                                                    Text="{Binding DataContext.GpuHotspotAlarmIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <TextBlock Margin="0,12,0,0"
+                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <Grid Margin="0,8,0,0"
+                                              IsEnabled="{Binding DataContext.GpuHotspotAlarmEnabled, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Slider Minimum="90"
+                                                    Maximum="105"
+                                                    TickFrequency="1"
+                                                    SmallChange="1"
+                                                    LargeChange="5"
+                                                    IsSnapToTickEnabled="True"
+                                                    Style="{StaticResource ModernSliderStyle}"
+                                                    Value="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Column="1"
+                                                       Margin="12,0,0,0"
+                                                       Width="52"
+                                                       VerticalAlignment="Center"
+                                                       TextAlignment="Right"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, StringFormat={}{0} °C}" />
+                                        </Grid>
                                         <TextBlock Margin="0,8,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"

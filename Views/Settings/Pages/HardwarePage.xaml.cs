@@ -359,7 +359,7 @@ public bool IsNvidiaGtx =>
 
             var hotspot = ParseTemperature(snapshot.GpuHotspot);
             var shouldWarn = viewModel.GpuHotspotAlarmEnabled &&
-                             ((hotspot.HasValue && hotspot.Value >= 100) || delta >= 15);
+                             ((hotspot.HasValue && hotspot.Value >= viewModel.GpuHotspotAlarmThresholdC) || delta >= 15);
 
             GpuHotspotWarningText = shouldWarn
                 ? string.Format(viewModel.GpuHotspotWarning, snapshot.GpuHotspot, delta.ToString("F1"))
@@ -517,7 +517,8 @@ public bool IsNvidiaGtx =>
                 state.SmClockMhz.ToString(),
                 state.CurrentTempC,
                 System.Math.Round(state.PowerDrawMw / 1000.0),
-                state.FanPercent);
+                state.FanPercent,
+                state.TempTargetC);
 
             GpuUndervoltStatusText = header + System.Environment.NewLine + details;
             RefreshBenchmarkStatus(state);

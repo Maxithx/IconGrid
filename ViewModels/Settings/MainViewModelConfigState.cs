@@ -42,6 +42,7 @@ namespace IconGrid.ViewModels.Settings
         public int GpuUndervoltGameProfile { get; init; } = 1;
         public int GpuUndervoltIdleProfile { get; init; }
         public bool GpuHotspotAlarmEnabled { get; init; }
+        public int GpuHotspotAlarmThresholdC { get; init; } = 100;
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -134,6 +135,7 @@ namespace IconGrid.ViewModels.Settings
                 GpuUndervoltGameProfile = config.GpuUndervoltGameProfile,
                 GpuUndervoltIdleProfile = config.GpuUndervoltIdleProfile,
                 GpuHotspotAlarmEnabled = config.GpuHotspotAlarmEnabled,
+                GpuHotspotAlarmThresholdC = config.GpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,

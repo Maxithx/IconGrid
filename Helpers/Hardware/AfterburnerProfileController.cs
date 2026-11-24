@@ -12,6 +12,7 @@ namespace IconGrid.Helpers.Hardware;
 public sealed record AfterburnerProfileInfo(
     int Number,
     int PowerLimitPercent,
+    int ThermalLimitC,
     int CoreClockOffsetMhz,
     int FanPercent,
     bool HasVoltageCurve)
@@ -28,6 +29,11 @@ public sealed record AfterburnerProfileInfo(
             if (PowerLimitPercent > 0)
             {
                 parts.Add($"{PowerLimitPercent}% power");
+            }
+
+            if (ThermalLimitC > 0)
+            {
+                parts.Add($"{ThermalLimitC} °C limit");
             }
 
             if (CoreClockOffsetMhz != 0)
@@ -110,6 +116,7 @@ public sealed class AfterburnerProfileController
                 profiles.Add(new AfterburnerProfileInfo(
                     number,
                     ParseInt(values, "PowerLimit"),
+                    ParseInt(values, "ThermalLimit"),
                     ParseInt(values, "CoreClkBoost"),
                     ParseInt(values, "FanSpeed"),
                     values.TryGetValue("VFCurve", out var curve) &&

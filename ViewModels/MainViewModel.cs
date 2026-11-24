@@ -117,6 +117,9 @@ namespace IconGrid.ViewModels
         private int _gpuUndervoltGameProfile = 1;
         private int _gpuUndervoltIdleProfile = 0;
         private bool _gpuHotspotAlarmEnabled = false;
+        private int _gpuHotspotAlarmThresholdC = 100;
+        public const int MinGpuHotspotAlarmCelsius = 90;
+        public const int MaxGpuHotspotAlarmCelsius = 105;
         private bool _restoreGameResolutionAfterExit = true;
         private int _launcherHideMode = 0; // LauncherHideMode: 0=AlwaysVisible, 1=Manual, 2=Auto, 3=AutoAndManual
         private int _idleAutoHideDelaySeconds = 2; // delay before idle auto-hide kicks in (1-10)

@@ -1853,6 +1853,26 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Hot spot alarm threshold in °C (90-105, default 100). The separate
+        /// delta warning (hot spot more than 15 °C above the GPU edge) stays active.
+        /// </summary>
+        public int GpuHotspotAlarmThresholdC
+        {
+            get => _gpuHotspotAlarmThresholdC;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    MinGpuHotspotAlarmCelsius,
+                    MaxGpuHotspotAlarmCelsius);
+                if (SetField(ref _gpuHotspotAlarmThresholdC, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns the default overlay scale for a resolution like "3840x2160".
         /// Falls back to the built-in default (100% for every resolution — the scale is
         /// the real physical size; the 1440p=135% legacy default only applied when the

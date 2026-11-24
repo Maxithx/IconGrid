@@ -359,6 +359,22 @@ public static class HardwareMonitorAgent
             var lastTargetBecameForegroundAtUtc = DateTime.MinValue;
             var gpuLowPowerApplied = false;
             var gpuKnownGamePids = new HashSet<int>();
+            // Seed the game set immediately instead of waiting for native FPS
+            // evidence. Without this, starting IconGrid while Explorer is already
+            // focused left the GPU at full speed for ~20 s until the first
+            // confirmation arrived (the user then saw it engage only after a
+            // window switch).
+            if (currentForegroundGamePid.HasValue)
+            {
+                gpuKnownGamePids.Add(currentForegroundGamePid.Value);
+            }
+
+            if (initialForegroundPid.HasValue)
+            {
+                gpuKnownGamePids.Add(initialForegroundPid.Value);
+            }
+
+            SeedKnownGamePidsFromConfiguredTarget(fpsTarget, gpuKnownGamePids);
             var gpuSamples = new GpuPowerSamples();
             var gpuLastAfterburnerProfile = 0;
 
@@ -916,6 +932,9 @@ exit:
                 var afterburnerResult = afterburner.Apply(desiredProfile, ref lastAfterburnerProfile);
                 if (afterburnerResult.Changed)
                 {
+                    // A profile switch restarts Afterburner and resets NVML locked
+                    // clocks, so the background clock cap must be written again.
+                    gpuLimits.InvalidateClockLimit();
                     lastMessage = afterburnerResult.Message;
                     log?.Invoke(afterburnerResult.Message);
                 }
@@ -941,6 +960,7 @@ exit:
 
             lastAfterburnerProfile = 0;
             var restoreResult = afterburner.Apply(StockAfterburnerProfile, ref lastAfterburnerProfile);
+            gpuLimits.InvalidateClockLimit();
             lastMessage = restoreResult.Message;
             log?.Invoke(restoreResult.Message);
         }
@@ -959,6 +979,23 @@ exit:
         {
             pendingLowPower = null;
 
+            // Afterburner owns the power limit, but the NVML clock lock is an
+            // independent driver setting. Keep applying the background clock cap
+            // so "GPU MHz down while the game is unfocused" still works when an
+            // undervolt profile is active.
+            if (ApplyBackgroundClockCap(
+                    config,
+                    gpuLimits,
+                    anyGameAlive && !benchmarkRunning,
+                    gameIsForeground,
+                    ref lastMessage,
+                    log))
+            {
+                // Make it explicit in the measured status why the power limit
+                // shown is Afterburner's value and not the slider percentage.
+                lastMessage = "Afterburner manages the power limit. " + lastMessage;
+            }
+
             if (lowPowerApplied)
             {
                 var releaseResult = gpuLimits.Restore();
@@ -966,7 +1003,7 @@ exit:
                 {
                     lowPowerApplied = false;
                     lastMessage = releaseResult.Message;
-                    log?.Invoke($"GPU power saving released (Afterburner manages the profile): {releaseResult.Message}");
+                    log?.Invoke($"GPU power saving released (Afterburner manages the power limit): {releaseResult.Message}");
                 }
             }
 
@@ -1225,6 +1262,116 @@ exit:
     /// clock ceiling. Returns 0 when the card cannot lock clocks or when the
     /// user selected 100 % (no extra cap).
     /// </summary>
+    /// <summary>
+    /// Applies or releases the background clock cap without touching the power
+    /// limit. Used when Afterburner owns the power limit (undervolt profiles), so
+    /// the clock cap still works while the game is unfocused.
+    /// </summary>
+    private static bool ApplyBackgroundClockCap(
+        Models.ConfigModel config,
+        NvmlGpuLimitController gpuLimits,
+        bool gameAlive,
+        bool gameIsForeground,
+        ref string lastMessage,
+        Action<string>? log)
+    {
+        if (!config.GpuPowerSavingEnabled || !gameAlive || gameIsForeground)
+        {
+            if (gpuLimits.IsClockLimitApplied)
+            {
+                if (gpuLimits.ReleaseClockLimit(out var releaseError))
+                {
+                    lastMessage = "Clock ceiling released.";
+                }
+                else if (!string.IsNullOrWhiteSpace(releaseError))
+                {
+                    log?.Invoke($"GPU clock governor: could not release the clock ceiling: {releaseError}.");
+                }
+            }
+
+            return false;
+        }
+
+        var ceilingMhz = ResolveBackgroundClockCeilingMhz(config, gpuLimits);
+        var needsGovernor = config.GpuPowerSavingTempLimitEnabled || ceilingMhz > 0;
+        if (!needsGovernor)
+        {
+            if (gpuLimits.IsClockLimitApplied && !gpuLimits.ReleaseClockLimit(out _))
+            {
+                log?.Invoke("GPU clock governor: could not release the clock ceiling.");
+            }
+
+            return false;
+        }
+
+        var governTarget = config.GpuPowerSavingTempLimitEnabled
+            ? config.GpuPowerSavingTempLimitCelsius
+            : NvmlGpuLimitController.MaxTempLimitCelsius;
+
+        var result = gpuLimits.GovernClocks(governTarget, maxCeilingMhz: ceilingMhz);
+        lastMessage = result.Message;
+        if (!result.Success)
+        {
+            log?.Invoke($"GPU clock governor: {result.Message}");
+        }
+
+        return result.Success;
+    }
+
+    /// <summary>
+    /// Adds the live PID(s) of the configured FPS target to the known-game set at
+    /// agent startup. The same identity checks are used as for FPS targeting, so a
+    /// stale RootProcessId or a launcher process cannot be seeded by accident.
+    /// </summary>
+    private static void SeedKnownGamePidsFromConfiguredTarget(
+        Models.FpsTargetConfig? target,
+        HashSet<int> knownGamePids)
+    {
+        if (target == null || !HasConfiguredTargetIdentity(target))
+        {
+            return;
+        }
+
+        if (target.RootProcessId is int rootPid &&
+            rootPid > 0 &&
+            ProcessIsAlive(rootPid) &&
+            MatchesConfigTargetProcess(target, rootPid))
+        {
+            knownGamePids.Add(rootPid);
+        }
+
+        if (string.IsNullOrWhiteSpace(target.ExecutableName))
+        {
+            return;
+        }
+
+        var processName = Path.GetFileNameWithoutExtension(target.ExecutableName);
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return;
+        }
+
+        foreach (var process in Process.GetProcessesByName(processName))
+        {
+            try
+            {
+                if (MatchesConfigTargetProcess(target, process))
+                {
+                    knownGamePids.Add(process.Id);
+                    break;
+                }
+            }
+            catch
+            {
+                // A process that exits during enumeration is simply skipped.
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
+    }
+
     private static int ResolveBackgroundClockCeilingMhz(
         Models.ConfigModel config,
         NvmlGpuLimitController gpuLimits)
@@ -1264,7 +1411,7 @@ exit:
             CapturedAtUtc = DateTime.UtcNow,
             Enabled = config.GpuPowerSavingEnabled,
             Available = gpuLimits.IsAvailable,
-            LowPowerProfileApplied = lowPowerApplied,
+            LowPowerProfileApplied = lowPowerApplied || gpuLimits.IsClockLimitApplied,
             UndervoltActive = afterburnerProfile > 0,
             AfterburnerAvailable = afterburnerAvailable,
             AfterburnerProfile = afterburnerProfile,
