@@ -945,7 +945,7 @@
                                                    VerticalAlignment="Center"
                                                    TextAlignment="Right"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   Text="{Binding DataContext.GpuPowerSavingTempLimitCelsius, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0} Â°C}" />
+                                                   Text="{Binding DataContext.GpuPowerSavingTempLimitCelsius, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0} °C}" />
                                     </Grid>
                                     <TextBlock Margin="0,18,0,0"
                                                MaxWidth="680"
