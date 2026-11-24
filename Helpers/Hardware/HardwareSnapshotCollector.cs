@@ -58,6 +58,10 @@ public sealed class HardwareSnapshotCollector : IDisposable
         var gpuUsage = CaptureGpuUsage();
         var cpuClock = CaptureCpuClock();
         var gpuClock = CaptureGpuClock();
+        var gpuMemoryClock = CaptureGpuMemoryClock();
+        var gpuMemoryUsage = CaptureGpuMemoryUsage();
+        var gpuPower = CaptureGpuPower();
+        var gpuFan = CaptureGpuFan();
         var cpuVoltage = CaptureCpuVoltage();
         var gpuVoltage = CaptureGpuVoltage();
         var smoothedCpuUsage = cpuUsage.HasValue ? SmoothCpuUsage(cpuUsage.Value) : (double?)null;
@@ -77,6 +81,10 @@ public sealed class HardwareSnapshotCollector : IDisposable
             GpuUsagePercent = displayGpuUsage.HasValue ? displayGpuUsage.Value : null,
             CpuClock = cpuClock,
             GpuClock = gpuClock,
+            GpuMemoryClock = gpuMemoryClock,
+            GpuMemoryUsage = gpuMemoryUsage,
+            GpuPower = gpuPower,
+            GpuFan = gpuFan,
             CpuVoltage = cpuVoltage,
             GpuVoltage = gpuVoltage,
             GpuName = _gpuName,
@@ -485,6 +493,148 @@ public sealed class HardwareSnapshotCollector : IDisposable
                     .FirstOrDefault();
 
                 return FormatGpuClock(clockSensor?.Value);
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private string? CaptureGpuMemoryClock()
+    {
+        try
+        {
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var sensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Clock &&
+                                     sensor.Value.HasValue &&
+                                     sensor.Name.Contains("Memory", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(sensor => sensor.Value)
+                    .FirstOrDefault();
+
+                return sensor?.Value is float value && value > 0
+                    ? $"{value:F0} MHz"
+                    : null;
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private string? CaptureGpuMemoryUsage()
+    {
+        try
+        {
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var smallData = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.SmallData && sensor.Value.HasValue)
+                    .ToList();
+
+                var used = smallData.FirstOrDefault(sensor =>
+                    sensor.Name.Contains("GPU Memory Used", StringComparison.OrdinalIgnoreCase))?.Value ??
+                    smallData.FirstOrDefault(sensor =>
+                        sensor.Name.Contains("D3D Dedicated Memory Used", StringComparison.OrdinalIgnoreCase))?.Value;
+                var total = smallData.FirstOrDefault(sensor =>
+                    sensor.Name.Contains("GPU Memory Total", StringComparison.OrdinalIgnoreCase))?.Value;
+
+                if (used.HasValue && total.HasValue && total.Value > 0)
+                {
+                    return $"{used.Value / 1024f:F1} / {total.Value / 1024f:F1} GB";
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private string? CaptureGpuPower()
+    {
+        try
+        {
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var sensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Power && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => GetGpuPowerPriority(sensor.Name))
+                    .FirstOrDefault();
+
+                return sensor?.Value is float value && value > 0
+                    ? $"{value:F0} W"
+                    : null;
+            }
+        }
+        catch
+        {
+        }
+
+        return null;
+    }
+
+    private static int GetGpuPowerPriority(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return 0;
+        }
+
+        if (name.Contains("GPU Package", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (name.Contains("GPU Power", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("GPU Board Power", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        return name.Contains("Power", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+    }
+
+    private string? CaptureGpuFan()
+    {
+        try
+        {
+            foreach (var hardware in _computer.Hardware)
+            {
+                if (!IsGpuHardwareType(hardware.HardwareType))
+                {
+                    continue;
+                }
+
+                var sensor = hardware.Sensors
+                    .Where(sensor => sensor.SensorType == SensorType.Fan && sensor.Value.HasValue)
+                    .OrderByDescending(sensor => sensor.Value)
+                    .FirstOrDefault();
+
+                return sensor?.Value is float value && value > 0
+                    ? $"{value:F0} RPM"
+                    : null;
             }
         }
         catch

@@ -106,6 +106,12 @@ namespace IconGrid.Helpers
         private string _cpuClock = "--";
         private string _cpuVoltage = "--";
         private string _gpuClock = "--";
+        private string _gpuMemoryClock = "--";
+        private string _gpuMemoryUsage = "--";
+        private string _gpuPower = "--";
+        private string _gpuFan = "--";
+        private string _gpuVoltage = "--";
+        private string _gpuHotspot = "--";
         private string _gpuUsage = "--%";
         private double _gpuUsagePercent;
         private string _gpuName = "";
@@ -159,6 +165,12 @@ namespace IconGrid.Helpers
         public string CpuClock { get => _cpuClock; private set { _cpuClock = value; OnPropertyChanged(); } }
         public string CpuVoltage { get => _cpuVoltage; private set { _cpuVoltage = value; OnPropertyChanged(); } }
         public string GpuClock { get => _gpuClock; private set { _gpuClock = value; OnPropertyChanged(); } }
+        public string GpuMemoryClock { get => _gpuMemoryClock; private set { _gpuMemoryClock = value; OnPropertyChanged(); } }
+        public string GpuMemoryUsage { get => _gpuMemoryUsage; private set { _gpuMemoryUsage = value; OnPropertyChanged(); } }
+        public string GpuPower { get => _gpuPower; private set { _gpuPower = value; OnPropertyChanged(); } }
+        public string GpuFan { get => _gpuFan; private set { _gpuFan = value; OnPropertyChanged(); } }
+        public string GpuVoltage { get => _gpuVoltage; private set { _gpuVoltage = value; OnPropertyChanged(); } }
+        public string GpuHotspot { get => _gpuHotspot; private set { _gpuHotspot = value; OnPropertyChanged(); } }
         public string GpuUsage { get => _gpuUsage; private set { _gpuUsage = value; OnPropertyChanged(); } }
         public double GpuUsagePercent { get => _gpuUsagePercent; private set { _gpuUsagePercent = value; OnPropertyChanged(); } }
         public string GpuName { get => _gpuName; private set { _gpuName = value; OnPropertyChanged(); } }
@@ -438,6 +450,36 @@ namespace IconGrid.Helpers
                     if (!string.IsNullOrWhiteSpace(hardware.GpuClock))
                     {
                         GpuClock = hardware.GpuClock;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuMemoryClock))
+                    {
+                        GpuMemoryClock = hardware.GpuMemoryClock;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuMemoryUsage))
+                    {
+                        GpuMemoryUsage = hardware.GpuMemoryUsage;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuPower))
+                    {
+                        GpuPower = hardware.GpuPower;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuFan))
+                    {
+                        GpuFan = hardware.GpuFan;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuVoltage))
+                    {
+                        GpuVoltage = hardware.GpuVoltage;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(hardware.GpuHotspot))
+                    {
+                        GpuHotspot = hardware.GpuHotspot;
                     }
 
                     if (!string.IsNullOrWhiteSpace(hardware.GpuUsage) && hardware.GpuUsagePercent.HasValue)

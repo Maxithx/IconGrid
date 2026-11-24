@@ -3174,6 +3174,30 @@ FIX:
 VERIFICERET: build 0/0, deployet 08:41:26, appen genstartet.
 
 
+## FIX 24: GPU-telemetri-grid + hotspot-trend (24-11-2026)
+
+BRUGERØNSKE:
+- Hotspot målt over tid.
+- En liste/grid med GPU core/memory clock, VRAM-forbrug, power, fan m.m. – integreret i det eksisterende GPU-kort.
+
+IMPLEMENTERET:
+- `HardwareSnapshotCollector` læser nu fra LHM:
+  - `GpuMemoryClock` (fx 7001 MHz)
+  - `GpuMemoryUsage` (fx 4,2 / 8,0 GB)
+  - `GpuPower` (GPU Package, fx 55 W)
+  - `GpuFan` (fx 1204 RPM)
+  - eksisterende voltage/hotspot genbruges.
+- `SystemMonitor` har fået properties til alle felter, så GPU-kortet kan vise dem.
+- GPU-kortet har fået 6 ekstra metric-tiles under de eksisterende:
+  - Memory clock, VRAM-forbrug, Effekt, Blæser, Spænding, Hotspot.
+- Agenten holder en **rolling hotspot-trend** (1 punkt hver 5. sek., max 240 = 20 min) i `monitor-state.json`.
+- Hotspot-kortet viser nu et **trend-graf** med hotspot (orange) og GPU-temp (grå), 0–110 °C.
+- “Ryd målinger” rydder også trenden.
+- Verificeret live: `memClock=7001 MHz`, `mem=4,2 / 8,0 GB`, `power=55 W`, `fan=1204 RPM`, `hotspot=64 °C`, trendCount=2.
+
+VERIFICERET: build 0/0, deployet 08:50:56, appen genstartet.
+
+
 
 VERIFICERET: build 0/0, deployet 08:14:04, appen genstartet.
 

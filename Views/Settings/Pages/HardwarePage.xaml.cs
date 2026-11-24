@@ -119,6 +119,8 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     private System.Windows.Media.PointCollection _stockCurvePoints = new();
     private System.Windows.Media.PointCollection _activeCurvePoints = new();
     private System.Windows.Media.PointCollection _targetCurvePoints = new();
+    private System.Windows.Media.PointCollection _hotspotTrendPoints = new();
+    private System.Windows.Media.PointCollection _gpuTempTrendPoints = new();
     private string _gpuCurveChartNoDataText = string.Empty;
     private string _gpuCurveChartActiveProfileText = string.Empty;
     private string _gpuCurveChartTargetText = string.Empty;
@@ -327,6 +329,26 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         {
             _targetCurvePoints = value;
             OnPropertyChanged(nameof(TargetCurvePoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection HotspotTrendPoints
+    {
+        get => _hotspotTrendPoints;
+        private set
+        {
+            _hotspotTrendPoints = value;
+            OnPropertyChanged(nameof(HotspotTrendPoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection GpuTempTrendPoints
+    {
+        get => _gpuTempTrendPoints;
+        private set
+        {
+            _gpuTempTrendPoints = value;
+            OnPropertyChanged(nameof(GpuTempTrendPoints));
         }
     }
 
@@ -700,6 +722,38 @@ public bool IsNvidiaGtx =>
         }
     }
 
+    private void RefreshHotspotTrend(HardwareMonitorSnapshot? snapshot)
+    {
+        var trend = snapshot?.HotspotTrend;
+        if (trend == null || trend.Count < 2)
+        {
+            HotspotTrendPoints = new System.Windows.Media.PointCollection();
+            GpuTempTrendPoints = new System.Windows.Media.PointCollection();
+            return;
+        }
+
+        const double width = 560;
+        const double height = 120;
+        const double padding = 8;
+        const double maxTemp = 110;
+
+        var hotspot = new System.Windows.Media.PointCollection();
+        var edge = new System.Windows.Media.PointCollection();
+        var step = (width - (2 * padding)) / (trend.Count - 1);
+
+        for (var index = 0; index < trend.Count; index++)
+        {
+            var x = padding + (index * step);
+            var hotspotY = height - padding - (System.Math.Clamp(trend[index].HotspotC, 0, maxTemp) / maxTemp) * (height - (2 * padding));
+            var edgeY = height - padding - (System.Math.Clamp(trend[index].EdgeC, 0, maxTemp) / maxTemp) * (height - (2 * padding));
+            hotspot.Add(new System.Windows.Point(x, hotspotY));
+            edge.Add(new System.Windows.Point(x, edgeY));
+        }
+
+        HotspotTrendPoints = hotspot;
+        GpuTempTrendPoints = edge;
+    }
+
     private static string FormatHotspotHistoryEntry(
         IconGrid.ViewModels.MainViewModel viewModel,
         HotspotHistoryEntry entry)
@@ -815,6 +869,8 @@ public bool IsNvidiaGtx =>
             GpuHotspotHistoryNoDataText = entries.Count == 0
                 ? viewModel.GpuHotspotHistoryNoData
                 : string.Empty;
+
+            RefreshHotspotTrend(snapshot);
 
             GpuUndervoltLiveVoltageText = !string.IsNullOrWhiteSpace(snapshot?.GpuVoltage)
                 ? string.Format(viewModel.GpuUndervoltLiveVoltageFormat, snapshot!.GpuVoltage)

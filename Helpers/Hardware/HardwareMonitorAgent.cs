@@ -361,6 +361,8 @@ public static class HardwareMonitorAgent
             var gpuLowPowerApplied = false;
             var gpuKnownGamePids = new HashSet<int>();
             var hotspotHistory = HotspotHistoryStore.Load(baseDir);
+            var hotspotTrend = new List<HotspotTrendPoint>();
+            var lastHotspotTrendUtc = DateTime.MinValue;
             // Seed the game set immediately instead of waiting for native FPS
             // evidence. Without this, starting IconGrid while Explorer is already
             // focused left the GPU at full speed for ~20 s until the first
@@ -634,6 +636,8 @@ public static class HardwareMonitorAgent
                 {
                     TryDeleteFile(hotspotHistoryClearRequestPath, log);
                     hotspotHistory.Clear();
+                    hotspotTrend.Clear();
+                    lastHotspotTrendUtc = DateTime.MinValue;
                     log?.Invoke("Hotspot history cleared by the settings page.");
                 }
 
@@ -658,9 +662,26 @@ public static class HardwareMonitorAgent
                         edgeValue,
                         snapshot.GpuHotspotDeltaC ?? Math.Max(0, hotspotValue.Value - edgeValue),
                         activeGameName);
+
+                    if ((snapshot.CapturedAtUtc - lastHotspotTrendUtc).TotalSeconds >= 5)
+                    {
+                        lastHotspotTrendUtc = snapshot.CapturedAtUtc;
+                        hotspotTrend.Add(new HotspotTrendPoint
+                        {
+                            CapturedAtUtc = snapshot.CapturedAtUtc,
+                            HotspotC = hotspotValue.Value,
+                            EdgeC = edgeValue
+                        });
+
+                        if (hotspotTrend.Count > 240)
+                        {
+                            hotspotTrend.RemoveRange(0, hotspotTrend.Count - 240);
+                        }
+                    }
                 }
 
                 snapshot.HotspotHistory = hotspotHistory.Top.ToList();
+                snapshot.HotspotTrend = hotspotTrend.ToList();
 
                 if (nativeState != null)
                 {
