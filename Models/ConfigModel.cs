@@ -84,7 +84,6 @@ public class ConfigModel
     // the GPU edge temperature) is independent of this value.
     public int GpuHotspotAlarmThresholdC { get; set; } = 100;
     public bool ShowDesktopIcon { get; set; } = true;
-    public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;
     public bool EnableContentScroll { get; set; } = true;
     public string IconViewMode { get; set; } = "Grid";
@@ -111,9 +110,6 @@ public class ConfigModel
     public bool SettingsWindowIsMaximized { get; set; }
     public double? GamingOverlayWindowLeft { get; set; }
     public double? GamingOverlayWindowTop { get; set; }
-    public bool IsFloatingIconTopmost { get; set; } = true;
-    public double? FloatingIconLeft { get; set; }
-    public double? FloatingIconTop { get; set; }
     public string LayoutPreset { get; set; } = "Auto";
     public bool LayoutSkipMinimized { get; set; } = true;
     public bool LayoutCurrentMonitorOnly { get; set; } = true;

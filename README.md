@@ -12,7 +12,7 @@ IconGrid is a Windows launcher, hardware control center, and desktop overlay bui
 
 - `Views/Launcher/MainWindow.xaml` is the main launcher shell containing the logo area, live monitor strip (CPU / GPU / ping / network), tab bar, shortcut grid, idle hide button, and settings entry point.
 - Shortcut icons are fully drag-and-drop manageable with right-click context menus (rename, change icon, run as admin, copy path, remove).
-- Closing the launcher follows the same rule as the in-app close button: with **Start directly in launcher** enabled it exits the app completely (which also stops the elevated hardware agent and the native FPS worker); otherwise it drops back to floating-icon mode. A second launch never spawns a duplicate instance — it brings the running one to the front and exits, so a stale FPS target can never be inherited from a previous session (single-instance guard).
+- Closing the launcher follows the same rule as the in-app close button: it exits the app completely, which also stops the elevated hardware agent and the native FPS worker. A second launch never spawns a duplicate instance — it brings the running one to the front and exits, so a stale FPS target can never be inherited from a previous session (single-instance guard).
 
 ### Categories (tabs)
 
@@ -23,13 +23,6 @@ Shortcuts are organized into category tabs at the top of the launcher (Games, Ap
 - **Reorder tabs** — drag any tab horizontally and drop it before or after another to change the order. The selected tab stays selected.
 - **Move shortcut to another tab** — drag any shortcut icon from the grid and drop it onto a different category tab. The shortcut moves to that category and appears at the end of its list. Drop on the same tab does nothing (no duplicates).
 - Tab order and category assignments are persisted across restarts.
-
-### Floating icon
-
-![IconGrid Floating icon Screenshot](Assets/git-img/Floatingicon.png)
-
-- IconGrid can start in floating-icon mode, or go directly into the full launcher if "Start directly in launcher" is enabled on the Startside settings page.
-- Left-click expands the main launcher. Right-click opens the localized exit menu.
 
 ### Launcher hide modes
 
@@ -273,12 +266,11 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 ### Controls
 
 - `Controls/Launcher/` — `LauncherTopBar`, `LauncherTabsBar`, `LauncherGrid`
-- `Controls/Floating/` — `FloatingIconButton`
 - `Controls/Common/` — shared controls (`LauncherLogo`, `SliderRow`)
 
 ### Helpers
 
-- `Helpers/Launcher/` — `LauncherWindowModeController`, `FloatingIconController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
+- `Helpers/Launcher/` — `LauncherWindowModeController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
 - `Helpers/Settings/` — config, localization, startup, theme helpers
 - `Helpers/Hardware/` — hardware monitor agent, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM), `NvmlGpuLimitController` (power/clock limits), `AfterburnerProfileController` (undervolt profiles), `GpuPowerSavingState`, and `HotspotHistoryStore`
 - `Helpers/Skin/` — overlay skin rendering, palette extraction, blueprint defaults, and module templates
@@ -293,7 +285,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 IconGrid uses a multi-process architecture:
 
 1. **Elevated Worker (Admin):** interfaces with `LibreHardwareMonitorLib`, NVIDIA NVML, PawnIO, and MSI Afterburner for low-level telemetry and GPU control (temperatures, clocks, power limits, hotspot, undervolt profiles).
-2. **Standard Non-Elevated UI:** the main launcher, floating icon, and shortcut management run as a standard user.
+2. **Standard Non-Elevated UI:** the main launcher and shortcut management run as a standard user.
 
 **Benefits:**
 - Drag-and-drop from Windows Explorer works without UIPI blocking.
@@ -386,7 +378,7 @@ A note on FPS drops: when a game loses foreground focus — opening the Start me
 - Windows startup launches the launcher UI silently through Task Scheduler (`--startup-launch` at logon).
 - Hardware monitor runs as a separate elevated scheduled task `IconGrid Monitor` with `--monitor-agent`.
 - FPS worker is separate from the desktop-facing UI, launched through the monitor-side flow.
-- If "Start directly in launcher" is enabled, the launcher opens straight into full UI on Windows sign-in.
+- The launcher always opens directly in its full UI on Windows sign-in.
 
 ---
 

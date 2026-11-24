@@ -81,10 +81,8 @@ namespace IconGrid.ViewModels
         private bool _showScrollButtons = true;
         private bool _startWithWindows = false;
         private StartupLaunchMode _startupLaunchMode = StartupLaunchMode.TaskScheduler;
-        private bool _isFloatingIconTopmost = true;
         private double _uiScale = 1.0;
         private bool _showDesktopIcon = true;
-        private bool _startDirectlyInLauncher = false;
         private bool _showDevOverlay = false;
         private bool _resetSettingsToggle;
         private double _fixedContentWidth = 720;
@@ -135,7 +133,6 @@ namespace IconGrid.ViewModels
         public const double GamingOverlayMinBackgroundHeight = 20;
         public const double GamingOverlayMaxBackgroundHeight = 120;
         public const double GamingOverlayDefaultBackgroundHeight = 44;
-        private bool _isFullWindowVisible = false;
         private bool _enableSlideUpAnimation = true;
         private bool _enableContentScroll = true;
         private int _windowAnimationDurationMs = 250;
@@ -1142,23 +1139,6 @@ namespace IconGrid.ViewModels
         }
         private bool _isSettingsWindowOpen;
 
-        /// <summary>
-        /// Whether the full IconGrid UI is visible (vs. floating icon mode).
-        /// Not persisted; purely runtime state.
-        /// </summary>
-        public bool IsFullWindowVisible
-        {
-            get => _isFullWindowVisible;
-            set
-            {
-                if (SetField(ref _isFullWindowVisible, value))
-                {
-                    OnPropertyChanged(nameof(IsFullWindowVisible));
-                    OnPropertyChanged(nameof(TopmostState));
-                }
-            }
-        }
-
         public bool EnableSlideUpAnimation
         {
             get => _enableSlideUpAnimation;
@@ -1309,17 +1289,6 @@ namespace IconGrid.ViewModels
         public void SaveGamingOverlayWindowPosition(double left, double top)
         {
             _windowStateStore.SaveGamingOverlayWindowPosition(left, top);
-            SaveSettingsToConfig();
-        }
-
-        public bool TryGetSavedFloatingPosition(out double left, out double top)
-        {
-            return _windowStateStore.TryGetSavedFloatingPosition(out left, out top);
-        }
-
-        public void SaveFloatingIconPosition(double left, double top)
-        {
-            _windowStateStore.SaveFloatingIconPosition(left, top);
             SaveSettingsToConfig();
         }
 
@@ -1536,31 +1505,9 @@ namespace IconGrid.ViewModels
                 if (SetField(ref _isAlwaysOnTop, value))
                 {
                     SaveSettingsToConfig();
-                    OnPropertyChanged(nameof(TopmostState));
                 }
             }
         }
-
-        /// <summary>
-        /// Controls whether the floating icon stays on top while the main UI is hidden.
-        /// </summary>
-        public bool IsFloatingIconTopmost
-        {
-            get => _isFloatingIconTopmost;
-            set
-            {
-                if (SetField(ref _isFloatingIconTopmost, value))
-                {
-                    SaveSettingsToConfig();
-                    OnPropertyChanged(nameof(TopmostState));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Effective Topmost flag used by the window depending on current mode.
-        /// </summary>
-        public bool TopmostState => IsFullWindowVisible ? _isAlwaysOnTop : _isFloatingIconTopmost;
 
         /// <summary>
         /// Shows or hides the tab scroll buttons.
@@ -1583,18 +1530,6 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _showDesktopIcon, value))
-                {
-                    SaveSettingsToConfig();
-                }
-            }
-        }
-
-        public bool StartDirectlyInLauncher
-        {
-            get => _startDirectlyInLauncher;
-            set
-            {
-                if (SetField(ref _startDirectlyInLauncher, value))
                 {
                     SaveSettingsToConfig();
                 }
@@ -1856,8 +1791,6 @@ namespace IconGrid.ViewModels
             NotifyThemePropertiesChanged();
             NotifyLocalizationPropertiesChanged();
             OnPropertyChanged(nameof(IsAlwaysOnTop));
-            OnPropertyChanged(nameof(IsFloatingIconTopmost));
-            OnPropertyChanged(nameof(TopmostState));
             OnPropertyChanged(nameof(ShowScrollButtons));
             OnPropertyChanged(nameof(StartWithWindows));
             OnPropertyChanged(nameof(ShowDevOverlay));

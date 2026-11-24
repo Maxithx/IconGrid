@@ -19,7 +19,7 @@
         Background="Transparent"
         SnapsToDevicePixels="False"
         UseLayoutRounding="False"
-        Topmost="{Binding TopmostState}"
+        Topmost="{Binding IsAlwaysOnTop}"
         AllowDrop="True"
         ShowInTaskbar="False"
         Icon="/Assets/dlb-icon.ico"
@@ -552,19 +552,7 @@
     </Window.Resources>
     <Grid x:Name="RootLayoutGrid"
           helpers:DevInspector.Metadata="Root layout container → Views/MainWindow.xaml">
-        <Grid x:Name="FloatingIconHost"
-              Visibility="{Binding IsFullWindowVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-            <controls:FloatingIconButton AccentBrush="{Binding AccentBrush}"
-                                         ToolTipText="Open IconGrid"
-                                         FloatingIconMouseLeftButtonDown="FloatingIconButton_PreviewMouseLeftButtonDown"
-                                         FloatingIconMouseMove="FloatingIconButton_PreviewMouseMove"
-                                         FloatingIconMouseLeftButtonUp="FloatingIconButton_PreviewMouseLeftButtonUp"
-                                         OpenRequested="FloatingIconButton_Click"
-                                         ExitRequested="FloatingIconExitMenuItem_Click" />
-        </Grid>
-
         <Grid x:Name="FullUiHost"
-              Visibility="{Binding IsFullWindowVisible, Converter={StaticResource BoolToVisibilityConverter}}"
               Margin="0"
               HorizontalAlignment="Center"
               VerticalAlignment="Top">
@@ -768,10 +756,6 @@
                                           Margin="0,12,0,0"
                                           helpers:DevInspector.Metadata="Always on top checkbox → MainViewModel.IsAlwaysOnTop"
                                           IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}" />
-                                <CheckBox Content="{Binding FloatingIconTopmostLabel}"
-                                          Margin="0,8,0,0"
-                                          helpers:DevInspector.Metadata="Floating icon topmost checkbox → MainViewModel.IsFloatingIconTopmost"
-                                          IsChecked="{Binding IsFloatingIconTopmost, Mode=TwoWay}" />
                                 <CheckBox Content="{Binding ShowScrollButtonsLabel}"
                                           Margin="0,8,0,0"
                                           helpers:DevInspector.Metadata="Scroll buttons checkbox → MainViewModel.ShowScrollButtons"

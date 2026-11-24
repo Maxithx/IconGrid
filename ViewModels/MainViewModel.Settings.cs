@@ -15,7 +15,6 @@ namespace IconGrid.ViewModels
             _iconsPerRow = state.IconsPerRow;
             _icon_scale = state.IconScale;
             _isAlwaysOnTop = state.IsAlwaysOnTop;
-            _isFloatingIconTopmost = state.IsFloatingIconTopmost;
             _showScrollButtons = state.ShowScrollButtons;
             _themeState.ApplyConfig(config);
             _startWithWindows = state.StartWithWindows;
@@ -78,7 +77,6 @@ namespace IconGrid.ViewModels
             _peekActivationMode = state.PeekActivationMode;
             _gamingOverlayResolutionScales = state.GamingOverlayResolutionScales ?? new Dictionary<string, double>();
             _showDesktopIcon = state.ShowDesktopIcon;
-            _startDirectlyInLauncher = state.StartDirectlyInLauncher;
             _showDevOverlay = state.ShowDevOverlay;
             _layoutMeasurements.ApplyMeasurementState(state.IconRowSpacing, state.LastRowPaddingAdjust, state.IconViewMode, state.CarouselVisibleIcons);
             _enableSlideUpAnimation = state.EnableSlideUpAnimation;
@@ -116,9 +114,7 @@ namespace IconGrid.ViewModels
                 state.SettingsWindowHeight,
                 state.SettingsWindowIsMaximized,
                 state.GamingOverlayWindowLeft,
-                state.GamingOverlayWindowTop,
-                state.FloatingIconLeft,
-                state.FloatingIconTop);
+                state.GamingOverlayWindowTop);
             _fpsTarget = state.FpsTarget ?? new FpsTargetConfig();
             _layoutState.ApplyConfig(config);
             NotifyConfigApplied();
@@ -169,16 +165,13 @@ namespace IconGrid.ViewModels
             _peekActivationMode = 0;
             _gamingOverlayResolutionScales = new Dictionary<string, double>();
             _isAlwaysOnTop = false;
-            _isFloatingIconTopmost = true;
             _showScrollButtons = true;
             _enableContentScroll = true;
             _startWithWindows = false;
             _startupLaunchMode = StartupLaunchMode.TaskScheduler;
             _showDevOverlay = false;
-            _startDirectlyInLauncher = false;
             _language = "da";
             _themeState.SetIsLightTheme(true);
-            _windowStateStore.ResetFloatingPosition();
             _windowAnimationDurationMs = 250;
             _fpsTarget = new FpsTargetConfig();
         }
@@ -237,9 +230,7 @@ namespace IconGrid.ViewModels
                 GpuHotspotAlarmEnabled = _gpuHotspotAlarmEnabled,
                 GpuHotspotAlarmThresholdC = _gpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = _showDesktopIcon,
-                StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,
-                IsFloatingIconTopmost = _isFloatingIconTopmost,
                 ShowScrollButtons = _showScrollButtons,
                 IsLightTheme = _themeState.IsLightTheme,
                 StartWithWindows = _startWithWindows,

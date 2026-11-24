@@ -57,9 +57,7 @@ namespace IconGrid.ViewModels.Settings
                 config.GpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
                 config.GpuHotspotAlarmThresholdC = state.GpuHotspotAlarmThresholdC;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
-                config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;
-                config.IsFloatingIconTopmost = state.IsFloatingIconTopmost;
                 config.ShowScrollButtons = state.ShowScrollButtons;
                 config.IsLightTheme = state.IsLightTheme;
                 config.StartWithWindows = state.StartWithWindows;
@@ -79,8 +77,6 @@ namespace IconGrid.ViewModels.Settings
                 config.SettingsWindowIsMaximized = state.SettingsWindowIsMaximized;
                 config.GamingOverlayWindowLeft = state.GamingOverlayWindowLeft;
                 config.GamingOverlayWindowTop = state.GamingOverlayWindowTop;
-                config.FloatingIconLeft = state.FloatingIconLeft;
-                config.FloatingIconTop = state.FloatingIconTop;
                 config.LayoutPreset = state.LayoutPreset;
                 config.LayoutSkipMinimized = state.LayoutSkipMinimized;
                 config.LayoutCurrentMonitorOnly = state.LayoutCurrentMonitorOnly;

@@ -73,7 +73,6 @@ namespace IconGrid.Views.Launcher
 
         private double _lastLoggedLeft = double.NaN;
         private double _lastLoggedTop = double.NaN;
-        private readonly FloatingIconController _floatingIconController = new();
         private readonly SettingsWindowCoordinator _settingsWindowCoordinator = new();
         private readonly GamingOverlayWindowCoordinator _gamingOverlayWindowCoordinator = new();
 
@@ -113,9 +112,7 @@ namespace IconGrid.Views.Launcher
             _windowModeController = new LauncherWindowModeController(
                 this,
                 _viewModel,
-                _floatingIconController,
                 _autoHideTimer,
-                _windowInterop.TrayIcon,
                 _monitorPollingController.SetPollingEnabled);
             _devOverlayController = new DevOverlayController(this, _viewModel);
             _dragDropHelper = new LauncherDragDropHelper(_viewModel, IsOverLauncherTile);
@@ -128,12 +125,8 @@ namespace IconGrid.Views.Launcher
             _pawnIoWarningController.Update();
             LogTrace($"MainWindow created. Elevated={IsCurrentProcessElevated()}");
 
-            // Start in floating icon mode; final position is set on load
-            Left = 0;
-            Top = 0;
             ResizeMode = ResizeMode.NoResize;
 
-            _windowInterop.InitializeTrayIcon(EnterFullMode, ExitApplication);
             _windowInterop.ApplyDynamicIcon();
             _devOverlayController.Initialize();
         }
@@ -172,11 +165,6 @@ namespace IconGrid.Views.Launcher
             _windowModeController?.EnterFullMode();
         }
 
-        private void EnterFloatingMode()
-        {
-            _windowModeController?.EnterFloatingMode();
-        }
-
         /// <summary>
         /// Called when a second IconGrid launch asks this (the running) instance to
         /// come to the foreground. Part of the single-instance guard: the second
@@ -202,19 +190,9 @@ namespace IconGrid.Views.Launcher
             }
         }
 
-        private void PositionFloatingIcon(bool preferSaved = true)
-        {
-            _windowModeController?.PositionFloatingIcon(preferSaved);
-        }
-
         private void ClampWindowToWorkArea()
         {
             _windowModeController?.ClampWindowToWorkArea();
-        }
-
-        private void ClampFloatingIconToWorkArea()
-        {
-            _windowModeController?.ClampFloatingIconToWorkArea();
         }
 
         private void LogTrace(string message)
@@ -250,15 +228,7 @@ namespace IconGrid.Views.Launcher
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (_viewModel.StartDirectlyInLauncher)
-            {
-                EnterFullMode();
-            }
-            else
-            {
-                EnterFloatingMode();
-                PositionFloatingIcon();
-            }
+            EnterFullMode();
             Dispatcher.BeginInvoke(UpdateHeaderHeightFromVisuals, DispatcherPriority.Background);
 
         }
@@ -292,13 +262,11 @@ namespace IconGrid.Views.Launcher
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), StringComparison.OrdinalIgnoreCase))
             {
                 _shortcutActions?.LoadWindowsShortcuts();
-                _windowInterop.RefreshTrayIconMenuLabels();
             }
 
             // Handle Dynamic Layout when icon panel expands/collapses
-            if (_viewModel.IsFullWindowVisible &&
-                (string.Equals(e.PropertyName, nameof(MainViewModel.WindowDesiredHeightEffective), StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(e.PropertyName, nameof(MainViewModel.WindowDesiredWidth), StringComparison.OrdinalIgnoreCase)))
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.WindowDesiredHeightEffective), StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(e.PropertyName, nameof(MainViewModel.WindowDesiredWidth), StringComparison.OrdinalIgnoreCase))
             {
                 var durationMs = (_viewModel.EnableSlideUpAnimation && _isAnimatingHeight) ? _viewModel.WindowAnimationDurationMs : 0;
                 var duration = TimeSpan.FromMilliseconds(durationMs);
@@ -377,50 +345,11 @@ namespace IconGrid.Views.Launcher
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_viewModel.IsFullWindowVisible)
-                return;
-
             ShowInTaskbar = true;
             WindowState = WindowState.Minimized;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_viewModel.StartDirectlyInLauncher)
-            {
-                ExitApplication();
-            }
-            else
-            {
-                EnterFloatingMode();
-            }
-        }
-
-        private void FloatingIconButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _floatingIconController.HandleMouseLeftButtonDown(this, _viewModel, e);
-        }
-
-        private void FloatingIconButton_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
-        {
-            _floatingIconController.HandleMouseMove(this, _viewModel, e);
-        }
-
-        private void FloatingIconButton_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (_floatingIconController.HandleMouseLeftButtonUp(_viewModel, e))
-            {
-                EnterFullMode();
-            }
-        }
-
-        private void FloatingIconButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_floatingIconController.HandleClick())
-                EnterFullMode();
-        }
-
-        private void FloatingIconExitMenuItem_Click(object sender, RoutedEventArgs e)
         {
             ExitApplication();
         }
@@ -1053,21 +982,12 @@ namespace IconGrid.Views.Launcher
             // overlay appear at startup with no game running.
             //
             // Route X through the exact same behaviour as the in-app close button:
-            // exit completely, or drop to floating-icon mode (which intentionally
-            // keeps the overlay agent alive).
+            // exit completely, which also stops the elevated hardware-monitor agent
+            // and the native FPS worker.
             if (!_isShuttingDown)
             {
                 e.Cancel = true;
-
-                if (_viewModel == null || _viewModel.StartDirectlyInLauncher)
-                {
-                    ExitApplication();
-                }
-                else
-                {
-                    EnterFloatingMode();
-                }
-
+                ExitApplication();
                 return;
             }
 
@@ -1093,8 +1013,7 @@ namespace IconGrid.Views.Launcher
 
         private void ExitApplication()
         {
-            // Allow Window_Closing to perform the real teardown instead of
-            // re-routing into floating mode.
+            // Allow Window_Closing to perform the real teardown.
             _isShuttingDown = true;
 
             _monitorPollingController.Stop();
@@ -1168,16 +1087,12 @@ namespace IconGrid.Views.Launcher
                 _lastLoggedTop = Top;
             }
 
-            if (_viewModel.IsFullWindowVisible && WindowState == WindowState.Normal)
+            if (WindowState == WindowState.Normal)
             {
                 if (!_skipSavingLocation)
                 {
                     _viewModel.SaveWindowPosition(Left, Top);
                 }
-            }
-            else if (!_viewModel.IsFullWindowVisible && WindowState == WindowState.Normal)
-            {
-                _floatingIconController.HandleLocationChanged(this, _viewModel, _skipSavingLocation);
             }
         }
     }

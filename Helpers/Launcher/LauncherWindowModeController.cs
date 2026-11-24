@@ -22,9 +22,7 @@ namespace IconGrid.Helpers
     {
         private readonly Window _window;
         private readonly MainViewModel _viewModel;
-        private readonly FloatingIconController _floatingIconController;
         private readonly DispatcherTimer? _autoHideTimer;
-        private readonly Forms.NotifyIcon? _trayIcon;
         private readonly Action<bool> _setMonitorPollingEnabled;
         private bool _autoHideEnabled;
         private bool _isHidden;
@@ -72,16 +70,12 @@ namespace IconGrid.Helpers
         public LauncherWindowModeController(
             Window window,
             MainViewModel viewModel,
-            FloatingIconController floatingIconController,
             DispatcherTimer? autoHideTimer,
-            Forms.NotifyIcon? trayIcon,
             Action<bool> setMonitorPollingEnabled)
         {
             _window = window;
             _viewModel = viewModel;
-            _floatingIconController = floatingIconController;
             _autoHideTimer = autoHideTimer;
-            _trayIcon = trayIcon;
             _setMonitorPollingEnabled = setMonitorPollingEnabled;
 
             _idleProximityTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -109,35 +103,31 @@ namespace IconGrid.Helpers
 
         public void EnterFullMode()
         {
-            var wasFull = _viewModel.IsFullWindowVisible;
-            _viewModel.IsFullWindowVisible = true;
             _setMonitorPollingEnabled(true);
             ApplyFullWindowSizing();
-            if (!wasFull)
-            {
-                PositionFullWindow();
+            PositionFullWindow();
 
-                if (_viewModel.EnableSlideUpAnimation)
+            if (_viewModel.EnableSlideUpAnimation)
+            {
+                if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
                 {
-                    if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
+                    iconAreaGrid.Opacity = 0;
+                    if (_window.FindResource("SlideUpAnimation") is Storyboard slideUpAnimation)
                     {
-                        iconAreaGrid.Opacity = 0;
-                        if (_window.FindResource("SlideUpAnimation") is Storyboard slideUpAnimation)
-                        {
-                            var animation = slideUpAnimation.Clone();
-                            animation.Begin(iconAreaGrid);
-                        }
-                    }
-                }
-                else
-                {
-                    if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
-                    {
-                        iconAreaGrid.Opacity = 1;
-                        iconAreaGrid.RenderTransform = new TranslateTransform(0, 0);
+                        var animation = slideUpAnimation.Clone();
+                        animation.Begin(iconAreaGrid);
                     }
                 }
             }
+            else
+            {
+                if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
+                {
+                    iconAreaGrid.Opacity = 1;
+                    iconAreaGrid.RenderTransform = new TranslateTransform(0, 0);
+                }
+            }
+
             _window.WindowState = WindowState.Normal;
             _window.ShowInTaskbar = true;
 
@@ -148,13 +138,6 @@ namespace IconGrid.Helpers
             }
 
             _window.Activate();
-        }
-
-        public void EnterFloatingMode()
-        {
-            _autoHideEnabled = false;
-            _floatingIconController.EnterFloatingMode(_window, _viewModel, _autoHideTimer, _trayIcon, _setMonitorPollingEnabled);
-            StopIdleHide();
         }
 
         public void ApplyFullWindowSizing()
@@ -180,11 +163,6 @@ namespace IconGrid.Helpers
             _window.Top = area.Top + defaultTopOffset;
         }
 
-        public void PositionFloatingIcon(bool preferSaved = true)
-        {
-            _floatingIconController.PositionFloatingIcon(_window, _viewModel, preferSaved);
-        }
-
         public void ClampWindowToWorkArea()
         {
             var width = double.IsNaN(_window.ActualWidth) || _window.ActualWidth <= 0 ? _window.Width : _window.ActualWidth;
@@ -193,11 +171,6 @@ namespace IconGrid.Helpers
             var (left, top) = WindowWorkAreaHelper.Clamp(_window.Left, _window.Top, width, height, area);
             _window.Left = left;
             _window.Top = top;
-        }
-
-        public void ClampFloatingIconToWorkArea()
-        {
-            _floatingIconController.ClampFloatingIconToWorkArea(_window);
         }
 
         // ---- Idle hide (manual / auto, no game running) ----
@@ -626,10 +599,7 @@ namespace IconGrid.Helpers
                 SlideToPreGameTop();
             }
 
-            if (_viewModel.IsFullWindowVisible)
-            {
-                ApplyIdleHideMode();
-            }
+            ApplyIdleHideMode();
         }
 
         /// <summary>

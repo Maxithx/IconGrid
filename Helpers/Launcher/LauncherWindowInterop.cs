@@ -11,7 +11,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using IconGrid.Helpers.Settings;
 using IconGrid.ViewModels;
-using Forms = System.Windows.Forms;
 
 namespace IconGrid.Helpers
 {
@@ -27,7 +26,6 @@ namespace IconGrid.Helpers
         private readonly MainViewModel _viewModel;
         private readonly Action<string> _log;
         private HwndSource? _hwndSource;
-        private Forms.NotifyIcon? _trayIcon;
         private string _baseTitle;
         private bool _titleClearToggle;
 
@@ -40,8 +38,6 @@ namespace IconGrid.Helpers
         }
 
         public IntPtr Handle => _hwndSource?.Handle ?? IntPtr.Zero;
-
-        public Forms.NotifyIcon? TrayIcon => _trayIcon;
 
         private const uint MONITOR_DEFAULTTONEAREST = 2;
 
@@ -115,13 +111,6 @@ namespace IconGrid.Helpers
         /// </summary>
         public void Cleanup()
         {
-            if (_trayIcon != null)
-            {
-                _trayIcon.Visible = false;
-                _trayIcon.Dispose();
-                _trayIcon = null;
-            }
-
             if (_hwndSource != null)
             {
                 _hwndSource.RemoveHook(WndProc);
@@ -165,7 +154,6 @@ namespace IconGrid.Helpers
                         }), DispatcherPriority.ApplicationIdle);
                     }
 
-                    UpdateTrayIconFromSource(dynamicFrame);
                     _log($"Applied dynamic icon using accent #{theme.AccentColor.A:X2}{theme.AccentColor.R:X2}{theme.AccentColor.G:X2}{theme.AccentColor.B:X2}.");
                 }
                 else
@@ -191,57 +179,6 @@ namespace IconGrid.Helpers
             await Task.Delay(120);
             ApplyDynamicIcon();
             ForceTitleRefresh();
-        }
-
-        public void InitializeTrayIcon(Action enterFullMode, Action exitApplication)
-        {
-            try
-            {
-                if (_trayIcon != null)
-                    return;
-
-                _trayIcon = new Forms.NotifyIcon
-                {
-                    Visible = true,
-                    Text = "IconGrid"
-                };
-
-                var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "dlb-icon.ico");
-                if (File.Exists(iconPath))
-                {
-                    _trayIcon.Icon = new System.Drawing.Icon(iconPath, 32, 32);
-                }
-                else
-                {
-                    var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-                    if (!string.IsNullOrWhiteSpace(exe))
-                    {
-                        _trayIcon.Icon = System.Drawing.Icon.ExtractAssociatedIcon(exe);
-                    }
-                }
-
-                var menu = new Forms.ContextMenuStrip();
-                menu.Items.Add(_viewModel.OpenLabel, null, (_, __) => _window.Dispatcher.Invoke(enterFullMode));
-                menu.Items.Add(_viewModel.ExitLabel, null, (_, __) => _window.Dispatcher.Invoke(exitApplication));
-                _trayIcon.ContextMenuStrip = menu;
-                _trayIcon.DoubleClick += (_, __) => _window.Dispatcher.Invoke(enterFullMode);
-            }
-            catch
-            {
-                _trayIcon = null;
-            }
-        }
-
-        public void RefreshTrayIconMenuLabels()
-        {
-            var menu = _trayIcon?.ContextMenuStrip;
-            if (menu == null || menu.Items.Count < 2)
-            {
-                return;
-            }
-
-            menu.Items[0].Text = _viewModel.OpenLabel;
-            menu.Items[1].Text = _viewModel.ExitLabel;
         }
 
         // Dynamic theme icon refresh that updates WM_SETICON / tray icon
@@ -327,20 +264,6 @@ namespace IconGrid.Helpers
             }
         }
 
-        private void UpdateTrayIconFromSource(BitmapSource? source)
-        {
-            if (_trayIcon == null || source == null)
-                return;
-
-            var icon = CreateIconFromBitmapSource(source);
-            if (icon != null)
-            {
-                var oldIcon = _trayIcon.Icon;
-                _trayIcon.Icon = icon;
-                oldIcon?.Dispose();
-            }
-        }
-
         private static BitmapFrame CreateCacheBustingIcon(BitmapSource source)
         {
             using var buffer = new MemoryStream();
@@ -365,38 +288,6 @@ namespace IconGrid.Helpers
         private static void NotifyShellIconRefresh()
         {
             Task.Delay(100).ContinueWith(_ => SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero));
-        }
-
-        private static System.Drawing.Icon? CreateIconFromBitmapSource(BitmapSource source)
-        {
-            IntPtr handle = IntPtr.Zero;
-            try
-            {
-                using var ms = new MemoryStream();
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(source));
-                encoder.Save(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                using var bitmap = new System.Drawing.Bitmap(ms);
-                handle = bitmap.GetHicon();
-                if (handle == IntPtr.Zero)
-                    return null;
-
-                using var icon = System.Drawing.Icon.FromHandle(handle);
-                return (System.Drawing.Icon)icon.Clone();
-            }
-            catch
-            {
-                return null;
-            }
-            finally
-            {
-                if (handle != IntPtr.Zero)
-                {
-                    DestroyIcon(handle);
-                }
-            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -517,9 +408,6 @@ namespace IconGrid.Helpers
                 ? SetClassLongPtrW(hWnd, index, hIcon)
                 : SetClassLongW(hWnd, index, hIcon);
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool DestroyIcon(IntPtr hIcon);
 
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 

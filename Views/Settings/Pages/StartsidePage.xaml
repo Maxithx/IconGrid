@@ -112,24 +112,6 @@
                                 </Grid>
                             </StackPanel>
 
-                            <Grid Margin="0,18,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding StartDirectlyInLauncherLabel}"
-                                               Style="{StaticResource TemplateSectionTitleStyle}" />
-                                    <TextBlock Text="{Binding StartDirectlyInLauncherDescription}"
-                                               Margin="0,4,20,0"
-                                               TextWrapping="Wrap"
-                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                </StackPanel>
-                                <ToggleButton Grid.Column="1"
-                                              Style="{StaticResource ToggleSwitchStyle}"
-                                              IsChecked="{Binding StartDirectlyInLauncher, Mode=TwoWay}" />
-                            </Grid>
-
                             <StackPanel Margin="0,18,0,0">
                                 <TextBlock Margin="0,18,0,0"
                                            Text="{Binding LauncherVisibilityTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"

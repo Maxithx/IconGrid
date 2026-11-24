@@ -384,7 +384,7 @@ namespace IconGrid.Helpers
                     : IntPtr.Zero;
 
                 var workArea = WindowLayoutEngine.GetWorkArea(targetMonitor);
-                var includeIconGridWindow = _viewModel.LayoutReserveIconGridSlot || _viewModel.IsFullWindowVisible;
+                var includeIconGridWindow = true;
                 var windows = WindowLayoutEngine.CollectCandidateWindows(targetMonitor, includeIconGridWindow, handle, _viewModel, _log);
                 if (windows.Count == 0)
                 {

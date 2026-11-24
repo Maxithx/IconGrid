@@ -14,7 +14,7 @@ namespace IconGrid.Helpers
     /// per-monitor-DPI aware, so when the process/system DPI differs from the monitor's
     /// effective scale it returns the work area divided by the system DPI (e.g. a 1920px-wide
     /// screen at 125% system scaling reports 1536). Clamping against that value made the
-    /// launcher (and the floating icon) stop short of the right edge and spring back when
+    /// launcher stop short of the right edge and spring back when
     /// dragged toward the top-right corner; the left edge worked because the left clamp is 0.
     /// </para>
     /// The monitor is resolved from the window (so multi-monitor placements clamp to the

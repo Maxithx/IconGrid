@@ -7,7 +7,6 @@ namespace IconGrid.ViewModels.Settings
         public int IconsPerRow { get; init; }
         public double IconScale { get; init; }
         public bool IsAlwaysOnTop { get; init; }
-        public bool IsFloatingIconTopmost { get; init; }
         public bool ShowScrollButtons { get; init; }
         public bool StartWithWindows { get; init; }
         public StartupLaunchMode StartupLaunchMode { get; init; }
@@ -47,7 +46,6 @@ namespace IconGrid.ViewModels.Settings
         public bool GpuHotspotAlarmEnabled { get; init; }
         public int GpuHotspotAlarmThresholdC { get; init; } = 100;
         public bool ShowDesktopIcon { get; init; }
-        public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
         public double IconRowSpacing { get; init; }
         public double LastRowPaddingAdjust { get; init; }
@@ -93,8 +91,6 @@ namespace IconGrid.ViewModels.Settings
         public bool SettingsWindowIsMaximized { get; init; }
         public double? GamingOverlayWindowLeft { get; init; }
         public double? GamingOverlayWindowTop { get; init; }
-        public double? FloatingIconLeft { get; init; }
-        public double? FloatingIconTop { get; init; }
 
         public static MainViewModelConfigState FromConfig(ConfigModel config)
         {
@@ -103,7 +99,6 @@ namespace IconGrid.ViewModels.Settings
                 IconsPerRow = config.IconsPerRow < 4 ? 4 : config.IconsPerRow,
                 IconScale = Math.Max(0.82, config.IconScale),
                 IsAlwaysOnTop = config.IsAlwaysOnTop,
-                IsFloatingIconTopmost = config.IsFloatingIconTopmost,
                 ShowScrollButtons = config.ShowScrollButtons,
                 StartWithWindows = config.StartWithWindows,
                 StartupLaunchMode = config.StartupLaunchMode,
@@ -143,7 +138,6 @@ namespace IconGrid.ViewModels.Settings
                 GpuHotspotAlarmEnabled = config.GpuHotspotAlarmEnabled,
                 GpuHotspotAlarmThresholdC = config.GpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = config.ShowDesktopIcon,
-                StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,
                 IconRowSpacing = config.IconRowSpacing,
                 LastRowPaddingAdjust = Math.Max(-20, Math.Min(20, config.LastRowPaddingAdjust)),
@@ -169,8 +163,6 @@ namespace IconGrid.ViewModels.Settings
                 SettingsWindowIsMaximized = config.SettingsWindowIsMaximized,
                 GamingOverlayWindowLeft = config.GamingOverlayWindowLeft,
                 GamingOverlayWindowTop = config.GamingOverlayWindowTop,
-                FloatingIconLeft = config.FloatingIconLeft,
-                FloatingIconTop = config.FloatingIconTop,
                 MonitorPingToNetGap = config.MonitorPingToNetGap,
                 MonitorNetToDownloadGap = config.MonitorNetToDownloadGap,
                 MonitorDownloadToUploadGap = config.MonitorDownloadToUploadGap,

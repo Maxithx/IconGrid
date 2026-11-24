@@ -44,9 +44,7 @@ namespace IconGrid.ViewModels.Settings
         public bool GpuHotspotAlarmEnabled { get; set; }
         public int GpuHotspotAlarmThresholdC { get; set; } = 100;
         public bool ShowDesktopIcon { get; set; }
-        public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }
-        public bool IsFloatingIconTopmost { get; set; }
         public bool ShowScrollButtons { get; set; }
         public bool IsLightTheme { get; set; }
         public bool StartWithWindows { get; set; }
@@ -66,8 +64,6 @@ namespace IconGrid.ViewModels.Settings
         public bool SettingsWindowIsMaximized { get; set; }
         public double? GamingOverlayWindowLeft { get; set; }
         public double? GamingOverlayWindowTop { get; set; }
-        public double? FloatingIconLeft { get; set; }
-        public double? FloatingIconTop { get; set; }
         public string LayoutPreset { get; set; } = "Auto";
         public bool LayoutSkipMinimized { get; set; }
         public bool LayoutCurrentMonitorOnly { get; set; }

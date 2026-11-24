@@ -3,8 +3,7 @@ using IconGrid.ViewModels.Settings;
 namespace IconGrid.ViewModels.Launcher
 {
     /// <summary>
-    /// Owns window-position persistence for the main window, settings window, gaming overlay,
-    /// and floating icon. Previously lived directly in MainViewModel.
+    /// Owns window-position persistence for the main window, settings window, and gaming overlay.
     /// </summary>
     public class WindowStateStore
     {
@@ -17,8 +16,6 @@ namespace IconGrid.ViewModels.Launcher
         private bool _settingsWindowIsMaximized;
         private double? _gamingOverlayWindowLeft;
         private double? _gamingOverlayWindowTop;
-        private double? _floatingLeft;
-        private double? _floatingTop;
 
         public bool TryGetSavedWindowPosition(out double left, out double top)
         {
@@ -109,29 +106,9 @@ namespace IconGrid.ViewModels.Launcher
             _gamingOverlayWindowTop = top;
         }
 
-        public bool TryGetSavedFloatingPosition(out double left, out double top)
-        {
-            if (_floatingLeft.HasValue && _floatingTop.HasValue)
-            {
-                left = _floatingLeft.Value;
-                top = _floatingTop.Value;
-                return true;
-            }
-
-            left = 0;
-            top = 0;
-            return false;
-        }
-
-        public void SaveFloatingIconPosition(double left, double top)
-        {
-            _floatingLeft = left;
-            _floatingTop = top;
-        }
-
         public void ApplyConfig(double? windowLeft, double? windowTop, double? settingsWindowLeft, double? settingsWindowTop,
             double? settingsWindowWidth, double? settingsWindowHeight, bool settingsWindowIsMaximized,
-            double? gamingOverlayWindowLeft, double? gamingOverlayWindowTop, double? floatingLeft, double? floatingTop)
+            double? gamingOverlayWindowLeft, double? gamingOverlayWindowTop)
         {
             _windowLeft = windowLeft;
             _windowTop = windowTop;
@@ -142,14 +119,6 @@ namespace IconGrid.ViewModels.Launcher
             _settingsWindowIsMaximized = settingsWindowIsMaximized;
             _gamingOverlayWindowLeft = gamingOverlayWindowLeft;
             _gamingOverlayWindowTop = gamingOverlayWindowTop;
-            _floatingLeft = floatingLeft;
-            _floatingTop = floatingTop;
-        }
-
-        public void ResetFloatingPosition()
-        {
-            _floatingLeft = null;
-            _floatingTop = null;
         }
 
         public void ApplyToSettingsState(MainViewModelSettingsState state)
@@ -163,8 +132,6 @@ namespace IconGrid.ViewModels.Launcher
             state.SettingsWindowIsMaximized = _settingsWindowIsMaximized;
             state.GamingOverlayWindowLeft = _gamingOverlayWindowLeft;
             state.GamingOverlayWindowTop = _gamingOverlayWindowTop;
-            state.FloatingIconLeft = _floatingLeft;
-            state.FloatingIconTop = _floatingTop;
         }
     }
 }

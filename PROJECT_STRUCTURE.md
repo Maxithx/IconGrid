@@ -67,7 +67,7 @@ native FPS worker `Native\FpsAgent\bin\$(Configuration)\IconGridFpsAgent.exe`
 ```
 ├── Assets\            # Icons, logos and bundled shortcuts (copied to output)
 ├── certificate\       # Signing certificates                                        (gitignored)
-├── Controls\          # Reusable WPF user controls (launcher + shared + floating)
+├── Controls\          # Reusable WPF user controls (launcher + shared)
 ├── figma-icons\       # Design-exported PNG/Figma icon sources
 ├── Helpers\           # Services, agents, converters, logging (no UI)
 ├── IconGrid.Package\  # MSIX packaging project (wapproj, manifest, images, AppPackages)
@@ -88,7 +88,7 @@ native FPS worker `Native\FpsAgent\bin\$(Configuration)\IconGridFpsAgent.exe`
 Assets\
 ├── dlb-icon.ico                                  # Application icon (also <ApplicationIcon> + <Resource>)
 ├── git-img\                                      # Screenshots embedded in README.md
-│   ├── Floatingicon.png, IconGrid-collapsed.png, IconGrid.png, Settings.png
+│   ├── IconGrid-collapsed.png, IconGrid.png, Settings.png
 ├── Hw-logo\                                      # Hardware vendor logos shown on the Hardware page
 │   ├── AMDlogo-darktheme.png, AMDlogo-lighttheme.png
 │   ├── Asuslogo-dark-theme.png, Asuslogo-light-theme.png
@@ -105,9 +105,7 @@ Controls\
 ├── Common\        # Shared, feature-agnostic UI
 │   ├── LauncherLogo.xaml (.cs)        # App logo/wordmark block
 │   └── SliderRow.xaml (.cs)           # Label + slider + value row used by settings pages
-├── Floating\      # Floating desktop icon mode
-│   └── FloatingIconButton.xaml (.cs)  # Draggable floating icon window content
-└── Launcher\      # Launcher shell composition controls
+├── Launcher\      # Launcher shell composition controls
     ├── LauncherGrid.xaml (.cs)         # Shortcut grid/carousel host (drag & drop)
     ├── LauncherLogoArea.xaml (.cs)     # Logo area + collapsed/peek affordances
     ├── LauncherMonitorRow.xaml (.cs)   # Live telemetry strip (ping/net/download/upload/CPU/GPU)
@@ -163,7 +161,6 @@ Helpers\
 │   ├── DynamicIconHelper.cs              PawnIoWarningController.cs
 │   ├── EmbeddedIconLibrary.cs            ShellIconLabel.cs, ShellIconTextBlock.cs
 │   ├── ExternalGameRegistry.cs           ShortcutHelper.cs
-│   ├── FloatingIconController.cs         SingleInstanceGuard.cs
 │   ├── IconHelper.cs                     SystemMonitor.cs
 │   ├── IconResourceUpdater.cs            WindowLayoutEngine.cs
 │   ├── LauncherDragDropHelper.cs         WindowLayoutSnapshotService.cs
@@ -195,7 +192,7 @@ Models\
 ├── LauncherHideMode.cs               # AlwaysVisible / ManualHide / AutoHide
 ├── LauncherItem.cs                   # Shortcut: DisplayName, Path, Category, GameResolution, icon
 ├── MonitorLayoutDefaultsSnapshot.cs  # "My default" snapshot for the monitor row layout page
-├── StartupLaunchMode.cs              # Startup behaviour (floating icon vs. launcher)
+├── StartupLaunchMode.cs              # Startup behavior (Run key vs Task Scheduler)
 └── WindowTrackingRecord.cs           # Tracked external window (layout restore)
 ```
 
@@ -236,7 +233,7 @@ ViewModels\
 │   ├── LauncherTabsState.cs              # Tabs/categories state + ordering
 │   ├── LauncherThemeCoordinator.cs       # Theme switching coordination
 │   ├── LauncherThemeState.cs             # Theme state (light/dark, brushes)
-│   └── WindowStateStore.cs               # Saved window positions (launcher/settings/overlay/floating)
+│   └── WindowStateStore.cs               # Saved window positions (launcher/settings/overlay)
 └── Settings\                         # Config state + persistence
     ├── MainViewModelConfigState.cs       # Config → observable state mapping (+ normalization)
     ├── MainViewModelSettingsPersistence.cs # Save mapping to config.json
@@ -338,7 +335,7 @@ _backups\                             # Manual file backups                     
 | Persisted setting value | `Models/ConfigModel.cs` + the matching state class under `ViewModels/Settings/` |
 | Feature state/logic (no UI) | `Helpers/<Feature>/` or a focused state class under `ViewModels/Launcher/` / `ViewModels/Settings/` |
 | Settings editing UI | `Views/Settings/Pages/` (one page per sidebar entry) or a dedicated control |
-| Reusable interactive UI | `Controls/Common/`, `Controls/Launcher/` or `Controls/Floating/` |
+| Reusable interactive UI | `Controls/Common/` or `Controls/Launcher/` |
 | WPF value converter | `Helpers/Converters/` |
 | New localized text | `Helpers/Settings/LocalizationHelper.cs` (**both** `en` and `da`) + a property + `OnPropertyChanged` in `ViewModels/MainViewModel.Localization.cs`, then bind it in XAML |
 | Background worker / elevation | `Helpers/Hardware/` (or a separate process/project — never the launcher shell) |

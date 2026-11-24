@@ -545,7 +545,6 @@ namespace IconGrid.Helpers
             Action<string> log)
         {
             var result = new List<(IntPtr, RECT)>();
-            var currentPid = Process.GetCurrentProcess().Id;
 
             EnumWindows((hwnd, lParam) =>
             {
@@ -559,9 +558,7 @@ namespace IconGrid.Helpers
                 if (viewModel.LayoutSkipMinimized && IsIconic(hwnd))
                     return true;
 
-                GetWindowThreadProcessId(hwnd, out var pid);
-                if (pid == (uint)currentPid && !viewModel.IsFullWindowVisible)
-                    return true;
+                GetWindowThreadProcessId(hwnd, out _);
 
                 if (targetMonitor != IntPtr.Zero && viewModel.LayoutCurrentMonitorOnly)
                 {

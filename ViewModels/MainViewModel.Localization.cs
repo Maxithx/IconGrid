@@ -13,11 +13,8 @@ namespace IconGrid.ViewModels
         public string IconSizeLabel => _localizationState.Get(Language, "IconSize");
         public string UiScaleLabel => _localizationState.Get(Language, "UiScale");
         public string AlwaysOnTopLabel => _localizationState.Get(Language, "AlwaysOnTop");
-        public string FloatingIconTopmostLabel => _localizationState.Get(Language, "FloatingIconTopmost");
         public string ShowScrollButtonsLabel => _localizationState.Get(Language, "ShowScrollButtons");
         public string ShowDesktopIconLabel => _localizationState.Get(Language, "ShowDesktopIcon");
-        public string StartDirectlyInLauncherLabel => _localizationState.Get(Language, "StartDirectlyInLauncher");
-        public string StartDirectlyInLauncherDescription => _localizationState.Get(Language, "StartDirectlyInLauncherDescription");
         public string LanguageLabel => _localizationState.Get(Language, "Language");
         public string ResetDefaultsLabel => _localizationState.Get(Language, "ResetDefaults");
         public string EnableSlideUpAnimationLabel => _localizationState.Get(Language, "EnableSlideUpAnimation");
@@ -568,11 +565,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(IconSizeLabel));
             OnPropertyChanged(nameof(UiScaleLabel));
             OnPropertyChanged(nameof(AlwaysOnTopLabel));
-            OnPropertyChanged(nameof(FloatingIconTopmostLabel));
             OnPropertyChanged(nameof(ShowScrollButtonsLabel));
             OnPropertyChanged(nameof(ShowDesktopIconLabel));
-            OnPropertyChanged(nameof(StartDirectlyInLauncherLabel));
-            OnPropertyChanged(nameof(StartDirectlyInLauncherDescription));
             OnPropertyChanged(nameof(LanguageLabel));
             OnPropertyChanged(nameof(ResetDefaultsLabel));
             OnPropertyChanged(nameof(EnableSlideUpAnimationLabel));
