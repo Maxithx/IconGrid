@@ -8,8 +8,7 @@ IconGrid is a Windows launcher, hardware control center, and desktop overlay bui
 
 ## Main Launcher
 
-<!-- TODO: Screenshot — Full launcher with shortcuts and live monitor strip -->
-<!-- Replace: Assets/git-img/IconGrid-full.png -->
+![IconGrid main launcher](Assets/git-img/IconGrid.png)
 
 - `Views/Launcher/MainWindow.xaml` is the main launcher shell containing the logo area, live monitor strip (CPU / GPU / ping / network), tab bar, shortcut grid, idle hide button, and settings entry point.
 - Shortcut icons are fully drag-and-drop manageable with right-click context menus (rename, change icon, run as admin, copy path, remove).
@@ -64,8 +63,13 @@ Shortcut icons can be shown in two view modes, controlled by a toggle on the Gen
 
 A single shared **icon size** slider (82%–150%) applies to both views. The 82% floor guarantees carousel icons never clip, since the viewport height is derived from the scale.
 
-<!-- TODO: Screenshot — Carousel view with 4 icons visible + horizontal scrollbar -->
-<!-- Replace: Assets/git-img/IconGrid-carousel.png -->
+![Shortcut icons settings](Assets/git-img/Shortcut-icons.png)
+
+### Layout presets
+
+![IconGrid Layout settings](Assets/git-img/Layout.png)
+
+IconGrid can arrange open windows into a saved layout and run it directly from the Layout page. Choose a default layout, run it now, save the current arrangement, skip minimized windows, limit the arrangement to the active screen, or reserve a fixed slot for the launcher.
 
 ### Settings window
 
@@ -90,6 +94,8 @@ A single shared **icon size** slider (82%–150%) applies to both views. The 82%
 - `Views/Launcher/GamingOverlayWindow.xaml` is a compact always-on-top monitor designed for in-game use.
 - The overlay shows live FPS, CPU, GPU, ping, and network stats in a single-row shell with subtle dividers for readability.
 - `Download` / `Upload` bandwidth stats are intentionally removed from the overlay and remain only on the main launcher monitor row.
+
+![Gaming Overlay settings page](Assets/git-img/Gaming-overlay-main.png)
 
 ### Default position
 
@@ -142,6 +148,8 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 
 `Views/Settings/Pages/SkinStudioPage.xaml` is a dedicated skin editor for the gaming overlay.
 
+![Skin Studio](Assets/git-img/Skin-studio.png)
+
 - Start from a preset or customize colours, fonts, divider style, and corner radius with a live preview.
 - Import a screenshot or game key art to extract a starting palette locally — images are never uploaded.
 - Use the module builder and blueprint JSON to add, remove, reorder, and configure overlay modules and layers.
@@ -153,6 +161,8 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 ## Hardware tools
 
 The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU control features require an NVIDIA card; undervolt profile switching additionally requires MSI Afterburner with saved profiles.
+
+![IconGrid Hardware page](Assets/git-img/Hardware.png)
 
 ### System diagnostics
 
