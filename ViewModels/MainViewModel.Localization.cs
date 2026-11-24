@@ -352,6 +352,7 @@ namespace IconGrid.ViewModels
         public string LayoutSlotTipText => _localizationState.Get(Language, "LayoutSlotTip");
         public string LayoutPreviewTipText => _localizationState.Get(Language, "LayoutPreviewTip");
         public string HardwareNavTitleText => _localizationState.Get(Language, "HardwareNavTitle");
+        public string CleanupNavTitleText => _localizationState.Get(Language, "CleanupNavTitle");
         public string HardwareBoardTitleText => _localizationState.Get(Language, "HardwareBoardTitle");
         public string HardwareBoardIntroText => _localizationState.Get(Language, "HardwareBoardIntro");
         public string HardwareCpuIntroText => _localizationState.Get(Language, "HardwareCpuIntro");
@@ -801,6 +802,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(LayoutSlotTipText));
             OnPropertyChanged(nameof(LayoutPreviewTipText));
             OnPropertyChanged(nameof(HardwareNavTitleText));
+            OnPropertyChanged(nameof(CleanupNavTitleText));
             OnPropertyChanged(nameof(HardwareBoardTitleText));
             OnPropertyChanged(nameof(HardwareBoardIntroText));
             OnPropertyChanged(nameof(HardwareCpuIntroText));

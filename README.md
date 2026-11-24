@@ -200,6 +200,19 @@ Hotspot is the hottest point on the GPU die — usually 10–20 °C above the ed
 - **Clear readings** removes both the history and the rolling graph after confirmation.
 - Available only on GPUs that expose a hotspot sensor; sensor support varies by model and driver.
 
+### Cleanup
+
+The **Cleanup** page finds allowlisted cache and maintenance files without deleting anything automatically.
+
+![IconGrid Cleanup page](Assets/git-img/Cleanup.png)
+
+- Scans NVIDIA DXCache/GLCache, DirectX shader cache, IconGrid trace/error logs, benchmark CSVs, Afterburner backups and IconGrid config backups.
+- Shows every found file in a selectable grid with type, size, modified time and full path.
+- Nothing is deleted until you select files and confirm the deletion dialog.
+- Locked or in-use files are reported instead of forcing deletion.
+- Never touches configuration, shortcuts, layouts, game saves or personal files.
+- Close games and capture tools before cleaning GPU shader caches; shader caches rebuild on the next game launch.
+
 ---
 
 ## Settings pages
@@ -211,6 +224,7 @@ Hotspot is the hottest point on the GPU die — usually 10–20 °C above the ed
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **GPU power saving** while the game is in the background, **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
 | **Hardware** | CPU, GPU, RAM, motherboard, and disk diagnostics with live sensor data; GPU undervolt profiles and hotspot monitoring |
+| **Cleanup** | Scans allowlisted GPU shader caches and IconGrid maintenance files; shows every found file, lets you select and confirm deletion, and reports freed space |
 | **Monitor row layout (Home)** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
 | **Skin Studio** | Overlay skin editor: presets, colours, fonts, corner radius, image palette import, live preview, and module/blueprint editing |
 | **Hjælp** | Help and troubleshooting content |
@@ -273,6 +287,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 - `Helpers/Launcher/` — `LauncherWindowModeController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
 - `Helpers/Settings/` — config, localization, startup, theme helpers
 - `Helpers/Hardware/` — hardware monitor agent, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM), `NvmlGpuLimitController` (power/clock limits), `AfterburnerProfileController` (undervolt profiles), `GpuPowerSavingState`, and `HotspotHistoryStore`
+- `Helpers/Maintenance/` — `CleanupService` (allowlisted cache scan and explicit deletion)
 - `Helpers/Skin/` — overlay skin rendering, palette extraction, blueprint defaults, and module templates
 - `Helpers/Logging/` — `AppTrace`, the size-capped shared trace writer
 - `Helpers/Converters/` — shared WPF value converters

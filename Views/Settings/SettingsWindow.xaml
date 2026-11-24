@@ -592,6 +592,31 @@
                                            Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
                             </StackPanel>
                         </Button>
+                        <Button x:Name="CleanupNavButton"
+                                Style="{StaticResource NavButtonStyle}"
+                                Margin="0,6,0,0"
+                                ToolTip="{Binding CleanupNavTitleText}"
+                                Click="CleanupNavButton_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="28"
+                                        Height="28"
+                                        CornerRadius="6"
+                                        Background="transparent">
+                                    <TextBlock Text="&#xE74D;"
+                                               FontFamily="Segoe Fluent Icons"
+                                               FontSize="18"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
+                                </Border>
+                                <TextBlock Margin="12,0,0,0"
+                                           Text="{Binding CleanupNavTitleText}"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="HelpNavButton"
                                 Style="{StaticResource NavButtonStyle}"
                                 Margin="0,6,0,0"

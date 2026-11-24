@@ -1,0 +1,167 @@
+<UserControl x:Class="IconGrid.Views.CleanupPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:IconGrid.Views"
+             Background="Transparent">
+    <UserControl.Resources>
+        <!--
+            Local text styles bind the theme brushes through the Window DataContext.
+            Inside the file ItemsControl the DataContext is CleanupFileRow, so the
+            shared Template* styles would fall back to black text there.
+        -->
+        <Style x:Key="CleanupPageTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupCardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupBodyTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="CleanupSmallTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="CleanupTableHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupFileTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupPathTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupMetaTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </Style>
+        <Style x:Key="CleanupErrorTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground"
+                    Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer Margin="12"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  PanningMode="VerticalOnly">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+        </ScrollViewer.Resources>
+        <views:TemplatePage Margin="0,0,8,0">
+            <views:TemplatePage.HeroContent>
+                <StackPanel>
+                    <TextBlock Text="{Binding Cleanup.PageTitle}"
+                               Style="{StaticResource CleanupPageTitleStyle}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding Cleanup.PageIntro}"
+                               Style="{StaticResource CleanupBodyTextStyle}" />
+                    <TextBlock Margin="0,12,0,0"
+                               Text="{Binding Cleanup.SafetyText}"
+                               Style="{StaticResource CleanupSmallTextStyle}" />
+                    <WrapPanel Margin="0,16,0,0">
+                        <Button Content="{Binding Cleanup.ScanButtonText}"
+                                Command="{Binding Cleanup.ScanCommand}"
+                                Style="{StaticResource TemplateActionButtonStyle}" />
+                        <Button Margin="8,0,0,0"
+                                Content="{Binding Cleanup.CleanButtonText}"
+                                Command="{Binding Cleanup.CleanSelectedCommand}"
+                                Style="{StaticResource TemplateActionButtonStyle}" />
+                        <Button Margin="8,0,0,0"
+                                Content="{Binding Cleanup.SelectAllButtonText}"
+                                Command="{Binding Cleanup.SelectAllCommand}"
+                                Style="{StaticResource TemplateActionButtonStyle}" />
+                        <Button Margin="8,0,0,0"
+                                Content="{Binding Cleanup.SelectNoneButtonText}"
+                                Command="{Binding Cleanup.SelectNoneCommand}"
+                                Style="{StaticResource TemplateActionButtonStyle}" />
+                    </WrapPanel>
+                </StackPanel>
+            </views:TemplatePage.HeroContent>
+            <views:TemplatePage.CardsContent>
+                <StackPanel>
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Cleanup.SummaryText}"
+                                       Style="{StaticResource CleanupCardTitleStyle}" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Text="{Binding Cleanup.StatusText}"
+                                       Style="{StaticResource CleanupBodyTextStyle}" />
+                            <TextBlock Margin="0,8,0,0"
+                                       Text="{Binding Cleanup.LastErrorText}"
+                                       Style="{StaticResource CleanupErrorTextStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Cleanup.PageTitle}"
+                                       Style="{StaticResource CleanupCardTitleStyle}" />
+                            <Grid Margin="0,14,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="110" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Text="{Binding Cleanup.FileColumnText}" Style="{StaticResource CleanupTableHeaderStyle}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Cleanup.CategoryColumnText}" Style="{StaticResource CleanupTableHeaderStyle}" />
+                                <TextBlock Grid.Column="3" Text="{Binding Cleanup.SizeColumnText}" Style="{StaticResource CleanupTableHeaderStyle}" TextAlignment="Right" Margin="0,0,12,0" />
+                                <TextBlock Grid.Column="4" Text="{Binding Cleanup.ModifiedColumnText}" Style="{StaticResource CleanupTableHeaderStyle}" />
+                            </Grid>
+                            <ScrollViewer MaxHeight="460"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Cleanup.Files}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="#2E2E2E" BorderThickness="0,1,0,0" Padding="0,7">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="32" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="150" />
+                                                        <ColumnDefinition Width="90" />
+                                                        <ColumnDefinition Width="110" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox Grid.Column="0" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                                    <StackPanel Grid.Column="1" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FileName}" Style="{StaticResource CleanupFileTextStyle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding FullPath}" />
+                                                        <TextBlock Text="{Binding FullPath}" Style="{StaticResource CleanupPathTextStyle}" TextTrimming="CharacterEllipsis" ToolTip="{Binding FullPath}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding CategoryText}" Style="{StaticResource CleanupMetaTextStyle}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding SizeText}" Style="{StaticResource CleanupMetaTextStyle}" TextAlignment="Right" Margin="0,0,12,0" />
+                                                    <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="{Binding ModifiedText}" Style="{StaticResource CleanupMetaTextStyle}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </views:TemplatePage.CardsContent>
+        </views:TemplatePage>
+    </ScrollViewer>
+</UserControl>

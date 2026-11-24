@@ -367,6 +367,9 @@ namespace IconGrid.ViewModels
 
         public ObservableCollection<LauncherItem> Items { get; }
 
+        private CleanupViewModel? _cleanup;
+        public CleanupViewModel Cleanup => _cleanup ??= new CleanupViewModel(this);
+
         public ICommand SelectTabCommand { get; }
         public ICommand ResetSettingsCommand { get; }
 

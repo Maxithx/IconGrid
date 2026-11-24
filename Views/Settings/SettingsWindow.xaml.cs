@@ -212,6 +212,11 @@ namespace IconGrid.Views
             ShowPage(new HardwarePage(), HardwareNavButton);
         }
 
+        private void CleanupNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowPage(new CleanupPage(), CleanupNavButton);
+        }
+
         private void GamingOverlayNavButton_Click(object sender, RoutedEventArgs e)
         {
             ShowGamingOverlayPage();
@@ -441,6 +446,11 @@ namespace IconGrid.Views
         public void NavigateToGamingOverlayPage()
         {
             ShowGamingOverlayPage();
+        }
+
+        public void NavigateToCleanupPage()
+        {
+            ShowPage(new CleanupPage(), CleanupNavButton);
         }
 
         private void ShowGamingOverlayPage()
