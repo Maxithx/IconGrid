@@ -52,6 +52,10 @@ namespace IconGrid.ViewModels
                 state.GpuPowerSavingTempLimitCelsius,
                 NvmlGpuLimitController.MinTempLimitCelsius,
                 NvmlGpuLimitController.MaxTempLimitCelsius);
+            _gpuPowerSavingClockLimitPercent = Math.Clamp(
+                state.GpuPowerSavingClockLimitPercent,
+                NvmlGpuLimitController.MinClockLimitPercent,
+                NvmlGpuLimitController.MaxClockLimitPercent);
             _gpuUndervoltEnabled = state.GpuUndervoltEnabled;
             _gpuUndervoltGameProfile = Math.Clamp(state.GpuUndervoltGameProfile, 0, 9);
             _gpuUndervoltIdleProfile = Math.Clamp(state.GpuUndervoltIdleProfile, 0, 9);
@@ -138,6 +142,7 @@ namespace IconGrid.ViewModels
             _gpuPowerSavingPowerLimitPercent = 70;
             _gpuPowerSavingTempLimitEnabled = true;
             _gpuPowerSavingTempLimitCelsius = 70;
+            _gpuPowerSavingClockLimitPercent = 60;
             _gpuUndervoltEnabled = false;
             _gpuUndervoltGameProfile = 1;
             _gpuUndervoltIdleProfile = 0;
@@ -206,6 +211,7 @@ namespace IconGrid.ViewModels
                 GpuPowerSavingPowerLimitPercent = _gpuPowerSavingPowerLimitPercent,
                 GpuPowerSavingTempLimitEnabled = _gpuPowerSavingTempLimitEnabled,
                 GpuPowerSavingTempLimitCelsius = _gpuPowerSavingTempLimitCelsius,
+                GpuPowerSavingClockLimitPercent = _gpuPowerSavingClockLimitPercent,
                 GpuUndervoltEnabled = _gpuUndervoltEnabled,
                 GpuUndervoltGameProfile = _gpuUndervoltGameProfile,
                 GpuUndervoltIdleProfile = _gpuUndervoltIdleProfile,

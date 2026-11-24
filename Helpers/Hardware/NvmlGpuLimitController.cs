@@ -60,6 +60,10 @@ public sealed class NvmlGpuLimitController : IDisposable
     /// <summary>Lowest clock ceiling the governor will ever ask for (MHz).</summary>
     public const int MinClockCeilingMhz = 400;
 
+    /// <summary>Allowed range for the user-facing background clock cap (percent of max SM clock).</summary>
+    public const int MinClockLimitPercent = 30;
+    public const int MaxClockLimitPercent = 100;
+
     /// <summary>Clock ceiling step used while the card is above the temperature target.</summary>
     public const int ClockStepDownMhz = 150;
 
@@ -103,6 +107,7 @@ public sealed class NvmlGpuLimitController : IDisposable
 
     private uint _maxSmClockMhz;
     private uint _clockCeilingMhz;
+    private bool _clockCeilingDirty;
     private bool _clockLockApplied;
     private bool _clockLimitUnsupported;
     private uint _lastGovernedTempC;
@@ -158,6 +163,9 @@ public sealed class NvmlGpuLimitController : IDisposable
 
     /// <summary>Clock ceiling currently requested from the driver (MHz, 0 = none).</summary>
     public uint AppliedClockCeilingMhz => _clockLockApplied ? _clockCeilingMhz : 0;
+
+    /// <summary>Highest SM clock reported by the driver (MHz).</summary>
+    public uint MaxSmClockMhz => _maxSmClockMhz;
 
     /// <summary>
     /// Reads the current driver values without changing anything. Works without
@@ -482,10 +490,18 @@ public sealed class NvmlGpuLimitController : IDisposable
             (int)floor != _appliedCeilingFloorMhz ||
             (int)cap != _appliedCeilingCapMhz)
         {
+            var capChanged = (int)cap != _appliedCeilingCapMhz;
             _appliedTargetTempC = targetTempC;
             _appliedCeilingFloorMhz = (int)floor;
             _appliedCeilingCapMhz = (int)cap;
-            _clockCeilingMhz = Math.Max(floor, Math.Min(_clockCeilingMhz, cap));
+
+            // A new cap (the user moved the clock slider, or the profile changed)
+            // must take effect immediately instead of waiting for the temperature
+            // governor to walk there in 150 MHz steps.
+            _clockCeilingMhz = capChanged
+                ? cap
+                : Math.Max(floor, Math.Min(_clockCeilingMhz, cap));
+            _clockCeilingDirty = true;
             _lastClockGovernUtc = DateTime.MinValue;
         }
 
@@ -519,7 +535,7 @@ public sealed class NvmlGpuLimitController : IDisposable
 
         ceiling = (uint)Math.Clamp((int)ceiling, (int)floor, (int)Math.Max(cap, floor));
 
-        if (_clockLockApplied && ceiling == _clockCeilingMhz)
+        if (_clockLockApplied && !_clockCeilingDirty && ceiling == _clockCeilingMhz)
         {
             _lastClockGovernUtc = nowUtc;
             return new GpuLimitApplyResult(
@@ -543,6 +559,7 @@ public sealed class NvmlGpuLimitController : IDisposable
 
         _clockCeilingMhz = ceiling;
         _clockLockApplied = true;
+        _clockCeilingDirty = false;
         _lastClockGovernUtc = nowUtc;
         WriteRestoreMarker(_appliedPowerMw, _appliedTempC, _fanBoostApplied);
         _log?.Invoke($"GPU clock governor: ceiling {ceiling} MHz at {currentTempC} °C (target {target} °C).");
@@ -580,6 +597,7 @@ public sealed class NvmlGpuLimitController : IDisposable
 
         _clockLockApplied = false;
         _clockCeilingMhz = 0;
+        _clockCeilingDirty = false;
         _appliedTargetTempC = 0;
         _appliedCeilingFloorMhz = 0;
         _appliedCeilingCapMhz = 0;

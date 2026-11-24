@@ -1764,6 +1764,28 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Direct SM clock cap while the game is in the background, as a
+        /// percentage of the card's maximum clock. Applied immediately when the
+        /// low-power profile activates; the temperature governor may step further
+        /// down, but never above this percentage.
+        /// </summary>
+        public int GpuPowerSavingClockLimitPercent
+        {
+            get => _gpuPowerSavingClockLimitPercent;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    NvmlGpuLimitController.MinClockLimitPercent,
+                    NvmlGpuLimitController.MaxClockLimitPercent);
+                if (SetField(ref _gpuPowerSavingClockLimitPercent, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Opt-in "GPU undervolt" effect while the game window has focus: the elevated
         /// agent locks the GPU clock at the highest value that keeps the card at or
         /// below the temperature target. On Turing the core voltage follows the clock

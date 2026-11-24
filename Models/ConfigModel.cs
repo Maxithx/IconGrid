@@ -48,6 +48,10 @@ public class ConfigModel
     public int GpuPowerSavingPowerLimitPercent { get; set; } = 70;
     public bool GpuPowerSavingTempLimitEnabled { get; set; } = true;
     public int GpuPowerSavingTempLimitCelsius { get; set; } = 70;
+    // Direct clock cap while the game is in the background, as a percentage of
+    // the card's maximum SM clock. The temperature governor can step further
+    // down, but never above this cap.
+    public int GpuPowerSavingClockLimitPercent { get; set; } = 60;
     // Optional in-game "undervolt effect": lock the GPU clock at the highest value
     // that keeps the card at/below the target temperature. On Turing the voltage
     // follows the clock (V/F curve), so a lower clock also means a lower voltage.

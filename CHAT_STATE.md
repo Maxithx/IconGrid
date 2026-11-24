@@ -2589,3 +2589,31 @@ Desuden: `IconGrid_3f4s4uqs_wpftmp.csproj` (transient WPF-buildfil) er slettet, 
 
 IKKE COMMITTET/PUSHET.
 
+
+## FIX: clock-loft virkede ikke efter repaste (24-11-2026)
+
+BRUGER-RAPPORT: GPU power saving "virker ikke mere" — MHz drosler ikke ned når spilvinduet ikke er aktivt. Status viste "loft 2100 MHz" mens profilen var aktiv.
+
+ROOT CAUSE: `NvmlGpuLimitController.GovernClocks` startede ved `cap` = kortets max SM clock (2100 MHz) og sænkede kun loftet når temperaturen var OVER temp-målet. Efter repasten ligger kortet på 63-69 °C (under 70 °C-målet), så governoren sænkede aldrig noget — den låste reelt clocks til 2100 MHz (ingen cap).
+
+FIX:
+- Nyt felt `GpuPowerSavingClockLimitPercent` (30-100 %, default **60**) i ConfigModel/state/persistens/MainViewModel.
+- Nyt "Clock-loft"-slider i GPU-strømbesparelse-kortet (Gaming overlay-siden).
+- Agenten regner cap ud: `maxSmClockMhz * percent / 100` (60 % af 2100 = **1260 MHz**) og sender den som `maxCeilingMhz` til `GovernClocks`; 100 % = ingen ekstra cap.
+- `GovernClocks` re-seeder nu loftet til det nye cap med det samme når cap'en ændres (før ventede den på 150 MHz-trin).
+- Clock-governoren kører nu også når temperaturgrænsen er slået fra (så clock-loftet altid virker); 100 % + temp fra => ReleaseClockLimit.
+- Loftet frigives straks når spillet får fokus (uændret `ReleaseClockLimit`-sti).
+
+VERIFICERET LIVE (første fix, deployet 04:35:54): PoE i baggrunden => power limit **125 W**, clock **1200-1260 MHz**, temp **63 °C**, forbrug **73 W**, fan **53 %**. Før fix: 1650 MHz / 69 °C / 105 W.
+
+DEL 2 — bruger satte 40 % og så ingen forskel:
+- ÅRSAG: Når cap'en ændrede sig, opdaterede `GovernClocks` den interne `_clockCeilingMhz` til det nye cap, men det efterfølgende "uændret"-tjek sprang `nvmlDeviceSetGpuLockedClocks` over. Driveren beholdt derfor den gamle lås (1260 MHz), mens status viste det nye tal (840 MHz). Det lignede en skjult driver-grænse, men var en manglende driver-skrivning.
+- FIX: `_clockCeilingDirty` sættes når profil/cap/floor ændres, bypasser "uændret"-tjekket, og ryddes først efter en vellykket `nvmlDeviceSetGpuLockedClocks`. `ReleaseClockLimit` rydder også flaget.
+- VERIFICERET LIVE uden genstart (PoE hele tiden i baggrunden, deployet 04:46:35):
+  - **40 % → 840 MHz / 55 W / 56 °C**
+  - **60 % → 1260 MHz / 72 W / 59 °C**
+  - 30-100 % følger slideren; 100 % = ingen ekstra cap. Effektivt minimum er `MinClockCeilingMhz = 400` (sliderens 30 % giver ca. 630 MHz).
+- PoE skal **ikke** lukkes for test — det er netop baggrundstilstanden, der måles.
+
+IKKE COMMITTET ENDNU — afventer eksplicit godkendelse til endnu et commit/push.
+

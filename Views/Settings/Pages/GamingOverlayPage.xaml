@@ -820,6 +820,40 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding DataContext.GpuPowerSavingPowerLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
                                     </Grid>
+                                    <TextBlock Margin="0,18,0,0"
+                                               Text="{Binding DataContext.GpuPowerSavingClockTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding DataContext.GpuPowerSavingClockIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Grid Margin="0,10,0,0"
+                                          IsEnabled="{Binding DataContext.GpuPowerSavingEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Minimum="30"
+                                                Maximum="100"
+                                                TickFrequency="5"
+                                                SmallChange="5"
+                                                LargeChange="10"
+                                                IsSnapToTickEnabled="True"
+                                                Value="{Binding DataContext.GpuPowerSavingClockLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource ModernSliderStyle}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Margin="12,0,0,0"
+                                                   Width="52"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Text="{Binding DataContext.GpuPowerSavingClockLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
+                                    </Grid>
                                     <Grid Margin="0,18,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />

@@ -112,6 +112,7 @@ namespace IconGrid.ViewModels
         private int _gpuPowerSavingPowerLimitPercent = 70;
         private bool _gpuPowerSavingTempLimitEnabled = true;
         private int _gpuPowerSavingTempLimitCelsius = 70;
+        private int _gpuPowerSavingClockLimitPercent = 60;
         private bool _gpuUndervoltEnabled = false;
         private int _gpuUndervoltGameProfile = 1;
         private int _gpuUndervoltIdleProfile = 0;

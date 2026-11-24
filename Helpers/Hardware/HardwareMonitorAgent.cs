@@ -1054,13 +1054,19 @@ exit:
                     log?.Invoke($"GPU power saving: {refreshResult.Message}");
                 }
 
-                // Closed-loop part: keep stepping the clock ceiling until the card
-                // actually reaches the temperature target. This runs every loop
-                // while the game is in the background, so a changed slider takes
-                // effect within a few seconds.
-                if (config.GpuPowerSavingTempLimitEnabled)
+                // Clock part: apply the direct background cap immediately, then
+                // let the temperature governor step further down if the card is
+                // still above the target. This runs every loop while the game is
+                // in the background, so a changed slider takes effect within a
+                // few seconds.
+                var ceilingMhz = ResolveBackgroundClockCeilingMhz(config, gpuLimits);
+                var needsClockGovernor = config.GpuPowerSavingTempLimitEnabled || ceilingMhz > 0;
+                if (needsClockGovernor)
                 {
-                    var governResult = gpuLimits.GovernClocks(config.GpuPowerSavingTempLimitCelsius);
+                    var governTarget = config.GpuPowerSavingTempLimitEnabled
+                        ? config.GpuPowerSavingTempLimitCelsius
+                        : NvmlGpuLimitController.MaxTempLimitCelsius;
+                    var governResult = gpuLimits.GovernClocks(governTarget, maxCeilingMhz: ceilingMhz);
                     if (governResult.Success)
                     {
                         lastMessage = governResult.Message;
@@ -1068,6 +1074,17 @@ exit:
                     else
                     {
                         log?.Invoke($"GPU clock governor: {governResult.Message}");
+                    }
+                }
+                else if (gpuLimits.IsClockLimitApplied)
+                {
+                    if (gpuLimits.ReleaseClockLimit(out var releaseError))
+                    {
+                        lastMessage = "Clock ceiling released: no clock cap is selected.";
+                    }
+                    else
+                    {
+                        log?.Invoke($"GPU clock governor: could not release the clock ceiling: {releaseError}.");
                     }
                 }
             }
@@ -1103,9 +1120,14 @@ exit:
                 lowPowerApplied = true;
                 log?.Invoke($"GPU power saving active: {applyResult.Message}");
 
-                if (config.GpuPowerSavingTempLimitEnabled)
+                var ceilingMhz = ResolveBackgroundClockCeilingMhz(config, gpuLimits);
+                var needsClockGovernor = config.GpuPowerSavingTempLimitEnabled || ceilingMhz > 0;
+                if (needsClockGovernor)
                 {
-                    var firstGovern = gpuLimits.GovernClocks(config.GpuPowerSavingTempLimitCelsius);
+                    var governTarget = config.GpuPowerSavingTempLimitEnabled
+                        ? config.GpuPowerSavingTempLimitCelsius
+                        : NvmlGpuLimitController.MaxTempLimitCelsius;
+                    var firstGovern = gpuLimits.GovernClocks(governTarget, maxCeilingMhz: ceilingMhz);
                     if (firstGovern.Success)
                     {
                         lastMessage = firstGovern.Message;
@@ -1196,6 +1218,33 @@ exit:
         public int TargetClockMhz { get; set; }
 
         public int Profile { get; set; }
+    }
+
+    /// <summary>
+    /// Translates the user's background clock percentage into an absolute SM
+    /// clock ceiling. Returns 0 when the card cannot lock clocks or when the
+    /// user selected 100 % (no extra cap).
+    /// </summary>
+    private static int ResolveBackgroundClockCeilingMhz(
+        Models.ConfigModel config,
+        NvmlGpuLimitController gpuLimits)
+    {
+        if (!gpuLimits.IsAvailable || !gpuLimits.ClockLimitSupported || gpuLimits.MaxSmClockMhz == 0)
+        {
+            return 0;
+        }
+
+        var percent = Math.Clamp(
+            config.GpuPowerSavingClockLimitPercent,
+            NvmlGpuLimitController.MinClockLimitPercent,
+            NvmlGpuLimitController.MaxClockLimitPercent);
+
+        if (percent >= NvmlGpuLimitController.MaxClockLimitPercent)
+        {
+            return 0;
+        }
+
+        return (int)Math.Round(gpuLimits.MaxSmClockMhz * (percent / 100.0));
     }
 
     private static GpuPowerSavingState BuildGpuPowerSavingState(

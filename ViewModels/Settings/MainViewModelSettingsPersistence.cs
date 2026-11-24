@@ -47,6 +47,7 @@ namespace IconGrid.ViewModels.Settings
                 config.GpuPowerSavingPowerLimitPercent = state.GpuPowerSavingPowerLimitPercent;
                 config.GpuPowerSavingTempLimitEnabled = state.GpuPowerSavingTempLimitEnabled;
                 config.GpuPowerSavingTempLimitCelsius = state.GpuPowerSavingTempLimitCelsius;
+                config.GpuPowerSavingClockLimitPercent = state.GpuPowerSavingClockLimitPercent;
                 config.GpuUndervoltEnabled = state.GpuUndervoltEnabled;
                 config.GpuUndervoltGameProfile = state.GpuUndervoltGameProfile;
                 config.GpuUndervoltIdleProfile = state.GpuUndervoltIdleProfile;
