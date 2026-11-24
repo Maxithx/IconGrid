@@ -422,9 +422,9 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 
 IconGrid uses Semantic Versioning with beta builds during active refactor and feature work. See `VERSIONING.md` for the release flow.
 
-Current version: `0.7.0-beta.2`
+Current version: `0.7.0-beta.3`
 
-Latest beta: [v0.7.0-beta.2](https://github.com/Maxithx/IconGrid/releases/tag/v0.7.0-beta.2)
+Latest beta: [v0.7.0-beta.3](https://github.com/Maxithx/IconGrid/releases/tag/v0.7.0-beta.3)
 
 ---
 
