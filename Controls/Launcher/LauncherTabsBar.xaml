@@ -87,13 +87,13 @@
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,20,0"
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,0,8,0"
                     helpers:DevInspector.Metadata="Tab scroll controls → Views/MainWindow.xaml (Tabs controls)">
             <Button Style="{DynamicResource IconButtonStyle}"
                     Click="ScrollTabsLeft_Click"
                     ToolTip="Scroll left"
-                    Margin="0,0,8,0"
-                    Width="28" Height="28" Padding="0" VerticalAlignment="Center"
+                    Margin="0"
+                    Width="24" Height="28" Padding="0" VerticalAlignment="Center"
                     helpers:DevInspector.Metadata="Scroll tabs left button → Views/MainWindow.xaml (ScrollTabsLeft_Click)">
                 <Button.Visibility>
                     <MultiBinding Converter="{StaticResource ScrollButtonsVisibilityConverter}" ConverterParameter="6">
@@ -106,7 +106,7 @@
             <Button Style="{DynamicResource IconButtonStyle}"
                     Click="ScrollTabsRight_Click"
                     ToolTip="Scroll right"
-                    Width="28" Height="28" Padding="0" VerticalAlignment="Center"
+                    Width="24" Height="28" Padding="0" VerticalAlignment="Center"
                     helpers:DevInspector.Metadata="Scroll tabs right button → Views/MainWindow.xaml (ScrollTabsRight_Click)">
                 <Button.Visibility>
                     <MultiBinding Converter="{StaticResource ScrollButtonsVisibilityConverter}" ConverterParameter="6">
