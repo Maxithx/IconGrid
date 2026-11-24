@@ -25,6 +25,12 @@ public static class HardwareMonitorAgent
     private const int ForegroundPollIntervalMs = 1000;
     private const int MinimumGameWindowWidth = 960;
     private const int MinimumGameWindowHeight = 540;
+    // GPU power saving must not thrash the driver while the user alt-tabs, so a
+    // profile switch only happens after the game has stayed unfocused this long.
+    private static readonly TimeSpan GpuLimitProfileHysteresis = TimeSpan.FromSeconds(4);
+    // A failed NVML write (permission, unsupported GPU, driver hiccup) is retried
+    // at most once a minute instead of every loop iteration.
+    private static readonly TimeSpan GpuLimitRetryDelay = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan RecentVisibleWindowLaunchGracePeriod = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan StaleVisibleWindowPenaltyAge = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ConfigTargetLaunchGracePeriod = TimeSpan.FromSeconds(60);
@@ -248,6 +254,11 @@ public static class HardwareMonitorAgent
         var fpsStatePath = Path.Combine(baseDir, "fps-state.json");
         var fpsTempPath = fpsStatePath + ".tmp";
         var nativeFpsStatePath = Path.Combine(baseDir, "native-fps-state.json");
+        // Records the original GPU limits before the first temporary write, so a
+        // restarted agent can undo a limit left behind by a crash.
+        var gpuRestoreMarkerPath = Path.Combine(baseDir, "gpu-limit-restore.json");
+        var gpuStatePath = Path.Combine(baseDir, "gpu-power-saving-state.json");
+        var gpuStateTempPath = gpuStatePath + ".tmp";
         using var shutdownEvent = TryOpenShutdownEvent(args, log);
 
         var config = configManager.LoadConfig();
@@ -269,6 +280,18 @@ public static class HardwareMonitorAgent
             using var diskCollector = new IconGrid.Helpers.Hardware.Storage.DiskStatusCollector();
             using var nativeFpsAgent = new NativeFpsAgentRunner(nativeFpsStatePath, log);
             using var fpsMeter = new FpsMeter(config.GamingOverlayFpsResponsiveness, log);
+            using var gpuLimits = new NvmlGpuLimitController(gpuRestoreMarkerPath, log);
+            if (gpuLimits.IsAvailable)
+            {
+                log?.Invoke(
+                    $"GPU power saving ready: {gpuLimits.GpuName}, current {gpuLimits.BaselinePowerLimitMilliwatts / 1000.0:F0} W " +
+                    $"(range {gpuLimits.MinPowerLimitMilliwatts / 1000.0:F0}-{gpuLimits.MaxPowerLimitMilliwatts / 1000.0:F0} W), " +
+                    $"baseline temp limit {gpuLimits.BaselineTempLimitCelsius} °C, temp limit supported={gpuLimits.TempLimitSupported}.");
+            }
+            else
+            {
+                log?.Invoke($"GPU power saving unavailable: {gpuLimits.InitializationError}");
+            }
             var currentForegroundGamePid = default(int?);
             var confirmedForegroundGamePid = default(int?);
             var hadConfirmedGameSession = false;
@@ -322,6 +345,13 @@ public static class HardwareMonitorAgent
             var stickyChallengerSinceUtc = default(DateTime?);
             var lastTargetWasForegroundWindow = default(bool?);
             var lastTargetBecameForegroundAtUtc = DateTime.MinValue;
+            var gpuLowPowerApplied = false;
+            var gpuKnownGamePids = new HashSet<int>();
+            var gpuSamples = new GpuPowerSamples();
+            var gpuPendingLowPower = default(bool?);
+            var gpuPendingSinceUtc = DateTime.MinValue;
+            var gpuNextAttemptUtc = DateTime.MinValue;
+            var gpuLastMessage = string.Empty;
 
             while (true)
             {
@@ -458,6 +488,37 @@ public static class HardwareMonitorAgent
                         ref stickyChallengerSinceUtc,
                         parentPid,
                         log);
+                }
+
+                // While a confirmed game session is alive but the game window is
+                // not foreground (for example the user alt-tabbed to a browser),
+                // lower the NVIDIA power/temperature limits so the card does not
+                // keep running the background render at full power.
+                UpdateGpuPowerSaving(
+                    gpuLimits,
+                    latestConfig,
+                    confirmedForegroundGamePid,
+                    gpuKnownGamePids,
+                    gpuSamples,
+                    ref gpuLowPowerApplied,
+                    ref gpuPendingLowPower,
+                    ref gpuPendingSinceUtc,
+                    ref gpuNextAttemptUtc,
+                    ref gpuLastMessage,
+                    log);
+
+                if (latestConfig.GpuPowerSavingEnabled || gpuLowPowerApplied)
+                {
+                    WriteGpuPowerSavingState(
+                        gpuStatePath,
+                        gpuStateTempPath,
+                        BuildGpuPowerSavingState(
+                            gpuLimits,
+                            latestConfig,
+                            gpuLowPowerApplied,
+                            gpuKnownGamePids.Count,
+                            gpuSamples,
+                            gpuLastMessage));
                 }
 
                 // When a session ends, publish one final "--" state immediately so
@@ -685,6 +746,28 @@ public static class HardwareMonitorAgent
             }
 
 exit:
+            if (gpuLowPowerApplied && gpuLimits.IsAvailable)
+            {
+                var restoreResult = gpuLimits.Restore();
+                gpuLowPowerApplied = false;
+                gpuLastMessage = restoreResult.Message;
+                log?.Invoke($"GPU power saving on exit: {restoreResult.Message}");
+            }
+
+            if (gpuLimits.IsAvailable)
+            {
+                WriteGpuPowerSavingState(
+                    gpuStatePath,
+                    gpuStateTempPath,
+                    BuildGpuPowerSavingState(
+                        gpuLimits,
+                        config,
+                        false,
+                        gpuKnownGamePids.Count,
+                        gpuSamples,
+                        gpuLastMessage));
+            }
+
             log?.Invoke("Hardware monitor agent exited gracefully.");
             return 0;
         }
@@ -692,6 +775,264 @@ exit:
         {
             log?.Invoke($"Hardware monitor agent failed: {ex}");
             return -1;
+        }
+    }
+
+    /// <summary>
+    /// Applies or restores the temporary GPU power/temperature profile based on
+    /// the persisted opt-in setting and on whether the tracked game session is
+    /// currently in the foreground. A short hysteresis prevents driver thrash
+    /// while alt-tabbing.
+    /// </summary>
+    private static void UpdateGpuPowerSaving(
+        NvmlGpuLimitController gpuLimits,
+        Models.ConfigModel config,
+        int? confirmedGamePid,
+        HashSet<int> knownGamePids,
+        GpuPowerSamples samples,
+        ref bool lowPowerApplied,
+        ref bool? pendingLowPower,
+        ref DateTime pendingSinceUtc,
+        ref DateTime nextAttemptUtc,
+        ref string lastMessage,
+        Action<string>? log)
+    {
+        if (!gpuLimits.IsAvailable)
+        {
+            lastMessage = gpuLimits.InitializationError ?? "NVML is not available.";
+            return;
+        }
+
+        // Remember every PID that was once confirmed as the running game, so an
+        // alt-tab to a browser (where the FPS pipeline may later retarget to the
+        // browser) does not make us lose track of the game that is still running
+        // in the background. Dead PIDs are pruned every loop.
+        if (confirmedGamePid.HasValue)
+        {
+            knownGamePids.Add(confirmedGamePid.Value);
+        }
+
+        knownGamePids.RemoveWhere(pid => !ProcessIsAlive(pid));
+
+        // Sample the card every loop (independent of the hysteresis/back-off below)
+        // so the settings page can show live numbers and the last reading taken
+        // with and without the game window in focus.
+        var foregroundPid = TryGetForegroundProcessPid();
+        var anyGameAlive = knownGamePids.Count > 0;
+        var gameIsForeground = foregroundPid.HasValue && knownGamePids.Contains(foregroundPid.Value);
+        if (anyGameAlive)
+        {
+            samples.Record(gameIsForeground, gpuLimits.ReadStatus());
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        if (nowUtc < nextAttemptUtc)
+        {
+            return;
+        }
+
+        if (!config.GpuPowerSavingEnabled)
+        {
+            pendingLowPower = null;
+            if (!lowPowerApplied)
+            {
+                return;
+            }
+
+            var restoreResult = gpuLimits.Restore();
+            lastMessage = restoreResult.Message;
+            if (restoreResult.Success)
+            {
+                lowPowerApplied = false;
+                log?.Invoke($"GPU power saving disabled: {restoreResult.Message}");
+            }
+            else
+            {
+                nextAttemptUtc = nowUtc + GpuLimitRetryDelay;
+                log?.Invoke($"GPU power saving: could not restore limits: {restoreResult.Message}");
+            }
+
+            return;
+        }
+
+        var desiredLowPower = anyGameAlive && !gameIsForeground;
+
+        // Returning to the game must be instant: drop the clock ceiling before the
+        // slower power-limit hysteresis has counted down, otherwise the player sees
+        // a low-clock frame spike for a few seconds after alt-tabbing back.
+        if (gameIsForeground && gpuLimits.IsClockLimitApplied)
+        {
+            if (gpuLimits.ReleaseClockLimit(out var releaseError))
+            {
+                lastMessage = "Clock ceiling released: the game has focus again.";
+                log?.Invoke("GPU clock governor: released the clock ceiling because the game regained focus.");
+            }
+            else
+            {
+                log?.Invoke($"GPU clock governor: could not release the clock ceiling: {releaseError}.");
+            }
+        }
+
+        if (desiredLowPower == lowPowerApplied)
+        {
+            pendingLowPower = null;
+
+            // Keep an already-applied profile in sync when the user moves the
+            // sliders while the game is still in the background. Apply() is a
+            // no-op (and only does one NVML read) when nothing changed.
+            if (lowPowerApplied)
+            {
+                var refreshResult = gpuLimits.Apply(
+                    config.GpuPowerSavingPowerLimitPercent,
+                    config.GpuPowerSavingTempLimitEnabled,
+                    config.GpuPowerSavingTempLimitCelsius,
+                    false);
+
+                lastMessage = refreshResult.Message;
+                if (refreshResult.Changed)
+                {
+                    log?.Invoke($"GPU power saving updated: {refreshResult.Message}");
+                }
+                else if (!refreshResult.Success)
+                {
+                    nextAttemptUtc = nowUtc + GpuLimitRetryDelay;
+                    log?.Invoke($"GPU power saving: {refreshResult.Message}");
+                }
+
+                // Closed-loop part: keep stepping the clock ceiling until the card
+                // actually reaches the temperature target. This runs every loop
+                // while the game is in the background, so a changed slider takes
+                // effect within a few seconds.
+                if (config.GpuPowerSavingTempLimitEnabled)
+                {
+                    var governResult = gpuLimits.GovernClocks(config.GpuPowerSavingTempLimitCelsius);
+                    if (governResult.Success)
+                    {
+                        lastMessage = governResult.Message;
+                    }
+                    else
+                    {
+                        log?.Invoke($"GPU clock governor: {governResult.Message}");
+                    }
+                }
+            }
+
+            return;
+        }
+
+        if (pendingLowPower != desiredLowPower)
+        {
+            pendingLowPower = desiredLowPower;
+            pendingSinceUtc = nowUtc;
+            return;
+        }
+
+        if (nowUtc - pendingSinceUtc < GpuLimitProfileHysteresis)
+        {
+            return;
+        }
+
+        pendingLowPower = null;
+
+        if (desiredLowPower)
+        {
+            var applyResult = gpuLimits.Apply(
+                config.GpuPowerSavingPowerLimitPercent,
+                config.GpuPowerSavingTempLimitEnabled,
+                config.GpuPowerSavingTempLimitCelsius,
+                false);
+
+            lastMessage = applyResult.Message;
+            if (applyResult.Success)
+            {
+                lowPowerApplied = true;
+                log?.Invoke($"GPU power saving active: {applyResult.Message}");
+
+                if (config.GpuPowerSavingTempLimitEnabled)
+                {
+                    var firstGovern = gpuLimits.GovernClocks(config.GpuPowerSavingTempLimitCelsius);
+                    if (firstGovern.Success)
+                    {
+                        lastMessage = firstGovern.Message;
+                    }
+                    else
+                    {
+                        log?.Invoke($"GPU clock governor: {firstGovern.Message}");
+                    }
+                }
+            }
+            else
+            {
+                nextAttemptUtc = nowUtc + GpuLimitRetryDelay;
+                log?.Invoke($"GPU power saving could not apply the low-power profile: {applyResult.Message}");
+            }
+
+            return;
+        }
+
+        var restore = gpuLimits.Restore();
+        lastMessage = restore.Message;
+        if (restore.Success)
+        {
+            lowPowerApplied = false;
+            log?.Invoke($"GPU power saving released: {restore.Message}");
+        }
+        else
+        {
+            nextAttemptUtc = nowUtc + GpuLimitRetryDelay;
+            log?.Invoke($"GPU power saving could not restore limits: {restore.Message}");
+        }
+    }
+
+    private static GpuPowerSavingState BuildGpuPowerSavingState(
+        NvmlGpuLimitController gpuLimits,
+        Models.ConfigModel config,
+        bool lowPowerApplied,
+        int knownGameProcessCount,
+        GpuPowerSamples samples,
+        string? message)
+    {
+        var status = gpuLimits.ReadStatus();
+        return new GpuPowerSavingState
+        {
+            CapturedAtUtc = DateTime.UtcNow,
+            Enabled = config.GpuPowerSavingEnabled,
+            Available = gpuLimits.IsAvailable,
+            LowPowerProfileApplied = lowPowerApplied,
+            GpuName = status?.GpuName ?? gpuLimits.GpuName,
+            PowerLimitMw = status?.PowerLimitMw ?? 0,
+            DefaultPowerLimitMw = status?.DefaultPowerMw ?? 0,
+            MinPowerLimitMw = status?.MinPowerMw ?? 0,
+            MaxPowerLimitMw = status?.MaxPowerMw ?? 0,
+            TempTargetC = status?.TempTargetC ?? 0,
+            CurrentTempC = status?.CurrentTempC ?? 0,
+            FanPercent = status?.FanPercent ?? 0,
+            PowerDrawMw = status?.PowerDrawMw ?? 0,
+            SmClockMhz = status?.SmClockMhz ?? 0,
+            MaxSmClockMhz = status?.MaxSmClockMhz ?? 0,
+            ClockLimitSupported = status?.ClockLimitSupported ?? false,
+            ClockCeilingMhz = status?.ClockCeilingMhz ?? 0,
+            GameInFocusSample = samples.GameInFocus,
+            GameNotInFocusSample = samples.GameNotInFocus,
+            KnownGameProcessCount = knownGameProcessCount,
+            Message = message
+        };
+    }
+
+    private static void WriteGpuPowerSavingState(
+        string statePath,
+        string tempPath,
+        GpuPowerSavingState state)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(state, JsonOptions);
+            File.WriteAllText(tempPath, json);
+            MoveWithRetry(tempPath, statePath);
+        }
+        catch
+        {
+            // Best-effort UI handoff; a failed status write must never break the agent.
         }
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Skin;
 using IconGrid.Models;
@@ -1682,6 +1683,80 @@ namespace IconGrid.ViewModels
             set
             {
                 if (SetField(ref _restoreLauncherAfterOverlayClosed, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opt-in: lower the NVIDIA power limit (and optionally the temperature
+        /// limit) while a game session is running but the game window is not in
+        /// the foreground. The elevated monitor agent applies and restores it.
+        /// Persisted in config.
+        /// </summary>
+        public bool GpuPowerSavingEnabled
+        {
+            get => _gpuPowerSavingEnabled;
+            set
+            {
+                if (SetField(ref _gpuPowerSavingEnabled, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Power limit percentage (of the card's default) used while the game is
+        /// in the background. Clamped to the range the NVML controller supports.
+        /// </summary>
+        public int GpuPowerSavingPowerLimitPercent
+        {
+            get => _gpuPowerSavingPowerLimitPercent;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    NvmlGpuLimitController.MinPowerLimitPercent,
+                    NvmlGpuLimitController.MaxPowerLimitPercent);
+                if (SetField(ref _gpuPowerSavingPowerLimitPercent, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Apply the temperature limit together with the power limit. The value
+        /// maps to the same driver knob MSI Afterburner calls "Temp Limit".
+        /// </summary>
+        public bool GpuPowerSavingTempLimitEnabled
+        {
+            get => _gpuPowerSavingTempLimitEnabled;
+            set
+            {
+                if (SetField(ref _gpuPowerSavingTempLimitEnabled, value))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Temperature limit in degrees Celsius used while the game is in the
+        /// background. Only ever applied when it is lower than the current value.
+        /// </summary>
+        public int GpuPowerSavingTempLimitCelsius
+        {
+            get => _gpuPowerSavingTempLimitCelsius;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    NvmlGpuLimitController.MinTempLimitCelsius,
+                    NvmlGpuLimitController.MaxTempLimitCelsius);
+                if (SetField(ref _gpuPowerSavingTempLimitCelsius, clamped))
                 {
                     SaveSettingsToConfig();
                 }

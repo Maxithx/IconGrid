@@ -325,8 +325,11 @@ namespace IconGrid.Views
             var scaledWidth = GetOverlayScaledWidth();
             if (scaledWidth > 0)
             {
-                Width = scaledWidth;
+                // MinWidth must be lowered BEFORE Width, otherwise WPF refuses to
+                // shrink the frame below the previous (popup-sized) minimum and the
+                // invisible window keeps the wider size after the menu closes.
                 MinWidth = scaledWidth;
+                Width = scaledWidth;
             }
 
             // Position is owned by ApplyPositionPreset() in preset mode and by the user's
@@ -382,7 +385,30 @@ namespace IconGrid.Views
             }
 
             _pendingOverlayMetricsUpdate = false;
+
+            // The window frame follows the content, and the content is right-aligned
+            // inside the window (the settings popup row is wider than the bar). Changing
+            // only Width/Height therefore slides the bar sideways — that is exactly the
+            // "the overlay jumps as soon as I open its own settings menu" bug. Keep the
+            // right edge fixed across the resize, then let the preset re-anchor.
+            var rightEdgeBefore = Left + Width;
+
             ApplyWindowSize();
+
+            if (!double.IsNaN(rightEdgeBefore) &&
+                !double.IsNaN(Width) &&
+                Math.Abs((Left + Width) - rightEdgeBefore) > 0.5)
+            {
+                _suppressLocationSave = true;
+                Left = rightEdgeBefore - Width;
+                _suppressLocationSave = false;
+            }
+
+            // Preset modes recompute the exact anchor (and handle bottom presets, where
+            // the growing height must push the bar upwards). Custom keeps the manual
+            // position that was just adjusted above, because ApplyPositionPreset returns
+            // early for Custom and never overrides a dragged position.
+            ApplyPositionPreset();
         }
 
         private double GetEffectiveScale()

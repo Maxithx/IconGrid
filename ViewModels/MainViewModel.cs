@@ -108,6 +108,10 @@ namespace IconGrid.ViewModels
         private bool _autoShowGamingOverlayOnGameStart = false;
         private bool _autoCloseGamingOverlayOnGameEnd = false;
         private bool _restoreLauncherAfterOverlayClosed = false;
+        private bool _gpuPowerSavingEnabled = false;
+        private int _gpuPowerSavingPowerLimitPercent = 70;
+        private bool _gpuPowerSavingTempLimitEnabled = true;
+        private int _gpuPowerSavingTempLimitCelsius = 70;
         private bool _restoreGameResolutionAfterExit = true;
         private int _launcherHideMode = 0; // LauncherHideMode: 0=AlwaysVisible, 1=Manual, 2=Auto, 3=AutoAndManual
         private int _idleAutoHideDelaySeconds = 2; // delay before idle auto-hide kicks in (1-10)

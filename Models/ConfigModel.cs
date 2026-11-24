@@ -40,6 +40,14 @@ public class ConfigModel
     public bool AutoShowGamingOverlayOnGameStart { get; set; } = false;
     public bool AutoCloseGamingOverlayOnGameEnd { get; set; } = false;
     public bool RestoreLauncherAfterOverlayClosed { get; set; } = false;
+    // Opt-in GPU power saving: while a game session is alive but the game window
+    // is not foreground, the elevated hardware monitor agent lowers the NVIDIA
+    // power limit (percent of the card's default) and, optionally, the
+    // temperature limit. Original values are restored automatically.
+    public bool GpuPowerSavingEnabled { get; set; } = false;
+    public int GpuPowerSavingPowerLimitPercent { get; set; } = 70;
+    public bool GpuPowerSavingTempLimitEnabled { get; set; } = true;
+    public int GpuPowerSavingTempLimitCelsius { get; set; } = 70;
     public bool ShowDesktopIcon { get; set; } = true;
     public bool StartDirectlyInLauncher { get; set; } = false;
     public bool ShowScrollButtons { get; set; } = true;

@@ -33,6 +33,10 @@ namespace IconGrid.ViewModels.Settings
         public bool AutoShowGamingOverlayOnGameStart { get; init; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; init; }
         public bool RestoreLauncherAfterOverlayClosed { get; init; }
+        public bool GpuPowerSavingEnabled { get; init; }
+        public int GpuPowerSavingPowerLimitPercent { get; init; } = 70;
+        public bool GpuPowerSavingTempLimitEnabled { get; init; } = true;
+        public int GpuPowerSavingTempLimitCelsius { get; init; } = 70;
         public bool ShowDesktopIcon { get; init; }
         public bool StartDirectlyInLauncher { get; init; }
         public bool ShowDevOverlay { get; init; }
@@ -116,6 +120,10 @@ namespace IconGrid.ViewModels.Settings
                 AutoShowGamingOverlayOnGameStart = config.AutoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = config.AutoCloseGamingOverlayOnGameEnd,
                 RestoreLauncherAfterOverlayClosed = config.RestoreLauncherAfterOverlayClosed,
+                GpuPowerSavingEnabled = config.GpuPowerSavingEnabled,
+                GpuPowerSavingPowerLimitPercent = config.GpuPowerSavingPowerLimitPercent,
+                GpuPowerSavingTempLimitEnabled = config.GpuPowerSavingTempLimitEnabled,
+                GpuPowerSavingTempLimitCelsius = config.GpuPowerSavingTempLimitCelsius,
                 ShowDesktopIcon = config.ShowDesktopIcon,
                 StartDirectlyInLauncher = config.StartDirectlyInLauncher,
                 ShowDevOverlay = config.ShowDevOverlay,

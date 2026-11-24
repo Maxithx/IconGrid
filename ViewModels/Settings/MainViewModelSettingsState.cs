@@ -30,6 +30,10 @@ namespace IconGrid.ViewModels.Settings
         public bool AutoShowGamingOverlayOnGameStart { get; set; }
         public bool AutoCloseGamingOverlayOnGameEnd { get; set; }
         public bool RestoreLauncherAfterOverlayClosed { get; set; }
+        public bool GpuPowerSavingEnabled { get; set; }
+        public int GpuPowerSavingPowerLimitPercent { get; set; } = 70;
+        public bool GpuPowerSavingTempLimitEnabled { get; set; } = true;
+        public int GpuPowerSavingTempLimitCelsius { get; set; } = 70;
         public bool ShowDesktopIcon { get; set; }
         public bool StartDirectlyInLauncher { get; set; }
         public bool IsAlwaysOnTop { get; set; }

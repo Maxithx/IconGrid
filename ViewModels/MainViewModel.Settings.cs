@@ -1,3 +1,4 @@
+using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Settings;
 using IconGrid.Helpers.Skin;
 using IconGrid.Models;
@@ -41,6 +42,16 @@ namespace IconGrid.ViewModels
             _autoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
             _autoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
             _restoreLauncherAfterOverlayClosed = state.RestoreLauncherAfterOverlayClosed;
+            _gpuPowerSavingEnabled = state.GpuPowerSavingEnabled;
+            _gpuPowerSavingPowerLimitPercent = Math.Clamp(
+                state.GpuPowerSavingPowerLimitPercent,
+                NvmlGpuLimitController.MinPowerLimitPercent,
+                NvmlGpuLimitController.MaxPowerLimitPercent);
+            _gpuPowerSavingTempLimitEnabled = state.GpuPowerSavingTempLimitEnabled;
+            _gpuPowerSavingTempLimitCelsius = Math.Clamp(
+                state.GpuPowerSavingTempLimitCelsius,
+                NvmlGpuLimitController.MinTempLimitCelsius,
+                NvmlGpuLimitController.MaxTempLimitCelsius);
             _restoreGameResolutionAfterExit = state.RestoreGameResolutionAfterExit;
             _launcherHideMode = state.LauncherHideMode;
             _idleAutoHideDelaySeconds = state.IdleAutoHideDelaySeconds;
@@ -119,6 +130,10 @@ namespace IconGrid.ViewModels
             _autoShowGamingOverlayOnGameStart = false;
             _autoCloseGamingOverlayOnGameEnd = false;
             _restoreLauncherAfterOverlayClosed = false;
+            _gpuPowerSavingEnabled = false;
+            _gpuPowerSavingPowerLimitPercent = 70;
+            _gpuPowerSavingTempLimitEnabled = true;
+            _gpuPowerSavingTempLimitCelsius = 70;
             _restoreGameResolutionAfterExit = true;
             _launcherHideMode = 0;
             _idleAutoHideDelaySeconds = 2;
@@ -179,6 +194,10 @@ namespace IconGrid.ViewModels
                 AutoShowGamingOverlayOnGameStart = _autoShowGamingOverlayOnGameStart,
                 AutoCloseGamingOverlayOnGameEnd = _autoCloseGamingOverlayOnGameEnd,
                 RestoreLauncherAfterOverlayClosed = _restoreLauncherAfterOverlayClosed,
+                GpuPowerSavingEnabled = _gpuPowerSavingEnabled,
+                GpuPowerSavingPowerLimitPercent = _gpuPowerSavingPowerLimitPercent,
+                GpuPowerSavingTempLimitEnabled = _gpuPowerSavingTempLimitEnabled,
+                GpuPowerSavingTempLimitCelsius = _gpuPowerSavingTempLimitCelsius,
                 ShowDesktopIcon = _showDesktopIcon,
                 StartDirectlyInLauncher = _startDirectlyInLauncher,
                 IsAlwaysOnTop = _isAlwaysOnTop,

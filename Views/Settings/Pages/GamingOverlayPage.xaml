@@ -751,6 +751,150 @@
                     <Border Style="{StaticResource StartsideSectionCardStyle}">
                         <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
                                   IsExpanded="False"
+                                  helpers:DevInspector.Metadata="GPU power saving card expander -> Views/GamingOverlayPage.xaml">
+                            <Expander.Header>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DataContext.GpuPowerSavingTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Text="{Binding DataContext.GpuPowerSavingIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <Expander.Content>
+                                <StackPanel>
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding DataContext.GpuPowerSavingEnableTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GpuPowerSavingEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <TextBlock Margin="0,4,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding DataContext.GpuPowerSavingEnableIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,16,0,0"
+                                               Text="{Binding DataContext.GpuPowerSavingPowerTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding DataContext.GpuPowerSavingPowerIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Grid Margin="0,10,0,0"
+                                          IsEnabled="{Binding DataContext.GpuPowerSavingEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Minimum="50"
+                                                Maximum="100"
+                                                TickFrequency="5"
+                                                SmallChange="5"
+                                                LargeChange="10"
+                                                IsSnapToTickEnabled="True"
+                                                Value="{Binding DataContext.GpuPowerSavingPowerLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource ModernSliderStyle}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Margin="12,0,0,0"
+                                                   Width="52"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Text="{Binding DataContext.GpuPowerSavingPowerLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
+                                    </Grid>
+                                    <Grid Margin="0,18,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding DataContext.GpuPowerSavingTempTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        <ToggleButton Grid.Column="1"
+                                                      Style="{StaticResource ToggleSwitchStyle}"
+                                                      IsChecked="{Binding DataContext.GpuPowerSavingTempLimitEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+                                    </Grid>
+                                    <TextBlock Margin="0,4,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding DataContext.GpuPowerSavingTempIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Grid Margin="0,10,0,0"
+                                          IsEnabled="{Binding DataContext.GpuPowerSavingTempLimitEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Minimum="60"
+                                                Maximum="85"
+                                                TickFrequency="1"
+                                                SmallChange="1"
+                                                LargeChange="5"
+                                                IsSnapToTickEnabled="True"
+                                                Value="{Binding DataContext.GpuPowerSavingTempLimitCelsius, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                Style="{StaticResource ModernSliderStyle}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Margin="12,0,0,0"
+                                                   Width="52"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Text="{Binding DataContext.GpuPowerSavingTempLimitCelsius, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0} °C}" />
+                                    </Grid>
+                                    <TextBlock Margin="0,18,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding DataContext.GpuPowerSavingHint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="12"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                    <TextBlock Margin="0,18,0,0"
+                                               Text="{Binding DataContext.GpuPowerSavingStatusTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               MaxWidth="680"
+                                               HorizontalAlignment="Left"
+                                               Text="{Binding GpuPowerSavingStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Button Margin="0,8,0,0"
+                                            Padding="10,6"
+                                            HorizontalAlignment="Left"
+                                            Click="GpuPowerSavingRefreshButton_Click"
+                                            Content="{Binding DataContext.GpuPowerSavingRefreshStatus, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
+                            </Expander.Content>
+                        </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource StartsideSectionCardStyle}">
+                        <Expander Style="{StaticResource GamingOverlayHeroExpanderStyle}"
+                                  IsExpanded="False"
                                   helpers:DevInspector.Metadata="Overlay scale card expander -> Views/GamingOverlayPage.xaml">
                             <Expander.Header>
                                 <StackPanel>

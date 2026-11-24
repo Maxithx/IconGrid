@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using Newtonsoft.Json;
 using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Settings;
@@ -66,6 +68,9 @@ namespace IconGrid.Views
         private string _fpsSetupTitleText = string.Empty;
         private string _fpsSetupIntroText = string.Empty;
         private string _refreshFpsSetupButtonText = string.Empty;
+        private string _gpuPowerSavingStatusText = string.Empty;
+        private readonly System.Windows.Threading.DispatcherTimer _gpuStatusTimer =
+            new() { Interval = System.TimeSpan.FromSeconds(1) };
         private string _runFpsSetupFixButtonText = string.Empty;
         private string _runFpsSetupFixHelpText = string.Empty;
         private string _technicalDetailsTitleText = string.Empty;
@@ -116,6 +121,7 @@ namespace IconGrid.Views
         {
             InitializeComponent();
             DataContext = this;
+            _gpuStatusTimer.Tick += (_, _) => RefreshGpuPowerSavingStatus();
             Loaded += GamingOverlayPage_Loaded;
             Unloaded += GamingOverlayPage_Unloaded;
         }
@@ -218,6 +224,16 @@ namespace IconGrid.Views
         {
             get => _refreshFpsSetupButtonText;
             private set => SetField(ref _refreshFpsSetupButtonText, value);
+        }
+
+        /// <summary>
+        /// Live readout of what the GPU power-saving feature is doing, built from
+        /// the status file the elevated monitor agent writes once per second.
+        /// </summary>
+        public string GpuPowerSavingStatusText
+        {
+            get => _gpuPowerSavingStatusText;
+            private set => SetField(ref _gpuPowerSavingStatusText, value);
         }
 
         public string RunFpsSetupFixButtonText
@@ -503,6 +519,8 @@ namespace IconGrid.Views
             RefreshLocalizedText();
             RefreshResolutionScales();
             RefreshFpsSetupStatus();
+            RefreshGpuPowerSavingStatus();
+            _gpuStatusTimer.Start();
         }
 
         private void RefreshResolutionScales()
@@ -533,6 +551,8 @@ namespace IconGrid.Views
 
         private void GamingOverlayPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            _gpuStatusTimer.Stop();
+
             if (_mainViewModel != null)
             {
                 _mainViewModel.PropertyChanged -= MainViewModel_PropertyChanged;
@@ -543,6 +563,106 @@ namespace IconGrid.Views
         private void RefreshFpsSetupButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             RefreshFpsSetupStatus();
+        }
+
+        private void GpuPowerSavingRefreshButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            RefreshGpuPowerSavingStatus();
+        }
+
+        private void RefreshGpuPowerSavingStatus()
+        {
+            var viewModel = _mainViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var statePath = System.IO.Path.Combine(
+                    new ConfigManager().BaseDirectory,
+                    "gpu-power-saving-state.json");
+
+                if (!File.Exists(statePath))
+                {
+                    GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
+                    return;
+                }
+
+                var state = JsonConvert.DeserializeObject<GpuPowerSavingState>(File.ReadAllText(statePath));
+                if (state == null)
+                {
+                    GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
+                    return;
+                }
+
+                if (!state.Available)
+                {
+                    GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusUnavailable;
+                    return;
+                }
+
+                var header = state.LowPowerProfileApplied
+                    ? viewModel.GpuPowerSavingStatusActive
+                    : viewModel.GpuPowerSavingStatusInactive;
+
+                var ceiling = state.ClockCeilingMhz > 0 ? state.ClockCeilingMhz.ToString() : "–";
+
+                var lines = new List<string>
+                {
+                    header,
+                    string.Format(
+                        viewModel.GpuPowerSavingStatusFormat,
+                        state.CurrentTempC,
+                        state.SmClockMhz.ToString(),
+                        ceiling,
+                        System.Math.Round(state.PowerDrawMw / 1000.0),
+                        state.FanPercent,
+                        System.Math.Round(state.PowerLimitMw / 1000.0),
+                        System.Math.Round(state.MinPowerLimitMw / 1000.0),
+                        System.Math.Round(state.MaxPowerLimitMw / 1000.0)),
+                    FormatGpuSample(
+                        viewModel.GpuPowerSavingSampleFocusFormat,
+                        viewModel.GpuPowerSavingSampleNever,
+                        state.GameInFocusSample),
+                    FormatGpuSample(
+                        viewModel.GpuPowerSavingSampleBackgroundFormat,
+                        viewModel.GpuPowerSavingSampleNever,
+                        state.GameNotInFocusSample)
+                };
+
+                if (!string.IsNullOrWhiteSpace(state.Message))
+                {
+                    lines.Add(state.Message);
+                }
+
+                GpuPowerSavingStatusText = string.Join(System.Environment.NewLine, lines);
+            }
+            catch
+            {
+                GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
+            }
+        }
+
+        /// <summary>
+        /// Formats one "measured with/without the game in focus" line. The sample is
+        /// null until the agent has observed a game session in that focus state.
+        /// </summary>
+        private static string FormatGpuSample(string format, string never, GpuPowerSample? sample)
+        {
+            if (sample == null)
+            {
+                return never;
+            }
+
+            return string.Format(
+                format,
+                sample.TempC,
+                sample.SmClockMhz.ToString(),
+                System.Math.Round(sample.PowerDrawMw / 1000.0),
+                sample.FanPercent,
+                sample.CapturedAtUtc.ToLocalTime().ToString("HH:mm:ss"));
         }
 
         private void OverlayColorSwatch_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)

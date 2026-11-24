@@ -2327,3 +2327,145 @@ BUILD + DEPLOY: Build succeeded 0 fejl. `bin\\Debug\\...\\IconGrid.dll` = `C:\\i
 
 NÆSTE TEST (bruger): Indstillinger -> Om -> Trace log: slå kontakten fra, bekræft at status skifter til "Trace-log skrivning er SLÅET FRA." og at trace.log ikke længere vokser; slå til igen og bekræft at den vokser. Bruger-verificeret 2026-11-18 ("works great"). COMMITTET OG PUSHET: `c7d4443`.
 
+
+## Session findings (2026-11-24) — GPU power saving while game is unfocused
+
+Brugerønske: når et spil (fx Path of Exile) kører men vinduet ikke er aktivt (alt-tab til Windows/YouTube), skal GPU'ens Power Limit og Temp Limit sænkes — som tilvalg i sin egen sektion på Gaming overlay-siden.
+
+IMPLEMENTERING (NVIDIA-only, opt-in, default OFF):
+- `Helpers/Hardware/NvmlGpuLimitController.cs` (ny, 585 linjer): NVML P/Invoke. Læser nuværende/default/min/max power + NVML acoustic temp-threshold (samme driver-knap som Afterburners "Temp Limit"; målt ACOUSTIC_CURR=83 °C på dette kort). Skriver kun lavere værdier, clampes til kortets egne grænser, og gendanner originalværdier. Crash-sikring via `%APPDATA%\IconGrid\gpu-limit-restore.json` (original + applied). Backer off hvis Afterburner/brugeren ændrer limit eksternt. `DllNotFoundException`/manglende NVML giver "unavailable", ikke crash (AMD/Intel).
+- `Helpers/Hardware/HardwareMonitorAgent.cs`: ejer controlleren (agenten kører allerede elevated — NVML writes kræver admin). Ny `UpdateGpuPowerSaving`: holder et sæt af bekræftede game-PIDs (`gpuKnownGamePids`, døde prunes hvert loop) og slår low-power til når mindst én kendt spilproces lever OG forgrundsvinduet ikke er en af dem. Det gør alt-tab til browser robust, selv hvis FPS-pipelinen senere retargeter. Fokus tilbage til spillet/spil lukket => restore. 4 s hysterese, 60 s retry-backoff; slider-ændringer slår igennem live mens profilen er aktiv. Restore ved agent-exit (`exit:`), `Dispose`, og ved crash via marker.
+- Persistens: `ConfigModel` + `MainViewModelSettingsState` + `MainViewModelConfigState` + `MainViewModelSettingsPersistence` (4 felter: `GpuPowerSavingEnabled`, `GpuPowerSavingPowerLimitPercent=70`, `GpuPowerSavingTempLimitEnabled=true`, `GpuPowerSavingTempLimitCelsius=70`).
+- UI: nyt Expander-kort "GPU-strømbesparelse" i `Views/Settings/Pages/GamingOverlayPage.xaml` (efter "Automatisk under spil"): master-toggle, power-slider 50-100 %, temp-toggle + slider 60-85 °C, advarsel om MSI Afterburner.
+- Lokalisering: 9 nye nøgler i både en+da i `LocalizationHelper`, properties + `NotifyLocalizationPropertiesChanged` i `MainViewModel.Localization` (central pattern; XAML binder via `DataContext.*, AncestorType=Window`).
+
+MÅLTE NVML-FAKTA (denne maskine, RTX 2060 SUPER, driver 616.56): power 175 W, interval 125-175 W, GPU_MAX=89 °C, SLOWDOWN=93 °C, ACOUSTIC_MIN=65, ACOUSTIC_CURR=83, ACOUSTIC_MAX=88. No-op writes fra non-elevated shell gav rc=4 (NO_PERMISSION) => bekræfter at skrivning kræver admin; agenten er elevated.
+
+BUILD + DEPLOY: `dotnet build IconGrid.csproj` => Build succeeded, 0 warnings, 0 errors. `cmd /c deploy-test.cmd` => Done. `bin\Debug\...\IconGrid.dll` = `C:\icongrid\IconGrid.dll` (24-11-2026 01:00:54). App + monitor-agent startet igen; `monitor-state.json` og `gpu-power-saving-state.json` opdateres løbende (agenten kører ny kode uden crash). Trace-logging er slået FRA via marker, så agent-log-linjer kunne ikke verificeres.
+
+DIAGNOSE 2026-11-24 (bruger: "GPU falder ikke" + "blæser kører hele tiden"):
+- Power limit ER sænket korrekt: `nvidia-smi` viser 125 W (kortets minimum) i stedet for 175 W, og `gpu-limit-restore.json` blev skrevet. Funktionen virker efter hensigten.
+- Kortet bruger kun ~78-85 W ved PoE i baggrunden (60 FPS). Derfor er power limit ikke den begrænsende faktor, og temperaturen bliver 83-84 °C.
+- `nvidia-smi -q -d TEMPERATURE`: `GPU Target Temperature Specification = 70 °C`, men `GPU Max Operating Temp = 89 °C`. `nvidia-smi -q -d PERFORMANCE`: `SW Thermal Slowdown = Active`. Kortet kan ikke komme under 83-84 °C ved ~80 W / 74 % fan.
+- Fan boost testet: fan 74 %→96 %, temp kun 84→83 °C efter 60 s. Køleren er flaskehalsen. Fan boost er derfor default OFF og blev slået fra igen; fan er tilbage på auto 74 %.
+- GPU_MAX (threshold type 3) forsøgt sænket til 70 °C: ingen effekt (`GPU Max Operating Temp` rapporteres stadig 89) → koden er fjernet igen.
+- Reference: TechPowerUp målte MSI RTX 2060 Super Gaming X til 67 °C / 33 dBA ved fuld spilbelastning (~175 W). 83-84 °C ved ~80 W er langt over normalen → mistænkt tør thermal paste/pads, støv eller dårligt luftflow. Anbefaling: HWiNFO64 hotspot/memory junction, repaste/repad, rens køler.
+- PoE's egen config (`%USERPROFILE%\Documents\My Games\Path of Exile\production_Config.ini`): `background_framerate_limit_enabled=true`, `background_framerate_limit=60`. Det er årsagen til at spillet bliver ved med at rende 55-60 FPS i baggrunden. Sæt Background FPS Cap til 15-20 i Options → Graphics (eller NVIDIA Kontrolpanel → Background Application Max Frame Rate). Det er den effektive vej til lavere temperatur.
+- Nyt: agenten skriver `gpu-power-saving-state.json` (1 Hz) med power limit, interval, temp-mål, aktuel temp, fan og besked; Gaming overlay-siden viser "Målt status" + "Opdater status" (opdateres hvert 3. s).
+
+NÆSTE TEST (bruger): Sæt PoE Background FPS Cap til 15-20 og bekræft at temperaturen falder. Overvej repaste hvis hotspot er høj. Power limit kan ikke sænkes under 125 W på dette kort.
+
+OVER-LIMIT NOTE: `HardwareMonitorAgent.cs` er nu 2817 linjer (var 2542; allerede over grænsen). Næste cohesive extraction-kandidat: flyt selve profil-beslutningen (`UpdateGpuPowerSaving`) til en lille `GpuPowerSavingCoordinator`-helper, så agenten kun kalder den.
+
+IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
+
+## GPU-STRØMBESPARELSE: CLOCK-GOVERNOR (24-11-2026, testet live)
+
+Brugerkrav: temperaturgrænsen skal kun gælde når spilvinduet IKKE har fokus, og GPU'en skal reelt drosle ned (længere levetid). Det gjorde de gamle knapper ikke.
+
+MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
+- power.limit 125 W (kortets minimum), draw 79-81 W, 83-84 °C, SM 1290-1455 MHz, mem 7000 MHz (fuld), fan 75 %.
+- `clocks_event_reasons.active = 0x20` (SW Thermal Slowdown) — IKKE power cap (0x04).
+- NVML acoustic threshold = 70 °C og driveren rapporterer `GPU Target Temperature Specification: 70 C`, men kortet lå 13-14 °C over → NVML's temp-knap er kun et akustisk mål, ikke en hård clock-grænse. Power limit kan ikke komme under 125 W. Begge gamle knapper var derfor tandløse på dette kort.
+- Vores egen pipeline er ikke årsagen: IconGrid 0,06 % GPU, IconGridFpsAgent 0,00 % GPU.
+- PoE's `production_Config.ini`: `background_framerate_limit=60` → PresentMon målte 17,4 ms/frame og 14,1 ms GPU-busy pr. frame i baggrunden.
+
+IMPLEMENTERET (Helpers/Hardware):
+- `NvmlGpuLimitController`: nye P/Invoke `nvmlDeviceSetGpuLockedClocks` / `nvmlDeviceResetGpuLockedClocks` (samme mekanisme som `nvidia-smi -lgc`; kræver admin → kun agenten) samt `nvmlDeviceGetClockInfo` / `nvmlDeviceGetMaxClockInfo`. Ny `GovernClocks(targetTempC)`: lukket reguleringssløjfe — clock-loft sænkes 150 MHz mens temp > mål, hæves 100 MHz når temp <= mål-3; gulv 400 MHz, loft = kortets max SM-clock (2100 MHz), min. 2 s mellem ændringer. `ReleaseClockLimit()` frigiver øjeblikkeligt. `Restore()`/`Dispose`/agent-exit frigiver loftet, og `gpu-limit-restore.json` har nu `ClockLockApplied` + `AppliedClockCeilingMhz`, så crash-recovery nulstiller et efterladt loft.
+- `HardwareMonitorAgent.UpdateGpuPowerSaving`: governor kører mens lav-strøm-profilen er aktiv og `GpuPowerSavingTempLimitEnabled=true`. Når spillet får fokus frigives clock-loftet med det samme (før den 4 s power-limit-hysterese), så der ikke opstår lav-FPS-spikes.
+- `GpuPowerSavingState`: nye felter `SmClockMhz`, `MaxSmClockMhz`, `ClockLimitSupported`, `ClockCeilingMhz`.
+- UI: "Målt status" viser nu `clock X MHz · loft Y MHz` (statusformat opdateret i en+da; 0 vises som "–"). Temp-intro/hint (en+da) forklarer at temperaturgrænsen nu ER clock-loftet.
+
+MÅLT EFTER (samme session, PoE stadig uden fokus, mål 70 °C):
+- Clock-loft konvergerede 1950 → 600 MHz; GPU 67-70 °C, draw 45-57 W, fan 63-65 %, `throttle = 0x1 (GpuIdle)`, mem stadig 7000 MHz.
+- 84 °C → ~68 °C (≈16 °C lavere) og 81 W → ~52 W uden at ændre spillets FPS-cap. VRAM-clock røres bevidst ikke (Temp Limit påvirker ikke VRAM; kun memory-junction-beskyttelse gør, og den rapporteres N/A på dette kort).
+
+VERIFIKATION: endelig build 0 fejl/0 advarsler (01:26:02) → deploy → `C:\IconGrid\IconGrid.dll` = `bin\Debug\...\IconGrid.dll` (01:26:02). Agenten anvendte profilen automatisk inden for ~45 s (PoE uden fokus), og restore-markøren viste `ClockLockApplied=true` med det aktive loft. Efter genstart konvergerede governor'en til loft 550-600 MHz / 67-70 °C / ~52 W.
+Status-linjen i "Målt status" viser nu altid tal (clock/loft), også når governor'en holder sit nuværende loft.
+LAYOUT (01:38): beskrivelses-teksterne i GPU-kortet (enable/power/temp/fan-intro, hint og målt status) har fået `MaxWidth="680"` + `HorizontalAlignment="Left"`, så de ikke længere løber i én lang linje hen over hele kortet. Build 0/0 (01:38:29) → deployet, DLL-timestamps matcher.
+NB: `deploy-test.cmd` startede IKKE appen i denne session (kun "Start:"-echo) → appen blev startet manuelt med `Start-Process C:\IconGrid\IconGrid.exe`.
+
+NÆSTE (bruger-test): alt-tab til PoE → clock-loftet skal frigives inden for ~1 s (SM tilbage til 1300-1900 MHz); alt-tab ud igen → loftet trapper ned igen. Justér "Temperaturgrænse" (60-85 °C) for hvor hårdt kortet må drosles i baggrunden.
+TEKNISK GÆLD: `HardwareMonitorAgent.cs` er nu ~2860 linjer; næste extraction-kandidat er fortsat at flytte `UpdateGpuPowerSaving` til en `GpuPowerSavingCoordinator`-helper.
+
+IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
+
+## GPU-KORT: FAN-BOOST FJERNET + REALTIDSSTATUS (24-11-2026)
+
+Brugerønske: (1) "Ekstra køling (100 % fan)" skal væk fra GPU-besparelse-kortet, (2) "Målt status" skal vise realtidstal — gerne både med og uden aktivt spilvindue.
+
+FJERNET (UI + indstilling, ikke motoren):
+- `Views/Settings/Pages/GamingOverlayPage.xaml`: fan-boost-Grid (toggle) + intro-tekst er slettet.
+- `ConfigModel.GpuPowerSavingFanBoostEnabled`, `MainViewModel._gpuPowerSavingFanBoostEnabled` + property, `MainViewModelSettingsState`/`ConfigState`/`SettingsPersistence`-felterne, `MainViewModel.Localization` (2 properties + 2 notify), `LocalizationHelper` (2 nøgler i en+da) og `GpuPowerSavingState.FanBoostEnabled` er fjernet.
+- `HardwareMonitorAgent` sender nu altid `fanBoost: false` til `NvmlGpuLimitController.Apply`.
+- BEVIDST BEHOLDT i `NvmlGpuLimitController`: `TryApplyFanBoost`/`TryRestoreFanControl` + `FanBoostApplied` i restore-markøren, så en gammel crash-markør stadig kan rulle fan-styringen tilbage. Agenten kan ikke længere aktivere boost.
+
+REALTIDSSTATUS:
+- NVML: ny `nvmlDeviceGetPowerUsage` → `GpuPowerStatus.PowerDrawMw` (faktisk forbrug i W, ikke kun limit).
+- Ny `Helpers/Hardware/GpuPowerSample.cs`: `GpuPowerSample` (record: temp/clock/draw/fan/tid) + `GpuPowerSamples` der holder "sidst målt MED spillet i fokus" og "sidst målt UDEN fokus".
+- `HardwareMonitorAgent.UpdateGpuPowerSaving` sampler hvert loop (før back-off/hysterese), så tallene er friske uanset profil-state; `GpuPowerSavingState` har fået `PowerDrawMw`, `GameInFocusSample`, `GameNotInFocusSample`.
+- UI: `_gpuStatusTimer` 3 s → **1 s**. "Målt status" er nu fire linjer:
+  `Lav-strøm-profilen er AKTIV.` / `Nu: GPU 67 °C · clock 600 MHz · loft 600 MHz · 52 W · fan 66 % · grænse 125 W (125-175 W)` / `Med spillet i fokus: … (HH:mm:ss)` / `Uden fokus (lav-strøm aktiv): … (HH:mm:ss)` + agentens besked.
+- Nye lokaliseringsnøgler (en+da): `GpuPowerSavingSampleFocusFormat`, `GpuPowerSavingSampleBackgroundFormat`, `GpuPowerSavingSampleNever`; `GpuPowerSavingStatusFormat` er ændret til live-formatet (8 pladsholdere).
+
+MÅLT (24-11, PoE kørende): med spillet i fokus 83 °C / 1305 MHz / 78 W / fan 70 % → uden fokus 67 °C / 600 MHz / 52 W / fan 66 %. Governor'en trappede 1500 → 600 MHz på ~18 s efter alt-tab.
+VERIFIKATION: build 0 fejl/0 advarsler (01:45:46) → deploy → DLL-timestamps matcher; app + agent genstartet, state-JSON indeholder `powerDrawMw` + begge samples.
+Gammel nøgle `GpuPowerSavingFanBoostEnabled` kan stadig stå i `config.json` — Newtonsoft ignorerer ukendte felter, så den er harmløs.
+
+IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse.
+
+
+## GPU-TEKSTER REVIEWET (24-11-2026)
+
+Brugeren spurgte om "IconGrid går aldrig under kortets minimum" burde hedde "IconGrids Gaming overlay", fordi funktionen kører gennem gaming-overlay-pipelinen.
+
+FAKTA (verificeret i koden): GPU-besparelsen styres af `HardwareMonitorAgent` (elevated) ud fra `knownGamePids` + "spillet har ikke fokus" — dvs. IconGrids **spil-session-detektering**. Gaming overlay-**vinduet** er ikke en forudsætning (det kan være lukket, mens profilen stadig anvendes). Derfor er "Gaming overlay" upræcist/forkert i teksten; i stedet navngives den komponent der faktisk gør arbejdet: hardware-monitor-agenten.
+
+OPDATEREDE NØGLER (en+da): `GpuPowerSavingIntro` (nævner nu clock-loft i stedet for kun temperaturgrænse + "i samme øjeblik spillet får fokus"), `GpuPowerSavingEnableIntro` (nævner spil-session-detektering + at det virker uanset om overlayet er åbent), `GpuPowerSavingPowerIntro` (agenten går aldrig under kortets eget minimum), `GpuPowerSavingTempIntro` (agenten låser clocken), `GpuPowerSavingHint` (præciseret: gælder kun når spilvinduet ikke har fokus).
+
+VERIFIKATION: build 0/0 (01:52:45) → deployet, DLL-timestamps matcher; app + agent genstartet.
+
+IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse.
+
+
+## GPU-TEKSTER: PRODUKTNIVEAU ("IconGrid") — endelig beslutning (24-11-2026)
+
+Brugerens pointe: pipeline detekterer spil → `HideForGame` → gaming overlay startes, så det er samme detektering; hvem der "ejer" power limit i teksten er kosmetisk.
+
+BEKRÆFTET I KODEN: `Views/Launcher/MainWindow.xaml.cs:895-906` `OnGameLaunched()` → `_windowModeController.HideForGame(GameLauncherAutoBehavior)` → (valgfrit) `ShowGamingOverlay(...)`. GPU-besparelsen hænger på samme spil-detektering via FPS-pipelinen (`knownGamePids` + fokus-check), uafhængigt af om overlay-vinduet vises.
+
+BESLUTNING: teksterne bruger **produktnavnet "IconGrid"** (ikke "Gaming overlay", ikke "hardware-monitor-agenten" som primær aktør). Kun enable-subteksten nævner pipelinen + agenten, fordi det forklarer admin-kravet: "den samme spil-detektering, som skjuler launcheren og starter gaming overlayet, via IconGrids hardware-monitor-agent".
+
+Endelige tekster (da): Intro = "Sænk grafikkortets power limit og sæt et loft på GPU-clocken, mens en spil-session kører, men spilvinduet ikke har fokus. De oprindelige værdier gendannes, i samme øjeblik spillet får fokus igen." / PowerIntro = "… IconGrid går aldrig under kortets eget minimum." / TempIntro = "… IconGrid låser GPU-clocken …" / Hint = "… Det hele gælder kun, mens spilvinduet ikke har fokus …". Engelsk 1:1.
+
+VERIFIKATION: build 0/0 (01:57:55) → deployet, DLL-timestamps matcher; app + agent genstartet.
+
+IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse.
+
+
+## BUGFIX: GAMING OVERLAY "HOPPER" NÅR EGEN MENU ÅBNES (24-11-2026)
+
+Brugerrapport: så snart gaming overlayet er oppe og man klikker på tandhjulet ("Overlay settings") eller "Open gaming overlay settings", rykker selve overlay-baren sig.
+
+ROOT CAUSE: `OverlayBar.PopupPanelsRow` er `HorizontalAlignment="Right"` og BREDERE end baren. Vinduets indhold er højrejusteret, og `ApplyWindowSize()` ændrede kun `Width`/`Height` (ikke `Left`). Når menuen åbnede/lukkede, flyttede den højre kant sig derfor = baren gled sidelæns. Samme mekanisme ramte indholds-toggles (ur/net/CPU/GPU/FPS) i `UpdateOverlayMetrics`.
+
+FIX (`Views/Launcher/GamingOverlayWindow.xaml.cs`):
+1. `UpdateOverlayMetrics()` gemmer nu højre kant (`Left + Width`) FØR resize, kalder `ApplyWindowSize()` og sætter bagefter `Left = højreKant − Width` (med `_suppressLocationSave`, så positionen ikke gemmes som "brugerens placering"), og kalder til sidst `ApplyPositionPreset()` (preset-tilstande re-ankres præcist, inkl. bund-presets hvor højden vokser; `Custom` returnerer tidligt og beholder den justerede manuelle position).
+2. `ApplyWindowSize()` sætter nu `MinWidth` FØR `Width` (rækkefølgen kan ellers forhindre WPF i at skrumpe rammen tilbage efter menuen er lukket).
+
+VERIFIKATION (målt med Win32 `GetWindowRect` + UI Automation på `SettingsMenuButton`, mens PoE kørte):
+- FØR: `1631,0 929x24  right=2560`
+- MENU ÅBEN: `1582,0 978x173  right=2560`
+- EFTER (lukket): `1582,0 978x24  right=2560`
+→ højre kant er konstant 2560 = baren flytter sig IKKE længere. Bruger bekræftede: "det virker".
+
+KENDT KOSMETISK REST: vinduets usynlige ramme beholder popup-bredden (978) indtil overlayet genåbnes; baren står korrekt (højrejusteret, kant 2560) og området er gennemsigtigt i et lagdelt WPF-vindue, så klik går igennem til spillet. Ikke rettet videre (kosmetisk).
+
+NOTE: trace-logging blev midlertidigt slået TIL under fejlsøgningen (`trace-logging.disabled` → `.bak`) og er slået fra igen; appen blev genstartet, så den kører uden tracing.
+
+BUILD/DEPLOY: 0 fejl/0 advarsler (02:03:50), deployet, `C:\IconGrid\IconGrid.dll` matcher `bin\Debug\...`.
+
+IKKE COMMITTET/PUSHET — kræver explicit bruger-godkendelse.
+

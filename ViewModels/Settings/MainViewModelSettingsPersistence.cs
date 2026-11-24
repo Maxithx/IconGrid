@@ -43,6 +43,10 @@ namespace IconGrid.ViewModels.Settings
                 config.AutoShowGamingOverlayOnGameStart = state.AutoShowGamingOverlayOnGameStart;
                 config.AutoCloseGamingOverlayOnGameEnd = state.AutoCloseGamingOverlayOnGameEnd;
                 config.RestoreLauncherAfterOverlayClosed = state.RestoreLauncherAfterOverlayClosed;
+                config.GpuPowerSavingEnabled = state.GpuPowerSavingEnabled;
+                config.GpuPowerSavingPowerLimitPercent = state.GpuPowerSavingPowerLimitPercent;
+                config.GpuPowerSavingTempLimitEnabled = state.GpuPowerSavingTempLimitEnabled;
+                config.GpuPowerSavingTempLimitCelsius = state.GpuPowerSavingTempLimitCelsius;
                 config.ShowDesktopIcon = state.ShowDesktopIcon;
                 config.StartDirectlyInLauncher = state.StartDirectlyInLauncher;
                 config.IsAlwaysOnTop = state.IsAlwaysOnTop;
