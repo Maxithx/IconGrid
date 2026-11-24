@@ -3158,6 +3158,22 @@ BRUGERØNSKE: En selvstændig topmåling af hotspot, som bliver stående indtil 
 
 VERIFICERET: build 0/0, deployet 08:28:36, appen genstartet.
 
+## FIX 23: Hotspot-alarm tænder på top-rekord (24-11-2026)
+
+BRUGER-RAPPORT: Alarm trigger ikke selv om top-hotspot var 97 °C; alarmgrænse 95 °C.
+
+ROOT CAUSE: Advarslen blev kun beregnet ud fra **aktuelt** hotspot. Da siden blev åbnet, var kortet kølet til 72 °C, så 97 °C-rekorden udløste intet.
+
+FIX:
+- Alarmen tjekker nu både:
+  - aktuelt hotspot >= grænse (eller delta >= 15 °C), og
+  - **gemt top-hotspot** >= grænse.
+- Er top-rekorden over grænsen, vises en dedikeret advarsel med top-temp, GPU-temp, forskel, tid, spil og grænse.
+- “Ryd målinger” fjerner top-rekorden og dermed også peak-advarslen.
+
+VERIFICERET: build 0/0, deployet 08:41:26, appen genstartet.
+
+
 
 VERIFICERET: build 0/0, deployet 08:14:04, appen genstartet.
 

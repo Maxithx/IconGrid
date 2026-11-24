@@ -835,12 +835,38 @@ public bool IsNvidiaGtx =>
                 delta.ToString("F1"));
 
             var hotspot = ParseTemperature(snapshot.GpuHotspot);
-            var shouldWarn = viewModel.GpuHotspotAlarmEnabled &&
-                             ((hotspot.HasValue && hotspot.Value >= viewModel.GpuHotspotAlarmThresholdC) || delta >= 15);
+            var topEntry = snapshot.HotspotHistory?.FirstOrDefault();
+            var peakHotspot = topEntry?.HotspotC;
+            var currentOverLimit =
+                hotspot.HasValue && hotspot.Value >= viewModel.GpuHotspotAlarmThresholdC;
+            var peakOverLimit = peakHotspot.HasValue &&
+                                peakHotspot.Value >= viewModel.GpuHotspotAlarmThresholdC;
+            var deltaOverLimit = delta >= 15;
 
-            GpuHotspotWarningText = shouldWarn
-                ? string.Format(viewModel.GpuHotspotWarning, snapshot.GpuHotspot, delta.ToString("F1"))
-                : string.Empty;
+            if (viewModel.GpuHotspotAlarmEnabled && (currentOverLimit || deltaOverLimit))
+            {
+                GpuHotspotWarningText = string.Format(
+                    viewModel.GpuHotspotWarning,
+                    snapshot.GpuHotspot,
+                    delta.ToString("F1"));
+            }
+            else if (viewModel.GpuHotspotAlarmEnabled && peakOverLimit)
+            {
+                GpuHotspotWarningText = string.Format(
+                    viewModel.GpuHotspotPeakWarning,
+                    topEntry!.HotspotC,
+                    topEntry.EdgeC,
+                    topEntry.DeltaC,
+                    topEntry.CapturedAtUtc.ToLocalTime(),
+                    string.IsNullOrWhiteSpace(topEntry.GameName)
+                        ? viewModel.GpuHotspotHistoryNoGame
+                        : topEntry.GameName,
+                    viewModel.GpuHotspotAlarmThresholdC);
+            }
+            else
+            {
+                GpuHotspotWarningText = string.Empty;
+            }
         }
         catch
         {

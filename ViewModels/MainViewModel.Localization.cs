@@ -287,6 +287,7 @@ namespace IconGrid.ViewModels
         public string GpuHotspotAlarmThresholdIntro => _localizationState.Get(Language, "GpuHotspotAlarmThresholdIntro");
         public string GpuHotspotStatusFormat => _localizationState.Get(Language, "GpuHotspotStatusFormat");
         public string GpuHotspotWarning => _localizationState.Get(Language, "GpuHotspotWarning");
+        public string GpuHotspotPeakWarning => _localizationState.Get(Language, "GpuHotspotPeakWarning");
         public string GpuHotspotNoData => _localizationState.Get(Language, "GpuHotspotNoData");
         public string GpuHotspotHistoryTitle => _localizationState.Get(Language, "GpuHotspotHistoryTitle");
         public string GpuHotspotRecordTitle => _localizationState.Get(Language, "GpuHotspotRecordTitle");
@@ -721,6 +722,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuHotspotAlarmThresholdIntro));
             OnPropertyChanged(nameof(GpuHotspotStatusFormat));
             OnPropertyChanged(nameof(GpuHotspotWarning));
+            OnPropertyChanged(nameof(GpuHotspotPeakWarning));
             OnPropertyChanged(nameof(GpuHotspotNoData));
             OnPropertyChanged(nameof(GpuHotspotHistoryTitle));
             OnPropertyChanged(nameof(GpuHotspotRecordTitle));
