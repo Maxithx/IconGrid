@@ -107,6 +107,21 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         }
     }
 
+    private const double CurveChartWidth = 560;
+    private const double CurveChartHeight = 180;
+    private const double CurveChartPadding = 10;
+    private const float CurveMinVoltageMv = 600;
+    private const float CurveMaxVoltageMv = 1700;
+    private const float CurveMinClockMhz = 300;
+    private const float CurveMaxClockMhz = 2100;
+
+    private System.Windows.Media.PointCollection _stockCurvePoints = new();
+    private System.Windows.Media.PointCollection _activeCurvePoints = new();
+    private System.Windows.Media.PointCollection _targetCurvePoints = new();
+    private string _gpuCurveChartNoDataText = string.Empty;
+    private string _gpuCurveChartActiveProfileText = string.Empty;
+    private string _gpuCurveChartTargetText = string.Empty;
+
     /// <summary>Target clock used when IconGrid generates an undervolt curve.</summary>
     public double UndervoltTargetClockMhz
     {
@@ -121,6 +136,67 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
             _undervoltTargetClockMhz = clamped;
             OnPropertyChanged(nameof(UndervoltTargetClockMhz));
+            RefreshTargetCurveLine();
+        }
+    }
+
+    public System.Windows.Media.PointCollection StockCurvePoints
+    {
+        get => _stockCurvePoints;
+        private set
+        {
+            _stockCurvePoints = value;
+            OnPropertyChanged(nameof(StockCurvePoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection ActiveCurvePoints
+    {
+        get => _activeCurvePoints;
+        private set
+        {
+            _activeCurvePoints = value;
+            OnPropertyChanged(nameof(ActiveCurvePoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection TargetCurvePoints
+    {
+        get => _targetCurvePoints;
+        private set
+        {
+            _targetCurvePoints = value;
+            OnPropertyChanged(nameof(TargetCurvePoints));
+        }
+    }
+
+    public string GpuCurveChartNoDataText
+    {
+        get => _gpuCurveChartNoDataText;
+        private set
+        {
+            _gpuCurveChartNoDataText = value;
+            OnPropertyChanged(nameof(GpuCurveChartNoDataText));
+        }
+    }
+
+    public string GpuCurveChartActiveProfileText
+    {
+        get => _gpuCurveChartActiveProfileText;
+        private set
+        {
+            _gpuCurveChartActiveProfileText = value;
+            OnPropertyChanged(nameof(GpuCurveChartActiveProfileText));
+        }
+    }
+
+    public string GpuCurveChartTargetText
+    {
+        get => _gpuCurveChartTargetText;
+        private set
+        {
+            _gpuCurveChartTargetText = value;
+            OnPropertyChanged(nameof(GpuCurveChartTargetText));
         }
     }
 
@@ -209,6 +285,7 @@ public bool IsNvidiaGtx =>
         Loaded += HardwarePage_Loaded;
         Unloaded += HardwarePage_Unloaded;
         _gpuUndervoltTimer.Tick += (_, _) => RefreshGpuUndervoltStatus();
+        _gpuUndervoltTimer.Tick += (_, _) => RefreshCurveChart();
     }
 
     private async void HardwarePage_Loaded(object sender, System.Windows.RoutedEventArgs e)
@@ -218,6 +295,7 @@ public bool IsNvidiaGtx =>
 
         RefreshGpuUndervoltStatus();
         RefreshAfterburnerProfiles();
+        RefreshCurveChart();
         _gpuUndervoltTimer.Start();
     }
 
@@ -426,6 +504,7 @@ public bool IsNvidiaGtx =>
             }
 
             RefreshAfterburnerProfiles();
+            RefreshCurveChart();
         }
         catch (Exception ex)
         {
@@ -437,7 +516,85 @@ public bool IsNvidiaGtx =>
     {
         RefreshAfterburnerProfiles();
         RefreshGpuUndervoltStatus();
+        RefreshCurveChart();
     }
+
+    /// <summary>
+    /// Draws the stock V/F curve, the selected profile's curve and the clock target
+    /// on a fixed-size canvas. Reading the profile file needs no elevation.
+    /// </summary>
+    private void RefreshCurveChart()
+    {
+        var viewModel = DataContext as IconGrid.ViewModels.MainViewModel;
+
+        try
+        {
+            var controller = new AfterburnerProfileController();
+            var stock = controller.ReadStockCurve();
+            var activeProfile = (viewModel?.GpuUndervoltGameProfile ?? 0) > 0
+                ? viewModel!.GpuUndervoltGameProfile
+                : 9;
+            var active = controller.ReadCurve(activeProfile);
+
+            StockCurvePoints = BuildCurvePoints(stock);
+            ActiveCurvePoints = BuildCurvePoints(active);
+            RefreshTargetCurveLine();
+
+            GpuCurveChartNoDataText = stock.Count == 0 && active.Count == 0
+                ? viewModel?.GpuCurveChartNoData ?? "No V/F curve found."
+                : string.Empty;
+
+            GpuCurveChartActiveProfileText = viewModel == null
+                ? $"Profile {activeProfile}"
+                : string.Format(viewModel.GpuCurveChartProfileFormat, activeProfile);
+        }
+        catch
+        {
+            GpuCurveChartNoDataText = viewModel?.GpuCurveChartNoData ?? "No V/F curve found.";
+        }
+    }
+
+    private void RefreshTargetCurveLine()
+    {
+        var y = ClockToY(UndervoltTargetClockMhz);
+        TargetCurvePoints = new System.Windows.Media.PointCollection
+        {
+            new System.Windows.Point(CurveChartPadding, y),
+            new System.Windows.Point(CurveChartWidth - CurveChartPadding, y)
+        };
+
+        var viewModel = DataContext as IconGrid.ViewModels.MainViewModel;
+        GpuCurveChartTargetText = viewModel == null
+            ? $"{UndervoltTargetClockMhz:F0} MHz target"
+            : string.Format(viewModel.GpuCurveChartTargetFormat, (int)System.Math.Round(UndervoltTargetClockMhz));
+    }
+
+    private static System.Windows.Media.PointCollection BuildCurvePoints(
+        IReadOnlyList<AfterburnerCurvePoint> curve)
+    {
+        var points = new System.Windows.Media.PointCollection();
+        foreach (var point in curve)
+        {
+            points.Add(new System.Windows.Point(VoltageToX(point.VoltageMv), ClockToY(point.ClockMhz)));
+        }
+
+        return points;
+    }
+
+    private static double VoltageToX(float voltageMv)
+        => CurveChartPadding +
+           ((System.Math.Clamp(voltageMv, CurveMinVoltageMv, CurveMaxVoltageMv) - CurveMinVoltageMv) /
+            (CurveMaxVoltageMv - CurveMinVoltageMv)) *
+           (CurveChartWidth - (2 * CurveChartPadding));
+
+    private static double ClockToY(double clockMhz)
+        => CurveChartHeight - CurveChartPadding -
+           ((System.Math.Clamp(clockMhz, CurveMinClockMhz, CurveMaxClockMhz) - CurveMinClockMhz) /
+            (CurveMaxClockMhz - CurveMinClockMhz)) *
+           (CurveChartHeight - (2 * CurveChartPadding));
+
+    private void GpuUndervoltProfile_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        => RefreshCurveChart();
 
     /// <summary>
     /// Reads the Afterburner profiles so the drop-downs can list them. Reading the
@@ -470,6 +627,7 @@ public bool IsNvidiaGtx =>
         }
 
         OnPropertyChanged(nameof(AfterburnerProfileChoices));
+        RefreshCurveChart();
     }
 
     private void RefreshGpuUndervoltStatus()

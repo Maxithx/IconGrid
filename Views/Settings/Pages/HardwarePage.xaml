@@ -755,6 +755,7 @@
                                                   ItemsSource="{Binding AfterburnerProfileChoices, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                   DisplayMemberPath="Label"
                                                   SelectedValuePath="Number"
+                                                  SelectionChanged="GpuUndervoltProfile_SelectionChanged"
                                                   SelectedValue="{Binding DataContext.GpuUndervoltGameProfile, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay}" />
                                         <TextBlock Margin="0,16,0,0"
                                                    FontSize="14"
@@ -776,6 +777,7 @@
                                                   ItemsSource="{Binding AfterburnerProfileChoices, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                   DisplayMemberPath="Label"
                                                   SelectedValuePath="Number"
+                                                  SelectionChanged="GpuUndervoltProfile_SelectionChanged"
                                                   SelectedValue="{Binding DataContext.GpuUndervoltIdleProfile, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay}" />
                                         <TextBlock Margin="0,16,0,0"
                                                    FontSize="14"
@@ -811,24 +813,164 @@
                                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                        Text="{Binding UndervoltTargetClockMhz, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, StringFormat={}{0:F0} MHz}" />
                                         </Grid>
-                                        <Button Margin="0,8,0,0"
-                                                Padding="10,6"
-                                                HorizontalAlignment="Left"
-                                                Click="GpuUndervoltGenerateCurve_Click"
-                                                Content="{Binding DataContext.GpuUndervoltCurveButton, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                                            <Button Padding="10,6"
+                                                    HorizontalAlignment="Left"
+                                                    Click="GpuUndervoltGenerateCurve_Click"
+                                                    Content="{Binding DataContext.GpuUndervoltCurveButton, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            <Button Margin="8,0,0,0"
+                                                    Padding="4,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Cursor="Help"
+                                                    ToolTipService.InitialShowDelay="0"
+                                                    ToolTipService.ShowDuration="60000"
+                                                    ToolTip="{Binding DataContext.GpuUndervoltCurveInfo, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
+                                                <TextBlock Text="&#xE946;"
+                                                           FontFamily="Segoe Fluent Icons"
+                                                           FontSize="15"
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            </Button>
+                                        </StackPanel>
 
-                                        <TextBlock Margin="0,16,0,0"
+                                        <TextBlock Margin="0,18,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuHotspotTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Text="{Binding DataContext.GpuCurveChartTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         <TextBlock Margin="0,4,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
                                                    TextWrapping="Wrap"
                                                    FontSize="13"
+                                                   Text="{Binding DataContext.GpuCurveChartIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <Border Margin="0,8,0,0"
+                                                Padding="10"
+                                                HorizontalAlignment="Left"
+                                                Background="#1B1B1B"
+                                                BorderBrush="#3A3A3A"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
+                                            <Grid Width="560" Height="180">
+                                                <Canvas Width="560" Height="180" ClipToBounds="True">
+                                                    <Polyline Points="{Binding StockCurvePoints, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                              Stroke="#8A8A8A"
+                                                              StrokeThickness="2" />
+                                                    <Polyline Points="{Binding ActiveCurvePoints, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                              Stroke="#4FC3F7"
+                                                              StrokeThickness="2" />
+                                                    <Polyline Points="{Binding TargetCurvePoints, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                              Stroke="#F0A030"
+                                                              StrokeThickness="1"
+                                                              StrokeDashArray="4 3" />
+                                                </Canvas>
+                                                <TextBlock Margin="2,0,0,0"
+                                                           HorizontalAlignment="Left"
+                                                           VerticalAlignment="Top"
+                                                           FontSize="10"
+                                                           Foreground="#8A8A8A"
+                                                           Text="2100 MHz" />
+                                                <TextBlock Margin="2,0,0,0"
+                                                           HorizontalAlignment="Left"
+                                                           VerticalAlignment="Bottom"
+                                                           FontSize="10"
+                                                           Foreground="#8A8A8A"
+                                                           Text="600 mV" />
+                                                <TextBlock Margin="0,0,2,0"
+                                                           HorizontalAlignment="Right"
+                                                           VerticalAlignment="Bottom"
+                                                           FontSize="10"
+                                                           Foreground="#8A8A8A"
+                                                           Text="1700 mV" />
+                                                <TextBlock HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="12"
+                                                           Foreground="#8A8A8A"
+                                                           TextWrapping="Wrap"
+                                                           TextAlignment="Center"
+                                                           Text="{Binding GpuCurveChartNoDataText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            </Grid>
+                                        </Border>
+                                        <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                                            <TextBlock Text="●" Foreground="#8A8A8A" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Margin="4,0,16,0"
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding DataContext.GpuCurveChartStockLabel, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            <TextBlock Text="●" Foreground="#4FC3F7" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Margin="4,0,16,0"
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding GpuCurveChartActiveProfileText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            <TextBlock Text="●" Foreground="#F0A030" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Margin="4,0,0,0"
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding GpuCurveChartTargetText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        </StackPanel>
+
+                                        <TextBlock Margin="0,18,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Text="{Binding DataContext.GpuUndervoltHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <TextBlock Margin="0,8,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   Text="{Binding DataContext.GpuUndervoltSaveHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+
+                                        <TextBlock Margin="0,18,0,0"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding DataContext.GpuUndervoltStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Text="{Binding GpuUndervoltStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                        <Button Margin="0,8,0,0"
+                                                Padding="10,6"
+                                                HorizontalAlignment="Left"
+                                                Click="GpuUndervoltRefreshButton_Click"
+                                                Content="{Binding DataContext.GpuUndervoltRefreshStatus, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
+                        </Border>
+
+                        <!-- GPU hotspot card -->
+                        <Border Style="{StaticResource StartsideSectionCardStyle}"
+                                helpers:DevInspector.Metadata="GPU hotspot card -> Views/HardwarePage.xaml">
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="GPU hotspot card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DataContext.GpuHotspotTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                                        <TextBlock Margin="0,8,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
                                                    Text="{Binding DataContext.GpuHotspotIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
                                         <Grid Margin="0,10,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
@@ -898,31 +1040,7 @@
                                                    FontWeight="SemiBold"
                                                    Foreground="#FFF0A030"
                                                    Text="{Binding GpuHotspotWarningText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <TextBlock Margin="0,18,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Text="{Binding DataContext.GpuUndervoltHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
 
-                                        <TextBlock Margin="0,18,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuUndervoltStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <TextBlock Margin="0,4,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Text="{Binding GpuUndervoltStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <Button Margin="0,8,0,0"
-                                                Padding="10,6"
-                                                HorizontalAlignment="Left"
-                                                Click="GpuUndervoltRefreshButton_Click"
-                                                Content="{Binding DataContext.GpuUndervoltRefreshStatus, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                     </StackPanel>
                                 </Expander.Content>
                             </Expander>

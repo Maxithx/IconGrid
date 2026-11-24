@@ -58,6 +58,9 @@ public sealed record AfterburnerProfileInfo(
 
 public readonly record struct AfterburnerApplyResult(bool Success, bool Changed, string Message);
 
+/// <summary>One point on the MSI Afterburner voltage/frequency curve.</summary>
+public sealed record AfterburnerCurvePoint(float VoltageMv, float ClockMhz);
+
 /// <summary>
 /// Talks to MSI Afterburner instead of touching the GPU ourselves.
 ///
@@ -151,6 +154,62 @@ public sealed class AfterburnerProfileController
         }
 
         return profiles.OrderBy(profile => profile.Number).ToList();
+    }
+
+    /// <summary>
+    /// Reads the stock V/F curve from the Afterburner defaults (fallback: profile 1)
+    /// for the settings-page illustration. Empty when no curve is available.
+    /// </summary>
+    public IReadOnlyList<AfterburnerCurvePoint> ReadStockCurve()
+        => ReadCurveSections("Defaults", "Profile1");
+
+    /// <summary>
+    /// Reads the V/F curve stored in a specific Afterburner profile. Empty when
+    /// that profile has no curve (for example a stock profile with an empty VFCurve).
+    /// </summary>
+    public IReadOnlyList<AfterburnerCurvePoint> ReadCurve(int profileNumber)
+        => profileNumber is < 1 or > 9
+            ? Array.Empty<AfterburnerCurvePoint>()
+            : ReadCurveSections($"Profile{profileNumber}");
+
+    private IReadOnlyList<AfterburnerCurvePoint> ReadCurveSections(params string[] sectionNames)
+    {
+        var path = TryResolveProfileFilePath();
+        if (path == null)
+        {
+            return Array.Empty<AfterburnerCurvePoint>();
+        }
+
+        try
+        {
+            var text = File.ReadAllText(path);
+
+            CurveData? curve = null;
+            foreach (var sectionName in sectionNames)
+            {
+                curve = FindCurve(text, sectionName);
+                if (curve != null)
+                {
+                    break;
+                }
+            }
+
+            if (curve == null || curve.Points.Count == 0)
+            {
+                return Array.Empty<AfterburnerCurvePoint>();
+            }
+
+            return curve.Points
+                .Where(point => point.VoltageMv >= 100 && point.ClockMhz >= 100)
+                .OrderBy(point => point.VoltageMv)
+                .Select(point => new AfterburnerCurvePoint(point.VoltageMv, point.ClockMhz))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _log?.Invoke($"Could not read the Afterburner curve: {ex.Message}");
+            return Array.Empty<AfterburnerCurvePoint>();
+        }
     }
 
     /// <summary>

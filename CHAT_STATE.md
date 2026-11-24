@@ -2692,3 +2692,37 @@ VERIFICERET: Scheduled Task-agent startet mens Notepad var i forgrunden (PoE kø
 
 Build 0 fejl/0 advarsler, deployet 05:18:46. COMMITTET OG PUSHET: `89dda7c` (samlet ændring: startup-fix, Afterburner/clock-cap, Hardware-omdøbning, temp limit-visning og hotspot-alarmgrænse).
 
+
+## GPU undervolt-kortet: info-popup, auto-save-note og V/F-kurvegraf (24-11-2026)
+
+BRUGERØNSKER:
+1. "Skriv kurve og anvend" manglede forklaring — gerne info-logo + popup.
+2. Gøres det tydeligt at ændringer gemmes med det samme?
+3. En illustration af den V/F-kurve Afterburner bruger.
+
+ÆNDRINGER:
+- Info-knap (Segoe Fluent `E946`) ved siden af "Skriv kurve og anvend" med ToolTip `GpuUndervoltCurveInfo`: forklarer at kurven skrives til profil 9, at originalkurven backes op, at spændingerne kommer fra Afterburners egen kurve, og at egne profiler ikke røres.
+- `GpuUndervoltSaveHint` under kortet: alt gemmes med det samme; profilvalg anvendes ved spilstart/slut, mens "Skriv kurve" skriver+anvender profil 9 med det samme.
+- Ny V/F-kurvegraf i Hardware-kortet: grå = stock-kurve, blå = valgt profils kurve, stiplet amber = clock-målet. Fast skala 600-1700 mV / 300-2100 MHz. Data læses direkte fra Afterburner-profilfilen via `AfterburnerProfileController.ReadStockCurve()/ReadCurve(n)`; ingen opdigtede værdier.
+- Grafen opdateres ved load, profilvalg, "Skriv kurve", refresh og hvert sekund (timer); no-data-tekst vises hvis profilen ikke har en VFCurve.
+- Test-harness `.local-state/curve-smoke` bekræftede data: stock 132 punkter, profil 9 133 punkter (før filterjustering). Filteret kræver nu V≥100 mV og clock≥100 MHz.
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 05:32:30; app + agent kører.
+
+IKKE COMMITTET ENDNU — afventer godkendelse.
+
+
+## Hardware-siden: GPU undervolt og hotspot delt i to kort (24-11-2026)
+
+BRUGERØNSKE: undervolt og hotspot så rodet ud i ét kort — de skal have hvert sit hero card.
+
+ÆNDRINGER:
+- `GpuUndervoltTitle` er nu "GPU undervolt" (en+da).
+- Undervolt-kortet indeholder nu: profilskift, kurve-generator + info-popup, V/F-kurvegraf, hint, auto-save-note og "Målt status".
+- Nyt selvstændigt kort "Hotspot-overvågning"/"Hot spot monitoring" med egen titel/intro, alarm-toggle, alarmgrænse 90-105 °C, live hotspot-linje og advarsel.
+- Undervolt-statusblokken blev flyttet op i undervolt-kortet (den lå tidligere under hotspot-sektionen og bidrog til den rodede rækkefølge).
+
+VERIFICERET: build 0 fejl/0 advarsler, deployet 05:38:30; app + agent kører.
+
+IKKE COMMITTET — den samlede ændring omfatter også info-popup, auto-save-note og V/F-kurvegraf.
+
