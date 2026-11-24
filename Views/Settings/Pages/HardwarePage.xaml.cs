@@ -1122,9 +1122,27 @@ public bool IsNvidiaGtx =>
                     FormatCurveVoltage(profileVoltageMv.Value))
                 : string.Empty;
 
-            if (stockVoltageMv.HasValue)
+            var selectedVoltageMv = (int)System.Math.Round(_undervoltTargetVoltageMv);
+            var gameProfileNumber = viewModel?.GpuUndervoltGameProfile ?? 0;
+
+            if (gameProfileNumber > 0 && profileVoltageMv.HasValue)
             {
-                var selectedVoltageMv = (int)System.Math.Round(_undervoltTargetVoltageMv);
+                var comparisonClock = System.Math.Min(targetClock, profileClock);
+                var comparisonVoltageMv =
+                    FindCurveVoltageAtClock(active, comparisonClock, preferLowest: true) ??
+                    profileVoltageMv.Value;
+
+                GpuUndervoltVoltageSelectionText = string.Format(
+                    viewModel?.GpuUndervoltProfileVoltageCompareFormat ??
+                    "Profile {0} at {1} MHz: {2:F0} mV · selected: {3} mV ({4:+#;-#;0} mV)",
+                    gameProfileNumber,
+                    comparisonClock,
+                    comparisonVoltageMv,
+                    selectedVoltageMv,
+                    selectedVoltageMv - (int)System.Math.Round(comparisonVoltageMv));
+            }
+            else if (stockVoltageMv.HasValue)
+            {
                 GpuUndervoltVoltageSelectionText = string.Format(
                     viewModel?.GpuUndervoltVoltageSelectionFormat ??
                     "Stock {0} MHz: {1:F0} mV · selected: {2} mV ({3:+#;-#;0} mV)",

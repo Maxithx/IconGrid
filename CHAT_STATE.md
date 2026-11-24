@@ -3117,6 +3117,18 @@ BRUGERØNSKER:
 - Clock-sliderens min/max er nu **dynamisk**:
   - max = kortets stock max-clock (dog mindst 1800, højst 2200).
   - RTX 2060 Super: 1950 max; RTX 3070 Ti kan få sin egen højere max automatisk.
+
+## COMMIT + top-linje profilnavn (24-11-2026)
+
+- Committet og pushet: `f326fad` — “Add GPU profile manager, power/voltage tuning, hotspot history and Win11 dropdowns”.
+- Top-linjen under mV-slideren bruger nu den **valgte profil** i stedet for “Stock”:
+  - Fx `Profil 2 ved 1700 MHz: 875 mV · valgt: 870 mV (-5 mV)`.
+  - Hvis ingen game-profil er valgt, vises stock-varianten.
+- Stock-baseline-linjen er uændret og viser kortets stock max.
+- `GpuUndervoltProfileVoltageCompareFormat` tilføjet (en+da).
+
+VERIFICERET: build 0/0, deployet 08:20:40, appen genstartet.
+
 - Alt læses fra den valgte GPU’s `Defaults`/`Profile1` V/F-kurve; ingen hardkodede 2060-værdier i kurveberegningen.
 - NVML clock-loft/power limit og Afterburner-profilskift er også kort-uafhængige (NVML rapporterer kortets min/max).
 

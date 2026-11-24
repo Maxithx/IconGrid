@@ -232,6 +232,7 @@ namespace IconGrid.ViewModels
         public string GpuUndervoltVoltageTitle => _localizationState.Get(Language, "GpuUndervoltVoltageTitle");
         public string GpuUndervoltVoltageIntro => _localizationState.Get(Language, "GpuUndervoltVoltageIntro");
         public string GpuUndervoltVoltageSelectionFormat => _localizationState.Get(Language, "GpuUndervoltVoltageSelectionFormat");
+        public string GpuUndervoltProfileVoltageCompareFormat => _localizationState.Get(Language, "GpuUndervoltProfileVoltageCompareFormat");
         public string GpuUndervoltVoltageSafeHint => _localizationState.Get(Language, "GpuUndervoltVoltageSafeHint");
         public string GpuUndervoltPowerLimitTitle => _localizationState.Get(Language, "GpuUndervoltPowerLimitTitle");
         public string GpuUndervoltPowerLimitIntro => _localizationState.Get(Language, "GpuUndervoltPowerLimitIntro");
@@ -662,6 +663,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuUndervoltVoltageTitle));
             OnPropertyChanged(nameof(GpuUndervoltVoltageIntro));
             OnPropertyChanged(nameof(GpuUndervoltVoltageSelectionFormat));
+            OnPropertyChanged(nameof(GpuUndervoltProfileVoltageCompareFormat));
             OnPropertyChanged(nameof(GpuUndervoltVoltageSafeHint));
             OnPropertyChanged(nameof(GpuUndervoltPowerLimitTitle));
             OnPropertyChanged(nameof(GpuUndervoltPowerLimitIntro));
