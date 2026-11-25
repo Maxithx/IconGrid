@@ -10,6 +10,20 @@
                 <ResourceDictionary Source="/Views/Settings/Pages/HardwarePageResources.xaml" />
                 <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="GpuUndervoltGroupStyle" TargetType="Border">
+                <Setter Property="Margin" Value="0,12,0,0" />
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Background" Value="{StaticResource StartsideCardFill}" />
+                <Setter Property="BorderBrush" Value="#3A3A3A" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource StartsideLightCardFill}" />
+                        <Setter Property="BorderBrush" Value="#D1D5DB" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
                         <!-- GPU undervolt (clock ceiling) card -->
@@ -64,13 +78,15 @@
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltNvidiaOnlyNote, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <Grid Margin="0,16,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
                                             <StackPanel>
-                                                <TextBlock Text="{Binding DataContext.GpuUndervoltAfterburnerStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding DataContext.GpuUndervoltAfterburnerStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                            Style="{StaticResource TemplateSmallTextStyle}" />
                                                 <TextBlock Margin="0,4,0,0"
                                                            ToolTip="{Binding AfterburnerInstallPath, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
@@ -108,14 +124,18 @@
                                                           Style="{StaticResource ToggleSwitchStyle}"
                                                           IsChecked="{Binding DataContext.GpuUndervoltEnabled, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay}" />
                                         </Grid>
-                                        <TextBlock Margin="0,4,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Text="{Binding DataContext.GpuUndervoltEnableIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <TextBlock Margin="0,16,0,0"
+                                                <TextBlock Margin="0,4,0,0"
+                                                           MaxWidth="680"
+                                                           HorizontalAlignment="Left"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="13"
+                                                           Text="{Binding DataContext.GpuUndervoltEnableIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                            <StackPanel>
+                                        <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltCurveTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
@@ -199,8 +219,11 @@
                                                    FontSize="12"
                                                    Text="{Binding DataContext.GpuUndervoltVoltageSafeHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-
-                                        <TextBlock Margin="0,16,0,0"
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                            <StackPanel>
+                                        <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltPowerLimitTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
@@ -241,9 +264,11 @@
                                                    FontSize="12"
                                                    Text="{Binding DataContext.GpuUndervoltPowerLimitHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-
-
-                                        <TextBlock Margin="0,18,0,0"
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                            <StackPanel>
+                                        <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltProfilesTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
@@ -315,8 +340,11 @@
                                                 </ItemsControl>
                                             </StackPanel>
                                         </Border>
-
-                                        <TextBlock Margin="0,18,0,0"
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                            <StackPanel>
+                                        <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuCurveChartTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
@@ -427,8 +455,11 @@
                                                    FontSize="12"
                                                    Text="{Binding DataContext.GpuUndervoltSaveHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-
-                                        <TextBlock Margin="0,18,0,0"
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                            <StackPanel>
+                                        <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
@@ -445,6 +476,8 @@
                                                 HorizontalAlignment="Left"
                                                 Click="GpuUndervoltRefreshButton_Click"
                                                 Content="{Binding DataContext.GpuUndervoltRefreshStatus, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Expander.Content>
                             </Expander>
