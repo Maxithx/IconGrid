@@ -482,6 +482,29 @@
                                                    TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Grid>
+                                <Grid Margin="0,18,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding HardwareChipsetLabelText}"
+                                                   Style="{StaticResource TemplateSmallTextStyle}" />
+                                        <TextBlock Margin="0,4,0,0"
+                                                   TextWrapping="Wrap"
+                                                   Style="{StaticResource TemplateCardTitleStyle}"
+                                                   Text="{Binding Overview.Board.Chipset, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Margin="18,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Padding="10,6"
+                                            Style="{StaticResource HardwareProfileButtonStyle}"
+                                            Click="OpenAmdChipsetDrivers_Click"
+                                            Content="{Binding HardwareAmdChipsetDriversText}"
+                                            ToolTip="{Binding HardwareAmdChipsetDriversText}"
+                                            Visibility="{Binding Overview.Board.IsAmdChipset, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </Grid>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>
@@ -954,6 +977,13 @@
                                                     <TextBlock Text="{Binding HardwareTimingLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
                                                     <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareMemoryProfileLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.Profile, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource MemoryMetricTileStyle}">

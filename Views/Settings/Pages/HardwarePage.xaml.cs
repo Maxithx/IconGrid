@@ -1703,6 +1703,22 @@ public bool IsNvidiaGtx =>
         }
     }
 
+    private void OpenAmdChipsetDrivers_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://www.amd.com/en/support/download/drivers.html",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Opening the vendor page is best-effort; never break the hardware page.
+        }
+    }
+
     private void SearchBoardButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         var manufacturer = Overview.Board.Manufacturer;

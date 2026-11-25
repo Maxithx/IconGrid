@@ -12,16 +12,18 @@ public static class HardwareInfoProvider
 {
     public static HardwareOverview LoadOverview()
     {
+        var cpu = LoadCpu();
+
         return new HardwareOverview
         {
-            Board = LoadBoard(),
-            Cpu = LoadCpu(),
+            Board = LoadBoard(cpu.Vendor),
+            Cpu = cpu,
             Gpu = LoadGpu(),
-            Memory = LoadMemory()
+            Memory = LoadMemory(cpu.Vendor)
         };
     }
 
-    private static HardwareBoardInfo LoadBoard()
+    private static HardwareBoardInfo LoadBoard(string cpuVendor)
     {
         var manufacturer = "--";
         var model = "--";
@@ -54,12 +56,90 @@ public static class HardwareInfoProvider
         {
         }
 
+        var (chipset, isAmdChipset) = DetectChipset(cpuVendor, model);
+
         return new HardwareBoardInfo
         {
             Manufacturer = manufacturer,
             Model = model,
-            BiosVersion = biosVersion
+            BiosVersion = biosVersion,
+            Chipset = chipset,
+            IsAmdChipset = isAmdChipset
         };
+    }
+
+    private static (string Chipset, bool IsAmdChipset) DetectChipset(string cpuVendor, string boardModel)
+    {
+        var text = $"{cpuVendor} {boardModel}".ToUpperInvariant();
+
+        // Most retail board names include the chipset (B550, X670E, Z790 …).
+        // Longer tokens must be checked first (X670E before X670).
+        var amdChipsets = new[]
+        {
+            "X670E", "X670", "B650E", "B650", "A620", "X570", "B550", "A520",
+            "X470", "B450", "A320", "X370", "B350", "TRX40", "WRX80", "WRX90"
+        };
+        var intelChipsets = new[]
+        {
+            "Z790", "H770", "B760", "Z690", "H670", "B660", "H610", "W680",
+            "Z590", "H570", "B560", "H510", "Z490", "H470", "B460", "H410",
+            "Z390", "H370", "B360", "H310", "Z370", "X299"
+        };
+
+        foreach (var chipset in amdChipsets)
+        {
+            if (ContainsToken(text, chipset))
+            {
+                return (chipset, true);
+            }
+        }
+
+        foreach (var chipset in intelChipsets)
+        {
+            if (ContainsToken(text, chipset))
+            {
+                return (chipset, false);
+            }
+        }
+
+        // If the model does not spell the chipset out, still identify the platform.
+        if (cpuVendor.Contains("AMD", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("AMD chipset", true);
+        }
+
+        if (cpuVendor.Contains("Intel", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("Intel chipset", false);
+        }
+
+        return ("--", false);
+    }
+
+    private static bool ContainsToken(string text, string token)
+    {
+        var searchIndex = 0;
+        while (searchIndex < text.Length)
+        {
+            var index = text.IndexOf(token, searchIndex, StringComparison.Ordinal);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            var beforeIsBoundary = index == 0 || !char.IsLetterOrDigit(text[index - 1]);
+            var afterIndex = index + token.Length;
+            var afterIsBoundary = afterIndex >= text.Length || !char.IsDigit(text[afterIndex]);
+
+            if (beforeIsBoundary && afterIsBoundary)
+            {
+                return true;
+            }
+
+            searchIndex = index + 1;
+        }
+
+        return false;
     }
 
     private static HardwareProcessorInfo LoadCpu()
@@ -319,11 +399,13 @@ public static class HardwareInfoProvider
         };
     }
 
-    private static HardwareMemoryInfo LoadMemory()
+    private static HardwareMemoryInfo LoadMemory(string cpuVendor)
     {
         ulong totalBytes = 0;
         var modules = 0;
         var effectiveSpeed = 0u;
+        var ratedSpeed = 0u;
+        var configuredSpeed = 0u;
         var type = "--";
         var casLatency = 0u;
         var configuredVoltageMv = 0u;
@@ -364,6 +446,15 @@ public static class HardwareInfoProvider
         if (smBiosMemory.ConfiguredSpeed > 0)
         {
             effectiveSpeed = smBiosMemory.ConfiguredSpeed;
+            if (configuredSpeed == 0)
+            {
+                configuredSpeed = smBiosMemory.ConfiguredSpeed;
+            }
+        }
+
+        if (ratedSpeed == 0)
+        {
+            ratedSpeed = effectiveSpeed;
         }
 
         if (!string.IsNullOrWhiteSpace(smBiosMemory.Type) && smBiosMemory.Type != "--")
@@ -387,6 +478,8 @@ public static class HardwareInfoProvider
                 }
                 var configuredClockSpeed = ReadUInt(module, "ConfiguredClockSpeed");
                 var moduleSpeed = configuredClockSpeed > 0 ? configuredClockSpeed : ReadUInt(module, "Speed");
+                ratedSpeed = Math.Max(ratedSpeed, ReadUInt(module, "Speed"));
+                configuredSpeed = Math.Max(configuredSpeed, moduleSpeed);
                 if (effectiveSpeed == 0)
                 {
                     effectiveSpeed = Math.Max(effectiveSpeed, moduleSpeed);
@@ -426,13 +519,14 @@ public static class HardwareInfoProvider
         {
         }
 
-        if (casLatency > 0)
+        var detectedTiming = DetectMemoryTiming(smBiosMemory.IdentityHints);
+        if (detectedTiming != "--")
+        {
+            timing = detectedTiming;
+        }
+        else if (casLatency > 0)
         {
             timing = $"CL{casLatency}";
-        }
-        else
-        {
-            timing = DetectMemoryTiming(smBiosMemory.IdentityHints);
         }
 
         return new HardwareMemoryInfo
@@ -444,6 +538,7 @@ public static class HardwareInfoProvider
             Type = type,
             Speed = effectiveSpeed > 0 ? $"{effectiveSpeed} MT/s" : "--",
             Timing = timing,
+            Profile = DetectMemoryProfile(cpuVendor, type, configuredSpeed, ratedSpeed),
             Voltage = configuredVoltageMv > 0 ? $"{configuredVoltageMv / 1000d:F2} V" : "--"
         };
     }
@@ -573,20 +668,58 @@ public static class HardwareInfoProvider
     {
         foreach (var hint in identityHints.Where(value => !string.IsNullOrWhiteSpace(value) && value != "--"))
         {
-            var clMatch = Regex.Match(hint, @"(?:CL|C)(\d{1,2})(?!\d)", RegexOptions.IgnoreCase);
-            if (clMatch.Success && uint.TryParse(clMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var casLatency))
+            var fullTimingMatch = Regex.Match(hint, @"(?<!\d)(\d{1,2})-(\d{1,2})-(\d{1,2})-(\d{1,3})(?!\d)");
+            if (fullTimingMatch.Success)
             {
-                return $"CL{casLatency}";
+                return $"{fullTimingMatch.Groups[1].Value}-{fullTimingMatch.Groups[2].Value}-" +
+                       $"{fullTimingMatch.Groups[3].Value}-{fullTimingMatch.Groups[4].Value}";
             }
 
-            var timingMatch = Regex.Match(hint, @"(\d{2})-(\d{2})-(\d{2,2})(?:-(\d{2,2}))?");
-            if (timingMatch.Success && uint.TryParse(timingMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out casLatency))
+            var clMatch = Regex.Match(hint, @"(?:CL|C)(\d{1,2})(?!\d)", RegexOptions.IgnoreCase);
+            if (clMatch.Success && uint.TryParse(clMatch.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var casLatency))
             {
                 return $"CL{casLatency}";
             }
         }
 
         return "--";
+    }
+
+    private static string DetectMemoryProfile(string cpuVendor, string memoryType, uint configuredSpeed, uint ratedSpeed)
+    {
+        if (configuredSpeed == 0)
+        {
+            return "--";
+        }
+
+        var isAmd = cpuVendor.Contains("AMD", StringComparison.OrdinalIgnoreCase);
+        var isIntel = cpuVendor.Contains("Intel", StringComparison.OrdinalIgnoreCase);
+        var profileName = isAmd ? "EXPO" : isIntel ? "XMP" : "XMP/EXPO";
+
+        var jedecCeiling = memoryType switch
+        {
+            _ when memoryType.Contains("DDR5", StringComparison.OrdinalIgnoreCase) => 4800u,
+            _ when memoryType.Contains("DDR4", StringComparison.OrdinalIgnoreCase) => 3200u,
+            _ when memoryType.Contains("DDR3", StringComparison.OrdinalIgnoreCase) => 1600u,
+            _ => 0u
+        };
+
+        if (jedecCeiling == 0)
+        {
+            return $"{configuredSpeed} MT/s";
+        }
+
+        if (ratedSpeed > jedecCeiling && configuredSpeed >= ratedSpeed)
+        {
+            return $"{profileName} active";
+        }
+
+        if (configuredSpeed > jedecCeiling)
+        {
+            return "Custom profile";
+        }
+
+        return "JEDEC default";
     }
 
     private static string ReadString(ManagementObject obj, string propertyName)
@@ -691,6 +824,8 @@ public sealed class HardwareBoardInfo
     public string Manufacturer { get; init; } = "--";
     public string Model { get; init; } = "--";
     public string BiosVersion { get; init; } = "--";
+    public string Chipset { get; init; } = "--";
+    public bool IsAmdChipset { get; init; }
 }
 
 public sealed class HardwareProcessorInfo
@@ -719,5 +854,6 @@ public sealed class HardwareMemoryInfo
     public string Type { get; init; } = "--";
     public string Speed { get; init; } = "--";
     public string Timing { get; init; } = "--";
+    public string Profile { get; init; } = "--";
     public string Voltage { get; init; } = "--";
 }

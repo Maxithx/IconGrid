@@ -353,6 +353,8 @@ namespace IconGrid.ViewModels
         public string HardwareMemoryTitleText => _localizationState.Get(Language, "HardwareMemoryTitle");
         public string HardwareMemoryIntroText => _localizationState.Get(Language, "HardwareMemoryIntro");
         public string HardwareModelLabelText => _localizationState.Get(Language, "HardwareModelLabel");
+        public string HardwareChipsetLabelText => _localizationState.Get(Language, "HardwareChipsetLabel");
+        public string HardwareAmdChipsetDriversText => _localizationState.Get(Language, "HardwareAmdChipsetDrivers");
         public string HardwareSearchBoardLabelText => _localizationState.Get(Language, "HardwareSearchBoardLabel");
         public string HardwareBiosLabelText => _localizationState.Get(Language, "HardwareBiosLabel");
         public string HardwareCoresLabelText => _localizationState.Get(Language, "HardwareCoresLabel");
@@ -384,6 +386,7 @@ namespace IconGrid.ViewModels
         public string HardwareTypeLabelText => _localizationState.Get(Language, "HardwareTypeLabel");
         public string HardwareSpeedLabelText => _localizationState.Get(Language, "HardwareSpeedLabel");
         public string HardwareTimingLabelText => _localizationState.Get(Language, "HardwareTimingLabel");
+        public string HardwareMemoryProfileLabelText => _localizationState.Get(Language, "HardwareMemoryProfileLabel");
         public string HardwareModulesLabelText => _localizationState.Get(Language, "HardwareModulesLabel");
         public string HardwareSlotsLabelText => _localizationState.Get(Language, "HardwareSlotsLabel");
         public string HardwareVoltageLabelText => _localizationState.Get(Language, "HardwareVoltageLabel");
@@ -798,6 +801,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HardwareMemoryTitleText));
             OnPropertyChanged(nameof(HardwareMemoryIntroText));
             OnPropertyChanged(nameof(HardwareModelLabelText));
+            OnPropertyChanged(nameof(HardwareChipsetLabelText));
+            OnPropertyChanged(nameof(HardwareAmdChipsetDriversText));
             OnPropertyChanged(nameof(HardwareSearchBoardLabelText));
             OnPropertyChanged(nameof(HardwareBiosLabelText));
             OnPropertyChanged(nameof(HardwareCoresLabelText));
@@ -829,6 +834,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(HardwareTypeLabelText));
             OnPropertyChanged(nameof(HardwareSpeedLabelText));
             OnPropertyChanged(nameof(HardwareTimingLabelText));
+            OnPropertyChanged(nameof(HardwareMemoryProfileLabelText));
             OnPropertyChanged(nameof(HardwareModulesLabelText));
             OnPropertyChanged(nameof(HardwareSlotsLabelText));
             OnPropertyChanged(nameof(HardwareVoltageLabelText));
