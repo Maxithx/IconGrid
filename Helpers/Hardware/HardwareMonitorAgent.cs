@@ -304,7 +304,6 @@ public static class HardwareMonitorAgent
 
             var undervoltRequestPath = Path.Combine(baseDir, "gpu-undervolt-request.json");
             var hotspotHistoryClearRequestPath = Path.Combine(baseDir, "hotspot-history-clear.request");
-            var benchmark = new GpuBenchmarkRunner(baseDir, log);
             var currentForegroundGamePid = default(int?);
             var confirmedForegroundGamePid = default(int?);
             var hadConfirmedGameSession = false;
@@ -551,7 +550,6 @@ public static class HardwareMonitorAgent
                     confirmedForegroundGamePid,
                     gpuKnownGamePids,
                     gpuSamples,
-                    benchmark.IsRunning,
                     ref gpuLowPowerApplied,
                     ref gpuLastAfterburnerProfile,
                     ref gpuPendingLowPower,
@@ -574,7 +572,6 @@ public static class HardwareMonitorAgent
                         gpuSamples,
                         afterburner.IsAvailable,
                         gpuLastAfterburnerProfile,
-                        benchmark,
                         gpuLastMessage));
 
                 TryProcessUndervoltRequest(
@@ -583,31 +580,6 @@ public static class HardwareMonitorAgent
                     ref gpuLastAfterburnerProfile,
                     ref gpuLastMessage,
                     log);
-
-                // GPU benchmark: file-based request from the hardware page, driven by
-                // this loop (no blocking thread, so the FPS pipeline keeps running).
-                if (benchmark.TryLoadRequest() is { } benchmarkRequest)
-                {
-                    var benchmarkPid = confirmedForegroundGamePid
-                                       ?? gpuKnownGamePids.FirstOrDefault();
-                    benchmark.Start(
-                        benchmarkRequest,
-                        benchmarkPid,
-                        afterburner,
-                        ref gpuLastAfterburnerProfile);
-                }
-
-                if (benchmark.IsRunning)
-                {
-                    var benchmarkStatus = gpuLimits.IsAvailable ? gpuLimits.ReadStatus() : null;
-                    var benchmarkPid = confirmedForegroundGamePid
-                                       ?? gpuKnownGamePids.FirstOrDefault();
-                    benchmark.Tick(
-                        benchmarkPid,
-                        benchmarkStatus,
-                        afterburner,
-                        ref gpuLastAfterburnerProfile);
-                }
 
                 // When a session ends, publish one final "--" state immediately so
                 // consumers do not wait for the file to go stale.
@@ -906,7 +878,6 @@ exit:
                         gpuSamples,
                         afterburner.IsAvailable,
                         gpuLastAfterburnerProfile,
-                        benchmark,
                         gpuLastMessage));
             }
 
@@ -933,7 +904,6 @@ exit:
         int? confirmedGamePid,
         HashSet<int> knownGamePids,
         GpuPowerSamples samples,
-        bool benchmarkRunning,
         ref bool lowPowerApplied,
         ref int lastAfterburnerProfile,
         ref bool? pendingLowPower,
@@ -1028,9 +998,8 @@ exit:
                                         afterburner != null &&
                                         afterburner.IsAvailable;
 
-        // A running benchmark must not be influenced by the background profile; the
-        // game may be unfocused while the user is on the settings page.
-        if (afterburnerOwnsPowerLimit || benchmarkRunning)
+        // The background profile must not fight Afterburner's power limit.
+        if (afterburnerOwnsPowerLimit)
         {
             pendingLowPower = null;
 
@@ -1041,7 +1010,7 @@ exit:
             if (ApplyBackgroundClockCap(
                     config,
                     gpuLimits,
-                    anyGameAlive && !benchmarkRunning,
+                    anyGameAlive,
                     gameIsForeground,
                     ref lastMessage,
                     log))
@@ -1509,7 +1478,6 @@ exit:
         GpuPowerSamples samples,
         bool afterburnerAvailable,
         int afterburnerProfile,
-        GpuBenchmarkRunner benchmark,
         string? message)
     {
         var status = gpuLimits.ReadStatus();
@@ -1537,9 +1505,6 @@ exit:
             ClockCeilingMhz = status?.ClockCeilingMhz ?? 0,
             GameInFocusSample = samples.GameInFocus,
             GameNotInFocusSample = samples.GameNotInFocus,
-            BenchmarkRunning = benchmark.IsRunning,
-            BenchmarkStatus = string.IsNullOrWhiteSpace(benchmark.StatusText) ? null : benchmark.StatusText,
-            BenchmarkProgress = string.IsNullOrWhiteSpace(benchmark.ProgressText) ? null : benchmark.ProgressText,
             KnownGameProcessCount = knownGameProcessCount,
             Message = message
         };

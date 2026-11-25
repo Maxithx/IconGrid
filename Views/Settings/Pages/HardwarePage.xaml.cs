@@ -21,9 +21,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
     private double _undervoltTargetClockMhz = 1800;
 
-    private string _benchmarkLabel = "Map test";
-    private int _benchmarkSeconds = 60;
-    private string _gpuBenchmarkStatusText = string.Empty;
     private string _gpuHotspotStatusText = string.Empty;
     private string _gpuHotspotWarningText = string.Empty;
 
@@ -56,58 +53,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
             OnPropertyChanged(nameof(GpuHotspotWarningText));
         }
     }
-    private DateTime _benchmarkResultsStampUtc = DateTime.MinValue;
-
-    /// <summary>Duration options offered by the benchmark drop-down (seconds).</summary>
-    public int[] BenchmarkDurationChoices { get; } = { 30, 60, 120 };
-
-    public System.Collections.ObjectModel.ObservableCollection<string> BenchmarkResults { get; } = new();
-
-    public string BenchmarkLabel
-    {
-        get => _benchmarkLabel;
-        set
-        {
-            if (_benchmarkLabel == value)
-            {
-                return;
-            }
-
-            _benchmarkLabel = value;
-            OnPropertyChanged(nameof(BenchmarkLabel));
-        }
-    }
-
-    public int BenchmarkSeconds
-    {
-        get => _benchmarkSeconds;
-        set
-        {
-            if (_benchmarkSeconds == value)
-            {
-                return;
-            }
-
-            _benchmarkSeconds = value;
-            OnPropertyChanged(nameof(BenchmarkSeconds));
-        }
-    }
-
-    public string GpuBenchmarkStatusText
-    {
-        get => _gpuBenchmarkStatusText;
-        private set
-        {
-            if (_gpuBenchmarkStatusText == value)
-            {
-                return;
-            }
-
-            _gpuBenchmarkStatusText = value;
-            OnPropertyChanged(nameof(GpuBenchmarkStatusText));
-        }
-    }
-
     private const double CurveChartWidth = 560;
     private const double CurveChartHeight = 180;
     private const double CurveChartPadding = 10;
@@ -632,104 +577,6 @@ public bool IsNvidiaGtx =>
     private void HardwarePage_Unloaded(object sender, System.Windows.RoutedEventArgs e)
     {
         _gpuUndervoltTimer.Stop();
-    }
-
-    private void GpuBenchmarkRunSingle_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-        StartBenchmark(new System.Collections.Generic.List<int>());
-    }
-
-    private void GpuBenchmarkRunAb_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-        // Profile 1 = the user's stock/mild profile, profile 9 = the IconGrid curve.
-        StartBenchmark(new System.Collections.Generic.List<int> { 1, 9 });
-    }
-
-    private void StartBenchmark(System.Collections.Generic.List<int> profiles)
-    {
-        try
-        {
-            var requestPath = System.IO.Path.Combine(
-                new ConfigManager().BaseDirectory,
-                "gpu-benchmark-request.json");
-
-            var payload = JsonConvert.SerializeObject(new
-            {
-                label = string.IsNullOrWhiteSpace(BenchmarkLabel) ? "Benchmark" : BenchmarkLabel,
-                seconds = BenchmarkSeconds,
-                profiles
-            });
-
-            System.IO.File.WriteAllText(requestPath, payload);
-            GpuBenchmarkStatusText = "Test request sent to the hardware monitor agent…";
-        }
-        catch (Exception ex)
-        {
-            GpuBenchmarkStatusText = ex.Message;
-        }
-    }
-
-    /// <summary>
-    /// Mirrors the agent's live benchmark status and the last saved results into the
-    /// page. Called from the same one-second timer as the undervolt status.
-    /// </summary>
-    private void RefreshBenchmarkStatus(GpuPowerSavingState state)
-    {
-        var parts = new System.Collections.Generic.List<string>();
-        if (!string.IsNullOrWhiteSpace(state.BenchmarkStatus))
-        {
-            parts.Add(state.BenchmarkStatus!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(state.BenchmarkProgress))
-        {
-            parts.Add(state.BenchmarkProgress!);
-        }
-
-        GpuBenchmarkStatusText = string.Join(" · ", parts);
-
-        try
-        {
-            var path = System.IO.Path.Combine(
-                new ConfigManager().BaseDirectory,
-                "gpu-benchmark-results.json");
-
-            if (!System.IO.File.Exists(path))
-            {
-                return;
-            }
-
-            var stamp = System.IO.File.GetLastWriteTimeUtc(path);
-            if (stamp == _benchmarkResultsStampUtc)
-            {
-                return;
-            }
-
-            _benchmarkResultsStampUtc = stamp;
-
-            var summaries = JsonConvert.DeserializeObject<System.Collections.Generic.List<BenchmarkSummary>>(
-                System.IO.File.ReadAllText(path));
-
-            BenchmarkResults.Clear();
-
-            foreach (var summary in (summaries ?? new System.Collections.Generic.List<BenchmarkSummary>()).AsEnumerable().Reverse())
-            {
-                BenchmarkResults.Add(
-                    $"{summary.Label} — {summary.CompletedAtUtc.ToLocalTime():dd-MM HH:mm}");
-
-                foreach (var pass in summary.Passes)
-                {
-                    BenchmarkResults.Add(
-                        $"   P{pass.Profile}: {pass.AvgFps:F1} fps · p99 {pass.P99FrameMs:F1} ms · " +
-                        $"{pass.Over20MsPercent:F1}% > 20 ms · max {pass.MaxTempC} °C · " +
-                        $"{pass.AvgPowerW:F0} W · {pass.AvgClockMhz:F0} MHz");
-                }
-            }
-        }
-        catch
-        {
-            // Results are informative only; never break the page over them.
-        }
     }
 
     private void RefreshHotspotTrend(HardwareMonitorSnapshot? snapshot)
@@ -1848,7 +1695,6 @@ public bool IsNvidiaGtx =>
                 state.TempTargetC);
 
             GpuUndervoltStatusText = header + System.Environment.NewLine + details;
-            RefreshBenchmarkStatus(state);
             RefreshHotspot(viewModel);
         }
         catch

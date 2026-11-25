@@ -14,7 +14,6 @@ namespace IconGrid.Helpers.Maintenance
         DirectXShaderCache,
         IconGridTraceLog,
         IconGridErrorLog,
-        IconGridBenchmarks,
         IconGridAfterburnerBackups,
         IconGridConfigBackups
     }
@@ -75,11 +74,6 @@ namespace IconGrid.Helpers.Maintenance
                     appData,
                     Recursive: false,
                     Patterns: new[] { "error.log" }),
-                new CleanupTargetDefinition(
-                    CleanupTargetKind.IconGridBenchmarks,
-                    appData,
-                    Recursive: false,
-                    Patterns: new[] { "benchmark-*.csv" }),
                 new CleanupTargetDefinition(
                     CleanupTargetKind.IconGridAfterburnerBackups,
                     appData,

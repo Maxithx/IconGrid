@@ -864,6 +864,368 @@
                             </Expander>
                         </Border>
 
+                        <!-- Memory card -->
+                        <Border Style="{StaticResource StartsideSectionCardStyle}"
+                                helpers:DevInspector.Metadata="Memory card -> Views/HardwarePage.xaml">
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="Memory card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Logo | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding HardwareMemoryTitleText}"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource TemplateCardTitleStyle}" />
+                                            <Border Grid.Column="1"
+                                                    MinWidth="76"
+                                                    Padding="12,6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding AccentBrush}"
+                                                    CornerRadius="12">
+                                                <TextBlock Text="{Binding Overview.Memory.Total, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                        <TextBlock Margin="0,8,0,0"
+                                                   Style="{StaticResource TemplateSectionTitleStyle}"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}  {1} @ {2}">
+                                                    <Binding Path="Overview.Memory.Layout" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                    <Binding Path="Overview.Memory.Type" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                    <Binding Path="Overview.Memory.Speed" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareMemoryIntroText}"
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+                                        <Grid Margin="0,0,0,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding HardwareLayoutLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                       Text="{Binding Overview.Memory.Layout, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <WrapPanel Margin="0,18,0,0">
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareTypeLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.Type, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareSpeedLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.Speed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareTimingLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareModulesLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareSlotsLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Memory.Voltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
+                        </Border>
+                        <!-- Disks card -->
+                        <Border Style="{StaticResource StartsideSectionCardStyle}"
+                                helpers:DevInspector.Metadata="Disks card -> Views/HardwarePage.xaml">
+                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
+                                      IsExpanded="False"
+                                      helpers:DevInspector.Metadata="Disks card expander -> Views/HardwarePage.xaml">
+                                <Expander.Header>
+                                    <StackPanel>
+                                        <!-- 3-column header: Title | Count | Chevron -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding HardwareDisksTitleText}"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource HardwareDiskTitleStyle}" />
+                                            <Border Grid.Column="1"
+                                                    MinWidth="76"
+                                                    Padding="12,6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding AccentBrush}"
+                                                    CornerRadius="12">
+                                                <TextBlock Text="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                                            </Border>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="&#xE70D;"
+                                                       FontFamily="Segoe Fluent Icons"
+                                                       FontSize="18"
+                                                       Margin="24,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       RenderTransformOrigin="0.5,0.5">
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
+                                                </TextBlock.RenderTransform>
+                                            </TextBlock>
+                                        </Grid>
+                                    </StackPanel>
+                                </Expander.Header>
+                                <Expander.Content>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,16"
+                                                   Text="{Binding HardwareDisksIntroText}"
+                                                   TextWrapping="Wrap"
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+                                        <ItemsControl ItemsSource="{Binding DataContext.SystemMonitor.Disks, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,0,0,8">
+                                                        <StackPanel>
+                                                            <!-- Model + drive letter + health chip -->
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0"
+                                                                           Text="{Binding ModelText}"
+                                                                           Style="{StaticResource HardwareDiskTitleStyle}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center" />
+                                                                <Border Grid.Column="1"
+                                                                        Margin="8,0,0,0"
+                                                                        Style="{StaticResource HardwareDiskChipStyle}"
+                                                                        VerticalAlignment="Center"
+                                                                        Visibility="{Binding HasDriveLetters, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <TextBlock Text="{Binding DriveLetters}"
+                                                                               FontSize="12"
+                                                                               FontWeight="SemiBold"
+                                                                               VerticalAlignment="Center"
+                                                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                </Border>
+                                                                <Border Grid.Column="3" Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                                                 Fill="{Binding Health, Converter={StaticResource DiskHealthBrushConverter}}" />
+                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                            <TextBlock.Text>
+                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskHealth">
+                                                                                    <Binding Path="Health" />
+                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                </MultiBinding>
+                                                                            </TextBlock.Text>
+                                                                        </TextBlock>
+                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                                                   Text="{Binding HealthPercentText}"
+                                                                                   Visibility="{Binding HasHealthPercent, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </Grid>
+                                                            <!-- Type / bus / size / temperature / SMART summary -->
+                                                            <WrapPanel Margin="0,8,0,0">
+                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskType">
+                                                                            <Binding Path="MediaType" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding BusType}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding SizeText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Text="{Binding TemperatureText}" Style="{StaticResource HardwareDiskTemperatureStyle}" />
+                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmart">
+                                                                            <Binding Path="SmartStatus" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </WrapPanel>
+                                                            <!-- SATA HDD spin state (only rotating SATA media) -->
+                                                            <StackPanel Margin="0,10,0,0"
+                                                                        Visibility="{Binding ShowPowerState, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding HardwareDiskPowerLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
+                                                                               VerticalAlignment="Center" />
+                                                                    <Border Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
+                                                                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                                            <TextBlock.Text>
+                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPower">
+                                                                                    <Binding Path="PowerState" />
+                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                </MultiBinding>
+                                                                            </TextBlock.Text>
+                                                                        </TextBlock>
+                                                                    </Border>
+                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskActivityLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ActivityText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskIoLabelText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ReadRateText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding WriteRateText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
+                                                                           Style="{StaticResource HardwareDiskSmallTextStyle}">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPowerHint">
+                                                                            <Binding Path="PowerState" />
+                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                            <!-- SMART attribute details -->
+                                                            <Expander Margin="0,12,0,0" IsExpanded="False">
+                                                                <Expander.Header>
+                                                                    <TextBlock Text="{Binding HardwareDiskSmartTitleText}"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                </Expander.Header>
+                                                                <StackPanel Margin="0,8,0,0">
+                                                                    <TextBlock Text="{Binding HardwareDiskSmartUnavailableText}"
+                                                                               TextWrapping="Wrap"
+                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
+                                                                               Visibility="{Binding HasNoSmart, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                    <StackPanel Visibility="{Binding HasSmart, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                        <Grid Margin="0,0,0,4">
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="44" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="80" />
+                                                                                <ColumnDefinition Width="70" />
+                                                                                <ColumnDefinition Width="100" />
+                                                                            </Grid.ColumnDefinitions>
+                                                                            <TextBlock Grid.Column="0" Text="ID" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                            <TextBlock Grid.Column="1" Text="{Binding HardwareDiskSmartAttributeColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                            <TextBlock Grid.Column="2" Text="{Binding HardwareDiskSmartValueColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                            <TextBlock Grid.Column="3" Text="{Binding HardwareDiskSmartThresholdColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                            <TextBlock Grid.Column="4" Text="{Binding HardwareDiskSmartStatusColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                        </Grid>
+                                                                        <ItemsControl ItemsSource="{Binding SmartAttributes}">
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Grid Margin="0,3,0,0">
+                                                                                        <Grid.ColumnDefinitions>
+                                                                                            <ColumnDefinition Width="44" />
+                                                                                            <ColumnDefinition Width="*" />
+                                                                                            <ColumnDefinition Width="80" />
+                                                                                            <ColumnDefinition Width="70" />
+                                                                                            <ColumnDefinition Width="100" />
+                                                                                        </Grid.ColumnDefinitions>
+                                                                                        <TextBlock Grid.Column="0" Text="{Binding IdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
+                                                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextTrimming="CharacterEllipsis" />
+                                                                                        <TextBlock Grid.Column="2" Text="{Binding ValueText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                                        <TextBlock Grid.Column="3" Text="{Binding ThresholdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
+                                                                                        <TextBlock Grid.Column="4" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right">
+                                                                                            <TextBlock.Text>
+                                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmartAttributeStatus">
+                                                                                                    <Binding Path="Status" />
+                                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                                                                </MultiBinding>
+                                                                                            </TextBlock.Text>
+                                                                                        </TextBlock>
+                                                                                    </Grid>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </Expander>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding HardwareDiskNoDisksText}"
+                                                   TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TemplateSmallTextStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Expander.Content>
+                            </Expander>
+                        </Border>
+
                         <!-- GPU undervolt (clock ceiling) card -->
                         <Border Style="{StaticResource StartsideSectionCardStyle}"
                                 helpers:DevInspector.Metadata="GPU undervolt card -> Views/HardwarePage.xaml">
@@ -1514,494 +1876,6 @@
                                                 Click="ClearHotspotHistory_Click"
                                                 Content="{Binding DataContext.GpuHotspotHistoryClear, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
 
-                                    </StackPanel>
-                                </Expander.Content>
-                            </Expander>
-                        </Border>
-
-                        <!-- GPU benchmark card -->
-                        <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="GPU benchmark card -> Views/HardwarePage.xaml">
-                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
-                                      IsExpanded="False"
-                                      helpers:DevInspector.Metadata="GPU benchmark card expander -> Views/HardwarePage.xaml">
-                                <Expander.Header>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding DataContext.GpuBenchmarkTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Style="{StaticResource TemplateCardTitleStyle}" />
-                                            <TextBlock Margin="0,8,0,0"
-                                                       MaxWidth="680"
-                                                       HorizontalAlignment="Left"
-                                                       TextWrapping="Wrap"
-                                                       Text="{Binding DataContext.GpuBenchmarkIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="1"
-                                                   Text="&#xE70D;"
-                                                   FontFamily="Segoe Fluent Icons"
-                                                   FontSize="18"
-                                                   Margin="24,0,0,0"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   RenderTransformOrigin="0.5,0.5">
-                                            <TextBlock.RenderTransform>
-                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
-                                            </TextBlock.RenderTransform>
-                                        </TextBlock>
-                                    </Grid>
-                                </Expander.Header>
-                                <Expander.Content>
-                                    <StackPanel>
-                                        <Grid Margin="0,16,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding DataContext.GpuBenchmarkLabelTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       FontSize="14"
-                                                       FontWeight="SemiBold"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                            <TextBox Grid.Column="1"
-                                                     Width="240"
-                                                     Padding="6,4"
-                                                     Text="{Binding BenchmarkLabel, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                        </Grid>
-                                        <Grid Margin="0,10,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding DataContext.GpuBenchmarkDurationTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       FontSize="14"
-                                                       FontWeight="SemiBold"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                            <ComboBox Grid.Column="1"
-                                                      Width="120"
-                                                      ItemsSource="{Binding BenchmarkDurationChoices, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                      SelectedItem="{Binding BenchmarkSeconds, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay}" />
-                                        </Grid>
-                                        <StackPanel Margin="0,14,0,0" Orientation="Horizontal">
-                                            <Button Padding="10,6"
-                                                    HorizontalAlignment="Left"
-                                                    Click="GpuBenchmarkRunSingle_Click"
-                                                    Content="{Binding DataContext.GpuBenchmarkRunSingle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                            <Button Margin="8,0,0,0"
-                                                    Padding="10,6"
-                                                    HorizontalAlignment="Left"
-                                                    Click="GpuBenchmarkRunAb_Click"
-                                                    Content="{Binding DataContext.GpuBenchmarkRunAb, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-
-                                        <TextBlock Margin="0,16,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuBenchmarkStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <TextBlock Margin="0,4,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Text="{Binding GpuBenchmarkStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-
-                                        <TextBlock Margin="0,16,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuBenchmarkResultsTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <ItemsControl Margin="0,4,0,0"
-                                                      MaxWidth="760"
-                                                      HorizontalAlignment="Left"
-                                                      ItemsSource="{Binding BenchmarkResults, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Margin="0,2,0,0"
-                                                               TextWrapping="Wrap"
-                                                               FontFamily="Consolas"
-                                                               FontSize="12"
-                                                               Text="{Binding}"
-                                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-
-                                        <TextBlock Margin="0,16,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   Text="{Binding DataContext.GpuBenchmarkHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                    </StackPanel>
-                                </Expander.Content>
-                            </Expander>
-                        </Border>
-
-                        <!-- Memory card -->
-                        <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="Memory card -> Views/HardwarePage.xaml">
-                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
-                                      IsExpanded="False"
-                                      helpers:DevInspector.Metadata="Memory card expander -> Views/HardwarePage.xaml">
-                                <Expander.Header>
-                                    <StackPanel>
-                                        <!-- 3-column header: Title | Logo | Chevron -->
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding HardwareMemoryTitleText}"
-                                                       VerticalAlignment="Center"
-                                                       Style="{StaticResource TemplateCardTitleStyle}" />
-                                            <Border Grid.Column="1"
-                                                    MinWidth="76"
-                                                    Padding="12,6"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Center"
-                                                    Background="{Binding AccentBrush}"
-                                                    CornerRadius="12">
-                                                <TextBlock Text="{Binding Overview.Memory.Total, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
-                                            </Border>
-                                            <TextBlock Grid.Column="2"
-                                                       Text="&#xE70D;"
-                                                       FontFamily="Segoe Fluent Icons"
-                                                       FontSize="18"
-                                                       Margin="24,0,0,0"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                       RenderTransformOrigin="0.5,0.5">
-                                                <TextBlock.RenderTransform>
-                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
-                                                </TextBlock.RenderTransform>
-                                            </TextBlock>
-                                        </Grid>
-                                        <TextBlock Margin="0,8,0,0"
-                                                   Style="{StaticResource TemplateSectionTitleStyle}"
-                                                   TextWrapping="Wrap">
-                                            <TextBlock.Text>
-                                                <MultiBinding StringFormat="{}{0}  {1} @ {2}">
-                                                    <Binding Path="Overview.Memory.Layout" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
-                                                    <Binding Path="Overview.Memory.Type" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
-                                                    <Binding Path="Overview.Memory.Speed" RelativeSource="{RelativeSource AncestorType={x:Type views:HardwarePage}}" />
-                                                </MultiBinding>
-                                            </TextBlock.Text>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Expander.Header>
-                                <Expander.Content>
-                                    <StackPanel>
-                                        <TextBlock Margin="0,0,0,16"
-                                                   Text="{Binding HardwareMemoryIntroText}"
-                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
-                                        <Grid Margin="0,0,0,0">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Text="{Binding HardwareLayoutLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                            <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                       Text="{Binding Overview.Memory.Layout, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
-                                        </Grid>
-                                        <WrapPanel Margin="0,18,0,0">
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareTypeLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.Type, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareSpeedLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.Speed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareTimingLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.Timing, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareModulesLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.ModuleCount, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareSlotsLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.SlotsUsed, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                            <Border Style="{StaticResource MemoryMetricTileStyle}" Margin="0">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding HardwareVoltageLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
-                                                               Text="{Binding Overview.Memory.Voltage, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </WrapPanel>
-                                    </StackPanel>
-                                </Expander.Content>
-                            </Expander>
-                        </Border>
-                        <!-- Disks card -->
-                        <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="Disks card -> Views/HardwarePage.xaml">
-                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
-                                      IsExpanded="False"
-                                      helpers:DevInspector.Metadata="Disks card expander -> Views/HardwarePage.xaml">
-                                <Expander.Header>
-                                    <StackPanel>
-                                        <!-- 3-column header: Title | Count | Chevron -->
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="HardwareLogoColumn" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0"
-                                                       Text="{Binding HardwareDisksTitleText}"
-                                                       VerticalAlignment="Center"
-                                                       Style="{StaticResource HardwareDiskTitleStyle}" />
-                                            <Border Grid.Column="1"
-                                                    MinWidth="76"
-                                                    Padding="12,6"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Center"
-                                                    Background="{Binding AccentBrush}"
-                                                    CornerRadius="12">
-                                                <TextBlock Text="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           FontSize="12" FontWeight="SemiBold" Foreground="White" />
-                                            </Border>
-                                            <TextBlock Grid.Column="2"
-                                                       Text="&#xE70D;"
-                                                       FontFamily="Segoe Fluent Icons"
-                                                       FontSize="18"
-                                                       Margin="24,0,0,0"
-                                                       VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                       RenderTransformOrigin="0.5,0.5">
-                                                <TextBlock.RenderTransform>
-                                                    <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
-                                                </TextBlock.RenderTransform>
-                                            </TextBlock>
-                                        </Grid>
-                                    </StackPanel>
-                                </Expander.Header>
-                                <Expander.Content>
-                                    <StackPanel>
-                                        <TextBlock Margin="0,0,0,16"
-                                                   Text="{Binding HardwareDisksIntroText}"
-                                                   TextWrapping="Wrap"
-                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
-                                        <ItemsControl ItemsSource="{Binding DataContext.SystemMonitor.Disks, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Style="{StaticResource HardwareMetricTileStyle}" Margin="0,0,0,8">
-                                                        <StackPanel>
-                                                            <!-- Model + drive letter + health chip -->
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                    <ColumnDefinition Width="*" />
-                                                                    <ColumnDefinition Width="Auto" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock Grid.Column="0"
-                                                                           Text="{Binding ModelText}"
-                                                                           Style="{StaticResource HardwareDiskTitleStyle}"
-                                                                           TextTrimming="CharacterEllipsis"
-                                                                           VerticalAlignment="Center" />
-                                                                <Border Grid.Column="1"
-                                                                        Margin="8,0,0,0"
-                                                                        Style="{StaticResource HardwareDiskChipStyle}"
-                                                                        VerticalAlignment="Center"
-                                                                        Visibility="{Binding HasDriveLetters, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                    <TextBlock Text="{Binding DriveLetters}"
-                                                                               FontSize="12"
-                                                                               FontWeight="SemiBold"
-                                                                               VerticalAlignment="Center"
-                                                                               Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                                                </Border>
-                                                                <Border Grid.Column="3" Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
-                                                                    <StackPanel Orientation="Horizontal">
-                                                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
-                                                                                 Fill="{Binding Health, Converter={StaticResource DiskHealthBrushConverter}}" />
-                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
-                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                            <TextBlock.Text>
-                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskHealth">
-                                                                                    <Binding Path="Health" />
-                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                                </MultiBinding>
-                                                                            </TextBlock.Text>
-                                                                        </TextBlock>
-                                                                        <TextBlock Margin="6,0,0,0" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
-                                                                                   Text="{Binding HealthPercentText}"
-                                                                                   Visibility="{Binding HasHealthPercent, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                                                    </StackPanel>
-                                                                </Border>
-                                                            </Grid>
-                                                            <!-- Type / bus / size / temperature / SMART summary -->
-                                                            <WrapPanel Margin="0,8,0,0">
-                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
-                                                                    <TextBlock.Text>
-                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskType">
-                                                                            <Binding Path="MediaType" />
-                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                        </MultiBinding>
-                                                                    </TextBlock.Text>
-                                                                </TextBlock>
-                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Text="{Binding BusType}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Text="{Binding SizeText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Text="{Binding TemperatureText}" Style="{StaticResource HardwareDiskTemperatureStyle}" />
-                                                                <TextBlock Text=" · " Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                <TextBlock Style="{StaticResource HardwareDiskSmallTextStyle}">
-                                                                    <TextBlock.Text>
-                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmart">
-                                                                            <Binding Path="SmartStatus" />
-                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                        </MultiBinding>
-                                                                    </TextBlock.Text>
-                                                                </TextBlock>
-                                                            </WrapPanel>
-                                                            <!-- SATA HDD spin state (only rotating SATA media) -->
-                                                            <StackPanel Margin="0,10,0,0"
-                                                                        Visibility="{Binding ShowPowerState, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                <StackPanel Orientation="Horizontal">
-                                                                    <TextBlock Text="{Binding HardwareDiskPowerLabelText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
-                                                                               VerticalAlignment="Center" />
-                                                                    <Border Margin="8,0,0,0" Style="{StaticResource HardwareDiskChipStyle}">
-                                                                        <TextBlock FontSize="12" FontWeight="SemiBold"
-                                                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}">
-                                                                            <TextBlock.Text>
-                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPower">
-                                                                                    <Binding Path="PowerState" />
-                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                                </MultiBinding>
-                                                                            </TextBlock.Text>
-                                                                        </TextBlock>
-                                                                    </Border>
-                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskActivityLabelText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
-                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ActivityText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
-                                                                    <TextBlock Margin="12,0,0,0" Text="{Binding HardwareDiskIoLabelText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
-                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding ReadRateText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
-                                                                    <TextBlock Margin="4,0,0,0" Text="{Binding WriteRateText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" VerticalAlignment="Center" />
-                                                                </StackPanel>
-                                                                <TextBlock Margin="0,6,0,0" TextWrapping="Wrap"
-                                                                           Style="{StaticResource HardwareDiskSmallTextStyle}">
-                                                                    <TextBlock.Text>
-                                                                        <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskPowerHint">
-                                                                            <Binding Path="PowerState" />
-                                                                            <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                        </MultiBinding>
-                                                                    </TextBlock.Text>
-                                                                </TextBlock>
-                                                            </StackPanel>
-                                                            <!-- SMART attribute details -->
-                                                            <Expander Margin="0,12,0,0" IsExpanded="False">
-                                                                <Expander.Header>
-                                                                    <TextBlock Text="{Binding HardwareDiskSmartTitleText}"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                </Expander.Header>
-                                                                <StackPanel Margin="0,8,0,0">
-                                                                    <TextBlock Text="{Binding HardwareDiskSmartUnavailableText}"
-                                                                               TextWrapping="Wrap"
-                                                                               Style="{StaticResource HardwareDiskSmallTextStyle}"
-                                                                               Visibility="{Binding HasNoSmart, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                                                    <StackPanel Visibility="{Binding HasSmart, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                        <Grid Margin="0,0,0,4">
-                                                                            <Grid.ColumnDefinitions>
-                                                                                <ColumnDefinition Width="44" />
-                                                                                <ColumnDefinition Width="*" />
-                                                                                <ColumnDefinition Width="80" />
-                                                                                <ColumnDefinition Width="70" />
-                                                                                <ColumnDefinition Width="100" />
-                                                                            </Grid.ColumnDefinitions>
-                                                                            <TextBlock Grid.Column="0" Text="ID" Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                            <TextBlock Grid.Column="1" Text="{Binding HardwareDiskSmartAttributeColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                            <TextBlock Grid.Column="2" Text="{Binding HardwareDiskSmartValueColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
-                                                                            <TextBlock Grid.Column="3" Text="{Binding HardwareDiskSmartThresholdColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
-                                                                            <TextBlock Grid.Column="4" Text="{Binding HardwareDiskSmartStatusColumnText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
-                                                                        </Grid>
-                                                                        <ItemsControl ItemsSource="{Binding SmartAttributes}">
-                                                                            <ItemsControl.ItemTemplate>
-                                                                                <DataTemplate>
-                                                                                    <Grid Margin="0,3,0,0">
-                                                                                        <Grid.ColumnDefinitions>
-                                                                                            <ColumnDefinition Width="44" />
-                                                                                            <ColumnDefinition Width="*" />
-                                                                                            <ColumnDefinition Width="80" />
-                                                                                            <ColumnDefinition Width="70" />
-                                                                                            <ColumnDefinition Width="100" />
-                                                                                        </Grid.ColumnDefinitions>
-                                                                                        <TextBlock Grid.Column="0" Text="{Binding IdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" />
-                                                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextTrimming="CharacterEllipsis" />
-                                                                                        <TextBlock Grid.Column="2" Text="{Binding ValueText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
-                                                                                        <TextBlock Grid.Column="3" Text="{Binding ThresholdText}" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right" />
-                                                                                        <TextBlock Grid.Column="4" Style="{StaticResource HardwareDiskSmallTextStyle}" TextAlignment="Right">
-                                                                                            <TextBlock.Text>
-                                                                                                <MultiBinding Converter="{StaticResource DiskStateTextConverter}" ConverterParameter="HardwareDiskSmartAttributeStatus">
-                                                                                                    <Binding Path="Status" />
-                                                                                                    <Binding Path="DataContext.Language" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                                                                </MultiBinding>
-                                                                                            </TextBlock.Text>
-                                                                                        </TextBlock>
-                                                                                    </Grid>
-                                                                                </DataTemplate>
-                                                                            </ItemsControl.ItemTemplate>
-                                                                        </ItemsControl>
-                                                                    </StackPanel>
-                                                                </StackPanel>
-                                                            </Expander>
-                                                        </StackPanel>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <TextBlock Text="{Binding HardwareDiskNoDisksText}"
-                                                   TextWrapping="Wrap">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TemplateSmallTextStyle}">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding DataContext.SystemMonitor.Disks.Count, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Value="0">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
                                     </StackPanel>
                                 </Expander.Content>
                             </Expander>

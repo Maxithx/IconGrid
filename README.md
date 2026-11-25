@@ -206,7 +206,7 @@ The **Cleanup** page finds allowlisted cache and maintenance files without delet
 
 ![IconGrid Cleanup page](Assets/git-img/Cleanup.png)
 
-- Scans NVIDIA DXCache/GLCache, DirectX shader cache, IconGrid trace/error logs, benchmark CSVs, Afterburner backups and IconGrid config backups.
+- Scans NVIDIA DXCache/GLCache, DirectX shader cache, IconGrid trace/error logs, Afterburner backups and IconGrid config backups.
 - Shows every found file in a selectable grid with type, size, modified time and full path.
 - Nothing is deleted until you select files and confirm the deletion dialog.
 - Locked or in-use files are reported instead of forcing deletion.

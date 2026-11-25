@@ -290,7 +290,6 @@ namespace IconGrid.ViewModels.Settings
                 CleanupTargetKind.DirectXShaderCache => L("CleanupTargetDirectX"),
                 CleanupTargetKind.IconGridTraceLog => L("CleanupTargetIconGridTrace"),
                 CleanupTargetKind.IconGridErrorLog => L("CleanupTargetIconGridError"),
-                CleanupTargetKind.IconGridBenchmarks => L("CleanupTargetIconGridBenchmarks"),
                 CleanupTargetKind.IconGridAfterburnerBackups => L("CleanupTargetIconGridAfterburner"),
                 CleanupTargetKind.IconGridConfigBackups => L("CleanupTargetIconGridConfig"),
                 _ => kind.ToString()
