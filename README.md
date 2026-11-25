@@ -2,8 +2,6 @@
 
 IconGrid is a Windows launcher, hardware control center, and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, live system telemetry, GPU undervolt and power-saving tools, hotspot monitoring, and a dedicated gaming overlay with real-time FPS — all in a launcher that can collapse into a 10px auto-hiding peek strip.
 
-> **Latest beta:** [github.com/Maxithx/IconGrid/releases](https://github.com/Maxithx/IconGrid/releases)
-
 ## Download and unsigned beta
 
 Get the latest beta from [GitHub Releases](https://github.com/Maxithx/IconGrid/releases). The installer is framework-dependent and requires the [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
