@@ -196,6 +196,8 @@ Power saving lowers heat and noise while a game is running in the background.
 
 Hotspot is the hottest point on the GPU die — usually 10–20 °C above the edge temperature shown in the overlay, and the temperature the card actually throttles on.
 
+![IconGrid hotspot monitoring](Assets/git-img/Hot-spot-monitoring.png)
+
 - Optional alarm with a configurable threshold from **90–105 °C**.
 - A second warning triggers when hotspot sits more than **15 °C** above the GPU edge temperature, which usually points to cooler contact rather than a software setting.
 - The saved **top hotspot** record survives restarts and is checked against the alarm threshold.
