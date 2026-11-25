@@ -83,6 +83,7 @@
                     <ControlTemplate TargetType="Expander">
                         <StackPanel>
                             <ToggleButton x:Name="HeaderSite"
+                                          MinHeight="48"
                                           Style="{StaticResource HardwareHeroExpanderToggleButtonStyle}"
                                           IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
                                           Content="{TemplateBinding Header}"
@@ -1275,7 +1276,7 @@
                                                        MaxWidth="680"
                                                        HorizontalAlignment="Left"
                                                        TextWrapping="Wrap"
-                                                       Text="{Binding DataContext.GpuUndervoltIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding DataContext.GpuUndervoltHeaderSummary, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1"
@@ -1294,6 +1295,20 @@
                                 </Expander.Header>
                                 <Expander.Content>
                                     <StackPanel>
+                                        <TextBlock Margin="0,0,0,8"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding DataContext.GpuUndervoltIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Style="{StaticResource TemplateHeroBodyStyle}" />
+                                        <TextBlock Margin="0,0,0,0"
+                                                   MaxWidth="680"
+                                                   HorizontalAlignment="Left"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding DataContext.GpuUndervoltNvidiaOnlyNote, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         <Grid Margin="0,16,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />

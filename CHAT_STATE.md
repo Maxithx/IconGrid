@@ -2368,6 +2368,10 @@ Brugerkrav: temperaturgrænsen skal kun gælde når spilvinduet IKKE har fokus, 
 ## Session findings (2026-11-25) — GPU undervolt: Afterburner-status + download
 
 - ✅ Hardware → GPU undervolt viser nu `MSI Afterburner status` (`Installed` / `Not installed`) og en `Download MSI Afterburner`-knap til https://www.msi.com/Landing/afterburner.
+- ✅ GPU undervolt-kortet viser nu også en synlig NVIDIA GTX/RTX-note (en+da): AMD/Intel understøttes ikke, og MSI Afterburner med gemte profiler kræves.
+- Deployet 2026-11-25 04:50:39; build/deploy DLL-hash matcher.
+- ✅ Hardware-layout (05:04): alle hero-card-headere har nu `MinHeight="48"` (ensartet collapsed højde); "Disks" omdøbt til "Harddisks / SSD"; GPU undervolt-headeren bruger en kort summary, mens den lange intro + NVIDIA-note nu ligger i det udvidede indhold.
+- Deployet 2026-11-25 05:04:19; build/deploy DLL-hash matcher.
 - Status bruger den eksisterende `AfterburnerProfileController.IsAvailable` / `InstallPath` (Program Files + Program Files (x86)); installationsstien vises som tooltip.
 - Nye lokaliseringsnøgler (en+da): `GpuUndervoltAfterburnerStatusTitle`, `GpuUndervoltAfterburnerInstalled`, `GpuUndervoltAfterburnerNotInstalled`, `GpuUndervoltAfterburnerDownload`.
 - ✅ `deploy-test.cmd` rettet: kopierer nu `runtimes\**` og `Assets\**`. Uden dem crashede startup på `System.ServiceProcess.ServiceController`, og Hardware-siden crashede på `LibreHardwareMonitorLib.dll` samt `Assets\Hw-logo\*`.

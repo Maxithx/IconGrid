@@ -153,7 +153,7 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 
 ## Hardware tools
 
-The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU control features require an NVIDIA card; undervolt profile switching additionally requires MSI Afterburner with saved profiles.
+The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU undervolt and power saving are **NVIDIA-only** and target **GeForce GTX/RTX** cards; undervolt profile switching additionally requires MSI Afterburner with saved profiles.
 
 ![IconGrid Hardware page](Assets/git-img/Hardware.png)
 
@@ -166,6 +166,10 @@ The **Hardware** page combines system diagnostics with GPU control. Sensor data 
 - **Disks:** model, health, size, temperature, power state, activity, read/write rates, and SMART details where the drive supports it.
 
 ### GPU undervolt
+
+> **Supports only NVIDIA GTX/RTX.**<br>
+> AMD and Intel GPUs are not supported.<br>
+> MSI Afterburner with saved profiles is also required.
 
 The GPU undervolt card drives **MSI Afterburner profiles** instead of writing to the GPU directly — Afterburner owns the signed driver path for the voltage/frequency curve.
 
@@ -364,18 +368,18 @@ A game shows hundreds of MB to several GB while it is focused, and collapses to 
 
 The current Windows user may need to be added to `Performance Log Users` (Danish: `Brugere af ydelseslog`) for ETW to work. After adding, sign out/in or reboot.
 
-### Currently tested games (2026-09-13)
+### Currently tested games (2026-11-25)
 
 | Game | FPS source | Status | Notes |
 |------|-----------|--------|-------|
-| **Path of Exile 1** | PrimaryApi (DXGI) | ✅ Perfect | Gold standard — holds target stably across all window switches. Overlay appears almost instantly |
-| **Path of Exile 2** | PrimaryApi (DXGI) | ✅ Works | Real FPS fluctuates when unfocused — ETW shows correct render rate |
-| **Call of Duty (cod22-cod.exe)** | PrimaryApi (DXGI) | ✅ Works | Intro >200 FPS, menu ~100 FPS. Dedicated VRAM rises to ~5.4 GB while playing and drops to ~70 MB when unfocused |
-| **Tom Clancy's The Division 2** | PrimaryApi (DXGI) | ✅ Works | Render stops completely at de-focus (Nvidia confirms 0 FPS). Last known FPS shown via sticky-hold |
-| **Stumble Guys** | PrimaryApi (DXGI) | ✅ Works | Tested 2026-08-04 |
-| **RHYTHM SPROUT Demo** | PrimaryApi (DXGI) | ✅ Works | Tested 2026-08-04 |
+| **Path of Exile 1** | PrimaryApi (DXGI) | ✅ Perfect | Gold standard — holds target stably across all window switches. Overlay appears almost instantly. Retested 2026-11-25 |
+| **Path of Exile 2** | PrimaryApi (DXGI) | ✅ Perfect | Real FPS fluctuates when unfocused — ETW shows correct render rate. Retested 2026-11-25 |
+| **Call of Duty (cod22-cod.exe)** | PrimaryApi (DXGI) | ✅ Perfect | Intro >200 FPS, menu ~100 FPS. Dedicated VRAM rises to ~5.4 GB while playing and drops to ~70 MB when unfocused. Retested 2026-11-25 |
+| **Tom Clancy's The Division 2** | PrimaryApi (DXGI) | ✅ Perfect | Render stops completely at de-focus (Nvidia confirms 0 FPS). Last known FPS shown via sticky-hold. Retested 2026-11-25 |
+| **Stumble Guys** | PrimaryApi (DXGI) | ✅ Perfect | Retested 2026-11-25 |
+| **RHYTHM SPROUT Demo** | PrimaryApi (DXGI) | ✅ Perfect | Retested 2026-11-25 |
 | **Yuzu (emulator)** | DxgKrnlFallback | ⚠️ Overcount | Emulator normalization clamped to ~60 FPS. Works via `--trusted-launch` when started from IconGrid |
-| **Fireworks Mania** | PrimaryApi (DXGI) | ✅ Works | Direct .exe launch, fast lock |
+| **Fireworks Mania** | PrimaryApi (DXGI) | ✅ Perfect | Direct .exe launch, fast lock. Retested 2026-11-25 |
 
 **Verified false positives eliminated (2026-09-13):** `explorer.exe` (desktop/taskbar), Windows Command Palette (`Microsoft.CmdPal.UI`), PowerToys `Peek.UI`, `TextInputHost`, Task Manager, and browsers/editors all stay out of detection without being named in any list. `trace.log` shows the structural rejection instead, for example:
 
