@@ -2364,6 +2364,17 @@ IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
 
 Brugerkrav: temperaturgrænsen skal kun gælde når spilvinduet IKKE har fokus, og GPU'en skal reelt drosle ned (længere levetid). Det gjorde de gamle knapper ikke.
 
+
+## Session findings (2026-11-25) — GPU undervolt: Afterburner-status + download
+
+- ✅ Hardware → GPU undervolt viser nu `MSI Afterburner status` (`Installed` / `Not installed`) og en `Download MSI Afterburner`-knap til https://www.msi.com/Landing/afterburner.
+- Status bruger den eksisterende `AfterburnerProfileController.IsAvailable` / `InstallPath` (Program Files + Program Files (x86)); installationsstien vises som tooltip.
+- Nye lokaliseringsnøgler (en+da): `GpuUndervoltAfterburnerStatusTitle`, `GpuUndervoltAfterburnerInstalled`, `GpuUndervoltAfterburnerNotInstalled`, `GpuUndervoltAfterburnerDownload`.
+- ✅ `deploy-test.cmd` rettet: kopierer nu `runtimes\**` og `Assets\**`. Uden dem crashede startup på `System.ServiceProcess.ServiceController`, og Hardware-siden crashede på `LibreHardwareMonitorLib.dll` samt `Assets\Hw-logo\*`.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid`; DLL-hash matcher build. Bruger bekræftet: alle settings-sider åbner igen.
+- Filer: `Views/Settings/Pages/HardwarePage.xaml(.cs)`, `Helpers/Settings/LocalizationHelper.cs`, `ViewModels/MainViewModel.Localization.cs`, `deploy-test.cmd`.
+- Næste: verificér statuslinjen/linket hos bruger både med og uden Afterburner; evt. senere registry-opslag for custom install-stier.
+
 MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - power.limit 125 W (kortets minimum), draw 79-81 W, 83-84 °C, SM 1290-1455 MHz, mem 7000 MHz (fuld), fan 75 %.
 - `clocks_event_reasons.active = 0x20` (SW Thermal Slowdown) — IKKE power cap (0x04).

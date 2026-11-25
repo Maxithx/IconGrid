@@ -169,6 +169,39 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     private double _undervoltTargetVoltageMv = 925;
     private double _undervoltTargetPowerLimitPercent = 100;
 
+    private bool _isAfterburnerInstalled;
+    private string _afterburnerInstallPath = string.Empty;
+
+    public bool IsAfterburnerInstalled
+    {
+        get => _isAfterburnerInstalled;
+        private set
+        {
+            if (_isAfterburnerInstalled == value)
+            {
+                return;
+            }
+
+            _isAfterburnerInstalled = value;
+            OnPropertyChanged(nameof(IsAfterburnerInstalled));
+        }
+    }
+
+    public string AfterburnerInstallPath
+    {
+        get => _afterburnerInstallPath;
+        private set
+        {
+            if (_afterburnerInstallPath == value)
+            {
+                return;
+            }
+
+            _afterburnerInstallPath = value;
+            OnPropertyChanged(nameof(AfterburnerInstallPath));
+        }
+    }
+
     private readonly System.Collections.Generic.Dictionary<int, IReadOnlyList<AfterburnerCurvePoint>> _profileCurves = new();
     private readonly System.Collections.Generic.Dictionary<int, AfterburnerProfileInfo> _profilesByNumber = new();
     private int _targetProfileSlot = 9;
@@ -1258,6 +1291,8 @@ public bool IsNvidiaGtx =>
         };
 
         var controller = new AfterburnerProfileController();
+        IsAfterburnerInstalled = controller.IsAvailable;
+        AfterburnerInstallPath = controller.InstallPath ?? string.Empty;
 
         // Existing installations created the curve before the clock ceiling was
         // stored in the config. Profile 9 is reserved for IconGrid curves, so its
@@ -1700,6 +1735,22 @@ public bool IsNvidiaGtx =>
         catch
         {
             // Best-effort status display; a failed read must never break the page.
+        }
+    }
+
+    private void OpenAfterburnerDownload_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://www.msi.com/Landing/afterburner",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Opening the vendor page is best-effort; never break the hardware page.
         }
     }
 

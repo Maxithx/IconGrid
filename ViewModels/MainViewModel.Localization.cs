@@ -201,6 +201,10 @@ namespace IconGrid.ViewModels
         public string GpuPowerSavingRefreshStatus => _localizationState.Get(Language, "GpuPowerSavingRefreshStatus");
         public string GpuUndervoltTitle => _localizationState.Get(Language, "GpuUndervoltTitle");
         public string GpuUndervoltIntro => _localizationState.Get(Language, "GpuUndervoltIntro");
+        public string GpuUndervoltAfterburnerStatusTitle => _localizationState.Get(Language, "GpuUndervoltAfterburnerStatusTitle");
+        public string GpuUndervoltAfterburnerInstalled => _localizationState.Get(Language, "GpuUndervoltAfterburnerInstalled");
+        public string GpuUndervoltAfterburnerNotInstalled => _localizationState.Get(Language, "GpuUndervoltAfterburnerNotInstalled");
+        public string GpuUndervoltAfterburnerDownload => _localizationState.Get(Language, "GpuUndervoltAfterburnerDownload");
         public string GpuUndervoltEnableTitle => _localizationState.Get(Language, "GpuUndervoltEnableTitle");
         public string GpuUndervoltEnableIntro => _localizationState.Get(Language, "GpuUndervoltEnableIntro");
         public string GpuUndervoltTempTitle => _localizationState.Get(Language, "GpuUndervoltTempTitle");
@@ -647,6 +651,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuPowerSavingRefreshStatus));
             OnPropertyChanged(nameof(GpuUndervoltTitle));
             OnPropertyChanged(nameof(GpuUndervoltIntro));
+            OnPropertyChanged(nameof(GpuUndervoltAfterburnerStatusTitle));
+            OnPropertyChanged(nameof(GpuUndervoltAfterburnerInstalled));
+            OnPropertyChanged(nameof(GpuUndervoltAfterburnerNotInstalled));
+            OnPropertyChanged(nameof(GpuUndervoltAfterburnerDownload));
             OnPropertyChanged(nameof(GpuUndervoltEnableTitle));
             OnPropertyChanged(nameof(GpuUndervoltEnableIntro));
             OnPropertyChanged(nameof(GpuUndervoltTempTitle));

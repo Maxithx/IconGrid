@@ -24,14 +24,22 @@ xcopy /y /q "%SRC%\*.exe" "%DST%\" >nul
 xcopy /y /q "%SRC%\*.runtimeconfig.json" "%DST%\" >nul
 xcopy /y /q "%SRC%\*.deps.json" "%DST%\" >nul
 
+REM Runtime-specific assemblies are resolved through deps.json and MUST be
+REM copied, otherwise the app fails with FileNotFoundException. Examples:
+REM System.ServiceProcess.ServiceController under runtimes\win\lib\net8.0
+REM and LibreHardwareMonitorLib under runtimes\win-x64\lib\net10.0.
+if exist "%SRC%\runtimes" xcopy /y /q /e /i "%SRC%\runtimes" "%DST%\runtimes" >nul
+
 REM The native FPS agent lives in a SUBFOLDER. xcopy without /s does NOT recurse,
 REM so "%SRC%\*.exe" never covered it and the deployed agent silently stayed
 REM stale (last shipped build was 2026-07-23). Copy it explicitly.
 xcopy /y /q /i "%SRC%\Tools\FpsAgent\IconGridFpsAgent.exe" "%DST%\Tools\FpsAgent\" >nul
 
-REM Static UI assets (sidebar icons) are content files loaded with
-REM pack://siteoforigin and must exist next to the EXE. They are assets,
-REM not user data/config, so they are safe to overwrite on every deploy.
+REM Static UI assets are content files loaded with pack://siteoforigin and
+REM MUST exist next to the EXE. They are assets, not user data/config, so
+REM they are safe to overwrite on every deploy. Missing Assets\Hw-logo made
+REM the hardware page fail with DirectoryNotFoundException on startup.
+if exist "%SRC%\Assets" xcopy /y /q /e /i "%SRC%\Assets" "%DST%\Assets" >nul
 if exist "%SRC%\figma-icons" xcopy /y /q /i "%SRC%\figma-icons\*" "%DST%\figma-icons\" >nul
 
 echo Done. IconGrid deployed to C:\icongrid
