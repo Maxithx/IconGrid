@@ -4,6 +4,7 @@ using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Launcher;
 using IconGrid.Helpers.Skin;
 using IconGrid.Models;
+using IconGrid.ViewModels.Launcher;
 
 namespace IconGrid.ViewModels
 {
@@ -1899,6 +1900,66 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Compact hotspot warning shown at the left end of the gaming overlay. The state
+        /// machine lives in <see cref="GpuHotspotAlertState"/> so the overlay and the Hardware
+        /// page can share the same telemetry rules.
+        /// </summary>
+        public GpuHotspotAlertState GamingOverlayHotspotAlert => _gpuHotspotAlertState;
+
+        public bool GamingOverlayHotspotAlertVisible => _gpuHotspotAlertState.IsVisible;
+        public bool GamingOverlayHotspotAlertCritical => _gpuHotspotAlertState.IsCritical;
+
+        public string GamingOverlayHotspotAlertText
+        {
+            get
+            {
+                if (!_gpuHotspotAlertState.IsVisible)
+                {
+                    return string.Empty;
+                }
+
+                var hotspot = _gpuHotspotAlertState.HotspotCelsius ?? 0;
+                return string.Format(
+                    _localizationState.Get(Language, "GamingOverlayHotspotAlertFormat"),
+                    hotspot);
+            }
+        }
+
+        public string GamingOverlayHotspotAlertTooltip
+        {
+            get
+            {
+                if (!_gpuHotspotAlertState.IsVisible)
+                {
+                    return string.Empty;
+                }
+
+                return string.Format(
+                    _localizationState.Get(Language, "GamingOverlayHotspotAlertTooltipFormat"),
+                    _gpuHotspotAlertState.HotspotCelsius ?? 0,
+                    _gpuHotspotAlertState.GpuCelsius ?? 0,
+                    _gpuHotspotAlertState.DeltaCelsius ?? 0,
+                    _gpuHotspotAlertState.ThresholdCelsius);
+            }
+        }
+
+        /// <summary>
+        /// Runs the visual demo used by the "Test hotspot alert" button. The real alarm settings
+        /// are untouched, and the demo ends by itself after a few seconds.
+        /// </summary>
+        public void StartGamingOverlayHotspotAlertDemo()
+        {
+            _gpuHotspotAlertState.StartDemo(TimeSpan.FromSeconds(8));
+            _ = EndGamingOverlayHotspotAlertDemoAsync();
+        }
+
+        private async System.Threading.Tasks.Task EndGamingOverlayHotspotAlertDemoAsync()
+        {
+            await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(8));
+            _gpuHotspotAlertState.Refresh();
+        }
+
+        /// <summary>
         /// Opt-in: warn when the GPU hotspot is hot or far above the GPU temperature,
         /// which usually means the cooler lost contact with the chip (paste/pads or
         /// mounting pressure) and the card throttles long before its power limit.
@@ -1910,6 +1971,7 @@ namespace IconGrid.ViewModels
             {
                 if (SetField(ref _gpuHotspotAlarmEnabled, value))
                 {
+                    _gpuHotspotAlertState.UpdateSettings(_gpuHotspotAlarmEnabled, _gpuHotspotAlarmThresholdC);
                     SaveSettingsToConfig();
                 }
             }
@@ -1930,6 +1992,7 @@ namespace IconGrid.ViewModels
                     MaxGpuHotspotAlarmCelsius);
                 if (SetField(ref _gpuHotspotAlarmThresholdC, clamped))
                 {
+                    _gpuHotspotAlertState.UpdateSettings(_gpuHotspotAlarmEnabled, _gpuHotspotAlarmThresholdC);
                     SaveSettingsToConfig();
                 }
             }

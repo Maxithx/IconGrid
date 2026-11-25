@@ -297,6 +297,8 @@ namespace IconGrid.ViewModels
         public string GpuHotspotHistoryClear => _localizationState.Get(Language, "GpuHotspotHistoryClear");
         public string GpuHotspotHistoryClearConfirmTitle => _localizationState.Get(Language, "GpuHotspotHistoryClearConfirmTitle");
         public string GpuHotspotHistoryClearConfirmFormat => _localizationState.Get(Language, "GpuHotspotHistoryClearConfirmFormat");
+        public string GamingOverlayHotspotAlertDemoButton => _localizationState.Get(Language, "GamingOverlayHotspotAlertDemoButton");
+        public string GamingOverlayHotspotAlertDemoIntro => _localizationState.Get(Language, "GamingOverlayHotspotAlertDemoIntro");
         public string GpuUndervoltHint => _localizationState.Get(Language, "GpuUndervoltHint");
         public string GpuUndervoltStatusTitle => _localizationState.Get(Language, "GpuUndervoltStatusTitle");
         public string GpuUndervoltStatusActive => _localizationState.Get(Language, "GpuUndervoltStatusActive");
@@ -732,6 +734,10 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuHotspotAlarmIntro));
             OnPropertyChanged(nameof(GpuHotspotAlarmThresholdTitle));
             OnPropertyChanged(nameof(GpuHotspotAlarmThresholdIntro));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertText));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertTooltip));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertDemoButton));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertDemoIntro));
             OnPropertyChanged(nameof(GpuHotspotStatusFormat));
             OnPropertyChanged(nameof(GpuHotspotWarning));
             OnPropertyChanged(nameof(GpuHotspotPeakWarning));

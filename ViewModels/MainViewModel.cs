@@ -173,6 +173,7 @@ namespace IconGrid.ViewModels
         private readonly string _iconPackFolder;
         private readonly ConfigManager _configManager;
         private readonly SystemMonitor _systemMonitor = new();
+        private readonly GpuHotspotAlertState _gpuHotspotAlertState;
         private readonly LauncherTabsState _tabsState;
         private readonly LauncherItemsManager _itemsManager;
         private readonly LauncherItemIconManager _itemIconManager;
@@ -239,6 +240,9 @@ namespace IconGrid.ViewModels
             EnsureIconPackFolder();
             InitializeAppearance();
             _systemMonitor.PropertyChanged += SystemMonitor_PropertyChanged;
+            _gpuHotspotAlertState = new GpuHotspotAlertState(_systemMonitor);
+            _gpuHotspotAlertState.PropertyChanged += GpuHotspotAlertState_PropertyChanged;
+            _gpuHotspotAlertState.UpdateSettings(_gpuHotspotAlarmEnabled, _gpuHotspotAlarmThresholdC);
             _tabsState = CreateTabsState();
             _tabsState.PropertyChanged += TabsState_PropertyChanged;
             Items = new ObservableCollection<LauncherItem>();
@@ -1950,6 +1954,17 @@ namespace IconGrid.ViewModels
 
                 _wasInGame = _systemMonitor.IsInGame;
             }
+        }
+
+        private void GpuHotspotAlertState_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            // The overlay binds the compact alert through these MainViewModel properties so
+            // localization and tooltip formatting stay in one place.
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlert));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertVisible));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertCritical));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertText));
+            OnPropertyChanged(nameof(GamingOverlayHotspotAlertTooltip));
         }
 
         private void ThemeCoordinator_ThemeChanged(object? sender, ThemeSnapshot e)

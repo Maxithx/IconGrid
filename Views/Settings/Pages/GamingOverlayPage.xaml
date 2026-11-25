@@ -509,6 +509,17 @@
                                 </Border>
 
                                 <TextBlock Margin="0,16,0,0"
+                                           Text="{Binding DataContext.GamingOverlayHotspotAlertDemoIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           TextWrapping="Wrap"
+                                           FontSize="13"
+                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                <Button Margin="0,10,0,0"
+                                        HorizontalAlignment="Left"
+                                        Style="{StaticResource OverlaySecondaryButtonStyle}"
+                                        Click="HotspotAlertDemoButton_Click"
+                                        Content="{Binding DataContext.GamingOverlayHotspotAlertDemoButton, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                <TextBlock Margin="0,16,0,0"
                                            Text="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                            FontSize="14"
                                            FontWeight="SemiBold"

@@ -41,6 +41,14 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="OverlayHotspotAlertTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFFFFFFF" />
+            <Setter Property="FontFamily" Value="{Binding GamingOverlaySkin.FontFamily}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="{Binding GamingOverlaySkin.FontSizeValue}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
         <Style x:Key="OverlayDividerStyle" TargetType="Border">
             <Setter Property="Width" Value="{Binding GamingOverlaySkin.DividerWidthValue}" />
             <Setter Property="Height" Value="{Binding GamingOverlaySkin.DividerHeightValue}" />
@@ -799,6 +807,82 @@
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
+                        <!-- Compact hotspot warning: expands inside the bar without a second window. -->
+                        <Border x:Name="HotspotAlertPanel"
+                                VerticalAlignment="Center"
+                                ClipToBounds="True"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="True"
+                                ToolTip="{Binding GamingOverlayHotspotAlertTooltip}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#33FF3B30" />
+                                    <Setter Property="BorderBrush" Value="#AAFF4D4D" />
+                                    <Setter Property="BorderThickness" Value="1" />
+                                    <Setter Property="CornerRadius" Value="{Binding GamingOverlaySkin.CornerRadiusValue}" />
+                                    <Setter Property="MaxWidth" Value="0" />
+                                    <Setter Property="Opacity" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="Padding" Value="8,0" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding GamingOverlayHotspotAlertCritical}" Value="True">
+                                            <Setter Property="Background" Value="#55FF2D2D" />
+                                            <Setter Property="BorderBrush" Value="#FFFF5252" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding GamingOverlayHotspotAlertVisible}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="MaxWidth"
+                                                                         To="230"
+                                                                         Duration="0:0:0.28">
+                                                            <DoubleAnimation.EasingFunction>
+                                                                <CubicEase EasingMode="EaseOut" />
+                                                            </DoubleAnimation.EasingFunction>
+                                                        </DoubleAnimation>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                         To="1"
+                                                                         Duration="0:0:0.20" />
+                                                        <ThicknessAnimation Storyboard.TargetProperty="Margin"
+                                                                            To="0,0,10,0"
+                                                                            Duration="0:0:0.20" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetProperty="MaxWidth"
+                                                                         To="0"
+                                                                         Duration="0:0:0.24">
+                                                            <DoubleAnimation.EasingFunction>
+                                                                <CubicEase EasingMode="EaseIn" />
+                                                            </DoubleAnimation.EasingFunction>
+                                                        </DoubleAnimation>
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                         To="0"
+                                                                         Duration="0:0:0.16" />
+                                                        <ThicknessAnimation Storyboard.TargetProperty="Margin"
+                                                                            To="0"
+                                                                            Duration="0:0:0.16" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7BA;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FFFF6B6B"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding GamingOverlayHotspotAlertText}"
+                                           Style="{StaticResource OverlayHotspotAlertTextStyle}"
+                                           Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Border>
                         <Border VerticalAlignment="Stretch"
                                 Margin="0,0,10,0"
                                 Padding="10,2"

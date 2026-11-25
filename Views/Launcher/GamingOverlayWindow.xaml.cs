@@ -53,6 +53,8 @@ namespace IconGrid.Views
         private bool _isScaleMenuOpen;
         private bool _isDraggingPopupScaleSlider;
         private bool _pendingOverlayMetricsUpdate;
+        private bool _overlayMetricsUpdateScheduled;
+        private System.Windows.Threading.DispatcherTimer? _alertMetricsTimer;
         private System.Windows.Threading.DispatcherTimer? _displayChangeTimer;
         private HwndSource? _hwndSource;
         private bool _suppressLocationSave;
@@ -116,6 +118,7 @@ namespace IconGrid.Views
             }
 
             OverlayBar.OverlayRoot.MouseLeftButtonDown += OverlayRoot_MouseLeftButtonDown;
+            OverlayBar.OverlayRoot.SizeChanged += OverlayRoot_SizeChanged;
             OverlayBar.SettingsMenuButton.Checked += SettingsMenuButton_Checked;
             OverlayBar.SettingsMenuButton.Unchecked += SettingsMenuButton_Unchecked;
             OverlayBar.CloseButton.Click += CloseButton_Click;
@@ -134,9 +137,15 @@ namespace IconGrid.Views
             _positionReapplyTimer = null;
             _scaleDebounceTimer?.Stop();
             _scaleDebounceTimer = null;
+            _alertMetricsTimer?.Stop();
+            _alertMetricsTimer = null;
             _hwndSource?.RemoveHook(WndProc);
             _hwndSource = null;
             SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+            if (OverlayBar?.OverlayRoot != null)
+            {
+                OverlayBar.OverlayRoot.SizeChanged -= OverlayRoot_SizeChanged;
+            }
             Loaded -= GamingOverlayWindow_Loaded;
             Closed -= GamingOverlayWindow_Closed;
             LocationChanged -= GamingOverlayWindow_LocationChanged;
@@ -372,6 +381,53 @@ namespace IconGrid.Views
                 OverlayBar.CloseButton.Height = ActionButtonHeight;
                 OverlayBar.CloseButton.Margin = new Thickness(6 * scale, 0, 0, 0);
             }
+        }
+
+        private void OverlayRoot_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // The hotspot alert grows/shrinks inside the bar. Resize the host window
+            // after layout so the right edge stays anchored while the left edge glides.
+            if (_overlayMetricsUpdateScheduled)
+            {
+                return;
+            }
+
+            _overlayMetricsUpdateScheduled = true;
+            Dispatcher.BeginInvoke(
+                new Action(() =>
+                {
+                    _overlayMetricsUpdateScheduled = false;
+                    UpdateOverlayMetrics();
+                }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void ScheduleAlertMetricsUpdates()
+        {
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                return;
+            }
+
+            _alertMetricsTimer?.Stop();
+            var startedAt = DateTime.UtcNow;
+            _alertMetricsTimer = new System.Windows.Threading.DispatcherTimer(
+                TimeSpan.FromMilliseconds(16),
+                System.Windows.Threading.DispatcherPriority.Render,
+                (_, _) =>
+                {
+                    if ((DateTime.UtcNow - startedAt).TotalMilliseconds > 420)
+                    {
+                        _alertMetricsTimer?.Stop();
+                        _alertMetricsTimer = null;
+                    }
+
+                    UpdateOverlayMetrics();
+                },
+                dispatcher);
+            _alertMetricsTimer.Start();
+            UpdateOverlayMetrics();
         }
 
         private void UpdateOverlayMetrics()
@@ -643,6 +699,15 @@ namespace IconGrid.Views
 
             // Overlay content toggles (clock/network/CPU/GPU/FPS): the row width changes, so the
             // window frame must follow immediately instead of waiting for a reopen.
+            if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayHotspotAlertVisible), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayHotspotAlertCritical), StringComparison.OrdinalIgnoreCase))
+            {
+                // The alert expands/collapses over ~300 ms. Follow the animated content width
+                // for a short burst so the outer window grows left while the right edge stays put.
+                ScheduleAlertMetricsUpdates();
+                return;
+            }
+
             if (string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowClock), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowNetwork), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(e.PropertyName, nameof(MainViewModel.GamingOverlayShowCpu), StringComparison.OrdinalIgnoreCase)

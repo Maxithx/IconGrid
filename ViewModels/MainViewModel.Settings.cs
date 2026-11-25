@@ -159,6 +159,7 @@ namespace IconGrid.ViewModels
             _gpuUndervoltTargetPowerLimitPercent = 100;
             _gpuHotspotAlarmEnabled = false;
             _gpuHotspotAlarmThresholdC = 100;
+            _gpuHotspotAlertState?.UpdateSettings(_gpuHotspotAlarmEnabled, _gpuHotspotAlarmThresholdC);
             _restoreGameResolutionAfterExit = true;
             _launcherHideMode = 0;
             _idleAutoHideDelaySeconds = 2;
