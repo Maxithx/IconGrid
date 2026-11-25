@@ -24,7 +24,7 @@
                 helpers:DevInspector.Metadata="Test section intro card -> Views/TestSection.xaml">
             <StackPanel>
                 <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                           Text="Debug / Test" />
+                           Text="Diagnostics" />
                 <Border Margin="0,10,0,0"
                         Padding="10,8"
                         CornerRadius="8"
@@ -36,21 +36,9 @@
                 </Border>
                 <TextBlock Margin="0,8,0,0"
                            Style="{StaticResource TemplateHeroBodyStyle}"
-                           Text="This section helps compare startup state, elevation, and running instances of IconGrid." />
+                           Text="Startup state, elevation and running instances of IconGrid. FPS and ETW setup is on the Gaming Overlay page." />
             </StackPanel>
         </Border>
-                <Border Style="{StaticResource StartsideSectionCardStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                   Text="Current instance" />
-                        <TextBlock Margin="0,10,0,0"
-                                   FontFamily="Consolas"
-                                   TextWrapping="Wrap"
-                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="{Binding InstanceInfo, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                    </StackPanel>
-                </Border>
-
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
@@ -72,95 +60,6 @@
                                    TextWrapping="Wrap"
                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                    Text="{Binding StartupDiagnosticsInfo, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource StartsideSectionCardStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                   Text="UI ETW probe" />
-                        <TextBlock Margin="0,10,0,0"
-                                   TextWrapping="Wrap"
-                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="Runs a short ETW start/enable test directly inside the non-elevated UI process. This isolates whether the current desktop token can enable DxgKrnl, DXGI, and D3D9 at all." />
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,12,0,0">
-                            <Button Content="Run UI ETW probe"
-                                    Click="RunEtwProbeButton_Click"
-                                    Padding="14,8"
-                                    MinWidth="150"
-                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    Foreground="White"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"
-                                    Cursor="Hand" />
-                            <TextBlock Margin="12,0,0,0"
-                                       VerticalAlignment="Center"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding EtwProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,12,0,0">
-                            <Button Content="Run elevated ETW probe"
-                                    Click="RunElevatedEtwProbeButton_Click"
-                                    Padding="14,8"
-                                    MinWidth="150"
-                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    Foreground="White"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"
-                                    Cursor="Hand" />
-                            <TextBlock Margin="12,0,0,0"
-                                       VerticalAlignment="Center"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding ElevatedEtwProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,12,0,0">
-                            <Button Content="Run native UI FPS probe"
-                                    Click="RunNativeUiProbeButton_Click"
-                                    Padding="14,8"
-                                    MinWidth="150"
-                                    Background="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    BorderBrush="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    Foreground="White"
-                                    FontSize="14"
-                                    FontWeight="SemiBold"
-                                    Cursor="Hand" />
-                            <TextBlock Margin="12,0,0,0"
-                                       VerticalAlignment="Center"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding NativeUiProbeStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </StackPanel>
-                        <Border Margin="0,12,0,0"
-                                Padding="10,8"
-                                CornerRadius="8"
-                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <TextBlock FontFamily="Consolas"
-                                       TextWrapping="Wrap"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding EtwProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </Border>
-                        <Border Margin="0,12,0,0"
-                                Padding="10,8"
-                                CornerRadius="8"
-                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <TextBlock FontFamily="Consolas"
-                                       TextWrapping="Wrap"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding ElevatedEtwProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </Border>
-                        <Border Margin="0,12,0,0"
-                                Padding="10,8"
-                                CornerRadius="8"
-                                Background="{Binding DataContext.SettingsCardBackground, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <TextBlock FontFamily="Consolas"
-                                       TextWrapping="Wrap"
-                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                       Text="{Binding NativeUiProbeResultText, RelativeSource={RelativeSource AncestorType={x:Type views:TestSection}}}" />
-                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -231,15 +130,5 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource StartsideSectionCardStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                                   Text="Notes" />
-                        <TextBlock Margin="0,10,0,0"
-                                   TextWrapping="Wrap"
-                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="If Windows startup creates a duplicate or elevated IconGrid instance again, check the Task Scheduler and legacy startup entries shown above before changing code." />
-                    </StackPanel>
-                </Border>
     </StackPanel>
 </UserControl>

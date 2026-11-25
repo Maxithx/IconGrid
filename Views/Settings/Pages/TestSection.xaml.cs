@@ -10,10 +10,8 @@ using System.Windows.Controls;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Management;
-using IconGrid.Helpers.Hardware;
 using IconGrid.Helpers.Logging;
 using IconGrid.Helpers.Settings;
 
@@ -21,27 +19,13 @@ namespace IconGrid.Views;
 
 public partial class TestSection : System.Windows.Controls.UserControl, INotifyPropertyChanged
 {
-    private string _instanceInfo = string.Empty;
     private string _processInfo = string.Empty;
     private string _startupDiagnosticsInfo = string.Empty;
     private string _summaryText = string.Empty;
-    private string _etwProbeStatusText = "Idle";
-    private string _etwProbeResultText = "Not run yet.";
-    private string _elevatedEtwProbeStatusText = "Idle";
-    private string _elevatedEtwProbeResultText = "Not run yet.";
-    private string _nativeUiProbeStatusText = "Idle";
-    private string _nativeUiProbeResultText = "Not run yet.";
     private string _traceLogInfo = string.Empty;
     private string _traceLogStatusText = string.Empty;
-    private bool _isProbeRunning;
 
     public event PropertyChangedEventHandler? PropertyChanged;
-
-    public string InstanceInfo
-    {
-        get => _instanceInfo;
-        private set => SetField(ref _instanceInfo, value);
-    }
 
     public string ProcessInfo
     {
@@ -59,42 +43,6 @@ public partial class TestSection : System.Windows.Controls.UserControl, INotifyP
     {
         get => _summaryText;
         private set => SetField(ref _summaryText, value);
-    }
-
-    public string EtwProbeStatusText
-    {
-        get => _etwProbeStatusText;
-        private set => SetField(ref _etwProbeStatusText, value);
-    }
-
-    public string EtwProbeResultText
-    {
-        get => _etwProbeResultText;
-        private set => SetField(ref _etwProbeResultText, value);
-    }
-
-    public string ElevatedEtwProbeStatusText
-    {
-        get => _elevatedEtwProbeStatusText;
-        private set => SetField(ref _elevatedEtwProbeStatusText, value);
-    }
-
-    public string ElevatedEtwProbeResultText
-    {
-        get => _elevatedEtwProbeResultText;
-        private set => SetField(ref _elevatedEtwProbeResultText, value);
-    }
-
-    public string NativeUiProbeStatusText
-    {
-        get => _nativeUiProbeStatusText;
-        private set => SetField(ref _nativeUiProbeStatusText, value);
-    }
-
-    public string NativeUiProbeResultText
-    {
-        get => _nativeUiProbeResultText;
-        private set => SetField(ref _nativeUiProbeResultText, value);
     }
 
     public string TraceLogInfo
@@ -117,177 +65,10 @@ public partial class TestSection : System.Windows.Controls.UserControl, INotifyP
     private void UserControl_Loaded(object sender, RoutedEventArgs e)
     {
         Loaded -= UserControl_Loaded;
-        InstanceInfo = BuildInstanceInfo();
         ProcessInfo = BuildProcessInfo();
         StartupDiagnosticsInfo = BuildStartupDiagnosticsInfo();
         SummaryText = BuildSummaryText();
         RefreshTraceLogInfo();
-    }
-
-    private async void RunEtwProbeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isProbeRunning)
-        {
-            return;
-        }
-
-        _isProbeRunning = true;
-        EtwProbeStatusText = "Running...";
-        EtwProbeResultText = "Starting ETW probe from UI process...";
-
-        try
-        {
-            var result = await Task.Run(() => EtwFpsProvider.RunStartupProbe());
-            EtwProbeResultText = result;
-            EtwProbeStatusText = $"Completed at {DateTime.Now:HH:mm:ss}";
-        }
-        catch (Exception ex)
-        {
-            EtwProbeResultText = ex.ToString();
-            EtwProbeStatusText = "Failed";
-        }
-        finally
-        {
-            _isProbeRunning = false;
-        }
-    }
-
-    private async void RunElevatedEtwProbeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isProbeRunning)
-        {
-            return;
-        }
-
-        _isProbeRunning = true;
-        ElevatedEtwProbeStatusText = "Running...";
-        ElevatedEtwProbeResultText = "Starting ETW probe from elevated helper process...";
-
-        try
-        {
-            var result = await ElevatedEtwProbeRunner.RunAsync(() => Environment.ProcessPath ?? string.Empty);
-            ElevatedEtwProbeResultText = result;
-            ElevatedEtwProbeStatusText = $"Completed at {DateTime.Now:HH:mm:ss}";
-        }
-        catch (Exception ex)
-        {
-            ElevatedEtwProbeResultText = ex.ToString();
-            ElevatedEtwProbeStatusText = "Failed";
-        }
-        finally
-        {
-            _isProbeRunning = false;
-        }
-    }
-
-    private async void RunNativeUiProbeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isProbeRunning)
-        {
-            return;
-        }
-
-        _isProbeRunning = true;
-        NativeUiProbeStatusText = "Running...";
-        NativeUiProbeResultText = "Starting native FPS agent directly from the non-elevated UI process...";
-
-        try
-        {
-            var result = await RunNativeUiProbeAsync();
-            NativeUiProbeResultText = result;
-            NativeUiProbeStatusText = $"Completed at {DateTime.Now:HH:mm:ss}";
-        }
-        catch (Exception ex)
-        {
-            NativeUiProbeResultText = ex.ToString();
-            NativeUiProbeStatusText = "Failed";
-        }
-        finally
-        {
-            _isProbeRunning = false;
-        }
-    }
-
-    private static async Task<string> RunNativeUiProbeAsync()
-    {
-        var baseDir = new ConfigManager().BaseDirectory;
-        Directory.CreateDirectory(baseDir);
-        var statePath = Path.Combine(baseDir, "native-fps-ui-probe-state.json");
-
-        if (File.Exists(statePath))
-        {
-            File.Delete(statePath);
-        }
-
-        using var runner = new NativeFpsAgentRunner(statePath);
-        if (!runner.IsAvailable)
-        {
-            return "[NativeUiProbe] Native FPS agent executable was not found.";
-        }
-
-        if (!runner.Start(Environment.ProcessId))
-        {
-            return "[NativeUiProbe] Failed to start native FPS agent from UI process.";
-        }
-
-        var startedAtUtc = DateTime.UtcNow;
-        NativeFpsAgentState? lastState = null;
-
-        while (DateTime.UtcNow - startedAtUtc < TimeSpan.FromSeconds(8))
-        {
-            await Task.Delay(350);
-            lastState = runner.ReadState();
-            if (lastState == null)
-            {
-                continue;
-            }
-
-            if (lastState.EtwStartAttemptCount > 0 ||
-                lastState.EtwRunning ||
-                lastState.EtwEventsReceived ||
-                !string.IsNullOrWhiteSpace(lastState.LastEtwError))
-            {
-                break;
-            }
-        }
-
-        if (lastState == null)
-        {
-            return "[NativeUiProbe] No state file was produced within 8 seconds.";
-        }
-
-        return BuildNativeProbeSummary(lastState);
-    }
-
-    private static string BuildNativeProbeSummary(NativeFpsAgentState state)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"[NativeUiProbe] CapturedAtUtc={state.CapturedAtUtc:O}");
-        sb.AppendLine($"[NativeUiProbe] Elevated={state.IsElevated} ParentPid={state.ParentPid} RootPid={state.RootPid} TargetPid={state.TargetPid}");
-        sb.AppendLine($"[NativeUiProbe] Target={state.TargetProcessName ?? ""} CandidatePid={state.CandidatePid} Candidate={state.CandidateProcessName ?? ""}");
-        sb.AppendLine($"[NativeUiProbe] Attempts={state.EtwStartAttemptCount} Failures={state.EtwStartFailureCount} EtwRunning={state.EtwRunning} Events={state.EtwEventsReceived}");
-        sb.AppendLine($"[NativeUiProbe] DxgKrnlEnabled={state.DxgKrnlEnabled} DxgiEnabled={state.DxgiEnabled} D3D9Enabled={state.D3D9Enabled}");
-        sb.AppendLine($"[NativeUiProbe] LastDxgKrnlError={state.LastDxgKrnlError ?? ""}");
-        sb.AppendLine($"[NativeUiProbe] LastDxgiError={state.LastDxgiError ?? ""}");
-        sb.AppendLine($"[NativeUiProbe] LastD3D9Error={state.LastD3D9Error ?? ""}");
-        sb.AppendLine($"[NativeUiProbe] LastEtwError={state.LastEtwError ?? ""}");
-        sb.AppendLine($"[NativeUiProbe] Debug={state.DebugMessage ?? ""}");
-        return sb.ToString().TrimEnd();
-    }
-
-    private static string BuildInstanceInfo()
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"ProcessId: {Environment.ProcessId}");
-        sb.AppendLine($"ProcessName: {Process.GetCurrentProcess().ProcessName}");
-        sb.AppendLine($"ProcessPath: {Environment.ProcessPath}");
-        sb.AppendLine($"CommandLine: {Environment.CommandLine}");
-        sb.AppendLine($"CurrentUser: {Environment.UserName}");
-        sb.AppendLine($"MachineName: {Environment.MachineName}");
-        sb.AppendLine($"Elevated: {IsCurrentProcessElevated()}");
-        sb.AppendLine($"SessionId: {SafeGetSessionId(Environment.ProcessId)}");
-        sb.AppendLine($"AgentMode: {Environment.GetCommandLineArgs().Any(arg => string.Equals(arg, "--monitor-agent", StringComparison.OrdinalIgnoreCase))}");
-        return sb.ToString().TrimEnd();
     }
 
     private static string BuildProcessInfo()
