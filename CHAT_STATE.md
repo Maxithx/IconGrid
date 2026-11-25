@@ -2379,6 +2379,20 @@ Brugerkrav: temperaturgrænsen skal kun gælde når spilvinduet IKKE har fokus, 
 - Filer: `Views/Settings/Pages/HardwarePage.xaml(.cs)`, `Helpers/Settings/LocalizationHelper.cs`, `ViewModels/MainViewModel.Localization.cs`, `deploy-test.cmd`.
 - Næste: verificér statuslinjen/linket hos bruger både med og uden Afterburner; evt. senere registry-opslag for custom install-stier.
 
+## Session findings (2026-11-25) — Hardware vendor logos: embedded resources + instant render
+
+- Problem: vendor-logos på Hardware-siden dukkede op ~1 s efter siden blev åbnet.
+- ✅ Logoerne er nu **embedded WPF resources i `IconGrid.dll`** (`<Resource Include="Assets\Hw-logo\**\*" />`) i stedet for `pack://siteoforigin`-filer ved siden af EXE. `deploy-test.cmd` kopierer dem ikke længere som løse filer.
+- ✅ `HardwareVendorLogoCache` læser `pack://application:,,,/Assets/Hw-logo/`, bruger `CacheOption.OnLoad`, `IgnoreImageCache`, `DecodePixelWidth = 200` og `Freeze()`, og preloader synkront i `App.xaml.cs` før første vindue.
+- ✅ XAML bruger nu `{x:Static hw:HardwareVendorLogoCache.AsusDark}` osv. i stedet for `{Binding ... RelativeSource}`, så `Image.Source` sættes direkte ved XAML-load uden binding-forsinkelse. De tidligere page-properties er fjernet.
+- ✅ Verifikation: ekstern `C:\IconGrid\Assets\Hw-logo` blev midlertidigt flyttet væk; appen loggede stadig `[HardwareVendorLogoCache] Vendor logos preloaded.` og `MainWindow shown` ved genstart. Mappen er slettet permanent (logoerne ligger i DLL'en).
+- **Egentlig rodårsag fundet:** logoerne blev ikke langsomt dekodet. Deres `Visibility` styres af `IsAsusMotherboard`, `IsAmdCpu`, `IsNvidiaRtx` osv., som er falske indtil `Overview` er hentet. `SettingsWindow` oprettede en ny `HardwarePage` ved hver navigation, så hvert besøg ventede ~0,5-1 s på `HardwareInfoProvider.LoadOverview` (WMI + LibreHardwareMonitor) før logoerne blev `Visible`.
+- ✅ Fix 1: ny `Helpers/Hardware/HardwareOverviewCache.cs` — deler ét overview, loader én gang i baggrunden, genbruger resultatet og undgår parallelle loads. `App.xaml.cs` starter `HardwareOverviewCache.Preload()` ved opstart.
+- ✅ Fix 2: `HardwarePage` initialiserer `Overview` fra cachen i constructoren, så logoerne er synlige allerede i første layout-pass. `HardwarePage_Loaded` bruger `HardwareOverviewCache.GetOrLoadAsync()` i stedet for et nyt `Task.Run`.
+- ✅ Fix 3: `SettingsWindow` genbruger nu én `HardwarePage`-instans (`_hardwarePage ??= new HardwarePage()`), så navigation væk og tilbage ikke genopbygger den store XAML-tree.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid`. Bruger bekræftet: "nu virker det super". Trace-logging er slået fra igen via `%APPDATA%\IconGrid\trace-logging.disabled`.
+- Filer: `IconGrid.csproj`, `Helpers/Hardware/HardwareVendorLogoCache.cs`, `Helpers/Hardware/HardwareOverviewCache.cs`, `App.xaml.cs`, `Views/Settings/SettingsWindow.xaml.cs`, `Views/Settings/Pages/HardwarePage.xaml(.cs)`, `deploy-test.cmd`, `PROJECT_STRUCTURE.md`.
+
 MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - power.limit 125 W (kortets minimum), draw 79-81 W, 83-84 °C, SM 1290-1455 MHz, mem 7000 MHz (fuld), fan 75 %.
 - `clocks_event_reasons.active = 0x20` (SW Thermal Slowdown) — IKKE power cap (0x04).

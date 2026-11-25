@@ -23,6 +23,10 @@ namespace IconGrid.Views
         private readonly MainViewModel _viewModel;
         private WpfButton? _selectedNavButton;
 
+        // HardwarePage is expensive to build (large XAML tree + hardware data).
+        // Keep one instance so navigating away and back does not rebuild it.
+        private HardwarePage? _hardwarePage;
+
         public static readonly DependencyProperty IsSidebarCollapsedProperty =
             DependencyProperty.Register(nameof(IsSidebarCollapsed), typeof(bool), typeof(SettingsWindow),
                 new PropertyMetadata(false, OnIsSidebarCollapsedChanged));
@@ -209,7 +213,8 @@ namespace IconGrid.Views
 
         private void HardwareNavButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowPage(new HardwarePage(), HardwareNavButton);
+            _hardwarePage ??= new HardwarePage();
+            ShowPage(_hardwarePage, HardwareNavButton);
         }
 
         private void CleanupNavButton_Click(object sender, RoutedEventArgs e)

@@ -109,6 +109,15 @@ public partial class App : System.Windows.Application
             {
                 HardwareMonitorTaskManager.StartAgent(() => Environment.ProcessPath ?? string.Empty, WriteTrace);
             }
+            // Decode the Hardware page vendor logos once before the window is
+            // shown. The frozen bitmaps are then ready before the first visit.
+            HardwareVendorLogoCache.Preload();
+
+            // Load the hardware overview in the background as well. HardwarePage
+            // needs it to decide which vendor logos are visible, and doing it now
+            // means the first visit does not have to wait for WMI/LibreHardwareMonitor.
+            HardwareOverviewCache.Preload();
+
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
             mainWindow.Show();

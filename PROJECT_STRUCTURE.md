@@ -56,9 +56,13 @@ E:\IconGrid-GitHub\
 `System.Management`, `System.ServiceProcess.ServiceController`.
 
 **Content copied to the output/publish folder** (`IconGrid.csproj`): `Assets\WindowsShortcuts\**`,
-`Assets\Hw-logo\**`, selected `figma-icons\*.png`, `Tools\PresentMon\PresentMon-*.exe`, and the
-native FPS worker `Native\FpsAgent\bin\$(Configuration)\IconGridFpsAgent.exe`
+selected `figma-icons\*.png`, `Tools\PresentMon\PresentMon-*.exe`, and the native FPS worker
+`Native\FpsAgent\bin\$(Configuration)\IconGridFpsAgent.exe`
 (→ `Tools\FpsAgent\IconGridFpsAgent.exe`).
+
+**Embedded WPF resources** (`IconGrid.csproj`, compiled into `IconGrid.dll`): `Assets\dlb-icon.ico`
+and `Assets\Hw-logo\**`. The vendor logos must not be copied next to the EXE; they are read via
+`pack://application` and preloaded by `HardwareVendorLogoCache`.
 
 ---
 
@@ -89,14 +93,15 @@ Assets\
 ├── dlb-icon.ico                                  # Application icon (also <ApplicationIcon> + <Resource>)
 ├── git-img\                                      # Screenshots embedded in README.md
 │   ├── IconGrid-collapsed.png, IconGrid.png, Settings.png
-├── Hw-logo\                                      # Hardware vendor logos shown on the Hardware page
+├── Hw-logo\                                      # Hardware vendor logos (embedded WPF resources in IconGrid.dll)
 │   ├── AMDlogo-darktheme.png, AMDlogo-lighttheme.png
 │   ├── Asuslogo-dark-theme.png, Asuslogo-light-theme.png
 │   ├── Intel-logo.png, Nvidia-GTX-logo.png, Nvidia-RTX-logo.png
 ├── LinuxShortcuts\                               # Bundled Linux shortcut (.lnk)
 └── WindowsShortcuts\                             # Bundled Windows shortcuts shipped with the app (.lnk)
 ```
-`WindowsShortcuts\` and `Hw-logo\` are copied to the output/publish directory by `IconGrid.csproj`.
+`WindowsShortcuts\` is copied to the output/publish directory. `Hw-logo\` is embedded as WPF
+resources in `IconGrid.dll` and is therefore not deployed as loose files.
 
 ## Controls\
 
@@ -142,6 +147,8 @@ Helpers\
     ├── GameProcessClassifier.cs          # Single "is this a game?" evidence policy
     ├── GpuProcessMemory.cs               # Per-process dedicated VRAM readout
     ├── HardwareInfoProvider.cs, HardwareMonitorSnapshot.cs
+    ├── HardwareOverviewCache.cs          # Shared startup-loaded hardware overview
+    ├── HardwareVendorLogoCache.cs        # Frozen embedded vendor logos (preloaded)
     ├── HardwareMonitorAgent.cs           # Elevated worker (--monitor-agent)
     ├── HardwareMonitorTaskManager.cs     # Scheduled task lifecycle ("IconGrid Monitor")
     ├── HardwareSnapshotCollector.cs

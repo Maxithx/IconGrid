@@ -48,10 +48,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Content Include="Assets\Hw-logo\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <!-- Vendor logos are embedded in IconGrid.dll so the Hardware page never
+         has to open separate image files on disk. -->
+    <Resource Include="Assets\Hw-logo\**\*" />
   </ItemGroup>
 
   <ItemGroup>

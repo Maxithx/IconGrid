@@ -35,10 +35,10 @@ REM so "%SRC%\*.exe" never covered it and the deployed agent silently stayed
 REM stale (last shipped build was 2026-07-23). Copy it explicitly.
 xcopy /y /q /i "%SRC%\Tools\FpsAgent\IconGridFpsAgent.exe" "%DST%\Tools\FpsAgent\" >nul
 
-REM Static UI assets are content files loaded with pack://siteoforigin and
-REM MUST exist next to the EXE. They are assets, not user data/config, so
-REM they are safe to overwrite on every deploy. Missing Assets\Hw-logo made
-REM the hardware page fail with DirectoryNotFoundException on startup.
+REM Static UI assets that are still content files loaded with pack://siteoforigin
+REM MUST exist next to the EXE. They are assets, not user data/config, so they
+REM are safe to overwrite on every deploy. Hardware vendor logos are embedded as
+REM WPF resources in IconGrid.dll and are intentionally NOT part of this copy.
 if exist "%SRC%\Assets" xcopy /y /q /e /i "%SRC%\Assets" "%DST%\Assets" >nul
 if exist "%SRC%\figma-icons" xcopy /y /q /i "%SRC%\figma-icons\*" "%DST%\figma-icons\" >nul
 

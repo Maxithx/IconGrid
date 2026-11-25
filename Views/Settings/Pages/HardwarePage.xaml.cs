@@ -578,6 +578,16 @@ public bool IsNvidiaGtx =>
     public HardwarePage()
     {
         InitializeComponent();
+
+        // Reuse the overview from a previous visit (or the startup preload) so
+        // the vendor logos can be visible during the very first layout pass
+        // instead of waiting for WMI/LibreHardwareMonitor again.
+        if (HardwareOverviewCache.Current is { } cachedOverview)
+        {
+            _overviewLoaded = true;
+            Overview = cachedOverview;
+        }
+
         Loaded += HardwarePage_Loaded;
         Unloaded += HardwarePage_Unloaded;
         DataContextChanged += (_, _) =>
@@ -598,7 +608,11 @@ public bool IsNvidiaGtx =>
         if (!_overviewLoaded)
         {
             _overviewLoaded = true;
-            Overview = await Task.Run(HardwareInfoProvider.LoadOverview);
+            var overview = await HardwareOverviewCache.GetOrLoadAsync();
+            if (overview != null)
+            {
+                Overview = overview;
+            }
         }
 
         RefreshGpuUndervoltStatus();
