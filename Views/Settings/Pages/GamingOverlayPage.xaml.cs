@@ -54,6 +54,8 @@ namespace IconGrid.Views
         private string _fpsSetupDetailsText = string.Empty;
         private bool _canRunFpsSetupFix;
         private string _currentUserDisplayName = string.Empty;
+        private string _currentFpsSetupGroupName = string.Empty;
+        private bool _isFpsPipelineTestRunning;
         private MainViewModel? _mainViewModel;
         private string _pageTitleText = "Gaming overlay";
         private string _pageIntroText = string.Empty;
@@ -73,6 +75,8 @@ namespace IconGrid.Views
             new() { Interval = System.TimeSpan.FromSeconds(1) };
         private string _runFpsSetupFixButtonText = string.Empty;
         private string _runFpsSetupFixHelpText = string.Empty;
+        private string _testFpsPipelineButtonText = string.Empty;
+        private string _testFpsPipelineHelpText = string.Empty;
         private string _technicalDetailsTitleText = string.Empty;
         private string _technicalDetailsIntroText = string.Empty;
         private string _readyBadgeText = "Ready";
@@ -246,6 +250,18 @@ namespace IconGrid.Views
         {
             get => _runFpsSetupFixHelpText;
             private set => SetField(ref _runFpsSetupFixHelpText, value);
+        }
+
+        public string TestFpsPipelineButtonText
+        {
+            get => _testFpsPipelineButtonText;
+            private set => SetField(ref _testFpsPipelineButtonText, value);
+        }
+
+        public string TestFpsPipelineHelpText
+        {
+            get => _testFpsPipelineHelpText;
+            private set => SetField(ref _testFpsPipelineHelpText, value);
         }
 
         public string TechnicalDetailsTitleText
@@ -565,6 +581,54 @@ namespace IconGrid.Views
             RefreshFpsSetupStatus();
         }
 
+        private async void TestFpsPipelineButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_isFpsPipelineTestRunning || _mainViewModel == null)
+            {
+                return;
+            }
+
+            _isFpsPipelineTestRunning = true;
+            var viewModel = _mainViewModel;
+            var previousSimulation = viewModel.GamingOverlaySimulateTelemetry;
+            var previousShowFps = viewModel.GamingOverlayShowFps;
+            var previousShowFrameTime = viewModel.GamingOverlayShowFrameTime;
+
+            try
+            {
+                FpsSetupStatusText = "Testing ETW + overlay simulation...";
+                FpsSetupDetailsText = "Starting ETW probe...";
+
+                string probeResult;
+                try
+                {
+                    probeResult = await System.Threading.Tasks.Task.Run(() => EtwFpsProvider.RunStartupProbe());
+                }
+                catch (Exception ex)
+                {
+                    probeResult = ex.ToString();
+                }
+
+                FpsSetupDetailsText = probeResult +
+                    "\n\nShowing the gaming overlay with simulated FPS/FT for 10 seconds...";
+
+                viewModel.GamingOverlayShowFps = true;
+                viewModel.GamingOverlayShowFrameTime = true;
+                viewModel.GamingOverlaySimulateTelemetry = true;
+                viewModel.RequestShowGamingOverlay();
+
+                await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(10));
+            }
+            finally
+            {
+                viewModel.GamingOverlaySimulateTelemetry = previousSimulation;
+                viewModel.GamingOverlayShowFps = previousShowFps;
+                viewModel.GamingOverlayShowFrameTime = previousShowFrameTime;
+                _isFpsPipelineTestRunning = false;
+                RefreshFpsSetupStatus();
+            }
+        }
+
         private void GpuPowerSavingRefreshButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             RefreshGpuPowerSavingStatus();
@@ -708,7 +772,7 @@ namespace IconGrid.Views
                 return;
             }
 
-            var launched = EtwAccessRequirements.TryLaunchElevatedSetup(_currentUserDisplayName);
+            var launched = EtwAccessRequirements.TryLaunchElevatedSetup(_currentUserDisplayName, _currentFpsSetupGroupName);
             if (!launched)
             {
                 System.Windows.MessageBox.Show(
@@ -730,6 +794,7 @@ namespace IconGrid.Views
         {
             var status = EtwAccessRequirements.GetCurrentStatus();
             _currentUserDisplayName = status.UserDisplayName;
+            _currentFpsSetupGroupName = status.GroupDisplayName;
             CanRunFpsSetupFix = !status.IsReadyForEtwFps;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsFpsSetupReady)));
             FpsSetupStatusText = status.Summary;
@@ -833,6 +898,8 @@ namespace IconGrid.Views
                 RefreshFpsSetupButtonText = "Opdater FPS setup-status";
                 RunFpsSetupFixButtonText = "Kør FPS setup-fix (Admin)";
                 RunFpsSetupFixHelpText = "Kun nødvendig hvis den aktuelle bruger mangler medlemskab af Brugere af ydelseslog.";
+                TestFpsPipelineButtonText = "Test FPS-pipeline";
+                TestFpsPipelineHelpText = "Kører ETW-testen og viser derefter gaming overlayet med simulerede FPS/FT-værdier i 10 sekunder.";
                 TechnicalDetailsTitleText = "Tekniske detaljer";
                 TechnicalDetailsIntroText = "Vis den tekniske ETW-status og den foreslåede kommando.";
                 ReadyBadgeText = "Klar";
@@ -907,6 +974,8 @@ namespace IconGrid.Views
                 RefreshFpsSetupButtonText = "Refresh FPS setup status";
                 RunFpsSetupFixButtonText = "Run FPS setup fix (Admin)";
                 RunFpsSetupFixHelpText = "Only needed when the current user is missing Performance Log Users membership.";
+                TestFpsPipelineButtonText = "Test FPS pipeline";
+                TestFpsPipelineHelpText = "Runs the ETW probe, then shows the gaming overlay with simulated FPS/FT values for 10 seconds.";
                 TechnicalDetailsTitleText = "Technical details";
                 TechnicalDetailsIntroText = "Show the technical ETW status and the suggested command.";
                 ReadyBadgeText = "Ready";

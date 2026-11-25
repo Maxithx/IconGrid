@@ -1125,6 +1125,8 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="12" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="12" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
                                         <Button Grid.Row="0"
@@ -1153,6 +1155,19 @@
                                                    TextWrapping="Wrap"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding RunFpsSetupFixHelpText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
+
+                                        <Button Grid.Row="4"
+                                                Grid.Column="0"
+                                                Style="{StaticResource OverlayActionButtonStyle}"
+                                                MinWidth="310"
+                                                Content="{Binding TestFpsPipelineButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
+                                                Click="TestFpsPipelineButton_Click" />
+                                        <TextBlock Grid.Row="4"
+                                                   Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Text="{Binding TestFpsPipelineHelpText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                                     </Grid>
 
                                     <Border Margin="0,12,0,0"
