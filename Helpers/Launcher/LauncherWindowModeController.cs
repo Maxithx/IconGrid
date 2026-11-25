@@ -26,6 +26,7 @@ namespace IconGrid.Helpers
         private readonly Action<bool> _setMonitorPollingEnabled;
         private bool _autoHideEnabled;
         private bool _isHidden;
+        private bool _hasPlayedEntranceAnimation;
 
         // Idle hide (no game running): manual / auto-hide modes.
         private readonly DispatcherTimer _idleProximityTimer;
@@ -101,32 +102,31 @@ namespace IconGrid.Helpers
         public bool IsGameHideActive => _isGameHideActive;
         public bool IsIdleHideActive { get; private set; }
 
+        /// <summary>
+        /// Applies the final size and position before the window is shown. This
+        /// prevents the first visible frame from being drawn at the XAML startup
+        /// size and then jumping to the saved top-right location.
+        /// </summary>
+        public void PrepareForShow()
+        {
+            ApplyFullWindowSizing();
+            PositionFullWindow();
+
+            if (_viewModel.EnableSlideUpAnimation &&
+                !_hasPlayedEntranceAnimation &&
+                _window.FindName("FullUiHost") is FrameworkElement host)
+            {
+                host.Opacity = 0;
+                host.RenderTransform = new TranslateTransform(0, 8);
+            }
+        }
+
         public void EnterFullMode()
         {
             _setMonitorPollingEnabled(true);
             ApplyFullWindowSizing();
             PositionFullWindow();
-
-            if (_viewModel.EnableSlideUpAnimation)
-            {
-                if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
-                {
-                    iconAreaGrid.Opacity = 0;
-                    if (_window.FindResource("SlideUpAnimation") is Storyboard slideUpAnimation)
-                    {
-                        var animation = slideUpAnimation.Clone();
-                        animation.Begin(iconAreaGrid);
-                    }
-                }
-            }
-            else
-            {
-                if (_window.FindName("IconAreaGrid") is FrameworkElement iconAreaGrid)
-                {
-                    iconAreaGrid.Opacity = 1;
-                    iconAreaGrid.RenderTransform = new TranslateTransform(0, 0);
-                }
-            }
+            PlayEntranceAnimation();
 
             _window.WindowState = WindowState.Normal;
             _window.ShowInTaskbar = true;
@@ -138,6 +138,52 @@ namespace IconGrid.Helpers
             }
 
             _window.Activate();
+        }
+
+        /// <summary>
+        /// Plays the startup entrance once on the whole launcher surface. The old
+        /// version animated only IconAreaGrid with a 20 px offset, which made the
+        /// icon grid visibly slide up while the top bar stayed still.
+        /// </summary>
+        private void PlayEntranceAnimation()
+        {
+            if (_window.FindName("FullUiHost") is not FrameworkElement host)
+            {
+                return;
+            }
+
+            if (!_viewModel.EnableSlideUpAnimation || _hasPlayedEntranceAnimation)
+            {
+                host.Opacity = 1;
+                host.RenderTransform = new TranslateTransform(0, 0);
+                _hasPlayedEntranceAnimation = true;
+                return;
+            }
+
+            host.Opacity = 0;
+            host.RenderTransform = new TranslateTransform(0, 8);
+
+            if (_window.FindResource("SlideUpAnimation") is Storyboard slideUpAnimation)
+            {
+                _hasPlayedEntranceAnimation = true;
+                var animation = slideUpAnimation.Clone();
+                animation.Completed += (_, _) =>
+                {
+                    host.Opacity = 1;
+                    if (host.RenderTransform is TranslateTransform transform)
+                    {
+                        transform.Y = 0;
+                    }
+                };
+                animation.Begin(host);
+            }
+            else
+            {
+                // A missing resource must never leave the launcher invisible.
+                host.Opacity = 1;
+                host.RenderTransform = new TranslateTransform(0, 0);
+                _hasPlayedEntranceAnimation = true;
+            }
         }
 
         public void ApplyFullWindowSizing()

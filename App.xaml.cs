@@ -120,6 +120,11 @@ public partial class App : System.Windows.Application
 
             var mainWindow = new MainWindow();
             MainWindow = mainWindow;
+
+            // Size and position the launcher before it is shown. Applying this
+            // after Show() made the window jump from its 66x66 XAML size to the
+            // saved top-right position on the first visible frame.
+            mainWindow.PrepareForShow();
             mainWindow.Show();
             if (IsCurrentProcessElevated())
             {

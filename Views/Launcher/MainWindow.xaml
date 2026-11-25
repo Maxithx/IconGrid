@@ -45,11 +45,15 @@
 
         <Storyboard x:Key="SlideUpAnimation">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.25" />
-            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
-                             From="20" To="0" Duration="0:0:0.35">
+                             From="0" To="1" Duration="0:0:0.28">
                 <DoubleAnimation.EasingFunction>
-                    <CubicEase EasingMode="EaseOut" />
+                    <QuadraticEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                             From="8" To="0" Duration="0:0:0.45">
+                <DoubleAnimation.EasingFunction>
+                    <QuarticEase EasingMode="EaseOut" />
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
@@ -556,6 +560,9 @@
               Margin="0"
               HorizontalAlignment="Center"
               VerticalAlignment="Top">
+            <Grid.RenderTransform>
+                <TranslateTransform Y="0" />
+            </Grid.RenderTransform>
             <Border HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 Margin="0"

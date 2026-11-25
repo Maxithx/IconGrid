@@ -2388,6 +2388,20 @@ Brugerkrav: temperaturgrænsen skal kun gælde når spilvinduet IKKE har fokus, 
 - ✅ Verifikation: ekstern `C:\IconGrid\Assets\Hw-logo` blev midlertidigt flyttet væk; appen loggede stadig `[HardwareVendorLogoCache] Vendor logos preloaded.` og `MainWindow shown` ved genstart. Mappen er slettet permanent (logoerne ligger i DLL'en).
 - **Egentlig rodårsag fundet:** logoerne blev ikke langsomt dekodet. Deres `Visibility` styres af `IsAsusMotherboard`, `IsAmdCpu`, `IsNvidiaRtx` osv., som er falske indtil `Overview` er hentet. `SettingsWindow` oprettede en ny `HardwarePage` ved hver navigation, så hvert besøg ventede ~0,5-1 s på `HardwareInfoProvider.LoadOverview` (WMI + LibreHardwareMonitor) før logoerne blev `Visible`.
 - ✅ Fix 1: ny `Helpers/Hardware/HardwareOverviewCache.cs` — deler ét overview, loader én gang i baggrunden, genbruger resultatet og undgår parallelle loads. `App.xaml.cs` starter `HardwareOverviewCache.Preload()` ved opstart.
+
+## Session findings (2026-11-25) — Launcher startup: blød landing i top-højre
+
+- Problem: når IconGrid startede i top-højre hjørne, hoppede/slidte UI'et lidt op i stedet for at lande roligt.
+- Rodårsag 1: `MainWindow` blev vist med XAML-størrelsen 66×66 og standardplacering; først i `Window_Loaded` satte `EnterFullMode()` den gemte størrelse/position. Det gav et synligt spring på første frame.
+- Rodårsag 2: `SlideUpAnimation` animerede kun `IconAreaGrid` med 20 px offset, mens topbar/tabs stod stille.
+- ✅ Fix 1: ny `MainWindow.PrepareForShow()` → `LauncherWindowModeController.PrepareForShow()` kaldes i `App.xaml.cs` FØR `mainWindow.Show()`, så vinduet er færdigplaceret i første synlige frame.
+- ✅ Fix 2: `SlideUpAnimation` er ændret til en blød fælles indtoning af `FullUiHost`: opacity 0→1 over 280 ms og kun 8 px settle over 450 ms med `QuarticEase` (i stedet for 20 px på ikongitteret alene).
+- ✅ Fix 3: entrance-animationen kører kun én gang (`_hasPlayedEntranceAnimation`), så `ActivateFromSecondInstance` ikke genstarter fade/slide.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid`; build- og deploy-DLL SHA256 matcher `B471F17772BBD452A4DE18CDE3B954A1B3F880DC91B6F93AAE7BD7C1EA8DDF20`.
+- Bruger bekræftet: "Det virker super godt".
+- Filer: `App.xaml.cs`, `Views/Launcher/MainWindow.xaml`, `Views/Launcher/MainWindow.xaml.cs`, `Helpers/Launcher/LauncherWindowModeController.cs`.
+- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
 - ✅ Fix 2: `HardwarePage` initialiserer `Overview` fra cachen i constructoren, så logoerne er synlige allerede i første layout-pass. `HardwarePage_Loaded` bruger `HardwareOverviewCache.GetOrLoadAsync()` i stedet for et nyt `Task.Run`.
 - ✅ Fix 3: `SettingsWindow` genbruger nu én `HardwarePage`-instans (`_hardwarePage ??= new HardwarePage()`), så navigation væk og tilbage ikke genopbygger den store XAML-tree.
 - Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid`. Bruger bekræftet: "nu virker det super". Trace-logging er slået fra igen via `%APPDATA%\IconGrid\trace-logging.disabled`.

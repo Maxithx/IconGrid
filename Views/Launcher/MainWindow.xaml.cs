@@ -166,6 +166,16 @@ namespace IconGrid.Views.Launcher
         }
 
         /// <summary>
+        /// Applies the saved size and position before the window is shown, so the
+        /// first visible frame is already at the final location instead of jumping
+        /// there from the small startup size.
+        /// </summary>
+        public void PrepareForShow()
+        {
+            _windowModeController?.PrepareForShow();
+        }
+
+        /// <summary>
         /// Called when a second IconGrid launch asks this (the running) instance to
         /// come to the foreground. Part of the single-instance guard: the second
         /// process exits instead of becoming a duplicate launcher/agent.
