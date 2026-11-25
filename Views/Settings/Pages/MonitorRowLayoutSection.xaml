@@ -109,16 +109,39 @@
     -->
     <StackPanel>
         <Border Style="{StaticResource StartsideSectionCardStyle}"
-                helpers:DevInspector.Metadata="Monitor row layout intro card -> Views/MonitorRowLayoutSection.xaml">
-            <StackPanel helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutSection.xaml">
-                <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
-                           Text="{Binding MonitorRowLayoutTitle}" />
-                <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
-                           Margin="0,8,0,0"
-                           Text="{Binding MonitorRowLayoutIntro}" />
-            </StackPanel>
-        </Border>
-        <StackPanel>
+                helpers:DevInspector.Metadata="Monitor row layout hero card -> Views/MonitorRowLayoutSection.xaml">
+            <Expander Style="{StaticResource MonitorRowExpanderStyle}"
+                      IsExpanded="False"
+                      helpers:DevInspector.Metadata="Monitor row layout overview expander">
+                <Expander.Header>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource TemplateCardTitleStyle}"
+                                       Text="{Binding MonitorRowLayoutTitle}" />
+                            <TextBlock Style="{StaticResource TemplateHeroBodyStyle}"
+                                       Margin="0,8,0,0"
+                                       Text="{Binding MonitorRowLayoutIntro}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="&#xE70D;"
+                                   FontFamily="Segoe Fluent Icons"
+                                   FontSize="18"
+                                   Margin="24,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <TextBlock.RenderTransform>
+                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource MonitorRowExpanderAngleConverter}}" />
+                            </TextBlock.RenderTransform>
+                        </TextBlock>
+                    </Grid>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Margin="0,16,0,0">
 
                     <!-- Element Gaps -->
                     <Border Style="{StaticResource StartsideSectionCardStyle}"
@@ -763,6 +786,9 @@
                                    Margin="0,8,0,0"
                                    Text="{Binding MonitorRowSaveAsDefaultDescription}" />
                     </StackPanel>
-        </StackPanel>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+        </Border>
     </StackPanel>
 </UserControl>
