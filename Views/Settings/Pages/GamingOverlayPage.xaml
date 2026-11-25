@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:helpers="clr-namespace:IconGrid.Helpers"
+             xmlns:controls="clr-namespace:IconGrid.Controls"
              xmlns:views="clr-namespace:IconGrid.Views"
              mc:Ignorable="d"
              Background="Transparent"
@@ -492,21 +493,7 @@
                                            TextWrapping="Wrap"
                                            FontSize="13"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                <Border Margin="0,10,0,0"
-                                        Padding="12"
-                                        HorizontalAlignment="Stretch"
-                                        MaxHeight="140"
-                                        Background="{StaticResource GamingOverlayInsetSurfaceBrush}"
-                                        BorderBrush="{StaticResource GamingOverlayInsetBorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="{StaticResource GamingOverlayControlCornerRadius}"
-                                        ClipToBounds="True"
-                                        IsHitTestVisible="False">
-                                    <!-- No Viewbox: the bar applies the same overlay scale as the
-                                         live window, so the preview is 1:1 in size. -->
-                                    <views:GamingOverlayBar IsPreview="True"
-                                                            DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                </Border>
+                                <controls:GamingOverlayPreview Margin="0,10,0,0" />
 
                                 <TextBlock Margin="0,16,0,0"
                                            Text="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"

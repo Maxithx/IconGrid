@@ -21,38 +21,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
     private double _undervoltTargetClockMhz = 1800;
 
-    private string _gpuHotspotStatusText = string.Empty;
-    private string _gpuHotspotWarningText = string.Empty;
-
-    public string GpuHotspotStatusText
-    {
-        get => _gpuHotspotStatusText;
-        private set
-        {
-            if (_gpuHotspotStatusText == value)
-            {
-                return;
-            }
-
-            _gpuHotspotStatusText = value;
-            OnPropertyChanged(nameof(GpuHotspotStatusText));
-        }
-    }
-
-    public string GpuHotspotWarningText
-    {
-        get => _gpuHotspotWarningText;
-        private set
-        {
-            if (_gpuHotspotWarningText == value)
-            {
-                return;
-            }
-
-            _gpuHotspotWarningText = value;
-            OnPropertyChanged(nameof(GpuHotspotWarningText));
-        }
-    }
     private const double CurveChartWidth = 560;
     private const double CurveChartHeight = 180;
     private const double CurveChartPadding = 10;
@@ -64,8 +32,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     private System.Windows.Media.PointCollection _stockCurvePoints = new();
     private System.Windows.Media.PointCollection _activeCurvePoints = new();
     private System.Windows.Media.PointCollection _targetCurvePoints = new();
-    private System.Windows.Media.PointCollection _hotspotTrendPoints = new();
-    private System.Windows.Media.PointCollection _gpuTempTrendPoints = new();
     private string _gpuCurveChartNoDataText = string.Empty;
     private string _gpuCurveChartActiveProfileText = string.Empty;
     private string _gpuCurveChartTargetText = string.Empty;
@@ -74,23 +40,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     private string _gpuStockBaselineText = string.Empty;
     private string _gpuUndervoltLiveVoltageText = string.Empty;
     private string _gpuUndervoltVoltageSelectionText = string.Empty;
-    private string _gpuHotspotHistoryNoDataText = string.Empty;
-    private string _gpuHotspotRecordText = string.Empty;
-
-    public string GpuHotspotRecordText
-    {
-        get => _gpuHotspotRecordText;
-        private set
-        {
-            if (_gpuHotspotRecordText == value)
-            {
-                return;
-            }
-
-            _gpuHotspotRecordText = value;
-            OnPropertyChanged(nameof(GpuHotspotRecordText));
-        }
-    }
     private double _undervoltMinClockMhz = 1500;
     private double _undervoltMaxClockMhz = 1950;
 
@@ -136,33 +85,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
             _gpuStockBaselineText = value;
             OnPropertyChanged(nameof(GpuStockBaselineText));
-        }
-    }
-
-    public System.Collections.ObjectModel.ObservableCollection<HotspotHistoryRow> HotspotHistoryRows { get; } = new();
-
-    public sealed record HotspotHistoryRow(
-        string TimeText,
-        string HotspotText,
-        string GpuText,
-        string GpuClockText,
-        string MemoryClockText,
-        string VramText,
-        string PowerText,
-        string GameText);
-
-    public string GpuHotspotHistoryNoDataText
-    {
-        get => _gpuHotspotHistoryNoDataText;
-        private set
-        {
-            if (_gpuHotspotHistoryNoDataText == value)
-            {
-                return;
-            }
-
-            _gpuHotspotHistoryNoDataText = value;
-            OnPropertyChanged(nameof(GpuHotspotHistoryNoDataText));
         }
     }
 
@@ -317,26 +239,6 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         {
             _targetCurvePoints = value;
             OnPropertyChanged(nameof(TargetCurvePoints));
-        }
-    }
-
-    public System.Windows.Media.PointCollection HotspotTrendPoints
-    {
-        get => _hotspotTrendPoints;
-        private set
-        {
-            _hotspotTrendPoints = value;
-            OnPropertyChanged(nameof(HotspotTrendPoints));
-        }
-    }
-
-    public System.Windows.Media.PointCollection GpuTempTrendPoints
-    {
-        get => _gpuTempTrendPoints;
-        private set
-        {
-            _gpuTempTrendPoints = value;
-            OnPropertyChanged(nameof(GpuTempTrendPoints));
         }
     }
 
@@ -626,109 +528,6 @@ public bool IsNvidiaGtx =>
         _gpuUndervoltTimer.Stop();
     }
 
-    private void RefreshHotspotTrend(HardwareMonitorSnapshot? snapshot)
-    {
-        var trend = snapshot?.HotspotTrend;
-        if (trend == null || trend.Count < 2)
-        {
-            HotspotTrendPoints = new System.Windows.Media.PointCollection();
-            GpuTempTrendPoints = new System.Windows.Media.PointCollection();
-            return;
-        }
-
-        const double width = 560;
-        const double height = 120;
-        const double padding = 8;
-        const double maxTemp = 110;
-
-        var hotspot = new System.Windows.Media.PointCollection();
-        var edge = new System.Windows.Media.PointCollection();
-        var step = (width - (2 * padding)) / (trend.Count - 1);
-
-        for (var index = 0; index < trend.Count; index++)
-        {
-            var x = padding + (index * step);
-            var hotspotY = height - padding - (System.Math.Clamp(trend[index].HotspotC, 0, maxTemp) / maxTemp) * (height - (2 * padding));
-            var edgeY = height - padding - (System.Math.Clamp(trend[index].EdgeC, 0, maxTemp) / maxTemp) * (height - (2 * padding));
-            hotspot.Add(new System.Windows.Point(x, hotspotY));
-            edge.Add(new System.Windows.Point(x, edgeY));
-        }
-
-        HotspotTrendPoints = hotspot;
-        GpuTempTrendPoints = edge;
-    }
-
-    private static string FormatHotspotHistoryEntry(
-        IconGrid.ViewModels.MainViewModel viewModel,
-        HotspotHistoryEntry entry)
-        => string.Format(
-            viewModel.GpuHotspotHistoryFormat,
-            entry.HotspotC,
-            entry.EdgeC,
-            entry.DeltaC,
-            entry.CapturedAtUtc.ToLocalTime(),
-            string.IsNullOrWhiteSpace(entry.GameName)
-                ? viewModel.GpuHotspotHistoryNoGame
-                : entry.GameName);
-
-    private void HotspotAlertTestButton_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-        // Runs an 8-second visual demo on the live overlay and in the preview above.
-        // It never changes the user's real hotspot alarm settings.
-        ResolveViewModel()?.StartGamingOverlayHotspotAlertDemo();
-    }
-
-    private async void ClearHotspotHistory_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-        try
-        {
-            var viewModel = ResolveViewModel();
-            if (viewModel == null)
-            {
-                return;
-            }
-
-            var owner = System.Windows.Window.GetWindow(this);
-            var result = owner != null
-                ? System.Windows.MessageBox.Show(
-                    owner,
-                    viewModel.GpuHotspotHistoryClearConfirmFormat,
-                    viewModel.GpuHotspotHistoryClearConfirmTitle,
-                    System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Question,
-                    System.Windows.MessageBoxResult.No)
-                : System.Windows.MessageBox.Show(
-                    viewModel.GpuHotspotHistoryClearConfirmFormat,
-                    viewModel.GpuHotspotHistoryClearConfirmTitle,
-                    System.Windows.MessageBoxButton.YesNo,
-                    System.Windows.MessageBoxImage.Question,
-                    System.Windows.MessageBoxResult.No);
-
-            if (result != System.Windows.MessageBoxResult.Yes)
-            {
-                return;
-            }
-
-            var requestPath = System.IO.Path.Combine(
-                new ConfigManager().BaseDirectory,
-                "hotspot-history-clear.request");
-            System.IO.File.WriteAllText(requestPath, "clear");
-
-            HotspotHistoryRows.Clear();
-            GpuHotspotHistoryNoDataText = viewModel.GpuHotspotHistoryNoData;
-
-            await System.Threading.Tasks.Task.Delay(1500);
-            if (IsLoaded)
-            {
-                RefreshGpuUndervoltStatus();
-            }
-        }
-        catch (Exception ex)
-        {
-            GpuHotspotStatusText = ex.Message;
-        }
-    }
-
     /// <summary>
     /// Shows the GPU hot spot (the sensor the driver actually throttles on) and, when
     /// the opt-in alarm is enabled, a friendly warning that points at cooler contact.
@@ -740,139 +539,23 @@ public bool IsNvidiaGtx =>
             var path = System.IO.Path.Combine(new ConfigManager().BaseDirectory, "monitor-state.json");
             if (!System.IO.File.Exists(path))
             {
-                GpuHotspotStatusText = viewModel.GpuHotspotNoData;
-                GpuHotspotWarningText = string.Empty;
+                FindHotspotSection()?.ShowNoData(viewModel);
                 GpuUndervoltLiveVoltageText = viewModel.GpuUndervoltLiveVoltageNoData;
-                HotspotHistoryRows.Clear();
-                GpuHotspotHistoryNoDataText = viewModel.GpuHotspotHistoryNoData;
-                GpuHotspotRecordText = viewModel.GpuHotspotRecordNoData;
                 return;
             }
 
             var snapshot = JsonConvert.DeserializeObject<HardwareMonitorSnapshot>(
                 System.IO.File.ReadAllText(path));
 
-            var entries = snapshot?.HotspotHistory ?? new System.Collections.Generic.List<HotspotHistoryEntry>();
-
-            if (entries.Count > 0)
-            {
-                GpuHotspotRecordText = FormatHotspotHistoryEntry(viewModel, entries[0]);
-            }
-            else
-            {
-                GpuHotspotRecordText = viewModel.GpuHotspotRecordNoData;
-            }
-
-            var history = entries
-                .Select(entry => new HotspotHistoryRow(
-                    entry.CapturedAtUtc.ToLocalTime().ToString("dd-MM HH:mm"),
-                    $"{entry.HotspotC:F0} °C",
-                    $"{entry.EdgeC:F0} °C",
-                    entry.GpuClock ?? "—",
-                    entry.GpuMemoryClock ?? "—",
-                    entry.GpuMemoryUsage ?? "—",
-                    entry.GpuPower ?? "—",
-                    string.IsNullOrWhiteSpace(entry.GameName)
-                        ? viewModel.GpuHotspotHistoryNoGame
-                        : entry.GameName))
-                .ToList();
-
-            if (!HotspotHistoryRows.SequenceEqual(history))
-            {
-                HotspotHistoryRows.Clear();
-                foreach (var row in history)
-                {
-                    HotspotHistoryRows.Add(row);
-                }
-            }
-
-            GpuHotspotHistoryNoDataText = entries.Count == 0
-                ? viewModel.GpuHotspotHistoryNoData
-                : string.Empty;
-
-            RefreshHotspotTrend(snapshot);
-
+            FindHotspotSection()?.Update(viewModel, snapshot);
             GpuUndervoltLiveVoltageText = !string.IsNullOrWhiteSpace(snapshot?.GpuVoltage)
                 ? string.Format(viewModel.GpuUndervoltLiveVoltageFormat, snapshot!.GpuVoltage)
                 : viewModel.GpuUndervoltLiveVoltageNoData;
-
-            if (snapshot?.GpuHotspot == null)
-            {
-                GpuHotspotStatusText = viewModel.GpuHotspotNoData;
-                GpuHotspotWarningText = string.Empty;
-                return;
-            }
-
-            var delta = snapshot.GpuHotspotDeltaC ?? 0;
-            GpuHotspotStatusText = string.Format(
-                viewModel.GpuHotspotStatusFormat,
-                snapshot.GpuHotspot,
-                snapshot.GpuTemp ?? "–",
-                delta.ToString("F1"));
-
-            var hotspot = ParseTemperature(snapshot.GpuHotspot);
-            var topEntry = snapshot.HotspotHistory?.FirstOrDefault();
-            var peakHotspot = topEntry?.HotspotC;
-            var currentOverLimit =
-                hotspot.HasValue && hotspot.Value >= viewModel.GpuHotspotAlarmThresholdC;
-            var peakOverLimit = peakHotspot.HasValue &&
-                                peakHotspot.Value >= viewModel.GpuHotspotAlarmThresholdC;
-            var deltaOverLimit = delta >= 15;
-
-            if (viewModel.GpuHotspotAlarmEnabled && (currentOverLimit || deltaOverLimit))
-            {
-                GpuHotspotWarningText = string.Format(
-                    viewModel.GpuHotspotWarning,
-                    snapshot.GpuHotspot,
-                    delta.ToString("F1"));
-            }
-            else if (viewModel.GpuHotspotAlarmEnabled && peakOverLimit)
-            {
-                GpuHotspotWarningText = string.Format(
-                    viewModel.GpuHotspotPeakWarning,
-                    topEntry!.HotspotC,
-                    topEntry.EdgeC,
-                    topEntry.DeltaC,
-                    topEntry.CapturedAtUtc.ToLocalTime(),
-                    string.IsNullOrWhiteSpace(topEntry.GameName)
-                        ? viewModel.GpuHotspotHistoryNoGame
-                        : topEntry.GameName,
-                    viewModel.GpuHotspotAlarmThresholdC);
-            }
-            else
-            {
-                GpuHotspotWarningText = string.Empty;
-            }
         }
         catch
         {
             // The hot spot line is informational; never break the page over it.
         }
-    }
-
-    private static double? ParseTemperature(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        var builder = new System.Text.StringBuilder(text.Length);
-        foreach (var character in text)
-        {
-            if (char.IsDigit(character) || character == '.' || character == ',')
-            {
-                builder.Append(character == ',' ? '.' : character);
-            }
-        }
-
-        return double.TryParse(
-            builder.ToString(),
-            System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out var value)
-            ? value
-            : null;
     }
 
     private bool ConfirmProfileOverwrite(int profileNumber)
@@ -1843,6 +1526,31 @@ public bool IsNvidiaGtx =>
     /// the first load/navigation it can briefly be null. The settings window
     /// always has the view model, so fall back to its DataContext.
     /// </summary>
+    private HardwareHotspotSection? FindHotspotSection()
+        => FindVisualChild<HardwareHotspotSection>(this);
+
+    private static T? FindVisualChild<T>(System.Windows.DependencyObject parent)
+        where T : System.Windows.DependencyObject
+    {
+        var childCount = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (var index = 0; index < childCount; index++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, index);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            var nested = FindVisualChild<T>(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
     private IconGrid.ViewModels.MainViewModel? ResolveViewModel()
         => DataContext as IconGrid.ViewModels.MainViewModel
            ?? System.Windows.Window.GetWindow(this)?.DataContext as IconGrid.ViewModels.MainViewModel;
