@@ -7,7 +7,15 @@
              xmlns:views="clr-namespace:IconGrid.Views"
              mc:Ignorable="d"
              Background="Transparent">
-    <views:TemplatePage Margin="12">
+    <ScrollViewer Margin="12"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly">
+        <ScrollViewer.Resources>
+            <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
+        </ScrollViewer.Resources>
+        <views:TemplatePage Margin="0,0,8,0">
         <views:TemplatePage.HeroContent>
             <StackPanel helpers:DevInspector.Metadata="Hjælp hero card → Views/HjaelpPage.xaml">
                 <TextBlock Text="{Binding HelpTitleText}"
@@ -20,30 +28,73 @@
         <views:TemplatePage.CardsContent>
             <StackPanel>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="Drag &amp; drop info card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="{Binding HelpDragDropText}"
-                               Style="{StaticResource TemplateHeroBodyStyle}"
-                               LineHeight="20" />
+                        helpers:DevInspector.Metadata="Shortcuts and tabs help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpShortcutsTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpDragDropText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="Sensor info card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="{Binding HelpSensorsText}"
-                               Style="{StaticResource TemplateHeroBodyStyle}"
-                               LineHeight="20" />
+                        helpers:DevInspector.Metadata="Launcher help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpLauncherTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpLauncherText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="Top bar info card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="{Binding HelpTopBarText}"
-                               Style="{StaticResource TemplateHeroBodyStyle}"
-                               LineHeight="20" />
+                        helpers:DevInspector.Metadata="Layout help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpLayoutsTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpLayoutsText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        helpers:DevInspector.Metadata="More tips card → Views/HjaelpPage.xaml">
-                    <TextBlock Text="{Binding HelpMoreTipsText}"
-                               Style="{StaticResource TemplateHeroBodyStyle}"
-                               LineHeight="20" />
+                        helpers:DevInspector.Metadata="Monitor and overlay help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpMonitorTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpTopBarText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Hardware and GPU help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpHardwareTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpSensorsText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StartsideSectionCardStyle}"
+                        helpers:DevInspector.Metadata="Troubleshooting help card → Views/HjaelpPage.xaml">
+                    <StackPanel>
+                        <TextBlock Text="{Binding HelpTroubleshootingTitle}"
+                                   Style="{StaticResource TemplateCardTitleStyle}" />
+                        <TextBlock Text="{Binding HelpMoreTipsText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource TemplateHeroBodyStyle}"
+                                   LineHeight="20" />
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </views:TemplatePage.CardsContent>
-    </views:TemplatePage>
+        </views:TemplatePage>
+    </ScrollViewer>
 </UserControl>

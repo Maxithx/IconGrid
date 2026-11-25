@@ -3271,3 +3271,12 @@ VERIFICERET: build 0/0, deployet 08:05:16. Request-filen blev processeret og his
 - Listen opdateres kun når historikken ændrer sig (ingen UI-flicker hvert sekund).
 
 VERIFICERET: build 0/0, deployet 07:57:01. `hotspot-history.json` og `hotspotHistory` i monitor-state virker (første post 84 °C / edge 70 °C).
+
+## Session findings (2026-11-25) — Help page: praktiske tips
+
+- `HjaelpPage.xaml` er opdelt i seks kort med titler: genveje/faner, launcher/skærmplads, layouts, monitor/gaming overlay, hardware/GPU og fejlfinding.
+- Tipsene dækker bl.a. drag & drop, højreklik-menuen, faneombrydning, collapse/auto-hide, layout-presets, ping-target, Fullscreen Windowed, monitor-agenten, FPS-agent-reset og trace-log-oprydning.
+- Nye lokaliseringsnøgler (en+da): `HelpShortcutsTitle`, `HelpLauncherTitle`, `HelpLayoutsTitle`, `HelpMonitorTitle`, `HelpHardwareTitle`, `HelpTroubleshootingTitle`, `HelpLauncher`, `HelpLayouts`. Eksisterende `HelpDragDrop`, `HelpSensors`, `HelpTopBar` og `HelpMoreTips` er udvidet med punktform.
+- ✅ Help-siden har nu samme scrollbar som de øvrige settings-sider: `ScrollViewer` med `SettingsPageScrollBarStyle`, `VerticalScrollBarVisibility="Auto"`, `HorizontalScrollBarVisibility="Disabled"`, `CanContentScroll="False"` og `PanningMode="VerticalOnly"`.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid`; build/deploy-DLL SHA256 matcher `D65D2D3CEAEE7CB836CC526EFDADE1E6F8B310C998C1C2B79C0055B2EF6A852A`.
+- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
