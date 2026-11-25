@@ -258,8 +258,7 @@
                         </Grid>
                     </Border>
 
-                    <StackPanel Margin="0,12,0,0"
-                                helpers:DevInspector.Metadata="Monitor row section -> Views/MonitorRowLayoutSection.xaml">
+                    <StackPanel helpers:DevInspector.Metadata="Monitor row section -> Views/MonitorRowLayoutSection.xaml">
                         <views:MonitorRowLayoutSection />
                     </StackPanel>
                 </StackPanel>

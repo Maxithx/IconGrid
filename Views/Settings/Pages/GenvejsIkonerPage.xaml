@@ -94,7 +94,6 @@
 
                 <!-- Grid view (vertical) -->
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        Margin="0,12,0,0"
                         helpers:DevInspector.Metadata="Genvejs grid view card → Views/GenvejsIkonerPage.xaml">
                     <StackPanel>
                         <TextBlock Text="{Binding ShortcutsGridTitle}"
@@ -134,7 +133,6 @@
 
                 <!-- Carousel view (horizontal) -->
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        Margin="0,12,0,0"
                         helpers:DevInspector.Metadata="Genvejs carousel view card → Views/GenvejsIkonerPage.xaml">
                     <StackPanel>
                         <TextBlock Text="{Binding ShortcutsCarouselTitle}"
@@ -169,7 +167,6 @@
 
                 <!-- Animation card -->
                 <Border Style="{StaticResource StartsideSectionCardStyle}"
-                        Margin="0,12,0,0"
                         helpers:DevInspector.Metadata="Genvejs animation card → Views/GenvejsIkonerPage.xaml">
                     <StackPanel>
                         <TextBlock Text="{Binding ShortcutsAnimationTitle}"
