@@ -10,20 +10,6 @@
                 <ResourceDictionary Source="/Views/Settings/Pages/HardwarePageResources.xaml" />
                 <ResourceDictionary Source="/Views/TemplateGuidelines.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <Style x:Key="GpuUndervoltGroupStyle" TargetType="Border">
-                <Setter Property="Margin" Value="0,12,0,0" />
-                <Setter Property="Padding" Value="16" />
-                <Setter Property="CornerRadius" Value="6" />
-                <Setter Property="Background" Value="{StaticResource StartsideCardFill}" />
-                <Setter Property="BorderBrush" Value="#3A3A3A" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                        <Setter Property="Background" Value="{StaticResource StartsideLightCardFill}" />
-                        <Setter Property="BorderBrush" Value="#D1D5DB" />
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
         </ResourceDictionary>
     </UserControl.Resources>
                         <!-- GPU undervolt (clock ceiling) card -->
@@ -78,7 +64,7 @@
                                                    FontWeight="SemiBold"
                                                    Text="{Binding DataContext.GpuUndervoltNvidiaOnlyNote, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
@@ -133,7 +119,7 @@
                                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
@@ -221,7 +207,7 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
@@ -266,7 +252,7 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
@@ -342,7 +328,7 @@
                                         </Border>
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
@@ -457,7 +443,7 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource GpuUndervoltGroupStyle}">
+                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"

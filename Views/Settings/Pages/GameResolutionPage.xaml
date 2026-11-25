@@ -25,6 +25,8 @@
     </UserControl.Resources>
     <Grid Grid.IsSharedSizeScope="True">
         <StackPanel>
+        <Border Style="{StaticResource SettingsGroupCardStyle}">
+            <StackPanel>
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -61,6 +63,8 @@
                           Style="{StaticResource ToggleSwitchStyle}"
                           IsChecked="{Binding DataContext.RestoreGameResolutionAfterExit, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
         </Grid>
+            </StackPanel>
+        </Border>
         <Border Style="{StaticResource StartsideSectionCardStyle}" Padding="16" Margin="0,20,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>

@@ -276,7 +276,9 @@
                         </Expander.Header>
                         <Expander.Content>
                             <StackPanel>
-                                <TextBlock Margin="0,16,0,0"
+                                <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                    <StackPanel>
+                                <TextBlock Margin="0,0,0,0"
                                            Text="{Binding OverlayPositionTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
@@ -299,8 +301,12 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
+                                    </StackPanel>
+                                </Border>
 
-                                <Grid Margin="0,16,0,0">
+                                <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                    <StackPanel>
+                                <Grid Margin="0,0,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
@@ -482,8 +488,12 @@
                                             Click="OverlayCustomColorButton_Click"
                                             Content="{Binding OverlayCustomColorButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                                 </StackPanel>
+                                    </StackPanel>
+                                </Border>
 
-                                <TextBlock Margin="0,20,0,0"
+                                <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                    <StackPanel>
+                                <TextBlock Margin="0,0,0,0"
                                            Text="{Binding OverlayPreviewTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
@@ -494,8 +504,12 @@
                                            FontSize="13"
                                            Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 <controls:GamingOverlayPreview Margin="0,10,0,0" />
+                                    </StackPanel>
+                                </Border>
 
-                                <TextBlock Margin="0,16,0,0"
+                                <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                    <StackPanel>
+                                <TextBlock Margin="0,0,0,0"
                                            Text="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
@@ -510,6 +524,8 @@
                                         Style="{StaticResource OverlayActionButtonStyle}"
                                         Click="ShowOverlayButton_Click"
                                         Content="{Binding ShowOverlayButtonText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Expander.Content>
                     </Expander>
@@ -541,7 +557,9 @@
                                                FontSize="13"
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
 
-                                    <Grid Margin="0,16,0,0">
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -581,7 +599,12 @@
                                                       Style="{StaticResource ToggleSwitchStyle}"
                                                       IsChecked="{Binding DataContext.GamingOverlayShowNetwork, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
                                     </Grid>
-                                    <Grid Margin="0,16,0,0">
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -683,6 +706,8 @@
                                                       Style="{StaticResource ToggleSwitchStyle}"
                                                       IsChecked="{Binding DataContext.GamingOverlayShowFrameTime, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
                                     </Grid>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>
@@ -706,7 +731,9 @@
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
-                                    <Grid Margin="0,16,0,0">
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -762,8 +789,12 @@
                                                TextWrapping="Wrap"
                                                FontSize="13"
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                    </Border>
 
-                                    <TextBlock Margin="0,16,0,0"
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <TextBlock Margin="0,0,0,0"
                                                Text="{Binding GameLauncherBehaviorTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                                FontSize="14"
                                                FontWeight="SemiBold"
@@ -781,6 +812,8 @@
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>
@@ -804,7 +837,9 @@
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
-                                    <Grid Margin="0,16,0,0">
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -824,7 +859,12 @@
                                                TextWrapping="Wrap"
                                                FontSize="13"
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                    <TextBlock Margin="0,16,0,0"
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <TextBlock Margin="0,0,0,0"
                                                Text="{Binding DataContext.GpuPowerSavingPowerTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                                                FontSize="14"
                                                FontWeight="SemiBold"
@@ -858,7 +898,12 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding DataContext.GpuPowerSavingPowerLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
                                     </Grid>
-                                    <TextBlock Margin="0,18,0,0"
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <TextBlock Margin="0,0,0,0"
                                                Text="{Binding DataContext.GpuPowerSavingClockTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                                                FontSize="14"
                                                FontWeight="SemiBold"
@@ -892,7 +937,12 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding DataContext.GpuPowerSavingClockLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
                                     </Grid>
-                                    <Grid Margin="0,18,0,0">
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -941,8 +991,12 @@
                                                TextWrapping="Wrap"
                                                FontSize="12"
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                    </Border>
 
-                                    <TextBlock Margin="0,18,0,0"
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <TextBlock Margin="0,0,0,0"
                                                Text="{Binding DataContext.GpuPowerSavingStatusTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                                                FontSize="14"
                                                FontWeight="SemiBold"
@@ -959,6 +1013,8 @@
                                             Style="{StaticResource OverlaySecondaryButtonStyle}"
                                             Click="GpuPowerSavingRefreshButton_Click"
                                             Content="{Binding DataContext.GpuPowerSavingRefreshStatus, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>
@@ -982,7 +1038,9 @@
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
-                                    <Grid Margin="0,10,0,0">
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -1001,7 +1059,12 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding GamingOverlayUiScale, StringFormat={}{0:P0}}" />
                                     </Grid>
-                                    <TextBlock Margin="0,16,0,0"
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <TextBlock Margin="0,0,0,0"
                                                Text="{Binding ResolutionDefaultsTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}"
                                                FontSize="14"
                                                FontWeight="SemiBold"
@@ -1045,6 +1108,8 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Expander.Content>
                         </Expander>
@@ -1090,7 +1155,9 @@
                             </Expander.Header>
                             <Expander.Content>
                                 <StackPanel>
-                                    <Grid Margin="0,12,0,0"
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                        <StackPanel>
+                                    <Grid Margin="0,0,0,0"
                                           Grid.IsSharedSizeScope="True">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" SharedSizeGroup="OverlayActionButtonColumn" />
@@ -1145,8 +1212,10 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding TestFpsPipelineHelpText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                                     </Grid>
+                                        </StackPanel>
+                                    </Border>
 
-                                    <Border Margin="0,12,0,0"
+                                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                                             Padding="0">
                                         <Expander Style="{StaticResource GamingOverlayExpanderStyle}"
                                                   IsExpanded="False">

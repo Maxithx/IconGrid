@@ -144,7 +144,7 @@
                     <StackPanel Margin="0,16,0,0">
 
                     <!-- Element Gaps -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row element gaps card">
                         <Expander Style="{StaticResource MonitorRowExpanderStyle}"
                                   IsExpanded="False"
@@ -445,7 +445,7 @@
                     </Border>
 
                     <!-- Dividers -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row dividers card">
                         <Expander Style="{StaticResource MonitorRowExpanderStyle}"
                                   IsExpanded="False"
@@ -568,7 +568,7 @@
                     </Border>
 
                     <!-- Bar Gaps -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row bar gaps card">
                         <Expander Style="{StaticResource MonitorRowExpanderStyle}"
                                   IsExpanded="False"
@@ -643,7 +643,7 @@
                     </Border>
 
                     <!-- Gaming overlay background height -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row overlay background card">
                         <Expander Style="{StaticResource MonitorRowExpanderStyle}"
                                   IsExpanded="False"
@@ -700,7 +700,7 @@
                     </Border>
 
                     <!-- Ping target (moved here from the former Monitor Ping sidebar page) -->
-                    <Border Style="{StaticResource StartsideSectionCardStyle}"
+                    <Border Style="{StaticResource SettingsGroupCardStyle}"
                             helpers:DevInspector.Metadata="Monitor row ping target card">
                         <Expander Style="{StaticResource MonitorRowExpanderStyle}"
                                   IsExpanded="False"

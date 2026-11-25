@@ -37,18 +37,20 @@
                                        Text="{Binding HomeMainLauncherOverviewBody}"
                                        Style="{StaticResource TemplateHeroBodyStyle}" />
 
-                            <StackPanel Margin="0,18,0,0">
-                                <TextBlock Text="{Binding HomeGamingOverlayOverviewTitle}"
-                                           Style="{StaticResource TemplateSectionTitleStyle}" />
-                                <TextBlock Margin="0,4,0,0"
-                                           Text="{Binding HomeGamingOverlayOverviewBody}"
-                                           Style="{StaticResource TemplateHeroBodyStyle}" />
-                                <Button Margin="0,12,0,0"
-                                        HorizontalAlignment="Left"
-                                        Style="{StaticResource TemplateActionButtonStyle}"
-                                        Content="{Binding HomeGamingOverlayOverviewButton}"
-                                        Click="GamingOverlayOverviewButton_Click" />
-                            </StackPanel>
+                            <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding HomeGamingOverlayOverviewTitle}"
+                                               Style="{StaticResource TemplateSectionTitleStyle}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Text="{Binding HomeGamingOverlayOverviewBody}"
+                                               Style="{StaticResource TemplateHeroBodyStyle}" />
+                                    <Button Margin="0,12,0,0"
+                                            HorizontalAlignment="Left"
+                                            Style="{StaticResource TemplateActionButtonStyle}"
+                                            Content="{Binding HomeGamingOverlayOverviewButton}"
+                                            Click="GamingOverlayOverviewButton_Click" />
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 
@@ -58,7 +60,8 @@
                             <TextBlock Text="{Binding SystemAndStartupTitle}"
                                        Style="{StaticResource TemplateCardTitleStyle}" />
 
-                            <StackPanel Margin="0,12,0,0">
+                            <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                <StackPanel>
                                 <Grid Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -110,10 +113,12 @@
                                                   Style="{StaticResource ToggleSwitchStyle}"
                                                   IsChecked="{Binding ShowDevOverlay, Mode=TwoWay}" />
                                 </Grid>
-                            </StackPanel>
+                                </StackPanel>
+                            </Border>
 
-                            <StackPanel Margin="0,18,0,0">
-                                <TextBlock Margin="0,18,0,0"
+                            <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                <StackPanel>
+                                <TextBlock Margin="0,0,0,0"
                                            Text="{Binding LauncherVisibilityTitleText, RelativeSource={RelativeSource AncestorType={x:Type views:StartsidePage}}}"
                                            Style="{StaticResource TemplateSectionTitleStyle}" />
                                 <TextBlock Margin="0,4,0,0"
@@ -180,9 +185,11 @@
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
                                 </StackPanel>
-                            </StackPanel>
+                                </StackPanel>
+                            </Border>
 
-                            <StackPanel Margin="0,18,0,0">
+                            <Border Style="{StaticResource SettingsGroupCardStyle}">
+                                <StackPanel>
                                 <TextBlock Margin="0,0,0,4"
                                            Text="{Binding UiScaleDescription}"
                                            Style="{StaticResource TemplateSectionTitleStyle}" />
@@ -207,7 +214,8 @@
                                                Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                Text="{Binding UiScale, StringFormat={}{0:P0}}" />
                                 </Grid>
-                            </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </Border>
 

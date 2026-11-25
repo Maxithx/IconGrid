@@ -29,8 +29,9 @@
                                Style="{StaticResource TemplateHeroBodyStyle}" />
                 </StackPanel>
 
-                <StackPanel Margin="0,16,0,0"
-                            helpers:DevInspector.Metadata="Genvejs view toggle group → Views/GenvejsIkonerPage.xaml">
+                <Border Style="{StaticResource SettingsGroupCardStyle}"
+                        helpers:DevInspector.Metadata="Genvejs view toggle group → Views/GenvejsIkonerPage.xaml">
+                    <StackPanel>
                     <Grid Margin="0,0,0,12"
                           helpers:DevInspector.Metadata="Carousel toggle → Views/GenvejsIkonerPage.xaml">
                         <Grid.ColumnDefinitions>
@@ -66,7 +67,8 @@
                                       VerticalAlignment="Center"
                                       Margin="12,0,0,0" />
                     </Grid>
-                </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </views:TemplatePage.HeroContent>
 
@@ -141,6 +143,8 @@
                                    Margin="0,6,0,10"
                                    Style="{StaticResource TemplateHeroBodyStyle}" />
 
+                        <Border Style="{StaticResource SettingsGroupCardStyle}">
+                            <StackPanel>
                         <TextBlock Text="{Binding ShortcutsCarouselVisibleIconsLabel}"
                                    Style="{StaticResource TemplateSectionTitleStyle}" />
                         <TextBlock Text="{Binding ShortcutsCarouselVisibleIconsDescription}"
@@ -162,6 +166,8 @@
                                        Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                        Text="{Binding CarouselVisibleIcons, StringFormat={}{0:F0}}" />
                         </Grid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 

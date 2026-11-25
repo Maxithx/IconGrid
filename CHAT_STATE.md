@@ -2412,6 +2412,32 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - `clocks_event_reasons.active = 0x20` (SW Thermal Slowdown) — IKKE power cap (0x04).
 - NVML acoustic threshold = 70 °C og driveren rapporterer `GPU Target Temperature Specification: 70 C`, men kortet lå 13-14 °C over → NVML's temp-knap er kun et akustisk mål, ikke en hård clock-grænse. Power limit kan ikke komme under 125 W. Begge gamle knapper var derfor tandløse på dette kort.
 - Vores egen pipeline er ikke årsagen: IconGrid 0,06 % GPU, IconGridFpsAgent 0,00 % GPU.
+
+## Session findings (2026-11-25) — Gaming Overlay: gruppekort
+
+- `SettingsGroupCardStyle` er nu flyttet til `Views/StartsideStyles.xaml` som fælles settings-gruppekort (samme udseende som hardware-siderne).
+- `HardwareGroupCardStyle` er fjernet fra `HardwarePageResources.xaml`; Hardware, GPU Undervolt og Hotspot bruger nu `SettingsGroupCardStyle`.
+- Gaming Overlay-siden er opdelt i gruppekort:
+  - Hero: position, gennemsigtighed/farve, preview, vis overlay.
+  - Overlay content: ur/netværk og performance-telemetri.
+  - Auto behavior: auto-vis/restore/luk og launcher-adfærd.
+  - GPU power saving: enable, power limit, clock limit, temp limit og status.
+  - Overlay scale: UI-scale og resolutionsstandarder.
+  - FPS setup: handlinger og tekniske detaljer.
+
+### Gruppekort på resterende settings-sider (2026-11-25)
+
+- `StartsidePage`: gaming-overlay-blok, system-toggles, launcher visibility og UI-scale er nu separate `SettingsGroupCardStyle`-kort.
+- `GenvejsIkonerPage`: hero-togglegruppen og carousel “synlige ikoner” er grupperet i `SettingsGroupCardStyle`.
+- `GameResolutionPage`: aktuel opløsning + restore-toggle er samlet i ét gruppekort.
+- `MonitorRowLayoutSection`: de fem indlejrede sektionskort (element gaps, dividers, bar gaps, overlay-baggrund, ping target) bruger nu `SettingsGroupCardStyle` i stedet for `StartsideSectionCardStyle`.
+- Øvrige sider (Hardware, Layout, Cleanup, Hjælp, About/Test, Skin Studio) bruger allerede kort/indlejrede kort eller er en dedikeret editor; ingen ændring nødvendig.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 23:51:25 (DLL 1.885.696 bytes).
+- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 23:40:18 (DLL 1.885.696 bytes).
+- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
 - PoE's `production_Config.ini`: `background_framerate_limit=60` → PresentMon målte 17,4 ms/frame og 14,1 ms GPU-busy pr. frame i baggrunden.
 
 IMPLEMENTERET (Helpers/Hardware):
