@@ -38,6 +38,7 @@
             <SolidColorBrush x:Key="SidebarNavigationHighlightDark" Color="#FF3E3E3E" />
             <SolidColorBrush x:Key="SidebarNavigationHighlightLight" Color="#FFE0E4E8" />
         <Style x:Key="NavButtonStyle" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground"
                     Value="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue={StaticResource SettingsTextFallbackBrush}, TargetNullValue={StaticResource SettingsTextFallbackBrush}}" />
