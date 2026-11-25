@@ -1076,13 +1076,6 @@ namespace IconGrid.Views
             _mainViewModel?.RequestShowGamingOverlay();
         }
 
-        private void HotspotAlertDemoButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Runs an 8-second visual demo on the live overlay and in the preview above.
-            // It never changes the user's real hotspot alarm settings.
-            _mainViewModel?.StartGamingOverlayHotspotAlertDemo();
-        }
-
         private void GameResolutionCardExpander_Expanded(object sender, RoutedEventArgs e)
         {
             // Refresh shortcuts and current resolution when the user opens

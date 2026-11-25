@@ -671,6 +671,13 @@ public bool IsNvidiaGtx =>
                 ? viewModel.GpuHotspotHistoryNoGame
                 : entry.GameName);
 
+    private void HotspotAlertTestButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        // Runs an 8-second visual demo on the live overlay and in the preview above.
+        // It never changes the user's real hotspot alarm settings.
+        ResolveViewModel()?.StartGamingOverlayHotspotAlertDemo();
+    }
+
     private async void ClearHotspotHistory_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         try
