@@ -1,9 +1,9 @@
 #define MyAppName "IconGrid"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.7.0-beta.5"
+  #define MyAppVersion "0.7.0-beta.6"
 #endif
 #ifndef MyAppFileVersion
-  #define MyAppFileVersion "0.7.0.5"
+  #define MyAppFileVersion "0.7.0.6"
 #endif
 #define MyAppPublisher "Maxithx"
 #define MyAppURL "https://github.com/Maxithx/IconGrid"
