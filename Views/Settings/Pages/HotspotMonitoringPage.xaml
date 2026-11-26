@@ -11,30 +11,6 @@
         <ScrollViewer.Resources>
             <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
         </ScrollViewer.Resources>
-        <views:TemplatePage Margin="0,0,8,0">
-            <views:TemplatePage.HeroContent>
-                <StackPanel>
-                    <TextBlock Text="{Binding GpuHotspotTitle}"
-                               Style="{StaticResource TemplateHeroTitleStyle}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding GpuHotspotIntro}"
-                               Style="{StaticResource TemplateHeroBodyStyle}" />
-                </StackPanel>
-            </views:TemplatePage.HeroContent>
-            <views:TemplatePage.CardsContent>
-                <StackPanel>
-                    <Border Style="{StaticResource StartsideSectionCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="{Binding GpuHotspotTitle}"
-                                       Style="{StaticResource TemplateCardTitleStyle}" />
-                            <TextBlock Margin="0,8,0,0"
-                                       Text="{Binding GpuHotspotIntro}"
-                                       Style="{StaticResource TemplateHeroBodyStyle}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </views:TemplatePage.CardsContent>
-        </views:TemplatePage>
+        <views:HardwareHotspotSection Margin="0,0,8,0" />
     </ScrollViewer>
 </UserControl>

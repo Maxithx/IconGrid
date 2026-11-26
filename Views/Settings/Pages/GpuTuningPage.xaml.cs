@@ -1,10 +1,1362 @@
-namespace IconGrid.Views
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using IconGrid.Helpers;
+using IconGrid.Helpers.Hardware;
+using IconGrid.Helpers.Settings;
+using Newtonsoft.Json;
+
+namespace IconGrid.Views;
+
+public partial class GpuTuningPage : System.Windows.Controls.UserControl, INotifyPropertyChanged
 {
-    public partial class GpuTuningPage : System.Windows.Controls.UserControl
+    private HardwareOverview _overview = new();
+    private bool _overviewLoaded;
+
+    private readonly System.Windows.Threading.DispatcherTimer _gpuUndervoltTimer =
+        new() { Interval = System.TimeSpan.FromSeconds(1) };
+
+    private string _gpuUndervoltStatusText = string.Empty;
+
+    private double _undervoltTargetClockMhz = 1800;
+
+    private const double CurveChartWidth = 560;
+    private const double CurveChartHeight = 180;
+    private const double CurveChartPadding = 10;
+    private const float CurveMinVoltageMv = 600;
+    private const float CurveMaxVoltageMv = 1700;
+    private const float CurveMinClockMhz = 300;
+    private const float CurveMaxClockMhz = 2100;
+
+    private System.Windows.Media.PointCollection _stockCurvePoints = new();
+    private System.Windows.Media.PointCollection _activeCurvePoints = new();
+    private System.Windows.Media.PointCollection _targetCurvePoints = new();
+    private string _gpuCurveChartNoDataText = string.Empty;
+    private string _gpuCurveChartActiveProfileText = string.Empty;
+    private string _gpuCurveChartTargetText = string.Empty;
+    private string _gpuCurveStockVoltageText = string.Empty;
+    private string _gpuCurveProfileVoltageText = string.Empty;
+    private string _gpuStockBaselineText = string.Empty;
+    private string _gpuUndervoltLiveVoltageText = string.Empty;
+    private string _gpuUndervoltVoltageSelectionText = string.Empty;
+    private double _undervoltMinClockMhz = 1500;
+    private double _undervoltMaxClockMhz = 1950;
+
+    public double UndervoltMinClockMhz
     {
-        public GpuTuningPage()
+        get => _undervoltMinClockMhz;
+        private set
         {
-            InitializeComponent();
+            if (System.Math.Abs(_undervoltMinClockMhz - value) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltMinClockMhz = value;
+            OnPropertyChanged(nameof(UndervoltMinClockMhz));
         }
     }
+
+    public double UndervoltMaxClockMhz
+    {
+        get => _undervoltMaxClockMhz;
+        private set
+        {
+            if (System.Math.Abs(_undervoltMaxClockMhz - value) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltMaxClockMhz = value;
+            OnPropertyChanged(nameof(UndervoltMaxClockMhz));
+        }
+    }
+
+    public string GpuStockBaselineText
+    {
+        get => _gpuStockBaselineText;
+        private set
+        {
+            if (_gpuStockBaselineText == value)
+            {
+                return;
+            }
+
+            _gpuStockBaselineText = value;
+            OnPropertyChanged(nameof(GpuStockBaselineText));
+        }
+    }
+
+    private double _undervoltTargetVoltageMv = 925;
+    private double _undervoltTargetPowerLimitPercent = 100;
+    private double _undervoltCoreOffsetMhz;
+    private double _undervoltMemoryOffsetMhz;
+    private string _gpuTuningEffectiveClockText = string.Empty;
+
+    private bool _isAfterburnerInstalled;
+    private string _afterburnerInstallPath = string.Empty;
+
+    public bool IsAfterburnerInstalled
+    {
+        get => _isAfterburnerInstalled;
+        private set
+        {
+            if (_isAfterburnerInstalled == value)
+            {
+                return;
+            }
+
+            _isAfterburnerInstalled = value;
+            OnPropertyChanged(nameof(IsAfterburnerInstalled));
+        }
+    }
+
+    public string AfterburnerInstallPath
+    {
+        get => _afterburnerInstallPath;
+        private set
+        {
+            if (_afterburnerInstallPath == value)
+            {
+                return;
+            }
+
+            _afterburnerInstallPath = value;
+            OnPropertyChanged(nameof(AfterburnerInstallPath));
+        }
+    }
+
+    private readonly System.Collections.Generic.Dictionary<int, IReadOnlyList<AfterburnerCurvePoint>> _profileCurves = new();
+    private readonly System.Collections.Generic.Dictionary<int, AfterburnerProfileInfo> _profilesByNumber = new();
+    private int _targetProfileSlot = 9;
+
+
+    public System.Collections.ObjectModel.ObservableCollection<ProfileSlotChoice> TargetProfileChoices { get; } = new();
+
+    public System.Collections.ObjectModel.ObservableCollection<ProfileSlotChoice> DeleteProfileChoices { get; } = new();
+
+    private int _deleteProfileSlot;
+
+    public int DeleteProfileSlot
+    {
+        get => _deleteProfileSlot;
+        set
+        {
+            if (_deleteProfileSlot == value)
+            {
+                return;
+            }
+
+            _deleteProfileSlot = value;
+            OnPropertyChanged(nameof(DeleteProfileSlot));
+        }
+    }
+
+    public sealed record ProfileSlotChoice(int Number, string Label);
+
+    public int TargetProfileSlot
+    {
+        get => _targetProfileSlot;
+        set
+        {
+            if (_targetProfileSlot == value)
+            {
+                return;
+            }
+
+            _targetProfileSlot = value;
+            OnPropertyChanged(nameof(TargetProfileSlot));
+        }
+    }
+
+    /// <summary>Target clock used when IconGrid generates an undervolt curve.</summary>
+    public double UndervoltTargetClockMhz
+    {
+        get => _undervoltTargetClockMhz;
+        set
+        {
+            var minClock = System.Math.Min(UndervoltMinClockMhz, UndervoltMaxClockMhz);
+            var maxClock = System.Math.Max(UndervoltMinClockMhz, UndervoltMaxClockMhz);
+            var clamped = System.Math.Clamp(value, minClock, maxClock);
+            if (System.Math.Abs(_undervoltTargetClockMhz - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltTargetClockMhz = clamped;
+            OnPropertyChanged(nameof(UndervoltTargetClockMhz));
+
+            // Keep the configured hard clock ceiling in sync while the user drags
+            // the slider, so the agent caps at the same clock the chart shows.
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltTargetClockMhz = (int)System.Math.Round(clamped);
+            }
+
+            RefreshTargetCurveLine();
+            UpdateEffectiveClockText();
+            UpdateProfileChoiceLabels();
+            RefreshCurveChart();
+        }
+    }
+
+    public System.Windows.Media.PointCollection StockCurvePoints
+    {
+        get => _stockCurvePoints;
+        private set
+        {
+            _stockCurvePoints = value;
+            OnPropertyChanged(nameof(StockCurvePoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection ActiveCurvePoints
+    {
+        get => _activeCurvePoints;
+        private set
+        {
+            _activeCurvePoints = value;
+            OnPropertyChanged(nameof(ActiveCurvePoints));
+        }
+    }
+
+    public System.Windows.Media.PointCollection TargetCurvePoints
+    {
+        get => _targetCurvePoints;
+        private set
+        {
+            _targetCurvePoints = value;
+            OnPropertyChanged(nameof(TargetCurvePoints));
+        }
+    }
+
+    public string GpuCurveChartNoDataText
+    {
+        get => _gpuCurveChartNoDataText;
+        private set
+        {
+            _gpuCurveChartNoDataText = value;
+            OnPropertyChanged(nameof(GpuCurveChartNoDataText));
+        }
+    }
+
+    public string GpuCurveChartActiveProfileText
+    {
+        get => _gpuCurveChartActiveProfileText;
+        private set
+        {
+            _gpuCurveChartActiveProfileText = value;
+            OnPropertyChanged(nameof(GpuCurveChartActiveProfileText));
+        }
+    }
+
+    public string GpuCurveChartTargetText
+    {
+        get => _gpuCurveChartTargetText;
+        private set
+        {
+            _gpuCurveChartTargetText = value;
+            OnPropertyChanged(nameof(GpuCurveChartTargetText));
+        }
+    }
+
+    public string GpuCurveStockVoltageText
+    {
+        get => _gpuCurveStockVoltageText;
+        private set
+        {
+            _gpuCurveStockVoltageText = value;
+            OnPropertyChanged(nameof(GpuCurveStockVoltageText));
+        }
+    }
+
+    public string GpuCurveProfileVoltageText
+    {
+        get => _gpuCurveProfileVoltageText;
+        private set
+        {
+            _gpuCurveProfileVoltageText = value;
+            OnPropertyChanged(nameof(GpuCurveProfileVoltageText));
+        }
+    }
+
+    public string GpuUndervoltLiveVoltageText
+    {
+        get => _gpuUndervoltLiveVoltageText;
+        private set
+        {
+            _gpuUndervoltLiveVoltageText = value;
+            OnPropertyChanged(nameof(GpuUndervoltLiveVoltageText));
+        }
+    }
+
+    public string GpuUndervoltVoltageSelectionText
+    {
+        get => _gpuUndervoltVoltageSelectionText;
+        private set
+        {
+            _gpuUndervoltVoltageSelectionText = value;
+            OnPropertyChanged(nameof(GpuUndervoltVoltageSelectionText));
+        }
+    }
+
+    /// <summary>
+    /// Voltage where the generated curve's flat segment starts. The range is kept
+    /// deliberately narrow (825-1050 mV); going lower than the silicon can handle
+    /// causes a driver reset, not a higher score.
+    /// </summary>
+    public double UndervoltTargetVoltageMv
+    {
+        get => _undervoltTargetVoltageMv;
+        set
+        {
+            var clamped = System.Math.Clamp(System.Math.Round(value / 5.0) * 5.0, 825, 1050);
+            if (System.Math.Abs(_undervoltTargetVoltageMv - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltTargetVoltageMv = clamped;
+            OnPropertyChanged(nameof(UndervoltTargetVoltageMv));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltTargetVoltageMv = (int)System.Math.Round(clamped);
+            }
+
+            RefreshCurveChart();
+        }
+    }
+
+    /// <summary>
+    /// Afterburner power limit (percent) written into the selected profile when the
+    /// curve is saved. 70-100 % keeps it inside the range the driver accepts.
+    /// </summary>
+    public double UndervoltTargetPowerLimitPercent
+    {
+        get => _undervoltTargetPowerLimitPercent;
+        set
+        {
+            var clamped = System.Math.Clamp(System.Math.Round(value), 70, 100);
+            if (System.Math.Abs(_undervoltTargetPowerLimitPercent - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltTargetPowerLimitPercent = clamped;
+            OnPropertyChanged(nameof(UndervoltTargetPowerLimitPercent));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltTargetPowerLimitPercent = (int)System.Math.Round(clamped);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Core clock offset written as Afterburner CoreClkBoost. Negative values
+    /// underclock, positive values overclock. The range is deliberately conservative
+    /// so a failed experiment cannot push the card far beyond its rated boost clock.
+    /// </summary>
+    public double UndervoltCoreOffsetMhz
+    {
+        get => _undervoltCoreOffsetMhz;
+        set
+        {
+            var clamped = System.Math.Clamp(
+                System.Math.Round(value),
+                UndervoltCoreOffsetMinMhz,
+                UndervoltCoreOffsetLimitMhz);
+            if (System.Math.Abs(_undervoltCoreOffsetMhz - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltCoreOffsetMhz = clamped;
+            OnPropertyChanged(nameof(UndervoltCoreOffsetMhz));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltCoreOffsetMhz = (int)clamped;
+            }
+
+            UpdateEffectiveClockText();
+            RefreshTargetCurveLine();
+        }
+    }
+
+    /// <summary>
+    /// Memory clock offset written as Afterburner MemClkBoost. Negative values
+    /// underclock, positive values overclock. Memory instability usually shows up
+    /// as artifacts rather than a driver reset, so the range stays conservative.
+    /// </summary>
+    public double UndervoltMemoryOffsetMhz
+    {
+        get => _undervoltMemoryOffsetMhz;
+        set
+        {
+            var clamped = System.Math.Clamp(
+                System.Math.Round(value),
+                UndervoltMemoryOffsetMinMhz,
+                UndervoltMemoryOffsetLimitMhz);
+            if (System.Math.Abs(_undervoltMemoryOffsetMhz - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltMemoryOffsetMhz = clamped;
+            OnPropertyChanged(nameof(UndervoltMemoryOffsetMhz));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltMemoryOffsetMhz = (int)clamped;
+            }
+
+            UpdateEffectiveClockText();
+        }
+    }
+
+    public string GpuTuningEffectiveClockText
+    {
+        get => _gpuTuningEffectiveClockText;
+        private set
+        {
+            if (_gpuTuningEffectiveClockText == value)
+            {
+                return;
+            }
+
+            _gpuTuningEffectiveClockText = value;
+            OnPropertyChanged(nameof(GpuTuningEffectiveClockText));
+        }
+    }
+
+    /// <summary>
+    /// Afterburner profiles offered by the two drop-downs. The first entry (number
+    /// 0) means "do not switch", so the user's own active profile is left alone.
+    /// </summary>
+    public System.Collections.ObjectModel.ObservableCollection<ProfileChoice> AfterburnerProfileChoices { get; } = new();
+
+    public sealed class ProfileChoice : System.ComponentModel.INotifyPropertyChanged
+    {
+        private string _label;
+
+        public ProfileChoice(int number, string baseLabel, string? label = null)
+        {
+            Number = number;
+            BaseLabel = baseLabel;
+            _label = label ?? baseLabel;
+        }
+
+        public int Number { get; }
+
+        public string BaseLabel { get; }
+
+        public string Label
+        {
+            get => _label;
+            set
+            {
+                if (_label == value)
+                {
+                    return;
+                }
+
+                _label = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(Label)));
+            }
+        }
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    /// <summary>
+    /// Live "measured" line for the GPU undervolt card. Reads the state file the
+    /// elevated hardware monitor agent writes, because only that process has NVML
+    /// access (the settings UI itself is not elevated).
+    /// </summary>
+    public string GpuUndervoltStatusText
+    {
+        get => _gpuUndervoltStatusText;
+        private set
+        {
+            if (_gpuUndervoltStatusText == value)
+            {
+                return;
+            }
+
+            _gpuUndervoltStatusText = value;
+            OnPropertyChanged(nameof(GpuUndervoltStatusText));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public HardwareOverview Overview
+{
+    get => _overview;
+    private set
+    {
+        _overview = value;
+        OnPropertyChanged(nameof(Overview));
+        OnPropertyChanged(nameof(IsAsusMotherboard));
+        OnPropertyChanged(nameof(IsAmdCpu));
+        OnPropertyChanged(nameof(IsIntelCpu));
+        OnPropertyChanged(nameof(CpuBadgeBackground));
+        OnPropertyChanged(nameof(GpuBadgeBackground));
+        OnPropertyChanged(nameof(IsNvidiaGpu));
+        OnPropertyChanged(nameof(IsNvidiaRtx));
+        OnPropertyChanged(nameof(IsNvidiaGtx));
+        OnPropertyChanged(nameof(IsIntelGpu));
+        OnPropertyChanged(nameof(GpuVendorDisplay));
+        OnPropertyChanged(nameof(GpuSpecSummary));
+        OnPropertyChanged(nameof(UndervoltCoreOffsetLimitMhz));
+        OnPropertyChanged(nameof(UndervoltMemoryOffsetLimitMhz));
+        OnPropertyChanged(nameof(UndervoltCoreOffsetMinMhz));
+        OnPropertyChanged(nameof(UndervoltMemoryOffsetMinMhz));
+    }
+}
+
+    public bool IsAsusMotherboard =>
+        Overview.Board.Manufacturer.Contains("ASUS", System.StringComparison.OrdinalIgnoreCase) ||
+        Overview.Board.Manufacturer.Contains("ASUSTeK", System.StringComparison.OrdinalIgnoreCase);
+
+    public bool IsAmdCpu =>
+        string.Equals(Overview.Cpu.Vendor, "AMD", System.StringComparison.OrdinalIgnoreCase);
+    public bool IsIntelCpu =>
+        Overview.Cpu.Vendor.Contains("Intel", System.StringComparison.OrdinalIgnoreCase);
+    public bool IsNvidiaGpu =>
+        Overview.Gpu.Vendor.Contains("NVIDIA", System.StringComparison.OrdinalIgnoreCase);
+
+    public bool IsIntelGpu =>
+        Overview.Gpu.Vendor.Contains("Intel", System.StringComparison.OrdinalIgnoreCase) ||
+        Overview.Gpu.Name.Contains("Intel", System.StringComparison.OrdinalIgnoreCase);
+
+public bool IsNvidiaRtx =>
+    IsNvidiaGpu && Overview.Gpu.Name.Contains("RTX", System.StringComparison.OrdinalIgnoreCase);
+
+public bool IsNvidiaGtx =>
+    IsNvidiaGpu && Overview.Gpu.Name.Contains("GTX", System.StringComparison.OrdinalIgnoreCase);
+
+    public string GpuVendorDisplay =>
+        Overview.Gpu.Name.Contains("Intel", System.StringComparison.OrdinalIgnoreCase)
+            ? "Intel"
+            : Overview.Gpu.Vendor;
+
+    public string GpuSpecSummary => Overview.Gpu.SpecSummary;
+
+    /// <summary>
+    /// Conservative offset envelope from the curated catalog. Unknown NVIDIA
+    /// models get a smaller envelope instead of the full tuning range.
+    /// </summary>
+    public double UndervoltCoreOffsetLimitMhz =>
+        Overview.Gpu.CatalogMatched && Overview.Gpu.SafeCoreOffsetMhz > 0
+            ? Overview.Gpu.SafeCoreOffsetMhz
+            : 100;
+
+    public double UndervoltMemoryOffsetLimitMhz =>
+        Overview.Gpu.CatalogMatched && Overview.Gpu.SafeMemoryOffsetMhz > 0
+            ? Overview.Gpu.SafeMemoryOffsetMhz
+            : 300;
+
+    public double UndervoltCoreOffsetMinMhz => -UndervoltCoreOffsetLimitMhz;
+
+    public double UndervoltMemoryOffsetMinMhz => -UndervoltMemoryOffsetLimitMhz;
+
+    public System.Windows.Media.Brush CpuBadgeBackground => CreateVendorBrush(Overview.Cpu.Vendor);
+    public System.Windows.Media.Brush GpuBadgeBackground => CreateVendorBrush(Overview.Gpu.Vendor);
+
+    public GpuTuningPage()
+    {
+        InitializeComponent();
+
+        // Reuse the overview from a previous visit (or the startup preload) so
+        // the vendor logos can be visible during the very first layout pass
+        // instead of waiting for WMI/LibreHardwareMonitor again.
+        if (HardwareOverviewCache.Current is { } cachedOverview)
+        {
+            _overviewLoaded = true;
+            Overview = cachedOverview;
+        }
+
+        Loaded += HardwarePage_Loaded;
+        Unloaded += HardwarePage_Unloaded;
+        DataContextChanged += (_, _) =>
+        {
+            RefreshAfterburnerProfiles();
+            RefreshCurveChart();
+        };
+        _gpuUndervoltTimer.Tick += (_, _) => RefreshGpuUndervoltStatus();
+        _gpuUndervoltTimer.Tick += (_, _) => RefreshCurveChart();
+    }
+
+    private async void HardwarePage_Loaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        // Keep this handler subscribed: the settings window reuses the page when
+        // the user navigates away and back. Unsubscribing here meant the profile
+        // drop-downs were never refreshed on the second visit (they appeared empty
+        // after a trip into the game).
+        if (!_overviewLoaded)
+        {
+            _overviewLoaded = true;
+            var overview = await HardwareOverviewCache.GetOrLoadAsync();
+            if (overview != null)
+            {
+                Overview = overview;
+            }
+        }
+
+        RefreshGpuUndervoltStatus();
+        RefreshAfterburnerProfiles();
+        RefreshCurveChart();
+        _gpuUndervoltTimer.Start();
+    }
+
+    private void HardwarePage_Unloaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        _gpuUndervoltTimer.Stop();
+    }
+
+    /// <summary>
+    /// Shows the GPU hot spot (the sensor the driver actually throttles on) and, when
+    /// the opt-in alarm is enabled, a friendly warning that points at cooler contact.
+    /// </summary>
+    private void RefreshHotspot(IconGrid.ViewModels.MainViewModel viewModel)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(new ConfigManager().BaseDirectory, "monitor-state.json");
+            if (!System.IO.File.Exists(path))
+            {
+                FindHotspotSection()?.ShowNoData(viewModel);
+                GpuUndervoltLiveVoltageText = viewModel.GpuUndervoltLiveVoltageNoData;
+                return;
+            }
+
+            var snapshot = JsonConvert.DeserializeObject<HardwareMonitorSnapshot>(
+                System.IO.File.ReadAllText(path));
+
+            FindHotspotSection()?.Update(viewModel, snapshot);
+            GpuUndervoltLiveVoltageText = !string.IsNullOrWhiteSpace(snapshot?.GpuVoltage)
+                ? string.Format(viewModel.GpuUndervoltLiveVoltageFormat, snapshot!.GpuVoltage)
+                : viewModel.GpuUndervoltLiveVoltageNoData;
+        }
+        catch
+        {
+            // The hot spot line is informational; never break the page over it.
+        }
+    }
+
+    private bool ConfirmProfileOverwrite(int profileNumber, bool isActiveProfile = false)
+    {
+        if (!_profilesByNumber.TryGetValue(profileNumber, out var existing) || existing.IsEmpty)
+        {
+            return true;
+        }
+
+        var viewModel = ResolveViewModel();
+        var detail = viewModel?.GpuUndervoltOverwriteExisting ?? "an existing profile";
+        if (_profileCurves.TryGetValue(profileNumber, out var curve) && curve.Count > 0)
+        {
+            var maxClock = (int)System.Math.Round(curve.Max(point => point.ClockMhz));
+            var voltageMv = FindCurveVoltageAtClock(curve, maxClock, preferLowest: true);
+            if (voltageMv.HasValue)
+            {
+                detail = $"{maxClock} MHz @ {FormatCurveVoltage(voltageMv.Value)}";
+            }
+        }
+
+        var message = isActiveProfile
+            ? string.Format(
+                viewModel?.GpuTuningActiveOverwriteWarningFormat ??
+                "Profile {0} is your active game profile ({1}). Applying tuning will overwrite it permanently. Continue?",
+                profileNumber,
+                detail)
+            : string.Format(
+                viewModel?.GpuUndervoltOverwriteWarningFormat ??
+                "Profile {0} already contains {1}. It will be overwritten. Continue?",
+                profileNumber,
+                detail);
+
+        var title = isActiveProfile
+            ? viewModel?.GpuTuningActiveOverwriteWarningTitle ?? "Overwrite active profile?"
+            : viewModel?.GpuUndervoltOverwriteWarningTitle ?? "Overwrite profile?";
+        var owner = System.Windows.Window.GetWindow(this);
+        var result = owner != null
+            ? System.Windows.MessageBox.Show(
+                owner,
+                message,
+                title,
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning,
+                System.Windows.MessageBoxResult.No)
+            : System.Windows.MessageBox.Show(
+                message,
+                title,
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning,
+                System.Windows.MessageBoxResult.No);
+
+        return result == System.Windows.MessageBoxResult.Yes;
+    }
+
+    /// <summary>
+    /// The global Apply tuning button updates the currently active game profile,
+    /// so slider changes can be applied without first using a row's Save/Overwrite
+    /// button. When no profile is active it falls back to the IconGrid-reserved
+    /// profile 9. The per-row buttons remain the way to write a specific slot.
+    /// </summary>
+    private async void GpuTuningApply_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var activeProfile = ResolveViewModel()?.GpuUndervoltGameProfile ?? 0;
+        var isActiveProfile = activeProfile is >= 1 and <= 9;
+        TargetProfileSlot = isActiveProfile ? activeProfile : 9;
+        await GenerateCurveAsync(isActiveProfile);
+    }
+
+    private async void GpuUndervoltGenerateCurve_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        await GenerateCurveAsync(applyToActiveProfile: false);
+    }
+
+    private async System.Threading.Tasks.Task GenerateCurveAsync(bool applyToActiveProfile)
+    {
+        try
+        {
+            var targetClock = (int)System.Math.Round(UndervoltTargetClockMhz);
+            var generatedProfile = TargetProfileSlot is >= 1 and <= 9 ? TargetProfileSlot : 9;
+
+            if (!ConfirmProfileOverwrite(generatedProfile, applyToActiveProfile))
+            {
+                return;
+            }
+
+            var requestPath = System.IO.Path.Combine(
+                new ConfigManager().BaseDirectory,
+                "gpu-undervolt-request.json");
+
+            var targetVoltage = (int)System.Math.Round(UndervoltTargetVoltageMv);
+            var targetPowerLimit = (int)System.Math.Round(UndervoltTargetPowerLimitPercent);
+
+            var coreOffset = (int)System.Math.Round(UndervoltCoreOffsetMhz);
+            var memoryOffset = (int)System.Math.Round(UndervoltMemoryOffsetMhz);
+
+            var payload = JsonConvert.SerializeObject(new
+            {
+                targetClockMhz = targetClock,
+                voltageMv = targetVoltage,
+                powerLimitPercent = targetPowerLimit,
+                coreOffsetMhz = coreOffset,
+                memoryOffsetMhz = memoryOffset,
+                profile = generatedProfile
+            });
+
+            System.IO.File.WriteAllText(requestPath, payload);
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltGameProfile = generatedProfile;
+                viewModel.GpuUndervoltTargetClockMhz = targetClock;
+                viewModel.GpuUndervoltTargetVoltageMv = targetVoltage;
+                viewModel.GpuUndervoltTargetPowerLimitPercent = targetPowerLimit;
+                viewModel.GpuUndervoltCoreOffsetMhz = coreOffset;
+                viewModel.GpuUndervoltMemoryOffsetMhz = memoryOffset;
+                viewModel.GpuUndervoltEnabled = true;
+                GpuUndervoltStatusText = viewModel.GpuUndervoltCurveRequested;
+            }
+
+            // The elevated agent writes and applies the selected profile
+            // asynchronously. Do not rebuild the profile lists before that file
+            // write has completed: that used to leave the ComboBoxes blank.
+            await System.Threading.Tasks.Task.Delay(3000);
+            if (!IsLoaded)
+            {
+                return;
+            }
+
+            RefreshAfterburnerProfiles();
+            RefreshGpuUndervoltStatus();
+            RefreshCurveChart();
+
+            // One retry in case Afterburner/agent held the profile file a little
+            // longer than the first delay.
+            if (AfterburnerProfileChoices.All(choice => choice.Number != generatedProfile))
+            {
+                await System.Threading.Tasks.Task.Delay(3000);
+                if (IsLoaded)
+                {
+                    RefreshAfterburnerProfiles();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            GpuUndervoltStatusText = ex.Message;
+        }
+    }
+
+    private async void GpuUndervoltDeleteProfile_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        try
+        {
+            var slot = DeleteProfileSlot;
+            var viewModel = ResolveViewModel();
+
+            if (slot <= 0 ||
+                !_profilesByNumber.TryGetValue(slot, out var existing) ||
+                existing.IsEmpty)
+            {
+                if (viewModel != null)
+                {
+                    GpuUndervoltStatusText = viewModel.GpuUndervoltDeleteNoProfile;
+                }
+
+                return;
+            }
+
+            var detail = viewModel?.GpuUndervoltOverwriteExisting ?? "an existing profile";
+            if (_profileCurves.TryGetValue(slot, out var curve) && curve.Count > 0)
+            {
+                var maxClock = (int)System.Math.Round(curve.Max(point => point.ClockMhz));
+                var voltageMv = FindCurveVoltageAtClock(curve, maxClock, preferLowest: true);
+                if (voltageMv.HasValue)
+                {
+                    detail = $"{maxClock} MHz @ {FormatCurveVoltage(voltageMv.Value)}";
+                }
+            }
+
+            var message = string.Format(
+                viewModel?.GpuUndervoltDeleteWarningFormat ??
+                "Profile {0} ({1}) will be deleted permanently. Continue?",
+                slot,
+                detail);
+            var title = viewModel?.GpuUndervoltDeleteWarningTitle ?? "Delete profile?";
+            var owner = System.Windows.Window.GetWindow(this);
+            var result = owner != null
+                ? System.Windows.MessageBox.Show(
+                    owner,
+                    message,
+                    title,
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning,
+                    System.Windows.MessageBoxResult.No)
+                : System.Windows.MessageBox.Show(
+                    message,
+                    title,
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning,
+                    System.Windows.MessageBoxResult.No);
+
+            if (result != System.Windows.MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var requestPath = System.IO.Path.Combine(
+                new ConfigManager().BaseDirectory,
+                "gpu-undervolt-request.json");
+
+            System.IO.File.WriteAllText(
+                requestPath,
+                JsonConvert.SerializeObject(new { action = "delete", profile = slot }));
+
+            if (viewModel != null)
+            {
+                if (viewModel.GpuUndervoltGameProfile == slot)
+                {
+                    viewModel.GpuUndervoltGameProfile = 0;
+                }
+
+                if (viewModel.GpuUndervoltIdleProfile == slot)
+                {
+                    viewModel.GpuUndervoltIdleProfile = 0;
+                }
+
+                GpuUndervoltStatusText = viewModel.GpuUndervoltDeleteRequested;
+            }
+
+            await System.Threading.Tasks.Task.Delay(3000);
+            if (!IsLoaded)
+            {
+                return;
+            }
+
+            RefreshAfterburnerProfiles();
+            RefreshGpuUndervoltStatus();
+            RefreshCurveChart();
+        }
+        catch (Exception ex)
+        {
+            GpuUndervoltStatusText = ex.Message;
+        }
+    }
+
+    private void GpuUndervoltRefreshButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        RefreshAfterburnerProfiles();
+        RefreshGpuUndervoltStatus();
+        RefreshCurveChart();
+    }
+
+
+    private void GpuUndervoltProfile_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        => RefreshCurveChart();
+
+    /// <summary>
+    /// Reads the Afterburner profiles so the drop-downs can list them. Reading the
+    /// profile file needs no elevation; applying a profile does, which is why the
+    /// elevated agent performs the actual switch.
+    /// </summary>
+    private void RefreshAfterburnerProfiles()
+    {
+        var viewModel = ResolveViewModel();
+        var noProfileLabel = viewModel?.GpuUndervoltNoProfile ?? "—";
+
+        // Remember the user's choices: clearing ItemsSource makes WPF write the
+        // current selection back through the two-way bindings before the new list
+        // has been populated.
+        var selectedGame = viewModel?.GpuUndervoltGameProfile ?? 0;
+        var selectedIdle = viewModel?.GpuUndervoltIdleProfile ?? 0;
+
+        var choices = new System.Collections.Generic.List<ProfileChoice>
+        {
+            new(0, noProfileLabel)
+        };
+
+        var controller = new AfterburnerProfileController();
+        IsAfterburnerInstalled = controller.IsAvailable;
+        AfterburnerInstallPath = controller.InstallPath ?? string.Empty;
+
+        // Existing installations created the curve before the clock ceiling was
+        // stored in the config. Profile 9 is reserved for IconGrid curves, so its
+        // highest clock is the target the agent should lock to.
+        if (viewModel != null &&
+            selectedGame == 9 &&
+            viewModel.GpuUndervoltTargetClockMhz <= 0)
+        {
+            var generatedCurve = controller.ReadCurve(9);
+            if (generatedCurve.Count > 0)
+            {
+                viewModel.GpuUndervoltTargetClockMhz =
+                    (int)System.Math.Round(generatedCurve.Max(point => point.ClockMhz));
+            }
+        }
+
+        if (viewModel != null && viewModel.GpuUndervoltTargetClockMhz > 0)
+        {
+            UndervoltTargetClockMhz = viewModel.GpuUndervoltTargetClockMhz;
+        }
+
+        var targetClock = (int)System.Math.Round(UndervoltTargetClockMhz);
+        _profileCurves.Clear();
+        _profilesByNumber.Clear();
+
+        try
+        {
+            var profiles = controller.ReadProfiles();
+            foreach (var profile in profiles)
+            {
+                _profilesByNumber[profile.Number] = profile;
+                if (profile.IsEmpty)
+                {
+                    continue;
+                }
+
+                var curve = controller.ReadCurve(profile.Number);
+                _profileCurves[profile.Number] = curve;
+                choices.Add(new ProfileChoice(
+                    profile.Number,
+                    profile.DisplayName,
+                    BuildProfileLabel(profile.DisplayName, profile.Number, targetClock)));
+            }
+        }
+        catch
+        {
+            // A missing or unreadable Afterburner install simply leaves the list empty.
+        }
+
+        RefreshTargetProfileChoices(viewModel);
+        RefreshProfileRows(viewModel);
+
+        // Seed the voltage slider from the config, or from the selected profile's
+        // own curve the first time the page is opened after this feature was added.
+        if (viewModel != null)
+        {
+            if (viewModel.GpuUndervoltTargetVoltageMv > 0)
+            {
+                UndervoltTargetVoltageMv = viewModel.GpuUndervoltTargetVoltageMv;
+            }
+            else if (selectedGame > 0 &&
+                     _profileCurves.TryGetValue(selectedGame, out var selectedCurve) &&
+                     selectedCurve.Count > 0)
+            {
+                var maxClock = (int)System.Math.Round(selectedCurve.Max(point => point.ClockMhz));
+                var displayClock = System.Math.Min((int)System.Math.Round(UndervoltTargetClockMhz), maxClock);
+                var curveVoltageMv = FindCurveVoltageAtClock(selectedCurve, displayClock, preferLowest: true);
+                if (curveVoltageMv.HasValue)
+                {
+                    viewModel.GpuUndervoltTargetVoltageMv =
+                        (int)System.Math.Round(curveVoltageMv.Value);
+                    UndervoltTargetVoltageMv = curveVoltageMv.Value;
+                }
+            }
+
+            UndervoltTargetPowerLimitPercent = viewModel.GpuUndervoltTargetPowerLimitPercent;
+            UndervoltCoreOffsetMhz = viewModel.GpuUndervoltCoreOffsetMhz;
+            UndervoltMemoryOffsetMhz = viewModel.GpuUndervoltMemoryOffsetMhz;
+            UpdateEffectiveClockText();
+        }
+
+        // Keep a selected profile visible even if the file was momentarily locked
+        // while the agent wrote profile 9.
+        AddProfilePlaceholder(choices, selectedGame);
+        AddProfilePlaceholder(choices, selectedIdle);
+
+        AfterburnerProfileChoices.Clear();
+        foreach (var choice in choices)
+        {
+            AfterburnerProfileChoices.Add(choice);
+        }
+
+        // Restore the choices after the list exists again.
+        if (viewModel != null)
+        {
+            if (selectedGame > 0)
+            {
+                viewModel.GpuUndervoltGameProfile = selectedGame;
+            }
+
+            if (selectedIdle > 0)
+            {
+                viewModel.GpuUndervoltIdleProfile = selectedIdle;
+            }
+
+            // The ComboBoxes bound SelectedValue before this method populated
+            // their ItemsSource. Re-notify so WPF selects the item again now that
+            // the profile entries exist.
+            viewModel.NotifyGpuUndervoltProfileSelections();
+        }
+
+        OnPropertyChanged(nameof(AfterburnerProfileChoices));
+        RefreshCurveChart();
+    }
+
+    private string BuildProfileLabel(string baseLabel, int profileNumber, int targetClockMhz)
+    {
+        if (profileNumber <= 0 ||
+            !_profileCurves.TryGetValue(profileNumber, out var curve) ||
+            curve.Count == 0)
+        {
+            return baseLabel;
+        }
+
+        var maxClock = (int)System.Math.Round(curve.Max(point => point.ClockMhz));
+        if (maxClock <= 0)
+        {
+            return baseLabel;
+        }
+
+        // Show the voltage at the selected target when the profile can reach it.
+        // A lower-clocked profile (for example profile 9 at 1700) is shown with its
+        // own maximum so the list never promises a clock the curve cannot deliver.
+        var displayClock = System.Math.Min(targetClockMhz, maxClock);
+        var voltageMv = FindCurveVoltageAtClock(curve, displayClock, preferLowest: true);
+        if (!voltageMv.HasValue)
+        {
+            return baseLabel;
+        }
+
+        var suffix = maxClock < targetClockMhz
+            ? $"{displayClock} MHz (max) @ {FormatCurveVoltage(voltageMv.Value)}"
+            : $"{displayClock} MHz @ {FormatCurveVoltage(voltageMv.Value)}";
+
+        return $"{baseLabel} — {suffix}";
+    }
+
+    /// <summary>
+    /// Refreshes the voltage suffix on every profile entry in place. Rebuilding the
+    /// list would clear the ComboBox selections while the user drags the slider.
+    /// </summary>
+    private void UpdateProfileChoiceLabels()
+    {
+        var targetClock = (int)System.Math.Round(UndervoltTargetClockMhz);
+        foreach (var choice in AfterburnerProfileChoices)
+        {
+            if (choice.Number <= 0)
+            {
+                continue;
+            }
+
+            choice.Label = BuildProfileLabel(choice.BaseLabel, choice.Number, targetClock);
+        }
+    }
+
+    private void RefreshTargetProfileChoices(IconGrid.ViewModels.MainViewModel? viewModel)
+    {
+        var selectedSlot = TargetProfileSlot;
+        var choices = new System.Collections.Generic.List<ProfileSlotChoice>();
+
+        for (var slot = 1; slot <= 9; slot++)
+        {
+            var occupied = _profilesByNumber.TryGetValue(slot, out var profile) && !profile.IsEmpty;
+            string label;
+
+            if (!occupied)
+            {
+                label = string.Format(
+                    viewModel?.GpuUndervoltProfileSlotFreeFormat ?? "Profile {0} — free",
+                    slot);
+            }
+            else
+            {
+                var detail = string.Empty;
+                if (_profileCurves.TryGetValue(slot, out var curve) && curve.Count > 0)
+                {
+                    var maxClock = (int)System.Math.Round(curve.Max(point => point.ClockMhz));
+                    var voltageMv = FindCurveVoltageAtClock(curve, maxClock, preferLowest: true);
+                    detail = voltageMv.HasValue
+                        ? $"{maxClock} MHz @ {FormatCurveVoltage(voltageMv.Value)}"
+                        : $"{maxClock} MHz";
+                }
+
+                label = string.Format(
+                    viewModel?.GpuUndervoltProfileSlotOccupiedFormat ?? "Profile {0} — in use ({1})",
+                    slot,
+                    detail);
+            }
+
+            choices.Add(new ProfileSlotChoice(slot, label));
+        }
+
+        TargetProfileChoices.Clear();
+        foreach (var choice in choices)
+        {
+            TargetProfileChoices.Add(choice);
+        }
+
+        TargetProfileSlot = selectedSlot is >= 1 and <= 9 ? selectedSlot : 9;
+
+        // Only occupied profiles can be deleted; offer them in their own list.
+        var deleteSlot = DeleteProfileSlot;
+        var deletable = choices
+            .Where(choice => _profilesByNumber.TryGetValue(choice.Number, out var info) && !info.IsEmpty)
+            .ToList();
+
+        DeleteProfileChoices.Clear();
+        foreach (var choice in deletable)
+        {
+            DeleteProfileChoices.Add(choice);
+        }
+
+        if (deleteSlot > 0 && deletable.Any(choice => choice.Number == deleteSlot))
+        {
+            DeleteProfileSlot = deleteSlot;
+        }
+        else
+        {
+            // Prefer the IconGrid test slot (9) as the default delete target; it is
+            // safer than defaulting to the user's known-good fallback profile.
+            DeleteProfileSlot = deletable.FirstOrDefault(choice => choice.Number == 9)?.Number
+                                ?? deletable.FirstOrDefault()?.Number
+                                ?? 0;
+        }
+
+        OnPropertyChanged(nameof(DeleteProfileChoices));
+        OnPropertyChanged(nameof(TargetProfileChoices));
+    }
+
+
+    private static void AddProfilePlaceholder(
+        System.Collections.Generic.List<ProfileChoice> choices,
+        int profileNumber)
+    {
+        if (profileNumber <= 0 ||
+            choices.Any(choice => choice.Number == profileNumber))
+        {
+            return;
+        }
+
+        choices.Add(new ProfileChoice(profileNumber, $"Profile {profileNumber}"));
+    }
+
+    private void RefreshGpuUndervoltStatus()
+    {
+        var viewModel = ResolveViewModel();
+        if (viewModel == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var statePath = System.IO.Path.Combine(
+                new ConfigManager().BaseDirectory,
+                "gpu-power-saving-state.json");
+
+            if (!System.IO.File.Exists(statePath))
+            {
+                GpuUndervoltStatusText = viewModel.GpuUndervoltStatusInactive;
+                return;
+            }
+
+            var state = JsonConvert.DeserializeObject<GpuPowerSavingState>(
+                System.IO.File.ReadAllText(statePath));
+
+            if (state == null)
+            {
+                GpuUndervoltStatusText = viewModel.GpuUndervoltStatusInactive;
+                return;
+            }
+
+            if (!state.Available)
+            {
+                GpuUndervoltStatusText = viewModel.GpuUndervoltStatusUnavailable;
+                return;
+            }
+
+            var header = state.UndervoltActive
+                ? viewModel.GpuUndervoltStatusActive
+                : viewModel.GpuUndervoltStatusInactive;
+
+            var profile = state.AfterburnerProfile > 0 ? state.AfterburnerProfile.ToString() : "–";
+            var details = string.Format(
+                viewModel.GpuUndervoltStatusFormat,
+                profile,
+                state.SmClockMhz.ToString(),
+                state.CurrentTempC,
+                System.Math.Round(state.PowerDrawMw / 1000.0),
+                state.FanPercent,
+                state.TempTargetC);
+
+            GpuUndervoltStatusText = header + System.Environment.NewLine + details;
+            RefreshHotspot(viewModel);
+        }
+        catch
+        {
+            // Best-effort status display; a failed read must never break the page.
+        }
+    }
+
+    private void OpenAfterburnerDownload_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://www.msi.com/Landing/afterburner",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Opening the vendor page is best-effort; never break the hardware page.
+        }
+    }
+
+    private void OpenAmdChipsetDrivers_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://www.amd.com/en/support/download/drivers.html",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Opening the vendor page is best-effort; never break the hardware page.
+        }
+    }
+
+    private void SearchBoardButton_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var manufacturer = Overview.Board.Manufacturer;
+        var model = Overview.Board.Model;
+
+        if (string.IsNullOrWhiteSpace(manufacturer) || manufacturer == "--")
+        {
+            manufacturer = string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(model) || model == "--")
+        {
+            model = "motherboard";
+        }
+
+        var searchQuery = Uri.EscapeDataString($"{manufacturer} {model}");
+        var url = $"https://www.google.com/search?q={searchQuery}";
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HardwarePage failed to open search URL: {ex}");
+        }
+    }
+
+    private static System.Windows.Media.Brush CreateVendorBrush(string? vendor)
+    {
+        if (string.Equals(vendor, "AMD", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(234, 88, 12));
+        }
+
+        if (string.Equals(vendor, "Intel", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(37, 99, 235));
+        }
+
+        if (string.Equals(vendor, "NVIDIA", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+        }
+
+        return new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(71, 85, 105));
+    }
+
+    /// <summary>
+    /// The page normally receives the MainViewModel as DataContext, but during
+    /// the first load/navigation it can briefly be null. The settings window
+    /// always has the view model, so fall back to its DataContext.
+    /// </summary>
+    private HardwareHotspotSection? FindHotspotSection()
+        => FindVisualChild<HardwareHotspotSection>(this);
+
+    private static T? FindVisualChild<T>(System.Windows.DependencyObject parent)
+        where T : System.Windows.DependencyObject
+    {
+        var childCount = System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (var index = 0; index < childCount; index++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, index);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            var nested = FindVisualChild<T>(child);
+            if (nested != null)
+            {
+                return nested;
+            }
+        }
+
+        return null;
+    }
+
+    private IconGrid.ViewModels.MainViewModel? ResolveViewModel()
+        => DataContext as IconGrid.ViewModels.MainViewModel
+           ?? System.Windows.Window.GetWindow(this)?.DataContext as IconGrid.ViewModels.MainViewModel;
+
+    private void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

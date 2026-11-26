@@ -13,45 +13,7 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
-                        <!-- GPU hotspot card -->
-                        <Border Style="{StaticResource StartsideSectionCardStyle}"
-                                helpers:DevInspector.Metadata="GPU hotspot card -> Views/Settings/Pages/HardwareHotspotSection.xaml">
-                            <Expander Style="{StaticResource HardwareHeroExpanderStyle}"
-                                      IsExpanded="False"
-                                      helpers:DevInspector.Metadata="GPU hotspot card expander -> Views/Settings/Pages/HardwareHotspotSection.xaml">
-                                <Expander.Header>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding DataContext.GpuHotspotTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Style="{StaticResource TemplateCardTitleStyle}"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                            <TextBlock Margin="0,8,0,0"
-                                                       MaxWidth="680"
-                                                       HorizontalAlignment="Left"
-                                                       TextWrapping="Wrap"
-                                                       Text="{Binding DataContext.GpuHotspotIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="1"
-                                                   Text="&#xE70D;"
-                                                   FontFamily="Segoe Fluent Icons"
-                                                   FontSize="18"
-                                                   Margin="24,0,0,0"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   RenderTransformOrigin="0.5,0.5">
-                                            <TextBlock.RenderTransform>
-                                                <RotateTransform Angle="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}, Converter={StaticResource HardwareExpanderAngleConverter}}" />
-                                            </TextBlock.RenderTransform>
-                                        </TextBlock>
-                                    </Grid>
-                                </Expander.Header>
-                                <Expander.Content>
-                                    <StackPanel>
+                        <StackPanel>
                                         <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                         <Grid>
@@ -59,35 +21,35 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding DataContext.GpuHotspotAlarmTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                            <TextBlock Text="{Binding DataContext.GpuHotspotAlarmTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                                                        FontSize="13"
                                                        VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                       Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                             <ToggleButton Grid.Column="1"
                                                           Style="{StaticResource ToggleSwitchStyle}"
-                                                          IsChecked="{Binding DataContext.GpuHotspotAlarmEnabled, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay}" />
+                                                          IsChecked="{Binding DataContext.GpuHotspotAlarmEnabled, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
                                         </Grid>
                                         <TextBlock Margin="0,4,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
                                                    TextWrapping="Wrap"
                                                    FontSize="12"
-                                                   Text="{Binding DataContext.GpuHotspotAlarmIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Text="{Binding DataContext.GpuHotspotAlarmIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <TextBlock Margin="0,12,0,0"
-                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    FontSize="13"
                                                    FontWeight="SemiBold"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <TextBlock Margin="0,4,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
                                                    TextWrapping="Wrap"
                                                    FontSize="12"
-                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdIntro, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Text="{Binding DataContext.GpuHotspotAlarmThresholdIntro, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <Grid Margin="0,8,0,0"
-                                              IsEnabled="{Binding DataContext.GpuHotspotAlarmEnabled, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}">
+                                              IsEnabled="{Binding DataContext.GpuHotspotAlarmEnabled, RelativeSource={RelativeSource AncestorType=Window}}">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
@@ -99,14 +61,14 @@
                                                     LargeChange="5"
                                                     IsSnapToTickEnabled="True"
                                                     Style="{StaticResource ModernSliderStyle}"
-                                                    Value="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    Value="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                             <TextBlock Grid.Column="1"
                                                        Margin="12,0,0,0"
                                                        Width="52"
                                                        VerticalAlignment="Center"
                                                        TextAlignment="Right"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Text="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}, StringFormat={}{0} °C}" />
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       Text="{Binding DataContext.GpuHotspotAlarmThresholdC, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0} °C}" />
                                         </Grid>
                                         <TextBlock Margin="0,8,0,0"
                                                    MaxWidth="680"
@@ -114,7 +76,7 @@
                                                    TextWrapping="Wrap"
                                                    FontSize="13"
                                                    Text="{Binding GpuHotspotStatusText}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <TextBlock Margin="0,6,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
@@ -133,7 +95,7 @@
                                                    TextWrapping="Wrap"
                                                    FontSize="13"
                                                    Text="{Binding DataContext.GamingOverlayHotspotAlertDemoIntro, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <controls:GamingOverlayPreview Margin="0,8,0,0" />
                                         <Button Margin="0,10,0,0"
                                                 HorizontalAlignment="Left"
@@ -147,8 +109,8 @@
                                         <TextBlock Margin="0,0,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuHotspotTrendTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Text="{Binding DataContext.GpuHotspotTrendTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <Border Margin="0,8,0,0"
                                                 Padding="10"
                                                 HorizontalAlignment="Left"
@@ -184,14 +146,14 @@
                                             <TextBlock Margin="4,0,16,0"
                                                        FontSize="12"
                                                        VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Text="{Binding DataContext.GpuHotspotTrendHotspotLabel, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       Text="{Binding DataContext.GpuHotspotTrendHotspotLabel, RelativeSource={RelativeSource AncestorType=Window}}" />
                                             <TextBlock Text="●" Foreground="#8A8A8A" FontSize="12" VerticalAlignment="Center" />
                                             <TextBlock Margin="4,0,0,0"
                                                        FontSize="12"
                                                        VerticalAlignment="Center"
-                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                       Text="{Binding DataContext.GpuHotspotTrendGpuLabel, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       Text="{Binding DataContext.GpuHotspotTrendGpuLabel, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         </StackPanel>
                                             </StackPanel>
                                         </Border>
@@ -207,28 +169,28 @@
                                             <StackPanel>
                                                 <TextBlock FontSize="12"
                                                            FontWeight="SemiBold"
-                                                           Text="{Binding DataContext.GpuHotspotRecordTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                           Text="{Binding DataContext.GpuHotspotRecordTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                           Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 <TextBlock Margin="0,4,0,0"
                                                            FontSize="16"
                                                            FontWeight="SemiBold"
                                                            Text="{Binding GpuHotspotRecordText}"
-                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                           Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                             </StackPanel>
                                         </Border>
 
                                         <TextBlock Margin="0,16,0,0"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuHotspotOtherHistoryTitle, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Text="{Binding DataContext.GpuHotspotOtherHistoryTitle, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <TextBlock Margin="0,4,0,0"
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
                                                    TextWrapping="Wrap"
                                                    FontSize="12"
-                                                   Text="{Binding DataContext.GpuHotspotHistoryHint, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Text="{Binding DataContext.GpuHotspotHistoryHint, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <Border Margin="0,6,0,0"
                                                 Padding="10"
                                                 Background="#1B1B1B"
@@ -247,14 +209,14 @@
                                                         <ColumnDefinition Width="58" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnTime, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnHotspot, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnGpu, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="3" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnCoreClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="4" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnMemoryClock, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="5" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnVram, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="6" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnPower, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                    <TextBlock Grid.Column="7" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnGame, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                    <TextBlock FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnTime, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="1" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnHotspot, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="2" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnGpu, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="3" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnCoreClock, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="4" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnMemoryClock, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="5" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnVram, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="6" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnPower, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBlock Grid.Column="7" FontSize="11" FontWeight="SemiBold" Text="{Binding DataContext.GpuHotspotColumnGame, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                 </Grid>
                                                 <ItemsControl ItemsSource="{Binding HotspotHistoryRows}">
                                                     <ItemsControl.ItemTemplate>
@@ -271,14 +233,14 @@
                                                                         <ColumnDefinition Width="58" />
                                                                         <ColumnDefinition Width="*" />
                                                                     </Grid.ColumnDefinitions>
-                                                                    <TextBlock FontSize="12" VerticalAlignment="Center" Text="{Binding TimeText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="1" FontSize="12" VerticalAlignment="Center" Text="{Binding HotspotText}" Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="2" FontSize="12" VerticalAlignment="Center" Text="{Binding GpuText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="3" FontSize="12" VerticalAlignment="Center" Text="{Binding GpuClockText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="4" FontSize="12" VerticalAlignment="Center" Text="{Binding MemoryClockText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="5" FontSize="12" VerticalAlignment="Center" Text="{Binding VramText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="6" FontSize="12" VerticalAlignment="Center" Text="{Binding PowerText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
-                                                                    <TextBlock Grid.Column="7" FontSize="12" VerticalAlignment="Center" Text="{Binding GameText}" TextTrimming="CharacterEllipsis" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                                    <TextBlock FontSize="12" VerticalAlignment="Center" Text="{Binding TimeText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="1" FontSize="12" VerticalAlignment="Center" Text="{Binding HotspotText}" Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="2" FontSize="12" VerticalAlignment="Center" Text="{Binding GpuText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="3" FontSize="12" VerticalAlignment="Center" Text="{Binding GpuClockText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="4" FontSize="12" VerticalAlignment="Center" Text="{Binding MemoryClockText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="5" FontSize="12" VerticalAlignment="Center" Text="{Binding VramText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="6" FontSize="12" VerticalAlignment="Center" Text="{Binding PowerText}" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <TextBlock Grid.Column="7" FontSize="12" VerticalAlignment="Center" Text="{Binding GameText}" TextTrimming="CharacterEllipsis" Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                                                 </Grid>
                                                             </Border>
                                                         </DataTemplate>
@@ -289,16 +251,13 @@
                                         <TextBlock Margin="0,4,0,0"
                                                    FontSize="12"
                                                    Text="{Binding GpuHotspotHistoryNoDataText}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}" />
                                         <Button Margin="0,8,0,0"
                                                 HorizontalAlignment="Left"
                                                 Style="{StaticResource HardwareProfileButtonStyle}"
                                                 Click="ClearHotspotHistoryButton_Click"
-                                                Content="{Binding DataContext.GpuHotspotHistoryClear, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                Content="{Binding DataContext.GpuHotspotHistoryClear, RelativeSource={RelativeSource AncestorType=Window}}" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
-                                </Expander.Content>
-                            </Expander>
-                        </Border>
 </UserControl>

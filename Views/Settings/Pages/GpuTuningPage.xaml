@@ -11,30 +11,13 @@
         <ScrollViewer.Resources>
             <Style TargetType="ScrollBar" BasedOn="{StaticResource SettingsPageScrollBarStyle}" />
         </ScrollViewer.Resources>
-        <views:TemplatePage Margin="0,0,8,0">
-            <views:TemplatePage.HeroContent>
-                <StackPanel>
-                    <TextBlock Text="{Binding GpuUndervoltTitle}"
-                               Style="{StaticResource TemplateHeroTitleStyle}" />
-                    <TextBlock Margin="0,8,0,0"
-                               Text="{Binding GpuUndervoltHeaderSummary}"
-                               Style="{StaticResource TemplateHeroBodyStyle}" />
-                </StackPanel>
-            </views:TemplatePage.HeroContent>
-            <views:TemplatePage.CardsContent>
-                <StackPanel>
-                    <Border Style="{StaticResource StartsideSectionCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="{Binding GpuUndervoltTitle}"
-                                       Style="{StaticResource TemplateCardTitleStyle}" />
-                            <TextBlock Margin="0,8,0,0"
-                                       Text="{Binding GpuUndervoltIntro}"
-                                       Style="{StaticResource TemplateHeroBodyStyle}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </views:TemplatePage.CardsContent>
-        </views:TemplatePage>
+        <views:GpuUndervoltSection Margin="0,0,8,0"
+            OpenAfterburnerDownloadRequested="OpenAfterburnerDownload_Click"
+            ProfileRowGameRequested="ProfileRowGame_Click"
+            ProfileRowIdleRequested="ProfileRowIdle_Click"
+            ProfileRowSaveRequested="ProfileRowSave_Click"
+            ProfileRowDeleteRequested="ProfileRowDelete_Click"
+            RefreshStatusRequested="GpuUndervoltRefreshButton_Click"
+            ApplyTuningRequested="GpuTuningApply_Click" />
     </ScrollViewer>
 </UserControl>

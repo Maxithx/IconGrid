@@ -36,7 +36,9 @@
                 MaxWidth="1280"
                 MinWidth="520"
                 Margin="0"
-                Padding="0">
+                Padding="0"
+                BorderThickness="0"
+                BorderBrush="Transparent">
             <StackPanel Margin="0,10,0,0">
                 <Border Style="{StaticResource StartsideSectionCardStyle}">
                     <ContentPresenter Content="{Binding HeroContent, RelativeSource={RelativeSource AncestorType={x:Type views:TemplatePage}}}" />

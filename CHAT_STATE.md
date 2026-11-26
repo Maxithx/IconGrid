@@ -2445,7 +2445,10 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Ny **“Anvend tuning”**-knap: skriver til den aktive spilprofil (fallback profil 9) og anvender den via Afterburner. Knappen står nu lige under Power limit-kortet; statuskortet beholder kun status + refresh. Ved overskrivning af aktiv profil vises en særlig advarsel. Profilrækkerne har nu kun **Gem** (overskrivning bekræftes), ikke separat Overwrite-knap.
 - Profiltabellen viser standard kun profil 1–5. Profil 9 (IconGrids reserverede testprofil) vises kun som ekstra række, når den er aktiv.
 - Hardware-submenu i settings-sidebaren: klik på Hardware åbner en undermenu med **GPU tuning** og **Hotspot monitoring**. Undermenuen bruger nu de nye ikoner `figma-icons/GPU Tuning.png` og `figma-icons/GPU Hot spot monitoring.png`; siderne `GpuTuningPage` og `HotspotMonitoringPage` er stadig placeholders. Undermenuen skjules når man går til en anden hovedside.
-- Næste skridt: flyt GPU tuning- og hotspot-indholdet fra `HardwarePage` til de nye sider i små trin, med fælles state/events så funktionaliteten bevares.
+- Hotspot monitoring er flyttet: `HardwareHotspotSection` vises nu direkte på `HotspotMonitoringPage` uden TemplatePage-hero eller ydre Expander/header, og er fjernet fra `HardwarePage`. Dens bindings peger nu på `Window`/`MainViewModel`, og sektionen har sin egen 1-sekunds opdateringstimer fra `monitor-state.json`.
+- GPU tuning er flyttet: `GpuUndervoltSection` vises nu direkte på `GpuTuningPage` uden TemplatePage-hero og uden ydre Expander/header — selve tuning-kortene starter direkte. HardwarePage viser den ikke længere. `GpuTuningPage` har fået en kopi af GPU-tuning-controlleren (`GpuTuningPage.xaml.cs` + `.GpuUndervolt.cs`) og sektionens bindings peger nu på `GpuTuningPage`.
+- Gaming Overlay: hero-kortet og de seks sektionskort bruger igen `StartsideSectionCardStyle`-rammer. Den store ydre side-ramme er eksplicit fjernet med `BorderThickness=0`/transparent border på TemplatePage og settings-content-host.
+- Næste skridt: ryd op i den nu døde GPU-tuning-kode i `HardwarePage.xaml.cs` / `HardwarePage.GpuUndervolt.cs`, når den nye side er visuelt verificeret.
 - Lokalisering: 15 nye nøgler i både en+da; `check-loc.ps1`: 535/535 keys, 0 manglende.
 - Help-teksten på Hjælp-siden er opdateret fra “GPU undervolt” til “GPU tuning (undervolt og overclock)”.
 - Negative core/memory offsets understøttes nu i både UI, VM, config og Afterburner-skriveren.
@@ -2453,7 +2456,7 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Hardware → GPU viser nu arkitektur-tile (fx **Turing**) og en spec-linje under GPU-navnet, fx `Turing · RTX 20 series · 8 GB GDDR6 · 256-bit · 1470–1650 MHz · 175 W TDP`.
 - GPU tuningens core/memory-slider bruger catalogets sikre offset-envelope; ukendte modeller får mindre range.
 - Laptop-GPU'er matches ikke på desktop-specs; de får kun arkitektur-fallback og konservativ range.
-- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 02:49:36 (DLL 1.927.680 bytes).
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 03:56:00 (DLL 2.000.384 bytes).
 - Næste fase (ikke implementeret): Fan Speed Auto/Manual 40–100 %, evt. test-presets og temp-baseret nødblæsning.
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
 

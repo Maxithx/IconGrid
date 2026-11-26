@@ -23,6 +23,8 @@ namespace IconGrid.Views
         private string _gpuHotspotHistoryNoDataText = string.Empty;
         private System.Windows.Media.PointCollection _hotspotTrendPoints = new();
         private System.Windows.Media.PointCollection _gpuTempTrendPoints = new();
+        private readonly System.Windows.Threading.DispatcherTimer _refreshTimer =
+            new() { Interval = TimeSpan.FromSeconds(1) };
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -30,6 +32,13 @@ namespace IconGrid.Views
         {
             InitializeComponent();
             DataContext = this;
+            Loaded += (_, _) =>
+            {
+                RefreshFromState();
+                _refreshTimer.Start();
+            };
+            Unloaded += (_, _) => _refreshTimer.Stop();
+            _refreshTimer.Tick += (_, _) => RefreshFromState();
         }
 
         public ObservableCollection<HotspotHistoryRow> HotspotHistoryRows { get; } = new();
@@ -78,6 +87,36 @@ namespace IconGrid.Views
         {
             get => _gpuTempTrendPoints;
             private set => SetField(ref _gpuTempTrendPoints, value);
+        }
+
+        private void RefreshFromState()
+        {
+            var viewModel = ResolveViewModel();
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var path = Path.Combine(
+                    new ConfigManager().BaseDirectory,
+                    "monitor-state.json");
+
+                if (!File.Exists(path))
+                {
+                    ShowNoData(viewModel);
+                    return;
+                }
+
+                var snapshot = JsonConvert.DeserializeObject<HardwareMonitorSnapshot>(
+                    File.ReadAllText(path));
+                Update(viewModel, snapshot);
+            }
+            catch
+            {
+                // A failed monitor-state read must never break the settings page.
+            }
         }
 
         public void ShowNoData(MainViewModel viewModel)

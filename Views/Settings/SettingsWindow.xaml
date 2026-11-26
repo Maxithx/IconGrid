@@ -764,6 +764,8 @@
                 <Border Grid.Column="2"
                         Style="{StaticResource StartsidePanelStyle}"
                         Padding="16"
+                        BorderThickness="0"
+                        BorderBrush="Transparent"
                         helpers:DevInspector.Metadata="Startside host → Views/SettingsWindow.xaml">
                     <ContentControl x:Name="SettingsContentHost" />
                 </Border>

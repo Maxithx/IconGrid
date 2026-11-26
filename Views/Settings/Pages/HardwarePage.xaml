@@ -918,16 +918,6 @@
                             </Expander>
                         </Border>
 
-                        <views:GpuUndervoltSection
-                            OpenAfterburnerDownloadRequested="OpenAfterburnerDownload_Click"
-                            ProfileRowGameRequested="ProfileRowGame_Click"
-                            ProfileRowIdleRequested="ProfileRowIdle_Click"
-                            ProfileRowSaveRequested="ProfileRowSave_Click"
-                            ProfileRowDeleteRequested="ProfileRowDelete_Click"
-                            RefreshStatusRequested="GpuUndervoltRefreshButton_Click"
-                            ApplyTuningRequested="GpuTuningApply_Click" />
-
-                        <views:HardwareHotspotSection />
                     </StackPanel>
                 </views:TemplatePage.CardsContent>
             </views:TemplatePage>
