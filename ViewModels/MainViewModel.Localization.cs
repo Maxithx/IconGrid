@@ -255,6 +255,8 @@ namespace IconGrid.ViewModels
         public string GpuTuningLiveTempLabel => _localizationState.Get(Language, "GpuTuningLiveTempLabel");
         public string GpuTuningApplyButton => _localizationState.Get(Language, "GpuTuningApplyButton");
         public string GpuTuningApplyHint => _localizationState.Get(Language, "GpuTuningApplyHint");
+        public string GpuTuningActiveOverwriteWarningTitle => _localizationState.Get(Language, "GpuTuningActiveOverwriteWarningTitle");
+        public string GpuTuningActiveOverwriteWarningFormat => _localizationState.Get(Language, "GpuTuningActiveOverwriteWarningFormat");
         public string GpuUndervoltSaveProfileTitle => _localizationState.Get(Language, "GpuUndervoltSaveProfileTitle");
         public string GpuUndervoltSaveProfileIntro => _localizationState.Get(Language, "GpuUndervoltSaveProfileIntro");
         public string GpuUndervoltProfileSlotFreeFormat => _localizationState.Get(Language, "GpuUndervoltProfileSlotFreeFormat");
@@ -731,6 +733,8 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuTuningLiveTempLabel));
             OnPropertyChanged(nameof(GpuTuningApplyButton));
             OnPropertyChanged(nameof(GpuTuningApplyHint));
+            OnPropertyChanged(nameof(GpuTuningActiveOverwriteWarningTitle));
+            OnPropertyChanged(nameof(GpuTuningActiveOverwriteWarningFormat));
             OnPropertyChanged(nameof(GpuUndervoltSaveProfileTitle));
             OnPropertyChanged(nameof(GpuUndervoltSaveProfileIntro));
             OnPropertyChanged(nameof(GpuUndervoltProfileSlotFreeFormat));

@@ -2442,7 +2442,8 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Nyt gruppekort **“Sikre clock-offsets”** i `GpuUndervoltSection.xaml`: core-slider −150…+150 MHz, memory-slider −500…+500 MHz, effektiv max-clock-visning og advarsel om at 2000 MHz er et mål, ikke en garanti.
 - `HardwarePage` opdaterer profil-listen med core/mem-offset og viser effektiv max-clock; kurvens target-linje følger valgt target + core-offset.
 - Nyt live-kort **“Live GPU-status”** med fire felter fra `SystemMonitor`: core-clock, memory-clock (fx 7000 MHz), spænding og temperatur. Kortet står nu lige efter MSI Afterburner-kortet og før undervolt-kurven.
-- Ny **“Anvend tuning”**-knap i statuskortet: skriver kurve, power limit og offsets til profilen og anvender den via Afterburner. Eventet videresendes gennem `GpuUndervoltSection`.
+- Ny **“Anvend tuning”**-knap: skriver til den aktive spilprofil (fallback profil 9) og anvender den via Afterburner. Knappen står nu lige under Power limit-kortet; statuskortet beholder kun status + refresh. Ved overskrivning af aktiv profil vises en særlig advarsel. Profilrækkerne har nu kun **Gem** (overskrivning bekræftes), ikke separat Overwrite-knap.
+- Profiltabellen viser standard kun profil 1–5. Profil 9 (IconGrids reserverede testprofil) vises kun som ekstra række, når den er aktiv.
 - Lokalisering: 15 nye nøgler i både en+da; `check-loc.ps1`: 535/535 keys, 0 manglende.
 - Help-teksten på Hjælp-siden er opdateret fra “GPU undervolt” til “GPU tuning (undervolt og overclock)”.
 - Negative core/memory offsets understøttes nu i både UI, VM, config og Afterburner-skriveren.
@@ -2450,7 +2451,7 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Hardware → GPU viser nu arkitektur-tile (fx **Turing**) og en spec-linje under GPU-navnet, fx `Turing · RTX 20 series · 8 GB GDDR6 · 256-bit · 1470–1650 MHz · 175 W TDP`.
 - GPU tuningens core/memory-slider bruger catalogets sikre offset-envelope; ukendte modeller får mindre range.
 - Laptop-GPU'er matches ikke på desktop-specs; de får kun arkitektur-fallback og konservativ range.
-- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 01:31:09 (DLL 1.917.440 bytes).
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 02:28:01 (DLL 1.920.512 bytes).
 - Næste fase (ikke implementeret): Fan Speed Auto/Manual 40–100 %, evt. test-presets og temp-baseret nødblæsning.
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
 

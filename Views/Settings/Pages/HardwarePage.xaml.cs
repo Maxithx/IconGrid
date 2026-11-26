@@ -653,7 +653,7 @@ public bool IsNvidiaGtx =>
         }
     }
 
-    private bool ConfirmProfileOverwrite(int profileNumber)
+    private bool ConfirmProfileOverwrite(int profileNumber, bool isActiveProfile = false)
     {
         if (!_profilesByNumber.TryGetValue(profileNumber, out var existing) || existing.IsEmpty)
         {
@@ -672,13 +672,21 @@ public bool IsNvidiaGtx =>
             }
         }
 
-        var message = string.Format(
-            viewModel?.GpuUndervoltOverwriteWarningFormat ??
-            "Profile {0} already contains {1}. It will be overwritten. Continue?",
-            profileNumber,
-            detail);
+        var message = isActiveProfile
+            ? string.Format(
+                viewModel?.GpuTuningActiveOverwriteWarningFormat ??
+                "Profile {0} is your active game profile ({1}). Applying tuning will overwrite it permanently. Continue?",
+                profileNumber,
+                detail)
+            : string.Format(
+                viewModel?.GpuUndervoltOverwriteWarningFormat ??
+                "Profile {0} already contains {1}. It will be overwritten. Continue?",
+                profileNumber,
+                detail);
 
-        var title = viewModel?.GpuUndervoltOverwriteWarningTitle ?? "Overwrite profile?";
+        var title = isActiveProfile
+            ? viewModel?.GpuTuningActiveOverwriteWarningTitle ?? "Overwrite active profile?"
+            : viewModel?.GpuUndervoltOverwriteWarningTitle ?? "Overwrite profile?";
         var owner = System.Windows.Window.GetWindow(this);
         var result = owner != null
             ? System.Windows.MessageBox.Show(
@@ -698,14 +706,33 @@ public bool IsNvidiaGtx =>
         return result == System.Windows.MessageBoxResult.Yes;
     }
 
+    /// <summary>
+    /// The global Apply tuning button updates the currently active game profile,
+    /// so slider changes can be applied without first using a row's Save/Overwrite
+    /// button. When no profile is active it falls back to the IconGrid-reserved
+    /// profile 9. The per-row buttons remain the way to write a specific slot.
+    /// </summary>
+    private async void GpuTuningApply_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        var activeProfile = ResolveViewModel()?.GpuUndervoltGameProfile ?? 0;
+        var isActiveProfile = activeProfile is >= 1 and <= 9;
+        TargetProfileSlot = isActiveProfile ? activeProfile : 9;
+        await GenerateCurveAsync(isActiveProfile);
+    }
+
     private async void GpuUndervoltGenerateCurve_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        await GenerateCurveAsync(applyToActiveProfile: false);
+    }
+
+    private async System.Threading.Tasks.Task GenerateCurveAsync(bool applyToActiveProfile)
     {
         try
         {
             var targetClock = (int)System.Math.Round(UndervoltTargetClockMhz);
             var generatedProfile = TargetProfileSlot is >= 1 and <= 9 ? TargetProfileSlot : 9;
 
-            if (!ConfirmProfileOverwrite(generatedProfile))
+            if (!ConfirmProfileOverwrite(generatedProfile, applyToActiveProfile))
             {
                 return;
             }

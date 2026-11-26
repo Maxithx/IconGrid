@@ -27,7 +27,16 @@ namespace IconGrid.Views
         var gameProfile = viewModel?.GpuUndervoltGameProfile ?? 0;
         var idleProfile = viewModel?.GpuUndervoltIdleProfile ?? 0;
 
-        for (var slot = 1; slot <= 9; slot++)
+        // Five profile slots is the normal view. Profile 9 is IconGrid's
+        // reserved generated/profile target and only appears when it is actually
+        // active, so the default table stays short and familiar.
+        var visibleSlots = new System.Collections.Generic.List<int> { 1, 2, 3, 4, 5 };
+        if (gameProfile == 9 || idleProfile == 9)
+        {
+            visibleSlots.Add(9);
+        }
+
+        foreach (var slot in visibleSlots)
         {
             var occupied = _profilesByNumber.TryGetValue(slot, out var info) && !info.IsEmpty;
             var contents = viewModel?.GpuUndervoltProfileFree ?? "Free";
@@ -87,9 +96,7 @@ namespace IconGrid.Views
                 SlotText = $"Profil {slot}",
                 Contents = contents,
                 RoleText = role,
-                SaveLabel = occupied
-                    ? viewModel?.GpuUndervoltProfileOverwrite ?? "Overwrite"
-                    : viewModel?.GpuUndervoltProfileSave ?? "Save",
+                SaveLabel = viewModel?.GpuUndervoltProfileSave ?? "Save",
                 ActivityLabel = isGame
                     ? viewModel?.GpuUndervoltProfileActive ?? "Active"
                     : viewModel?.GpuUndervoltProfileInactive ?? "Inactive",
