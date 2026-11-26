@@ -198,47 +198,75 @@ namespace IconGrid.Views
 
         private void StartsideNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new StartsidePage(), StartsideNavButton);
         }
 
         private void GenvejsNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new GenvejsIkonerPage(), GenvejsNavButton);
         }
 
         private void LayoutNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new LayoutPage(), LayoutNavButton);
         }
 
         private void HardwareNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(true);
             _hardwarePage ??= new HardwarePage();
             ShowPage(_hardwarePage, HardwareNavButton);
         }
 
+        private void GpuTuningNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetHardwareSubmenuOpen(true);
+            ShowPage(new GpuTuningPage(), GpuTuningNavButton);
+        }
+
+        private void HotspotMonitoringNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            SetHardwareSubmenuOpen(true);
+            ShowPage(new HotspotMonitoringPage(), HotspotMonitoringNavButton);
+        }
+
+        private void SetHardwareSubmenuOpen(bool isOpen)
+        {
+            HardwareSubmenuPanel.Visibility = isOpen
+                ? System.Windows.Visibility.Visible
+                : System.Windows.Visibility.Collapsed;
+        }
+
         private void CleanupNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new CleanupPage(), CleanupNavButton);
         }
 
         private void GamingOverlayNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowGamingOverlayPage();
         }
 
         private void SkinStudioNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowSkinStudioPage();
         }
 
         private void AboutNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new AboutPage(), AboutNavButton);
         }
 
         private void HelpNavButton_Click(object sender, RoutedEventArgs e)
         {
+            SetHardwareSubmenuOpen(false);
             ShowPage(new HjaelpPage(), HelpNavButton);
         }
 
