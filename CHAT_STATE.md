@@ -2448,6 +2448,12 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Hotspot monitoring er flyttet: `HardwareHotspotSection` vises nu direkte på `HotspotMonitoringPage` uden TemplatePage-hero eller ydre Expander/header, og er fjernet fra `HardwarePage`. Dens bindings peger nu på `Window`/`MainViewModel`, og sektionen har sin egen 1-sekunds opdateringstimer fra `monitor-state.json`.
 - GPU tuning er flyttet: `GpuUndervoltSection` vises nu direkte på `GpuTuningPage` uden TemplatePage-hero og uden ydre Expander/header — selve tuning-kortene starter direkte. HardwarePage viser den ikke længere. `GpuTuningPage` har fået en kopi af GPU-tuning-controlleren (`GpuTuningPage.xaml.cs` + `.GpuUndervolt.cs`) og sektionens bindings peger nu på `GpuTuningPage`.
 - Gaming Overlay: hero-kortet og de seks sektionskort bruger igen `StartsideSectionCardStyle`-rammer. Den store ydre side-ramme er eksplicit fjernet med `BorderThickness=0`/transparent border på TemplatePage og settings-content-host.
+- Hotspot monitoring light theme: hardcodede mørke flader (trend, top-hotspot, historik og rækkeseparatorer) bruger nu `HotspotInsetSurfaceStyle`/`HotspotHistoryRowStyle` med lys grå `#F3F4F6` og border `#D1D5DB` i lyst tema. Gaming overlay-previewet er urørt.
+- GPU tuning light theme: profilskema og kurvegraf bruger `GpuTuningInsetSurfaceStyle`/`GpuTuningHistoryRowStyle` med lys grå flader; graf-labels skifter med temaet. `HardwareProfileButtonStyle` og `HardwareSecondaryButtonStyle` har fået lyse tema-triggere, så Afterburner-download og profilknapper ikke længere står mørke.
+- Profilknapper i lyst tema: `HardwareProfileActivityButtonStyle` bruger lys grå baggrund med mørk tekst, og `HardwareProfilePrimaryButtonStyle` beholder accentbaggrund + hvid tekst (base-triggeren overskrev den tidligere).
+- Home-sidens **Launcher visibility**-dropdown (`Win11ComboBoxStyle`) har fået lyst tema: `#F3F4F7` baggrund, `#D1D5DB` border, mørk tekst, lys popup og lyse hover/selected-rækker i `Win11ComboBoxItemStyle`.
+- Gaming Overlay-siden i lyst tema: `OverlaySecondaryButtonStyle` (bl.a. “Vælg brugerdefineret farve” og “Opdater GPU-status”) bruger nu `#F3F4F7` baggrund, `#D1D5DB` border og mørk tekst med lyse hover/pressed-tilstande. Selve overlay-previewet (`GamingOverlayPreview`) forbliver bevidst mørkt, da det viser den rigtige overlay-stil.
+- Layout-siden i lyst tema: layout-slotknapperne (`LayoutSlotButtonStyle`) bruger nu `#F3F4F7`/`#D1D5DB` med mørk tekst og lys hover; den valgte slot beholder accentbaggrund + hvid tekst. To ubrugte mørke ComboBox-styles (`LayoutActionComboBoxStyle`, `LayoutDropdownComboBoxStyle`) er fjernet, og layoutets preset-dropdown bruger den nu lyse `Win11ComboBoxStyle`.
 - Næste skridt: ryd op i den nu døde GPU-tuning-kode i `HardwarePage.xaml.cs` / `HardwarePage.GpuUndervolt.cs`, når den nye side er visuelt verificeret.
 - Lokalisering: 15 nye nøgler i både en+da; `check-loc.ps1`: 535/535 keys, 0 manglende.
 - Help-teksten på Hjælp-siden er opdateret fra “GPU undervolt” til “GPU tuning (undervolt og overclock)”.
@@ -2456,7 +2462,7 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Hardware → GPU viser nu arkitektur-tile (fx **Turing**) og en spec-linje under GPU-navnet, fx `Turing · RTX 20 series · 8 GB GDDR6 · 256-bit · 1470–1650 MHz · 175 W TDP`.
 - GPU tuningens core/memory-slider bruger catalogets sikre offset-envelope; ukendte modeller får mindre range.
 - Laptop-GPU'er matches ikke på desktop-specs; de får kun arkitektur-fallback og konservativ range.
-- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 03:56:00 (DLL 2.000.384 bytes).
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 20:23:02 (DLL 2.004.992 bytes).
 - Næste fase (ikke implementeret): Fan Speed Auto/Manual 40–100 %, evt. test-presets og temp-baseret nødblæsning.
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
 

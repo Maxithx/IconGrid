@@ -312,10 +312,30 @@
                             <Setter TargetName="Row" Property="Background" Value="#3A3A3A" />
                             <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                                <Condition Binding="{Binding IsHighlighted, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="Row" Property="Background" Value="#E5E7EB" />
+                        </MultiDataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True" />
+                                <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="True" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="Row" Property="Background" Value="#E5E7EB" />
+                        </MultiDataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                <Setter Property="Background" Value="#F3F4F7" />
+                <Setter Property="Foreground" Value="#1F2937" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="Win11ComboBoxStyle" TargetType="ComboBox">
@@ -379,7 +399,8 @@
                                Placement="Bottom"
                                PopupAnimation="Fade"
                                StaysOpen="False">
-                            <Border Margin="0,4,0,0"
+                            <Border x:Name="PopupRoot"
+                                    Margin="0,4,0,0"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                     MaxHeight="300"
                                     Background="#2B2B2B"
@@ -403,10 +424,22 @@
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Root" Property="Opacity" Value="0.55" />
                         </Trigger>
+                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="PopupRoot" Property="Background" Value="#F3F4F7" />
+                            <Setter TargetName="PopupRoot" Property="BorderBrush" Value="#D1D5DB" />
+                            <Setter TargetName="Arrow" Property="Stroke" Value="#4B5563" />
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                <Setter Property="Background" Value="#F3F4F7" />
+                <Setter Property="BorderBrush" Value="#D1D5DB" />
+                <Setter Property="Foreground" Value="#1F2937" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="ToggleSwitchStyle" TargetType="ToggleButton">

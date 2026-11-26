@@ -280,6 +280,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="#E5E7EB" />
+                    <Setter Property="BorderBrush" Value="#D1D5DB" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="HardwareProfileButtonStyle" TargetType="Button">
@@ -324,6 +330,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="#F3F4F7" />
+                    <Setter Property="BorderBrush" Value="#D1D5DB" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="HardwareProfilePrimaryButtonStyle"
@@ -361,6 +373,13 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Setter Property="BorderBrush" Value="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Setter Property="Foreground" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="HardwareSecondaryButtonStyle" TargetType="Button">
@@ -402,6 +421,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Background" Value="#F3F4F7" />
+                    <Setter Property="BorderBrush" Value="#D1D5DB" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
 </ResourceDictionary>
