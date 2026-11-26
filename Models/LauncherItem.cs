@@ -16,10 +16,25 @@ namespace IconGrid.Models
     /// </summary>
     public class LauncherItem : INotifyPropertyChanged
     {
+        private string _displayName = string.Empty;
+
         /// <summary>
         /// Name displayed under the icon.
         /// </summary>
-        public string DisplayName { get; set; } = string.Empty;
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                if (string.Equals(_displayName, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _displayName = value;
+                OnPropertyChanged();
+            }
+        }
 
         /// <summary>
         /// Full path to .exe or .lnk to launch.

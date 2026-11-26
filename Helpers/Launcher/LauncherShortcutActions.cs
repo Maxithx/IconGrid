@@ -22,7 +22,26 @@ namespace IconGrid.Helpers
         private readonly MainViewModel _viewModel;
         private readonly Func<string, string, string, string> _showInputBox;
         private readonly string _powerShellPath;
-        private readonly Dictionary<string, string> _windowShortcutTranslations;
+
+        private static readonly (string Danish, string English)[] WindowShortcutNames =
+        {
+            ("Billeder", "Pictures"),
+            ("Dokumenter", "Documents"),
+            ("Galleri", "Gallery"),
+            ("Kontrolpanel", "Control Panel"),
+            ("Musik", "Music"),
+            ("OneDrive", "OneDrive"),
+            ("Overførsler", "Downloads"),
+            ("Papirkurv", "Recycle Bin"),
+            ("Skrivebord", "Desktop"),
+            ("Stifinder", "File Explorer"),
+            ("Taskmanager", "Task Manager"),
+            ("Denne computer", "This PC"),
+            ("Videoer", "Videos"),
+            ("Windows PowerShell", "Windows PowerShell"),
+            ("Windows-sikkerhed", "Windows Security"),
+            ("Windows Update", "Windows Update")
+        };
 
         public record WindowsShortcutTemplate(string DisplayName, string FullPath);
 
@@ -32,14 +51,12 @@ namespace IconGrid.Helpers
             Window window,
             MainViewModel viewModel,
             string powerShellPath,
-            Func<string, string, string, string> showInputBox,
-            Dictionary<string, string> windowShortcutTranslations)
+            Func<string, string, string, string> showInputBox)
         {
             _window = window;
             _viewModel = viewModel;
             _powerShellPath = powerShellPath;
             _showInputBox = showInputBox;
-            _windowShortcutTranslations = windowShortcutTranslations;
         }
 
         public void RemoveItem(LauncherItem item) => _viewModel.RemoveItem(item);
@@ -318,21 +335,57 @@ namespace IconGrid.Helpers
 
         private string TranslateShortcutName(string name)
         {
-            var key = name.ToLowerInvariant();
-            var lang = _viewModel.Language?.ToLowerInvariant() ?? "en";
-
-            // Default filenames are Danish; when UI is English, map them to English equivalents.
-            if (!string.Equals(lang, "da", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(name))
             {
-                return _windowShortcutTranslations.TryGetValue(key, out var translated) ? translated : name;
+                return name;
             }
 
-            // Danish UI: keep original or map known English names back to Danish.
-            if (string.Equals(key, "this pc", StringComparison.OrdinalIgnoreCase))
-                return "Denne computer";
+            var useDanish = string.Equals(_viewModel.Language, "da", StringComparison.OrdinalIgnoreCase);
 
-            // If the file name is already Danish, leave it.
+            foreach (var pair in WindowShortcutNames)
+            {
+                if (name.Equals(pair.Danish, StringComparison.OrdinalIgnoreCase) ||
+                    name.Equals(pair.English, StringComparison.OrdinalIgnoreCase))
+                {
+                    return useDanish ? pair.Danish : pair.English;
+                }
+            }
+
+            // Custom names are left untouched.
             return name;
+        }
+
+        /// <summary>
+        /// Renames Windows-category shortcuts that still use a known built-in name so they
+        /// follow the active IconGrid language. Custom user names are not modified.
+        /// </summary>
+        public void ApplyWindowsShortcutLanguage()
+        {
+            var changed = false;
+
+            foreach (var item in _viewModel.Items)
+            {
+                if (!string.Equals(item.Category, "Windows", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(item.Path) ||
+                    !item.Path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var localizedName = TranslateShortcutName(item.DisplayName);
+                if (string.Equals(item.DisplayName, localizedName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                item.DisplayName = localizedName;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                _viewModel.SaveItemsToFile();
+            }
         }
 
         private void AddWindowsShortcut(WindowsShortcutTemplate template, string targetCategory)

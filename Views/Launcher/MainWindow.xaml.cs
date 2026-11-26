@@ -48,26 +48,6 @@ namespace IconGrid.Views.Launcher
         private static readonly string PowerShellPath = Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe");
         private const uint MONITOR_DEFAULTTONEAREST = 2;
 
-        private readonly Dictionary<string, string> _windowsShortcutTranslations = new(StringComparer.OrdinalIgnoreCase)
-        {
-            { "kontrolpanel", "Control Panel" },
-            { "papirkurv", "Recycle Bin" },
-            { "stifinder", "File Explorer" },
-            { "skrivebord", "Desktop" },
-            { "dokumenter", "Documents" },
-            { "billeder", "Pictures" },
-            { "videoer", "Videos" },
-            { "musik", "Music" },
-            { "overf?rsler", "Downloads" },
-            { "galleri", "Gallery" },
-            { "onedrive", "OneDrive" },
-            { "taskmanager", "Task Manager" },
-            { "windows powershell", "Windows PowerShell" },
-            { "windows update", "Windows Update" },
-            { "windows security", "Windows Security" },
-            { "this pc", "This PC" },
-            { "linux", "Linux" }
-        };
         private bool _skipSavingLocation;
         private bool _isShuttingDown;
 
@@ -93,9 +73,9 @@ namespace IconGrid.Views.Launcher
                 this,
                 _viewModel,
                 PowerShellPath,
-                ShowInputBox,
-                _windowsShortcutTranslations);
+                ShowInputBox);
             _shortcutActions.LoadWindowsShortcuts();
+            _shortcutActions.ApplyWindowsShortcutLanguage();
             _layoutMenuController = new LayoutMenuController(
                 this,
                 _viewModel,
@@ -272,6 +252,7 @@ namespace IconGrid.Views.Launcher
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), StringComparison.OrdinalIgnoreCase))
             {
                 _shortcutActions?.LoadWindowsShortcuts();
+                _shortcutActions?.ApplyWindowsShortcutLanguage();
             }
 
             // Handle Dynamic Layout when icon panel expands/collapses
