@@ -10,11 +10,11 @@ if (Test-Path -LiteralPath $publishDir) {
     Remove-Item -LiteralPath $publishDir -Recurse -Force
 }
 
-Write-Output 'Publishing IconGrid (framework-dependent, win-x64)...'
+Write-Output 'Publishing IconGrid (self-contained, win-x64)...'
 & dotnet publish $project `
     --configuration Release `
     --runtime win-x64 `
-    --self-contained false `
+    --self-contained true `
     --output $publishDir `
     --nologo `
     -v minimal

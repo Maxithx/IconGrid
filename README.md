@@ -4,7 +4,7 @@ IconGrid is a Windows launcher, hardware control center, and desktop overlay bui
 
 ## Download and unsigned beta
 
-Get the latest beta from [GitHub Releases](https://github.com/Maxithx/IconGrid/releases). The installer is framework-dependent and requires the [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
+Get the latest beta from [GitHub Releases](https://github.com/Maxithx/IconGrid/releases). The installer is **self-contained** and includes the .NET 10 Desktop runtime, so no separate .NET installation is required.
 
 > **Unsigned beta / SmartScreen**  
 > Beta builds are not code-signed yet. When downloading `setup.exe` from a browser, Windows SmartScreen may show **"Windows protected your PC"**. If you trust the source, choose **More info → Run anyway**. Each release includes SHA256 hashes so you can verify the download. Code signing is planned for a later release.

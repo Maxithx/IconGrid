@@ -8,8 +8,7 @@ Builds a standard Windows `setup.exe` with Inno Setup 6.
 - Inno Setup 6 (`winget install --id JRSoftware.InnoSetup --exact`)
 - The native FPS agent built in Release (`Native\FpsAgent\bin\Release\IconGridFpsAgent.exe`)
 
-The installer is framework-dependent: the target machine needs the **.NET 10 Desktop Runtime (x64)**.
-The setup checks for it and offers to open Microsoft's official download page when it is missing.
+The installer is **self-contained**: the .NET 10 Desktop runtime files are bundled, so the target machine does not need a separate .NET installation.
 
 ## Build
 
