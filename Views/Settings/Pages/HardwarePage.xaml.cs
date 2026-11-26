@@ -90,6 +90,9 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
 
     private double _undervoltTargetVoltageMv = 925;
     private double _undervoltTargetPowerLimitPercent = 100;
+    private double _undervoltCoreOffsetMhz;
+    private double _undervoltMemoryOffsetMhz;
+    private string _gpuTuningEffectiveClockText = string.Empty;
 
     private bool _isAfterburnerInstalled;
     private string _afterburnerInstallPath = string.Empty;
@@ -193,6 +196,7 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
             }
 
             RefreshTargetCurveLine();
+            UpdateEffectiveClockText();
             UpdateProfileChoiceLabels();
             RefreshCurveChart();
         }
@@ -354,6 +358,86 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
     }
 
     /// <summary>
+    /// Core clock offset written as Afterburner CoreClkBoost. Negative values
+    /// underclock, positive values overclock. The range is deliberately conservative
+    /// so a failed experiment cannot push the card far beyond its rated boost clock.
+    /// </summary>
+    public double UndervoltCoreOffsetMhz
+    {
+        get => _undervoltCoreOffsetMhz;
+        set
+        {
+            var clamped = System.Math.Clamp(
+                System.Math.Round(value),
+                UndervoltCoreOffsetMinMhz,
+                UndervoltCoreOffsetLimitMhz);
+            if (System.Math.Abs(_undervoltCoreOffsetMhz - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltCoreOffsetMhz = clamped;
+            OnPropertyChanged(nameof(UndervoltCoreOffsetMhz));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltCoreOffsetMhz = (int)clamped;
+            }
+
+            UpdateEffectiveClockText();
+            RefreshTargetCurveLine();
+        }
+    }
+
+    /// <summary>
+    /// Memory clock offset written as Afterburner MemClkBoost. Negative values
+    /// underclock, positive values overclock. Memory instability usually shows up
+    /// as artifacts rather than a driver reset, so the range stays conservative.
+    /// </summary>
+    public double UndervoltMemoryOffsetMhz
+    {
+        get => _undervoltMemoryOffsetMhz;
+        set
+        {
+            var clamped = System.Math.Clamp(
+                System.Math.Round(value),
+                UndervoltMemoryOffsetMinMhz,
+                UndervoltMemoryOffsetLimitMhz);
+            if (System.Math.Abs(_undervoltMemoryOffsetMhz - clamped) < 0.01)
+            {
+                return;
+            }
+
+            _undervoltMemoryOffsetMhz = clamped;
+            OnPropertyChanged(nameof(UndervoltMemoryOffsetMhz));
+
+            var viewModel = ResolveViewModel();
+            if (viewModel != null)
+            {
+                viewModel.GpuUndervoltMemoryOffsetMhz = (int)clamped;
+            }
+
+            UpdateEffectiveClockText();
+        }
+    }
+
+    public string GpuTuningEffectiveClockText
+    {
+        get => _gpuTuningEffectiveClockText;
+        private set
+        {
+            if (_gpuTuningEffectiveClockText == value)
+            {
+                return;
+            }
+
+            _gpuTuningEffectiveClockText = value;
+            OnPropertyChanged(nameof(GpuTuningEffectiveClockText));
+        }
+    }
+
+    /// <summary>
     /// Afterburner profiles offered by the two drop-downs. The first entry (number
     /// 0) means "do not switch", so the user's own active profile is left alone.
     /// </summary>
@@ -431,6 +515,11 @@ public partial class HardwarePage : System.Windows.Controls.UserControl, INotify
         OnPropertyChanged(nameof(IsNvidiaGtx));
         OnPropertyChanged(nameof(IsIntelGpu));
         OnPropertyChanged(nameof(GpuVendorDisplay));
+        OnPropertyChanged(nameof(GpuSpecSummary));
+        OnPropertyChanged(nameof(UndervoltCoreOffsetLimitMhz));
+        OnPropertyChanged(nameof(UndervoltMemoryOffsetLimitMhz));
+        OnPropertyChanged(nameof(UndervoltCoreOffsetMinMhz));
+        OnPropertyChanged(nameof(UndervoltMemoryOffsetMinMhz));
     }
 }
 
@@ -459,6 +548,26 @@ public bool IsNvidiaGtx =>
         Overview.Gpu.Name.Contains("Intel", System.StringComparison.OrdinalIgnoreCase)
             ? "Intel"
             : Overview.Gpu.Vendor;
+
+    public string GpuSpecSummary => Overview.Gpu.SpecSummary;
+
+    /// <summary>
+    /// Conservative offset envelope from the curated catalog. Unknown NVIDIA
+    /// models get a smaller envelope instead of the full tuning range.
+    /// </summary>
+    public double UndervoltCoreOffsetLimitMhz =>
+        Overview.Gpu.CatalogMatched && Overview.Gpu.SafeCoreOffsetMhz > 0
+            ? Overview.Gpu.SafeCoreOffsetMhz
+            : 100;
+
+    public double UndervoltMemoryOffsetLimitMhz =>
+        Overview.Gpu.CatalogMatched && Overview.Gpu.SafeMemoryOffsetMhz > 0
+            ? Overview.Gpu.SafeMemoryOffsetMhz
+            : 300;
+
+    public double UndervoltCoreOffsetMinMhz => -UndervoltCoreOffsetLimitMhz;
+
+    public double UndervoltMemoryOffsetMinMhz => -UndervoltMemoryOffsetLimitMhz;
 
     public System.Windows.Media.Brush CpuBadgeBackground => CreateVendorBrush(Overview.Cpu.Vendor);
     public System.Windows.Media.Brush GpuBadgeBackground => CreateVendorBrush(Overview.Gpu.Vendor);
@@ -608,11 +717,16 @@ public bool IsNvidiaGtx =>
             var targetVoltage = (int)System.Math.Round(UndervoltTargetVoltageMv);
             var targetPowerLimit = (int)System.Math.Round(UndervoltTargetPowerLimitPercent);
 
+            var coreOffset = (int)System.Math.Round(UndervoltCoreOffsetMhz);
+            var memoryOffset = (int)System.Math.Round(UndervoltMemoryOffsetMhz);
+
             var payload = JsonConvert.SerializeObject(new
             {
                 targetClockMhz = targetClock,
                 voltageMv = targetVoltage,
                 powerLimitPercent = targetPowerLimit,
+                coreOffsetMhz = coreOffset,
+                memoryOffsetMhz = memoryOffset,
                 profile = generatedProfile
             });
 
@@ -625,6 +739,8 @@ public bool IsNvidiaGtx =>
                 viewModel.GpuUndervoltTargetClockMhz = targetClock;
                 viewModel.GpuUndervoltTargetVoltageMv = targetVoltage;
                 viewModel.GpuUndervoltTargetPowerLimitPercent = targetPowerLimit;
+                viewModel.GpuUndervoltCoreOffsetMhz = coreOffset;
+                viewModel.GpuUndervoltMemoryOffsetMhz = memoryOffset;
                 viewModel.GpuUndervoltEnabled = true;
                 GpuUndervoltStatusText = viewModel.GpuUndervoltCurveRequested;
             }
@@ -866,6 +982,9 @@ public bool IsNvidiaGtx =>
             }
 
             UndervoltTargetPowerLimitPercent = viewModel.GpuUndervoltTargetPowerLimitPercent;
+            UndervoltCoreOffsetMhz = viewModel.GpuUndervoltCoreOffsetMhz;
+            UndervoltMemoryOffsetMhz = viewModel.GpuUndervoltMemoryOffsetMhz;
+            UpdateEffectiveClockText();
         }
 
         // Keep a selected profile visible even if the file was momentarily locked

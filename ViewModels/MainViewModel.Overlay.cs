@@ -1900,6 +1900,46 @@ namespace IconGrid.ViewModels
         }
 
         /// <summary>
+        /// Extra core clock offset (MHz) stored in the generated Afterburner profile.
+        /// 0 keeps the stock curve; the range is deliberately conservative.
+        /// </summary>
+        public int GpuUndervoltCoreOffsetMhz
+        {
+            get => _gpuUndervoltCoreOffsetMhz;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    MinGpuUndervoltCoreOffsetMhz,
+                    MaxGpuUndervoltCoreOffsetMhz);
+                if (SetField(ref _gpuUndervoltCoreOffsetMhz, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Extra memory clock offset (MHz) stored in the generated Afterburner profile.
+        /// 0 keeps the stock memory clock; the range is deliberately conservative.
+        /// </summary>
+        public int GpuUndervoltMemoryOffsetMhz
+        {
+            get => _gpuUndervoltMemoryOffsetMhz;
+            set
+            {
+                var clamped = Math.Clamp(
+                    value,
+                    MinGpuUndervoltMemoryOffsetMhz,
+                    MaxGpuUndervoltMemoryOffsetMhz);
+                if (SetField(ref _gpuUndervoltMemoryOffsetMhz, clamped))
+                {
+                    SaveSettingsToConfig();
+                }
+            }
+        }
+
+        /// <summary>
         /// Compact hotspot warning shown at the left end of the gaming overlay. The state
         /// machine lives in <see cref="GpuHotspotAlertState"/> so the overlay and the Hardware
         /// page can share the same telemetry rules.

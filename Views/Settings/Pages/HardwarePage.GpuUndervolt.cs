@@ -48,7 +48,17 @@ namespace IconGrid.Views
                     parts.Add(viewModel?.GpuUndervoltProfileNoCurve ?? "No curve");
                 }
 
-                if (info!.PowerLimitPercent > 0)
+                if (info!.CoreClockOffsetMhz != 0)
+                {
+                    parts.Add($"core {info.CoreClockOffsetMhz:+#;-#;0} MHz");
+                }
+
+                if (info.MemoryClockOffsetMhz != 0)
+                {
+                    parts.Add($"mem {info.MemoryClockOffsetMhz:+#;-#;0} MHz");
+                }
+
+                if (info.PowerLimitPercent > 0)
                 {
                     parts.Add($"{info.PowerLimitPercent}% power");
                 }
@@ -275,7 +285,8 @@ namespace IconGrid.Views
 
     private void RefreshTargetCurveLine()
     {
-        var y = ClockToY(UndervoltTargetClockMhz);
+        var effectiveClock = UndervoltTargetClockMhz + _undervoltCoreOffsetMhz;
+        var y = ClockToY(effectiveClock);
         TargetCurvePoints = new System.Windows.Media.PointCollection
         {
             new System.Windows.Point(CurveChartPadding, y),
@@ -284,8 +295,25 @@ namespace IconGrid.Views
 
         var viewModel = ResolveViewModel();
         GpuCurveChartTargetText = viewModel == null
-            ? $"{UndervoltTargetClockMhz:F0} MHz target"
-            : string.Format(viewModel.GpuCurveChartTargetFormat, (int)System.Math.Round(UndervoltTargetClockMhz));
+            ? $"{effectiveClock:F0} MHz target"
+            : string.Format(viewModel.GpuCurveChartTargetFormat, (int)System.Math.Round(effectiveClock));
+    }
+
+    private void UpdateEffectiveClockText()
+    {
+        var viewModel = ResolveViewModel();
+        var curveClock = (int)System.Math.Round(UndervoltTargetClockMhz);
+        var coreOffset = (int)System.Math.Round(_undervoltCoreOffsetMhz);
+        var memoryOffset = (int)System.Math.Round(_undervoltMemoryOffsetMhz);
+        var effectiveClock = curveClock + coreOffset;
+
+        GpuTuningEffectiveClockText = string.Format(
+            viewModel?.GpuTuningEffectiveFormat ??
+            "Effective max ≈ {0} MHz (curve {1} MHz + core {2:+#;-#;0} MHz, memory {3:+#;-#;0} MHz)",
+            effectiveClock,
+            curveClock,
+            coreOffset,
+            memoryOffset);
     }
 
     private static System.Windows.Media.PointCollection BuildCurvePoints(

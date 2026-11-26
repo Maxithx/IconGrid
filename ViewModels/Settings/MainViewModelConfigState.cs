@@ -43,6 +43,8 @@ namespace IconGrid.ViewModels.Settings
         public int GpuUndervoltTargetClockMhz { get; init; }
         public int GpuUndervoltTargetVoltageMv { get; init; }
         public int GpuUndervoltTargetPowerLimitPercent { get; init; } = 100;
+        public int GpuUndervoltCoreOffsetMhz { get; init; }
+        public int GpuUndervoltMemoryOffsetMhz { get; init; }
         public bool GpuHotspotAlarmEnabled { get; init; }
         public int GpuHotspotAlarmThresholdC { get; init; } = 100;
         public bool ShowDesktopIcon { get; init; }
@@ -135,6 +137,8 @@ namespace IconGrid.ViewModels.Settings
                 GpuUndervoltTargetClockMhz = config.GpuUndervoltTargetClockMhz,
                 GpuUndervoltTargetVoltageMv = config.GpuUndervoltTargetVoltageMv,
                 GpuUndervoltTargetPowerLimitPercent = config.GpuUndervoltTargetPowerLimitPercent,
+                GpuUndervoltCoreOffsetMhz = config.GpuUndervoltCoreOffsetMhz,
+                GpuUndervoltMemoryOffsetMhz = config.GpuUndervoltMemoryOffsetMhz,
                 GpuHotspotAlarmEnabled = config.GpuHotspotAlarmEnabled,
                 GpuHotspotAlarmThresholdC = config.GpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = config.ShowDesktopIcon,

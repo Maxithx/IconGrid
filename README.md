@@ -1,6 +1,6 @@
 # IconGrid
 
-IconGrid is a Windows launcher, hardware control center, and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, live system telemetry, GPU undervolt and power-saving tools, hotspot monitoring, and a dedicated gaming overlay with real-time FPS — all in a launcher that can collapse into a 10px auto-hiding peek strip.
+IconGrid is a Windows launcher, hardware control center, and desktop overlay built with WPF and MVVM. It combines shortcut organization, layout presets, live system telemetry, GPU tuning (undervolt and safe overclock) and power-saving tools, hotspot monitoring, and a dedicated gaming overlay with real-time FPS — all in a launcher that can collapse into a 10px auto-hiding peek strip.
 
 ## Download and unsigned beta
 
@@ -158,33 +158,53 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 
 ## Hardware tools
 
-The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU undervolt and power saving are **NVIDIA-only** and target **GeForce GTX/RTX** cards; undervolt profile switching additionally requires MSI Afterburner with saved profiles.
+The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU tuning and power saving are **NVIDIA-only** and target **GeForce GTX/RTX** cards; tuning profile switching additionally requires MSI Afterburner with saved profiles.
 
 ![IconGrid Hardware page](Assets/git-img/Hardware.png)
 
 ### System diagnostics
 
 - **CPU:** model, cores/threads, live temperature, usage, clock, boost clock, and voltage.
-- **GPU:** model, vendor, live edge temperature, hotspot, core clock, memory clock, VRAM usage, power, fan speed, and voltage.
+- **GPU:** model, vendor, **architecture/generation** (for example **Turing · RTX 20 series**), reference base/boost clock and TDP where the model is in the curated catalog, live edge temperature, hotspot, core clock, memory clock, VRAM usage, power, fan speed, and voltage.
 - **Motherboard:** model and BIOS information.
 - **Memory:** layout, type, speed, timings, module count, and voltage.
 - **Disks:** model, health, size, temperature, power state, activity, read/write rates, and SMART details where the drive supports it.
 
-### GPU undervolt
+### GPU tuning (undervolt and safe overclock)
 
-> **Supports only NVIDIA GTX/RTX.**<br>
-> AMD and Intel GPUs are not supported.<br>
+> **Supports only NVIDIA GeForce GTX/RTX.**<br>
+> AMD and Intel GPUs are not supported for tuning.<br>
 > MSI Afterburner with saved profiles is also required.
 
-The GPU undervolt card drives **MSI Afterburner profiles** instead of writing to the GPU directly — Afterburner owns the signed driver path for the voltage/frequency curve.
+The GPU tuning card drives **MSI Afterburner profiles** instead of writing to the GPU directly — Afterburner owns the signed driver path for the voltage/frequency curve.
 
-- Choose the Afterburner profile to apply while a game is running, and optionally a different profile for idle.
+- **Live GPU status:** core clock, memory clock, voltage, and temperature in a dedicated card.
 - Inspect the stock V/F curve and the selected profile's curve in the built-in chart.
 - Generate an undervolt curve at a target clock and voltage, with a configurable power limit.
-- Save the curve to a profile slot; occupied slots require confirmation before overwrite.
-- Mark profiles as **Active** or **Inactive**, and delete profiles after confirmation.
+- **Safe clock offsets:** core `−150…+150 MHz` and memory `−500…+500 MHz` on known desktop cards. Negative values underclock/undervolt; positive values overclock.
+- **Effective max clock** shows the selected curve target plus the core offset before applying.
+- **Apply tuning** writes the curve, power limit, and offsets to the selected profile and applies it through MSI Afterburner.
+- Save the curve to a profile slot; occupied slots require confirmation before overwrite. Mark profiles as **Active** or **Inactive**, and delete profiles after confirmation.
 - A backup of the Afterburner profile file is written before IconGrid changes it.
-- While a game has focus, IconGrid can also apply a clock ceiling so the card cannot boost above the selected undervolt target.
+- While a game has focus, IconGrid can also apply a clock ceiling so the card cannot boost above the selected tuning target.
+
+#### Supported GPUs
+
+IconGrid ships a curated catalog of common **desktop** GTX/RTX models. The catalog is used to show architecture/generation and reference specs, and to choose a conservative clock-offset envelope. It is not a guarantee that every individual card can reach a given clock.
+
+| Architecture | Generation | Curated models |
+|---|---|---|
+| **Blackwell** | RTX 50 | RTX 5090, 5080, 5070 Ti, 5070, 5060 Ti, 5060 |
+| **Ada Lovelace** | RTX 40 | RTX 4090, 4080 SUPER, 4080, 4070 Ti SUPER, 4070 Ti, 4070 SUPER, 4070, 4060 Ti, 4060 |
+| **Ampere** | RTX 30 | RTX 3090 Ti, 3090, 3080 Ti, 3080, 3070 Ti, 3070, 3060 Ti, 3060, 3050 |
+| **Turing** | RTX 20 | RTX 2080 Ti, 2080 SUPER, 2080, 2070 SUPER, 2070, 2060 SUPER, 2060 |
+| **Turing** | GTX 16 | GTX 1660 Ti, 1660 SUPER, 1660, 1650 SUPER, 1650 |
+| **Pascal** | GTX 10 | GTX 1080 Ti, 1080, 1070 Ti, 1070, 1060, 1050 Ti, 1050 |
+
+- Known desktop models get the full safe offset envelope: **±150 MHz core / ±500 MHz memory**.
+- Unknown NVIDIA models still get architecture detection where possible, but use a stricter **±100 MHz core / ±300 MHz memory** envelope.
+- Laptop GPUs use architecture detection only. Their VRAM, TDP, and safe limits can differ significantly from the desktop card with the same name.
+- The catalog lives in `Helpers/Hardware/NvidiaGpuCatalog.cs` and contains reference VRAM type, bus width, base/boost clock, and TDP for each model.
 
 ### GPU power saving
 
@@ -234,7 +254,7 @@ The **Cleanup** page finds allowlisted cache and maintenance files without delet
 | **GenvejsIkoner** | Shortcut icon settings split by view: **Grid view** (icons per row, row spacing, bottom padding), **Carousel view** (visible icons 1–12), shared **icon size** (82–150%), scrollbar on/off |
 | **Layout** | Layout presets, saved layouts, icon grid slot reservation, window arrangement |
 | **Gaming Overlay** | Overlay **scale** (100–150%), **per-resolution defaults**, **position presets**, **transparent background** + auto-transparent while in game, **text color picker**, **game auto-behavior** (auto-show, restore launcher, auto-close on game end, launcher behavior), **GPU power saving** while the game is in the background, **FPS/ETW setup status**, **Game Resolution** (per-game display resolution switching) |
-| **Hardware** | CPU, GPU, RAM, motherboard, and disk diagnostics with live sensor data; GPU undervolt profiles and hotspot monitoring |
+| **Hardware** | CPU, GPU, RAM, motherboard, and disk diagnostics with live sensor data; GPU architecture/catalog info, undervolt and safe-overclock profiles, and hotspot monitoring |
 | **Cleanup** | Scans allowlisted GPU shader caches and IconGrid maintenance files; shows every found file, lets you select and confirm deletion, and reports freed space |
 | **Monitor row layout (Home)** | Element gaps/dividers/bar gaps for the live monitor strip, gaming overlay background height, and the **ping target** for the "Net" value (Auto → Cloudflare/Google/router, router only, fixed provider, or custom host) |
 | **Skin Studio** | Overlay skin editor: presets, colours, fonts, corner radius, image palette import, live preview, and module/blueprint editing |
@@ -272,7 +292,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 ### Models
 
-- `Models/` contains shared data contracts and enums: `ConfigModel`, `LauncherItem`, `LauncherHideMode`, `GamingOverlayPositionPreset`, layout data, startup mode definitions, and GPU undervolt/power-saving/hotspot settings.
+- `Models/` contains shared data contracts and enums: `ConfigModel`, `LauncherItem`, `LauncherHideMode`, `GamingOverlayPositionPreset`, layout data, startup mode definitions, and GPU tuning/power-saving/hotspot settings.
 
 ### ViewModels
 
@@ -297,7 +317,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 - `Helpers/Launcher/` — `LauncherWindowModeController`, `SingleInstanceGuard`, `SystemMonitor`, `DynamicIconHelper`, `WindowLayoutEngine`, `LauncherWindowInterop`, `DevOverlayController`, `LauncherDragDropHelper`, `LauncherShortcutActions`, `LayoutMenuController`, `PawnIoWarningController`, `MonitorPollingController`
 - `Helpers/Settings/` — config, localization, startup, theme helpers
-- `Helpers/Hardware/` — hardware monitor agent, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM), `NvmlGpuLimitController` (power/clock limits), `AfterburnerProfileController` (undervolt profiles), `GpuPowerSavingState`, and `HotspotHistoryStore`
+- `Helpers/Hardware/` — hardware monitor agent, ETW/FPS pipeline, native FPS agent runner, FPS smoothing, `GameProcessClassifier` (the single "is this a game?" policy), `GpuProcessMemory` (per-process dedicated VRAM), `NvmlGpuLimitController` (power/clock limits), `AfterburnerProfileController` (tuning profiles), `NvidiaGpuCatalog` (curated GTX/RTX architecture and reference specs), `GpuPowerSavingState`, and `HotspotHistoryStore`
 - `Helpers/Maintenance/` — `CleanupService` (allowlisted cache scan and explicit deletion)
 - `Helpers/Skin/` — overlay skin rendering, palette extraction, blueprint defaults, and module templates
 - `Helpers/Logging/` — `AppTrace`, the size-capped shared trace writer
@@ -310,7 +330,7 @@ IconGrid can automatically switch your monitor to a lower resolution before laun
 
 IconGrid uses a multi-process architecture:
 
-1. **Elevated Worker (Admin):** interfaces with `LibreHardwareMonitorLib`, NVIDIA NVML, PawnIO, and MSI Afterburner for low-level telemetry and GPU control (temperatures, clocks, power limits, hotspot, undervolt profiles).
+1. **Elevated Worker (Admin):** interfaces with `LibreHardwareMonitorLib`, NVIDIA NVML, PawnIO, and MSI Afterburner for low-level telemetry and GPU control (temperatures, clocks, power limits, hotspot, undervolt/overclock profiles).
 2. **Standard Non-Elevated UI:** the main launcher and shortcut management run as a standard user.
 
 **Benefits:**
@@ -414,7 +434,7 @@ IconGrid stores user data in `%APPDATA%\IconGrid`:
 
 | File | Content |
 |------|---------|
-| `config.json` | All settings: launcher config, window positions, layout data, language, theme, hide modes, gaming overlay settings, GPU undervolt/power-saving settings, and hotspot alarm settings |
+| `config.json` | All settings: launcher config, window positions, layout data, language, theme, hide modes, gaming overlay settings, GPU tuning/power-saving settings, and hotspot alarm settings |
 | `items.json` | Launcher shortcuts grouped by category/tab (machine-specific) |
 | `monitor-state.json` | Live hardware monitor state (CPU/GPU readings, hotspot history, and rolling hotspot trend) |
 | `hotspot-history.json` | Persistent top-five hotspot readings used by the Hardware page |

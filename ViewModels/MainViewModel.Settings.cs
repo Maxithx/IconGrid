@@ -66,6 +66,14 @@ namespace IconGrid.ViewModels
                 state.GpuUndervoltTargetPowerLimitPercent,
                 70,
                 100);
+            _gpuUndervoltCoreOffsetMhz = Math.Clamp(
+                state.GpuUndervoltCoreOffsetMhz,
+                MinGpuUndervoltCoreOffsetMhz,
+                MaxGpuUndervoltCoreOffsetMhz);
+            _gpuUndervoltMemoryOffsetMhz = Math.Clamp(
+                state.GpuUndervoltMemoryOffsetMhz,
+                MinGpuUndervoltMemoryOffsetMhz,
+                MaxGpuUndervoltMemoryOffsetMhz);
             _gpuHotspotAlarmEnabled = state.GpuHotspotAlarmEnabled;
             _gpuHotspotAlarmThresholdC = Math.Clamp(
                 state.GpuHotspotAlarmThresholdC,
@@ -157,6 +165,8 @@ namespace IconGrid.ViewModels
             _gpuUndervoltTargetClockMhz = 0;
             _gpuUndervoltTargetVoltageMv = 925;
             _gpuUndervoltTargetPowerLimitPercent = 100;
+            _gpuUndervoltCoreOffsetMhz = 0;
+            _gpuUndervoltMemoryOffsetMhz = 0;
             _gpuHotspotAlarmEnabled = false;
             _gpuHotspotAlarmThresholdC = 100;
             _gpuHotspotAlertState?.UpdateSettings(_gpuHotspotAlarmEnabled, _gpuHotspotAlarmThresholdC);
@@ -228,6 +238,8 @@ namespace IconGrid.ViewModels
                 GpuUndervoltTargetClockMhz = _gpuUndervoltTargetClockMhz,
                 GpuUndervoltTargetVoltageMv = _gpuUndervoltTargetVoltageMv,
                 GpuUndervoltTargetPowerLimitPercent = _gpuUndervoltTargetPowerLimitPercent,
+                GpuUndervoltCoreOffsetMhz = _gpuUndervoltCoreOffsetMhz,
+                GpuUndervoltMemoryOffsetMhz = _gpuUndervoltMemoryOffsetMhz,
                 GpuHotspotAlarmEnabled = _gpuHotspotAlarmEnabled,
                 GpuHotspotAlarmThresholdC = _gpuHotspotAlarmThresholdC,
                 ShowDesktopIcon = _showDesktopIcon,

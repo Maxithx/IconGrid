@@ -199,11 +199,26 @@ public static class HardwareInfoProvider
                 var wmiVramBytes = ReadULong(gpu, "AdapterRAM");
                 var lhmVramBytes = MatchLibreHardwareMonitorMemory(lhmMemoryCandidates, name, vendor);
                 var vramBytes = lhmVramBytes > 0 ? lhmVramBytes : wmiVramBytes;
+                // The curated specs are desktop cards. Laptop GPUs often reuse the
+                // same model token with very different VRAM/TDP values, so only the
+                // architecture-family fallback is used there (and the conservative
+                // unknown-model offset envelope stays in force).
+                var isMobileGpu =
+                    name.Contains("Laptop", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("Mobile", StringComparison.OrdinalIgnoreCase);
+                var catalogSpec = isMobileGpu ? null : NvidiaGpuCatalog.Match(name);
+                var displaySpec = catalogSpec ?? NvidiaGpuCatalog.InferFamily(name);
                 candidates.Add(new HardwareGraphicsInfo
                 {
                     Name = name,
                     Vendor = vendor,
                     Vram = vramBytes > 0 ? FormatBytes(vramBytes) : "--",
+                    Architecture = displaySpec?.Architecture ?? "--",
+                    Generation = displaySpec?.Generation ?? "--",
+                    SpecSummary = displaySpec?.SpecSummary ?? string.Empty,
+                    CatalogMatched = catalogSpec != null,
+                    SafeCoreOffsetMhz = catalogSpec?.SafeCoreOffsetMhz ?? 100,
+                    SafeMemoryOffsetMhz = catalogSpec?.SafeMemoryOffsetMhz ?? 300,
                     SortValue = vramBytes
                 });
             }
@@ -842,6 +857,12 @@ public sealed class HardwareGraphicsInfo
     public string Name { get; init; } = "--";
     public string Vendor { get; init; } = "GPU";
     public string Vram { get; init; } = "--";
+    public string Architecture { get; init; } = "--";
+    public string Generation { get; init; } = "--";
+    public string SpecSummary { get; init; } = string.Empty;
+    public bool CatalogMatched { get; init; }
+    public int SafeCoreOffsetMhz { get; init; } = 100;
+    public int SafeMemoryOffsetMhz { get; init; } = 300;
     public ulong SortValue { get; init; }
 }
 

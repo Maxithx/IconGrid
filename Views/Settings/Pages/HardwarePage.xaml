@@ -453,10 +453,17 @@
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
                                             <TextBlock Text="{Binding HardwareModelLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
                                             <TextBlock Grid.Row="1" Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                        Text="{Binding Overview.Gpu.Name, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Row="2"
+                                                       Margin="0,6,0,0"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}"
+                                                       Text="{Binding GpuSpecSummary, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                         </Grid>
                                         <WrapPanel Margin="-6,18,0,0">
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
@@ -464,6 +471,13 @@
                                                     <TextBlock Text="{Binding HardwareVendorLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
                                                     <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
                                                                Text="{Binding GpuVendorDisplay, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{StaticResource HardwareMetricTileStyle}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding HardwareArchitectureLabelText}" Style="{StaticResource TemplateSmallTextStyle}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource TemplateCardTitleStyle}"
+                                                               Text="{Binding Overview.Gpu.Architecture, RelativeSource={RelativeSource AncestorType={x:Type views:HardwarePage}}}" />
                                                 </StackPanel>
                                             </Border>
                                             <Border Style="{StaticResource HardwareMetricTileStyle}">
@@ -910,7 +924,8 @@
                             ProfileRowIdleRequested="ProfileRowIdle_Click"
                             ProfileRowSaveRequested="ProfileRowSave_Click"
                             ProfileRowDeleteRequested="ProfileRowDelete_Click"
-                            RefreshStatusRequested="GpuUndervoltRefreshButton_Click" />
+                            RefreshStatusRequested="GpuUndervoltRefreshButton_Click"
+                            ApplyTuningRequested="GpuUndervoltGenerateCurve_Click" />
 
                         <views:HardwareHotspotSection />
                     </StackPanel>

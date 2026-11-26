@@ -117,6 +117,12 @@ namespace IconGrid.ViewModels
         private int _gpuUndervoltTargetClockMhz = 0;
         private int _gpuUndervoltTargetVoltageMv = 0;
         private int _gpuUndervoltTargetPowerLimitPercent = 100;
+        private int _gpuUndervoltCoreOffsetMhz = 0;
+        private int _gpuUndervoltMemoryOffsetMhz = 0;
+        public const int MinGpuUndervoltCoreOffsetMhz = -150;
+        public const int MaxGpuUndervoltCoreOffsetMhz = 150;
+        public const int MinGpuUndervoltMemoryOffsetMhz = -500;
+        public const int MaxGpuUndervoltMemoryOffsetMhz = 500;
         private bool _gpuHotspotAlarmEnabled = false;
         private int _gpuHotspotAlarmThresholdC = 100;
         public const int MinGpuHotspotAlarmCelsius = 90;

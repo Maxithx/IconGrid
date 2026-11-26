@@ -15,10 +15,15 @@ public sealed record AfterburnerProfileInfo(
     int PowerLimitPercent,
     int ThermalLimitC,
     int CoreClockOffsetMhz,
+    int MemoryClockOffsetMhz,
     int FanPercent,
     bool HasVoltageCurve)
 {
-    public bool IsEmpty => PowerLimitPercent == 0 && CoreClockOffsetMhz == 0 && !HasVoltageCurve;
+    public bool IsEmpty =>
+        PowerLimitPercent == 0 &&
+        CoreClockOffsetMhz == 0 &&
+        MemoryClockOffsetMhz == 0 &&
+        !HasVoltageCurve;
 
     /// <summary>Short, localized-neutral label used by the settings drop-downs.</summary>
     public string DisplayName
@@ -39,7 +44,12 @@ public sealed record AfterburnerProfileInfo(
 
             if (CoreClockOffsetMhz != 0)
             {
-                parts.Add($"{(CoreClockOffsetMhz > 0 ? "+" : string.Empty)}{CoreClockOffsetMhz} MHz");
+                parts.Add($"core {(CoreClockOffsetMhz > 0 ? "+" : string.Empty)}{CoreClockOffsetMhz} MHz");
+            }
+
+            if (MemoryClockOffsetMhz != 0)
+            {
+                parts.Add($"mem {(MemoryClockOffsetMhz > 0 ? "+" : string.Empty)}{MemoryClockOffsetMhz} MHz");
             }
 
             if (FanPercent > 0)
@@ -122,6 +132,7 @@ public sealed class AfterburnerProfileController
                     ParseInt(values, "PowerLimit"),
                     ParseInt(values, "ThermalLimit"),
                     ParseInt(values, "CoreClkBoost"),
+                    ParseInt(values, "MemClkBoost"),
                     ParseInt(values, "FanSpeed"),
                     values.TryGetValue("VFCurve", out var curve) &&
                     !string.IsNullOrWhiteSpace(curve) &&
@@ -311,7 +322,13 @@ public sealed class AfterburnerProfileController
     /// stopped, so only the elevated agent calls this. The profile file is backed up
     /// before it is touched.
     /// </summary>
-    public AfterburnerApplyResult WriteUndervoltCurve(int targetClockMhz, int profileNumber, int voltageMv = 0, int powerLimitPercent = 0)
+    public AfterburnerApplyResult WriteUndervoltCurve(
+        int targetClockMhz,
+        int profileNumber,
+        int voltageMv = 0,
+        int powerLimitPercent = 0,
+        int? coreOffsetMhz = null,
+        int? memoryOffsetMhz = null)
     {
         if (!IsAvailable)
         {
@@ -365,16 +382,40 @@ public sealed class AfterburnerProfileController
                 points[i] = points[i] with { ClockMhz = cappedClock };
             }
 
+            var coreOffset = coreOffsetMhz.HasValue
+                ? Math.Clamp(coreOffsetMhz.Value, -150, 150)
+                : (int?)null;
+            var memoryOffset = memoryOffsetMhz.HasValue
+                ? Math.Clamp(memoryOffsetMhz.Value, -500, 500)
+                : (int?)null;
+
             var hex = EncodeCurve(stock.HeaderFlags, stock.DeclaredCount, stock.TotalRecords, points);
             var backupPath = WriteBackup(path);
-            var section = BuildProfileSection(text, profileNumber, hex, powerLimitPercent);
+            var section = BuildProfileSection(
+                text,
+                profileNumber,
+                hex,
+                powerLimitPercent,
+                coreOffset,
+                memoryOffset);
             var updated = ReplaceProfileSection(text, profileNumber, section);
             File.WriteAllText(path, updated);
 
             var message =
-                $"Undervolt curve written to Afterburner profile {profileNumber}: " +
+                $"Tuning curve written to Afterburner profile {profileNumber}: " +
                 $"max {cappedClock:F0} MHz from {points[firstIndex].VoltageMv:F0} mV " +
-                $"({points.Count - firstIndex} points flattened). Backup: {backupPath}";
+                $"({points.Count - firstIndex} points flattened)";
+            if (coreOffset.HasValue)
+            {
+                message += $", core offset {coreOffset.Value:+#;-#;0} MHz";
+            }
+
+            if (memoryOffset.HasValue)
+            {
+                message += $", memory offset {memoryOffset.Value:+#;-#;0} MHz";
+            }
+
+            message += $". Backup: {backupPath}";
 
             _log?.Invoke(message);
             return new AfterburnerApplyResult(true, true, message);
@@ -631,7 +672,13 @@ public sealed class AfterburnerProfileController
         return result;
     }
 
-    private static string BuildProfileSection(string text, int profileNumber, string curveHex, int powerLimitPercent = 0)
+    private static string BuildProfileSection(
+        string text,
+        int profileNumber,
+        string curveHex,
+        int powerLimitPercent = 0,
+        int? coreOffsetMhz = null,
+        int? memoryOffsetMhz = null)
     {
         var defaults = ReadSectionValues(text, "Defaults") ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var keys = new[] { "Format", "PowerLimit", "ThermalLimit", "ThermalPrioritize", "CoreClkBoost", "VFCurve", "MemClkBoost", "FanMode", "FanSpeed" };
@@ -645,7 +692,11 @@ public sealed class AfterburnerProfileController
                 ? curveHex
                 : key == "PowerLimit" && powerLimitPercent is >= 50 and <= 100
                     ? powerLimitPercent.ToString()
-                    : defaults.TryGetValue(key, out var existing) ? existing : string.Empty;
+                    : key == "CoreClkBoost" && coreOffsetMhz.HasValue
+                        ? coreOffsetMhz.Value.ToString()
+                        : key == "MemClkBoost" && memoryOffsetMhz.HasValue
+                            ? memoryOffsetMhz.Value.ToString()
+                            : defaults.TryGetValue(key, out var existing) ? existing : string.Empty;
 
             builder.Append(key).Append('=').AppendLine(value);
         }

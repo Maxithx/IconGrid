@@ -1276,7 +1276,9 @@ exit:
                 request.TargetClockMhz,
                 request.Profile,
                 request.VoltageMv,
-                request.PowerLimitPercent);
+                request.PowerLimitPercent,
+                request.CoreOffsetMhz,
+                request.MemoryOffsetMhz);
             lastMessage = writeResult.Message;
 
             if (!writeResult.Success)
@@ -1308,6 +1310,12 @@ exit:
 
         /// <summary>Optional Afterburner power limit (percent). 0 = profile default.</summary>
         public int PowerLimitPercent { get; set; }
+
+        /// <summary>Optional core clock offset (MHz) written as CoreClkBoost.</summary>
+        public int CoreOffsetMhz { get; set; }
+
+        /// <summary>Optional memory clock offset (MHz) written as MemClkBoost.</summary>
+        public int MemoryOffsetMhz { get; set; }
 
         /// <summary>Optional action. Empty/"write" writes a curve; "delete" removes the profile.</summary>
         public string? Action { get; set; }

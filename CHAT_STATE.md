@@ -2432,6 +2432,28 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - `GameResolutionPage`: aktuel opløsning + restore-toggle er samlet i ét gruppekort.
 - `MonitorRowLayoutSection`: de fem indlejrede sektionskort (element gaps, dividers, bar gaps, overlay-baggrund, ping target) bruger nu `SettingsGroupCardStyle` i stedet for `StartsideSectionCardStyle`.
 - Øvrige sider (Hardware, Layout, Cleanup, Hjælp, About/Test, Skin Studio) bruger allerede kort/indlejrede kort eller er en dedikeret editor; ingen ændring nødvendig.
+
+### GPU tuning — fase 1 (2026-11-26)
+
+- UI-navn ændret fra “GPU undervolt” til **“GPU tuning”** (en+da) med opdateret intro/header om undervolt + sikker overclock.
+- Nye config/state/VM-felter: `GpuUndervoltCoreOffsetMhz` (−150…+150) og `GpuUndervoltMemoryOffsetMhz` (−500…+500), inkl. persistence, reset og `MainViewModelConfigState`.
+- `AfterburnerProfileController` læser nu `MemClkBoost`, viser core/mem-offset i profilnavne, og `WriteUndervoltCurve` skriver valgfri `CoreClkBoost`/`MemClkBoost` (clampet til ±150/±500 med mindre UI-grænser).
+- Agentens `UndervoltRequest` accepterer `coreOffsetMhz`/`memoryOffsetMhz`; UI-requesten sender dem med.
+- Nyt gruppekort **“Sikre clock-offsets”** i `GpuUndervoltSection.xaml`: core-slider −150…+150 MHz, memory-slider −500…+500 MHz, effektiv max-clock-visning og advarsel om at 2000 MHz er et mål, ikke en garanti.
+- `HardwarePage` opdaterer profil-listen med core/mem-offset og viser effektiv max-clock; kurvens target-linje følger valgt target + core-offset.
+- Nyt live-kort **“Live GPU-status”** med fire felter fra `SystemMonitor`: core-clock, memory-clock (fx 7000 MHz), spænding og temperatur. Kortet står nu lige efter MSI Afterburner-kortet og før undervolt-kurven.
+- Ny **“Anvend tuning”**-knap i statuskortet: skriver kurve, power limit og offsets til profilen og anvender den via Afterburner. Eventet videresendes gennem `GpuUndervoltSection`.
+- Lokalisering: 15 nye nøgler i både en+da; `check-loc.ps1`: 535/535 keys, 0 manglende.
+- Help-teksten på Hjælp-siden er opdateret fra “GPU undervolt” til “GPU tuning (undervolt og overclock)”.
+- Negative core/memory offsets understøttes nu i både UI, VM, config og Afterburner-skriveren.
+- Nyt `Helpers/Hardware/NvidiaGpuCatalog.cs`: kurateret liste over GTX 10/16 og RTX 20/30/40/50 med arkitektur, generation, VRAM-type, bus, clock, TDP og sikre offset-ranges. Ukendte NVIDIA-modeller får arkitektur via familie-fallback og konservative ±100/±300 MHz offset-grænser.
+- Hardware → GPU viser nu arkitektur-tile (fx **Turing**) og en spec-linje under GPU-navnet, fx `Turing · RTX 20 series · 8 GB GDDR6 · 256-bit · 1470–1650 MHz · 175 W TDP`.
+- GPU tuningens core/memory-slider bruger catalogets sikre offset-envelope; ukendte modeller får mindre range.
+- Laptop-GPU'er matches ikke på desktop-specs; de får kun arkitektur-fallback og konservativ range.
+- Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 01:31:09 (DLL 1.917.440 bytes).
+- Næste fase (ikke implementeret): Fan Speed Auto/Manual 40–100 %, evt. test-presets og temp-baseret nødblæsning.
+- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+
 - Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 23:51:25 (DLL 1.885.696 bytes).
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
 

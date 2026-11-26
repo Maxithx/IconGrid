@@ -78,6 +78,20 @@ public class ConfigModel
     /// 100 keeps the profile's normal power limit.
     /// </summary>
     public int GpuUndervoltTargetPowerLimitPercent { get; set; } = 100;
+    /// <summary>
+    /// Core clock offset (MHz) written into the generated Afterburner profile.
+    /// 0 keeps the stock curve; negative values underclock and positive values
+    /// overclock. The UI limits this to a conservative range so a failed experiment
+    /// cannot push the card far beyond its rated boost clock.
+    /// </summary>
+    public int GpuUndervoltCoreOffsetMhz { get; set; } = 0;
+    /// <summary>
+    /// Memory clock offset (MHz) written into the generated Afterburner profile.
+    /// 0 keeps the stock memory clock; negative values underclock and positive
+    /// values overclock. Memory instability usually shows up as artifacts or a
+    /// driver reset, so the UI keeps the range conservative.
+    /// </summary>
+    public int GpuUndervoltMemoryOffsetMhz { get; set; } = 0;
     /// <summary>Opt-in warning when the GPU hotspot gets too hot (cooler contact check).</summary>
     public bool GpuHotspotAlarmEnabled { get; set; } = false;
     // Hot spot alarm threshold in °C (90-105). The delta warning (>15 °C above
