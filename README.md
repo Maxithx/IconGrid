@@ -158,7 +158,13 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 
 ## Hardware tools
 
-The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported). GPU tuning and power saving are **NVIDIA-only** and target **GeForce GTX/RTX** cards; tuning profile switching additionally requires MSI Afterburner with saved profiles.
+### NVIDIA GeForce GTX/RTX only
+
+> **GPU tuning and GPU power saving are NVIDIA-only and target GeForce GTX/RTX cards.**<br>
+> AMD and Intel GPUs are not supported for these features.<br>
+> GPU tuning profile switching additionally requires MSI Afterburner with saved profiles.
+
+The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported).
 
 ![IconGrid Hardware page](Assets/git-img/Hardware.png)
 
