@@ -124,6 +124,38 @@ namespace IconGrid.Helpers
             return item;
         }
 
+        /// <summary>
+        /// Resolves the icon source stored inside a .lnk file. Some shell shortcuts
+        /// (notably "This PC") use a resource id such as imageres.dll,-109; extracting
+        /// the icon directly from that library is more reliable than extracting the
+        /// shortcut icon through the shell.
+        /// </summary>
+        public static bool TryGetShortcutIcon(string shortcutPath, out string iconPath, out int iconIndex)
+        {
+            iconPath = shortcutPath;
+            iconIndex = 0;
+
+            if (!IsShortcut(shortcutPath) || !TryResolveShortcut(shortcutPath, out var shortcut))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortcut.IconPath))
+            {
+                iconPath = shortcut.IconPath!;
+                iconIndex = shortcut.IconIndex;
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(shortcut.TargetPath))
+            {
+                iconPath = shortcut.TargetPath!;
+                return true;
+            }
+
+            return false;
+        }
+
         private static bool TryResolveShortcut(string shortcutPath, out ShortcutTarget shortcut)
         {
             shortcut = default;

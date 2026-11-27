@@ -10,6 +10,8 @@ Builds a standard Windows `setup.exe` with Inno Setup 6.
 
 The installer is **self-contained**: the .NET 10 Desktop runtime files are bundled, so the target machine does not need a separate .NET installation.
 
+It also adds the installing Windows user to `Performance Log Users` (`Brugere af ydelseslog`) for FPS/ETW access. A sign-out/in or reboot is required before the new group membership is active.
+
 ## Build
 
 From the repository root:

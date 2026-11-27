@@ -894,10 +894,10 @@ namespace IconGrid.Views
                 OverlayScaleTitleText = "Overlay størrelse";
                 OverlayScaleIntroText = "Juster overlayets fysiske størrelse og standard scale per opløsning. Træk i sliders her, eller brug overlayets egen slider — begge gemmer automatisk.";
                 FpsSetupTitleText = "FPS setup status";
-                FpsSetupIntroText = "IconGrid FPS via ETW afhænger af, at den aktuelle Windows-bruger har den rigtige tracing-adgang. Denne sektion tjekker det kendte krav om Brugere af ydelseslog.";
+                FpsSetupIntroText = "IconGrid FPS via ETW kræver adgang til ydelsesloggen. Installeren tilføjer den installerede bruger automatisk; log ud/ind eller genstart Windows efter installation. Her kan du tjekke status og køre fixet manuelt.";
                 RefreshFpsSetupButtonText = "Opdater FPS setup-status";
                 RunFpsSetupFixButtonText = "Kør FPS setup-fix (Admin)";
-                RunFpsSetupFixHelpText = "Kun nødvendig hvis den aktuelle bruger mangler medlemskab af Brugere af ydelseslog.";
+                RunFpsSetupFixHelpText = "Bruges til portable ZIP eller hvis installationen ikke kunne tilføje brugeren til Brugere af ydelseslog.";
                 TestFpsPipelineButtonText = "Test FPS-pipeline";
                 TestFpsPipelineHelpText = "Kører ETW-testen og viser derefter gaming overlayet med simulerede FPS/FT-værdier i 10 sekunder.";
                 TechnicalDetailsTitleText = "Tekniske detaljer";
@@ -970,10 +970,10 @@ namespace IconGrid.Views
                 OverlayScaleTitleText = "Overlay scale";
                 OverlayScaleIntroText = "Adjust the overlay's physical size and default scale per resolution. Drag any slider here, or use the overlay's own slider — both save automatically.";
                 FpsSetupTitleText = "FPS setup status";
-                FpsSetupIntroText = "IconGrid FPS via ETW depends on the current Windows user having the right tracing access. This section checks the known Performance Log Users requirement.";
+                FpsSetupIntroText = "IconGrid FPS via ETW needs performance-log access. The installer adds the installing user automatically; sign out/in or restart Windows after installation. You can check status and run the fix manually here.";
                 RefreshFpsSetupButtonText = "Refresh FPS setup status";
                 RunFpsSetupFixButtonText = "Run FPS setup fix (Admin)";
-                RunFpsSetupFixHelpText = "Only needed when the current user is missing Performance Log Users membership.";
+                RunFpsSetupFixHelpText = "Use this for the portable ZIP or if installation could not add the user to Performance Log Users.";
                 TestFpsPipelineButtonText = "Test FPS pipeline";
                 TestFpsPipelineHelpText = "Runs the ETW probe, then shows the gaming overlay with simulated FPS/FT values for 10 seconds.";
                 TechnicalDetailsTitleText = "Technical details";

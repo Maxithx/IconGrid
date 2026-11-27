@@ -398,8 +398,57 @@ namespace IconGrid.Helpers
                 return;
             }
 
-            var item = _viewModel.CreateCustomShortcut(template.DisplayName, template.FullPath, targetCategory, arguments: null, iconPath: template.FullPath, iconIndex: 0);
-            _viewModel.UpdateItemIcon(item, template.FullPath, 0);
+            var iconPath = template.FullPath;
+            var iconIndex = 0;
+            if (ShortcutHelper.TryGetShortcutIcon(template.FullPath, out var resolvedIconPath, out var resolvedIconIndex))
+            {
+                iconPath = resolvedIconPath;
+                iconIndex = resolvedIconIndex;
+            }
+
+            var item = _viewModel.CreateCustomShortcut(template.DisplayName, template.FullPath, targetCategory, arguments: null, iconPath: iconPath, iconIndex: iconIndex);
+            _viewModel.UpdateItemIcon(item, iconPath, iconIndex);
+        }
+
+        /// <summary>
+        /// Refreshes Windows shortcut icons from the icon location stored inside each .lnk.
+        /// This repairs cached items whose icon came from the shortcut shell wrapper instead
+        /// of the actual icon library (for example "This PC" / "Denne computer").
+        /// </summary>
+        public void RefreshWindowsShortcutIcons()
+        {
+            var changed = false;
+
+            foreach (var item in _viewModel.Items)
+            {
+                if (!string.Equals(item.Category, "Windows", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(item.Path) ||
+                    !item.Path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ||
+                    !File.Exists(item.Path))
+                {
+                    continue;
+                }
+
+                if (!ShortcutHelper.TryGetShortcutIcon(item.Path, out var iconPath, out var iconIndex))
+                {
+                    continue;
+                }
+
+                var pathChanged = !string.Equals(item.IconPath, iconPath, StringComparison.OrdinalIgnoreCase);
+                var indexChanged = item.IconIndex != iconIndex;
+                if (!pathChanged && !indexChanged)
+                {
+                    continue;
+                }
+
+                _viewModel.UpdateItemIcon(item, iconPath, iconIndex);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                _viewModel.SaveItemsToFile();
+            }
         }
 
         private static string NormalizeToSystemRootToken(string path)

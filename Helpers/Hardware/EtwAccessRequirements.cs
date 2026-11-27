@@ -61,22 +61,15 @@ internal static class EtwAccessRequirements
     {
         try
         {
-            // Prefer the localized group name from this Windows installation. Include both
-            // known names as fallbacks so the fix also works on English/Danish systems when
-            // SID translation is unavailable.
-            var groupNames = new[]
-            {
-                groupDisplayName,
-                DanishPerformanceLogUsersName,
-                EnglishPerformanceLogUsersName
-            }
-            .Where(name => !string.IsNullOrWhiteSpace(name) && !name.Contains(" / ", StringComparison.Ordinal))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-            var commands = groupNames.Select(group =>
-                $"net localgroup \"{group}\" \"{userDisplayName}\" /add");
-            var script = string.Join("; ", commands);
+            // Resolve the built-in group by its well-known SID instead of relying on a
+            // localized display name. This avoids failures when the translated name
+            // includes a scope such as "BUILTIN\Brugere af ydelseslog".
+            var escapedUser = userDisplayName.Replace("'", "''");
+            var script =
+                "$g = Get-LocalGroup -SID 'S-1-5-32-559' -ErrorAction Stop; " +
+                $"Add-LocalGroupMember -Group $g -Member '{escapedUser}' -ErrorAction Stop; " +
+                $"Write-Host ('Added {escapedUser} to ' + $g.Name + '.'); " +
+                "Start-Sleep -Seconds 2";
 
             var startInfo = new ProcessStartInfo
             {

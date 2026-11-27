@@ -75,6 +75,7 @@ namespace IconGrid.Views.Launcher
                 PowerShellPath,
                 ShowInputBox);
             _shortcutActions.LoadWindowsShortcuts();
+            _shortcutActions.RefreshWindowsShortcutIcons();
             _shortcutActions.ApplyWindowsShortcutLanguage();
             _layoutMenuController = new LayoutMenuController(
                 this,

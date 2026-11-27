@@ -52,6 +52,14 @@ public sealed class HotspotHistoryStore
                         .Where(entry => entry.HotspotC > 0)
                         .OrderByDescending(entry => entry.HotspotC)
                         .Take(MaxEntries));
+
+                    // Older history entries stored the process name (PathOfExile.exe)
+                    // while newer entries use the FPS target's display name
+                    // (PathOfExile). Normalize both so the table stays consistent.
+                    foreach (var entry in store._entries)
+                    {
+                        entry.GameName = NormalizeGameName(entry.GameName);
+                    }
                 }
             }
         }
@@ -64,6 +72,24 @@ public sealed class HotspotHistoryStore
     }
 
     public IReadOnlyList<HotspotHistoryEntry> Top => _entries;
+
+    /// <summary>
+    /// Returns a stable display name for a game regardless of whether the caller
+    /// captured a display name or a process name. This keeps mixed history entries
+    /// such as "PathOfExile" and "PathOfExile.exe" as one game name.
+    /// </summary>
+    public static string? NormalizeGameName(string? gameName)
+    {
+        if (string.IsNullOrWhiteSpace(gameName))
+        {
+            return null;
+        }
+
+        var trimmed = gameName.Trim();
+        return trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+            ? trimmed[..^4]
+            : trimmed;
+    }
 
     /// <summary>Removes every recorded reading and persists the empty list.</summary>
     public void Clear()
@@ -93,6 +119,8 @@ public sealed class HotspotHistoryStore
         {
             return false;
         }
+
+        gameName = NormalizeGameName(gameName);
 
         var bucket = new DateTime(
             capturedAtUtc.Year,

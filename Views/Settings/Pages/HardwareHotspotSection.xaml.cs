@@ -147,9 +147,7 @@ namespace IconGrid.Views
                     entry.GpuMemoryClock ?? "—",
                     entry.GpuMemoryUsage ?? "—",
                     entry.GpuPower ?? "—",
-                    string.IsNullOrWhiteSpace(entry.GameName)
-                        ? viewModel.GpuHotspotHistoryNoGame
-                        : entry.GameName))
+                    ResolveGameName(viewModel, entry)))
                 .ToList();
 
             if (!HotspotHistoryRows.SequenceEqual(history))
@@ -205,9 +203,7 @@ namespace IconGrid.Views
                     topEntry.EdgeC,
                     topEntry.DeltaC,
                     topEntry.CapturedAtUtc.ToLocalTime(),
-                    string.IsNullOrWhiteSpace(topEntry.GameName)
-                        ? viewModel.GpuHotspotHistoryNoGame
-                        : topEntry.GameName,
+                    ResolveGameName(viewModel, topEntry),
                     viewModel.GpuHotspotAlarmThresholdC);
             }
             else
@@ -255,9 +251,19 @@ namespace IconGrid.Views
                 entry.EdgeC,
                 entry.DeltaC,
                 entry.CapturedAtUtc.ToLocalTime(),
-                string.IsNullOrWhiteSpace(entry.GameName)
-                    ? viewModel.GpuHotspotHistoryNoGame
-                    : entry.GameName);
+                ResolveGameName(viewModel, entry));
+
+        /// <summary>
+        /// Normalizes legacy process names ("PathOfExile.exe") and FPS-target
+        /// display names ("PathOfExile") to one consistent label in the table.
+        /// </summary>
+        private static string ResolveGameName(MainViewModel viewModel, HotspotHistoryEntry entry)
+        {
+            var gameName = HotspotHistoryStore.NormalizeGameName(entry.GameName);
+            return string.IsNullOrWhiteSpace(gameName)
+                ? viewModel.GpuHotspotHistoryNoGame
+                : gameName;
+        }
 
         private void HotspotTestButton_Click(object sender, RoutedEventArgs e)
         {

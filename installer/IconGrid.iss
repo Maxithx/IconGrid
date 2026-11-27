@@ -58,4 +58,5 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingD
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""$g = Get-LocalGroup -SID 'S-1-5-32-559' -ErrorAction SilentlyContinue; if ($g) {{ Add-LocalGroupMember -Group $g -Member '{username}' -ErrorAction SilentlyContinue }}"""; Flags: runhidden waituntilterminated; StatusMsg: "Adding the current user to Performance Log Users..."
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

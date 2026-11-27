@@ -162,7 +162,7 @@ This applies to games launched both **from IconGrid** and **externally** (Steam,
 
 > **GPU tuning and GPU power saving are NVIDIA-only and target GeForce GTX/RTX cards.**<br>
 > AMD and Intel GPUs are not supported for these features.<br>
-> GPU tuning profile switching additionally requires MSI Afterburner with saved profiles.
+> GPU tuning additionally requires MSI Afterburner installed (start it once so it creates its profile file). IconGrid creates and saves the tuning profiles itself.
 
 The **Hardware** page combines system diagnostics with GPU control. Sensor data comes from the elevated hardware-monitor agent (`LibreHardwareMonitorLib`, NVIDIA NVML, and PawnIO where supported).
 
@@ -180,7 +180,7 @@ The **Hardware** page combines system diagnostics with GPU control. Sensor data 
 
 > **Supports only NVIDIA GeForce GTX/RTX.**<br>
 > AMD and Intel GPUs are not supported for tuning.<br>
-> MSI Afterburner with saved profiles is also required.
+> MSI Afterburner must be installed and started once; IconGrid creates and saves the tuning profiles.
 
 The GPU tuning card drives **MSI Afterburner profiles** instead of writing to the GPU directly — Afterburner owns the signed driver path for the voltage/frequency curve.
 
@@ -399,7 +399,7 @@ A game shows hundreds of MB to several GB while it is focused, and collapses to 
 
 ### Important Windows requirement
 
-The current Windows user may need to be added to `Performance Log Users` (Danish: `Brugere af ydelseslog`) for ETW to work. After adding, sign out/in or reboot.
+The installer automatically adds the installing Windows user to `Performance Log Users` (Danish: `Brugere af ydelseslog`) for ETW/FPS access. Sign out/in or reboot once after installation so the new group membership is active. Portable-ZIP users can use **Run FPS setup fix (Admin)** on the Gaming Overlay page.
 
 ### Currently tested games (2026-11-25)
 

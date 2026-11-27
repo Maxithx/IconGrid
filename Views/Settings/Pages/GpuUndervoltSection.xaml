@@ -24,6 +24,15 @@
                 </Style.Triggers>
             </Style>
 
+            <Style x:Key="GpuTuningWarningTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="#F59E0B" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                        <Setter Property="Foreground" Value="#B45309" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="GpuTuningHistoryRowStyle" TargetType="Border">
                 <Setter Property="BorderBrush" Value="#2E2E2E" />
                 <Setter Property="BorderThickness" Value="0,1,0,0" />
@@ -41,16 +50,48 @@
                                                    MaxWidth="680"
                                                    HorizontalAlignment="Left"
                                                    TextWrapping="Wrap"
+                                                   FontSize="14"
                                                    Text="{Binding DataContext.GpuUndervoltIntro, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}"
                                                    Style="{StaticResource TemplateHeroBodyStyle}" />
-                                        <TextBlock Margin="0,0,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuUndervoltNvidiaOnlyNote, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
+                                        <Border MaxWidth="680"
+                                                Margin="0,0,0,4"
+                                                Padding="12,10"
+                                                HorizontalAlignment="Left"
+                                                BorderThickness="1"
+                                                CornerRadius="6">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#1AF59E0B" />
+                                                    <Setter Property="BorderBrush" Value="#F59E0B" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.IsLightTheme, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                            <Setter Property="Background" Value="#FFF7E6" />
+                                                            <Setter Property="BorderBrush" Value="#D97706" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Margin="0,0,9,0"
+                                                           VerticalAlignment="Top"
+                                                           FontFamily="Segoe Fluent Icons"
+                                                           FontSize="16"
+                                                           Style="{StaticResource GpuTuningWarningTextStyle}"
+                                                           Text="&#xE7BA;" />
+                                                <StackPanel MaxWidth="620">
+                                                    <TextBlock FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               TextWrapping="Wrap"
+                                                               Style="{StaticResource GpuTuningWarningTextStyle}"
+                                                               Text="{Binding DataContext.GpuUndervoltUnsupportedVendors, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
+                                                    <TextBlock Margin="0,3,0,0"
+                                                               FontSize="12"
+                                                               TextWrapping="Wrap"
+                                                               Text="{Binding DataContext.GpuUndervoltNvidiaOnlyNote, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}"
+                                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
                                         <Border Style="{StaticResource SettingsGroupCardStyle}">
                                             <StackPanel>
                                                 <Grid>
