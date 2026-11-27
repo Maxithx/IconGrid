@@ -2472,7 +2472,7 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - Hotspot-historikkens spillenavn er nu ensartet: `HotspotHistoryStore.NormalizeGameName()` fjerner `.exe`, så gamle poster (`PathOfExile.exe`) og nye FPS-target-navne (`PathOfExile`) vises ens. Normaliseringen sker både ved indlæsning, ved nye målinger og i UI (også hvis en ældre agent skriver historikken). Build 0/0, deployet til `C:\IconGrid`.
 - Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` med FPS/ETW-gruppefix + GPU tuning-warning. Self-contained installer genbygget kl. 03:03:28 (59.757.215 bytes) med `[Run]`-tilføjelse til Performance Log Users. Beta 6-releasen indeholder stadig den gamle adfærd; nyt release kræver brugerens godkendelse.
 - Næste fase (ikke implementeret): Fan Speed Auto/Manual 40–100 %, evt. test-presets og temp-baseret nødblæsning.
-- IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
+- COMMITTET/PUSHET 2026-11-27 — commit `a7256a8` (`Fix ETW setup, shortcut icons, and GPU tuning UI`) på `main`.
 
 - Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 23:51:25 (DLL 1.885.696 bytes).
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
