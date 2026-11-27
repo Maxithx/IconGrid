@@ -960,6 +960,11 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
                                                    Text="{Binding DataContext.GpuPowerSavingClockLimitPercent, RelativeSource={RelativeSource AncestorType=Window}, StringFormat={}{0}%}" />
                                     </Grid>
+                                    <TextBlock Margin="0,4,0,0"
+                                               HorizontalAlignment="Right"
+                                               FontSize="12"
+                                               Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               Text="{Binding GpuPowerSavingClockLimitMhzText, RelativeSource={RelativeSource AncestorType={x:Type views:GamingOverlayPage}}}" />
                                         </StackPanel>
                                     </Border>
 

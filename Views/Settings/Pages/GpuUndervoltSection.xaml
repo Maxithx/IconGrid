@@ -628,26 +628,5 @@
                                                    Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Style="{StaticResource SettingsGroupCardStyle}">
-                                            <StackPanel>
-                                        <TextBlock Margin="0,0,0,0"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Text="{Binding DataContext.GpuUndervoltStatusTitle, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}"
-                                                   Foreground="{Binding DataContext.TopBarForeground, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
-                                        <TextBlock Margin="0,4,0,0"
-                                                   MaxWidth="680"
-                                                   HorizontalAlignment="Left"
-                                                   TextWrapping="Wrap"
-                                                   FontSize="13"
-                                                   Text="{Binding GpuUndervoltStatusText, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}"
-                                                   Foreground="{Binding DataContext.SettingsSubtextForeground, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
-                                        <Button Margin="0,8,0,0"
-                                                Padding="10,6"
-                                                HorizontalAlignment="Left"
-                                                Click="GpuUndervoltRefreshButton_Click"
-                                                Content="{Binding DataContext.GpuUndervoltRefreshStatus, RelativeSource={RelativeSource AncestorType={x:Type views:GpuTuningPage}}}" />
-                                            </StackPanel>
-                                        </Border>
                                     </StackPanel>
 </UserControl>

@@ -186,6 +186,7 @@ namespace IconGrid.ViewModels
         public string GpuPowerSavingPowerIntro => _localizationState.Get(Language, "GpuPowerSavingPowerIntro");
         public string GpuPowerSavingClockTitle => _localizationState.Get(Language, "GpuPowerSavingClockTitle");
         public string GpuPowerSavingClockIntro => _localizationState.Get(Language, "GpuPowerSavingClockIntro");
+        public string GpuPowerSavingClockLimitMhzFormat => _localizationState.Get(Language, "GpuPowerSavingClockLimitMhzFormat");
         public string GpuPowerSavingTempTitle => _localizationState.Get(Language, "GpuPowerSavingTempTitle");
         public string GpuPowerSavingTempIntro => _localizationState.Get(Language, "GpuPowerSavingTempIntro");
         public string GpuPowerSavingHint => _localizationState.Get(Language, "GpuPowerSavingHint");
@@ -665,6 +666,7 @@ namespace IconGrid.ViewModels
             OnPropertyChanged(nameof(GpuPowerSavingPowerIntro));
             OnPropertyChanged(nameof(GpuPowerSavingClockTitle));
             OnPropertyChanged(nameof(GpuPowerSavingClockIntro));
+            OnPropertyChanged(nameof(GpuPowerSavingClockLimitMhzFormat));
             OnPropertyChanged(nameof(GpuPowerSavingTempTitle));
             OnPropertyChanged(nameof(GpuPowerSavingTempIntro));
             OnPropertyChanged(nameof(GpuPowerSavingHint));

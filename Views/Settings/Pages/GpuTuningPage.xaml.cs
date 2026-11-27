@@ -898,14 +898,6 @@ public bool IsNvidiaGtx =>
         }
     }
 
-    private void GpuUndervoltRefreshButton_Click(object sender, System.Windows.RoutedEventArgs e)
-    {
-        RefreshAfterburnerProfiles();
-        RefreshGpuUndervoltStatus();
-        RefreshCurveChart();
-    }
-
-
     private void GpuUndervoltProfile_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         => RefreshCurveChart();
 

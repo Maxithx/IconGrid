@@ -17,7 +17,6 @@
             ProfileRowIdleRequested="ProfileRowIdle_Click"
             ProfileRowSaveRequested="ProfileRowSave_Click"
             ProfileRowDeleteRequested="ProfileRowDelete_Click"
-            RefreshStatusRequested="GpuUndervoltRefreshButton_Click"
             ApplyTuningRequested="GpuTuningApply_Click" />
     </ScrollViewer>
 </UserControl>

@@ -9,7 +9,6 @@ namespace IconGrid.Views
         public event RoutedEventHandler? ProfileRowIdleRequested;
         public event RoutedEventHandler? ProfileRowSaveRequested;
         public event RoutedEventHandler? ProfileRowDeleteRequested;
-        public event RoutedEventHandler? RefreshStatusRequested;
         public event RoutedEventHandler? ApplyTuningRequested;
 
         public GpuUndervoltSection()
@@ -31,9 +30,6 @@ namespace IconGrid.Views
 
         private void ProfileRowDelete_Click(object sender, RoutedEventArgs e)
             => ProfileRowDeleteRequested?.Invoke(sender, e);
-
-        private void GpuUndervoltRefreshButton_Click(object sender, RoutedEventArgs e)
-            => RefreshStatusRequested?.Invoke(sender, e);
 
         private void GpuUndervoltGenerateCurve_Click(object sender, RoutedEventArgs e)
             => ApplyTuningRequested?.Invoke(sender, e);

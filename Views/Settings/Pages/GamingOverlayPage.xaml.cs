@@ -71,6 +71,8 @@ namespace IconGrid.Views
         private string _fpsSetupIntroText = string.Empty;
         private string _refreshFpsSetupButtonText = string.Empty;
         private string _gpuPowerSavingStatusText = string.Empty;
+        private string _gpuPowerSavingClockLimitMhzText = "—";
+        private uint _gpuMaxSmClockMhz;
         private readonly System.Windows.Threading.DispatcherTimer _gpuStatusTimer =
             new() { Interval = System.TimeSpan.FromSeconds(1) };
         private string _runFpsSetupFixButtonText = string.Empty;
@@ -238,6 +240,16 @@ namespace IconGrid.Views
         {
             get => _gpuPowerSavingStatusText;
             private set => SetField(ref _gpuPowerSavingStatusText, value);
+        }
+
+        /// <summary>
+        /// The clock cap expressed in MHz, derived from the selected percentage and
+        /// the card's reported maximum SM clock. The agent owns the actual ceiling.
+        /// </summary>
+        public string GpuPowerSavingClockLimitMhzText
+        {
+            get => _gpuPowerSavingClockLimitMhzText;
+            private set => SetField(ref _gpuPowerSavingClockLimitMhzText, value);
         }
 
         public string RunFpsSetupFixButtonText
@@ -650,6 +662,8 @@ namespace IconGrid.Views
 
                 if (!File.Exists(statePath))
                 {
+                    _gpuMaxSmClockMhz = 0;
+                    UpdateGpuPowerSavingClockLimitMhzText();
                     GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
                     return;
                 }
@@ -657,9 +671,14 @@ namespace IconGrid.Views
                 var state = JsonConvert.DeserializeObject<GpuPowerSavingState>(File.ReadAllText(statePath));
                 if (state == null)
                 {
+                    _gpuMaxSmClockMhz = 0;
+                    UpdateGpuPowerSavingClockLimitMhzText();
                     GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
                     return;
                 }
+
+                _gpuMaxSmClockMhz = state.MaxSmClockMhz;
+                UpdateGpuPowerSavingClockLimitMhzText();
 
                 if (!state.Available)
                 {
@@ -707,6 +726,26 @@ namespace IconGrid.Views
             {
                 GpuPowerSavingStatusText = viewModel.GpuPowerSavingStatusNoData;
             }
+        }
+
+        /// <summary>
+        /// Converts the percentage slider into the corresponding clock in MHz using
+        /// the maximum SM clock reported by the elevated GPU agent.
+        /// </summary>
+        private void UpdateGpuPowerSavingClockLimitMhzText()
+        {
+            var percent = _mainViewModel?.GpuPowerSavingClockLimitPercent ?? 0;
+            if (percent <= 0 || _gpuMaxSmClockMhz == 0)
+            {
+                GpuPowerSavingClockLimitMhzText = "—";
+                return;
+            }
+
+            var mhz = (int)System.Math.Round(_gpuMaxSmClockMhz * (percent / 100.0));
+            var format = _mainViewModel?.GpuPowerSavingClockLimitMhzFormat;
+            GpuPowerSavingClockLimitMhzText = string.IsNullOrWhiteSpace(format)
+                ? $"{mhz} MHz"
+                : string.Format(format, mhz);
         }
 
         /// <summary>
@@ -845,6 +884,7 @@ namespace IconGrid.Views
             if (string.Equals(e.PropertyName, nameof(MainViewModel.Language), System.StringComparison.Ordinal))
             {
                 RefreshLocalizedText();
+                UpdateGpuPowerSavingClockLimitMhzText();
             }
 
             // Keep the page's bound properties in sync when the VIEW MODEL changes the
@@ -870,6 +910,10 @@ namespace IconGrid.Views
             else if (string.Equals(e.PropertyName, nameof(MainViewModel.RestoreLauncherAfterOverlayClosed), System.StringComparison.Ordinal))
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RestoreLauncherAfterOverlayClosed)));
+            }
+            else if (string.Equals(e.PropertyName, nameof(MainViewModel.GpuPowerSavingClockLimitPercent), System.StringComparison.Ordinal))
+            {
+                UpdateGpuPowerSavingClockLimitMhzText();
             }
         }
 
