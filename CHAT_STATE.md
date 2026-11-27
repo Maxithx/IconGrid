@@ -2475,7 +2475,8 @@ MÅLTE FAKTA FØR (PoE i baggrunden ~57 FPS, VS Code i fokus):
 - COMMITTET/PUSHET 2026-11-27 — commit `a7256a8` (`Fix ETW setup, shortcut icons, and GPU tuning UI`) på `main`.
 - GPU tuning: "Målt status"-kortet og "Opdater status"-knappen er fjernet fra bunden af siden. Live GPU-status-kortet og V/F-kurvens live-spænding er uændret.
 - Runtime-fix efter fjernelsen: `RefreshStatusRequested="GpuUndervoltRefreshButton_Click"` lå stadig på `GpuUndervoltSection` i `GpuTuningPage.xaml` og gav `XamlParseException` ved navigation. Event-wiring, eventdeklaration og den tomme handler er nu fjernet helt. Build 0/0, deployet til `C:\IconGrid`.
-- GPU power-save → Clock-loft viser nu også det beregnede loft i MHz, fx `≈ 840 MHz`, ud for procent-slideren. Værdien beregnes fra `MaxSmClockMhz` i agentens `gpu-power-saving-state.json` og opdateres med det samme, når slideren flyttes. Nye lokaliseringsnøgler i en+da; `check-loc`: 540/540. Build 0/0, deployet til `C:\IconGrid`; ikke committet endnu.
+- GPU power-save → Clock-loft viser nu også det beregnede loft i MHz, fx `≈ 840 MHz`, ud for procent-slideren. Værdien beregnes fra `MaxSmClockMhz` i agentens `gpu-power-saving-state.json` og opdateres med det samme, når slideren flyttes. Nye lokaliseringsnøgler i en+da; `check-loc`: 540/540. Build 0/0, deployet til `C:\IconGrid`.
+- COMMITTET/PUSHET 2026-11-27 — commit `f71d172` (`Refine GPU tuning and power-save controls`) på `main`.
 
 - Build: 0 fejl / 0 advarsler. Deployet til `C:\IconGrid` kl. 23:51:25 (DLL 1.885.696 bytes).
 - IKKE COMMITTET/PUSHET — kræver eksplicit bruger-godkendelse.
